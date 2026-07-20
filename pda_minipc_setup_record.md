@@ -1,10 +1,10 @@
 # PDAミニPC セットアップ検討・実行記録
 
-- 更新日: 2026-07-19
+- 更新日: 2026-07-20
 - 対象プロジェクト: Personal Delegate Agent（PDA）
 - 対象機器: GMKtec M8（AMD Ryzen 5 PRO 6650H / 16GB LPDDR5 / 512GB SSD）
-- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化し、スマホからWeb UIで管理可能な状態にした。加えて、開発用PC上のClaude CodeからHermesへMCP経由で片方向の接続を確立し、`conversations_list` の呼び出しまで動作確認済みの状態。
-- 次工程: HermesからClaude Codeへの逆方向連携（双方向化）、PKB取り込み系の整備、メインモデルのClaude移行
+- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化。主UIをOpen WebUI（LAN内・スマホ含む）に差し替え済み。Claude CodeとHermesの双方向連携（Claude Code → Hermes は会社Team plan/SSH stdio経由MCP、Hermes → Claude Code は個人プラン/バンドルスキル経由）まで完了。Hermes中核推論エンジンはCodex据え置きの方針で確定。
+- 次工程: 外出先対応（Tailscale等）、PKB取り込み系の整備
 
 ---
 
@@ -326,6 +326,99 @@ Hermesの `hermes mcp serve` は現行実装ではstdio専用（HTTPリスナー
 - 逆方向（Hermes → Claude Code）はこの経路では動かない。Hermes側の `claude-code` スキルを別途セットアップして `claude -p '指示' --max-turns N` でCLIラップする必要がある
 - Team plan であっても、user scope（`~/.claude.json`）に登録したMCPサーバーは組織管理者ポリシーの明示的なブロックがない限り動作する
 
+### 5.17 Open WebUIによる主UIの差し替え
+
+Hermes標準のWeb Dashboardはチャットタブがxterm.js（Canvas/WebGL描画）で実装されており、macOSブラウザからのコピーペーストとiOS Safariでのテキスト選択が構造的に不可であることが判明した。Markdownレンダリングも十分でなく、長文の応答や設計書レベルの出力を扱う用途には向かない。この課題を解消するため、Hermesが標準で持つOpenAI互換HTTP APIサーバーの前段にOpen WebUIを立て、これを主UIとする構成に変更した。
+
+**Hermes APIサーバーの有効化**:
+
+- `~/.hermes/.env` に以下を追記した:
+  - `API_SERVER_ENABLED=true`
+  - `API_SERVER_HOST=0.0.0.0`
+  - `API_SERVER_PORT=8642`
+  - `API_SERVER_KEY=<openssl rand -hex 32 で生成した値>`
+- `systemctl --user restart hermes-gateway.service` で反映
+- 動作確認: `curl -H "Authorization: Bearer <KEY>" http://localhost:8642/v1/models` が `hermes-agent` を返すことを確認した
+- 公開されるエンドポイント: `/v1/chat/completions`（SSEストリーミング対応）、`/v1/responses`、`/v1/runs`、`/v1/models` 等のOpenAI互換API
+
+**Open WebUIのDocker Compose設置**:
+
+- `~/openwebui/` にDocker Compose構成を配置（image: `ghcr.io/open-webui/open-webui:main`）
+- ポート: `9120`（3000番台・5000番台は他用途で開けておきたいため9119の隣を採用）
+- APIキー等の秘密情報は `~/openwebui/.env`（`chmod 600`）に分離し、`docker-compose.yml` からは `${HERMES_API_KEY}` として参照
+- 設定内容:
+  - `WEBUI_AUTH=true`（Open WebUI内蔵の認証を使用）
+  - `ENABLE_SIGNUP=false`（初回admin作成後は追加サインアップを禁止）
+  - `DEFAULT_LOCALE=ja`
+  - `OPENAI_API_BASE_URLS=http://host.docker.internal:8642/v1`
+  - `OPENAI_API_KEYS=<Hermes API server key>`
+  - `ENABLE_OLLAMA_API=false`
+  - `extra_hosts: - "host.docker.internal:host-gateway"`（Linux上でコンテナからホストへ到達させるため）
+- 初回起動時にsentence-transformersの埋め込みモデル（all-MiniLM-L6-v2、約90MB）をHugging Faceからダウンロードするためhealthcheck通過まで2〜3分かかる
+
+**Open WebUIの常駐化**:
+
+- `~/.config/systemd/user/openwebui.service`（Type=oneshot / RemainAfterExit=yes / WorkingDirectory=%h/openwebui / ExecStart=docker compose up -d）を作成
+- `systemctl --user enable openwebui.service` で有効化
+- Docker Compose自体の `restart: unless-stopped` に加え、systemd user service経由でも管理する二重構成
+
+**動作確認**:
+
+- LAN経由でスマホから `http://192.168.0.59:9120` へアクセスし、日本語UIが表示されること・初回admin作成が完了すること・Hermesモデルが選択できることをユーザー側で確認した
+- Markdownレンダリング・コードブロック・テキスト選択・コピーペーストがiOSとmacOSブラウザ双方で正常に動作することを確認
+
+**役割の再定義**:
+
+- **Open WebUI（主UI・新規）**: 会話・タスク委任・長文レスポンス閲覧。iOS/macOSブラウザから利用
+- **Hermes Web Dashboard（副UI・既存維持）**: Gateway稼働状況・セッション一覧の監視用途に限定
+- **CLI over SSH（macOS）**: 詳細設定・デバッグ・ログ確認
+- **Claude Code MCP（開発PC）**: コードタスクとHermes会話履歴の読み取り
+
+### 5.18 HermesからClaude Codeへの逆方向連携（双方向化の完了）
+
+Claude Code → HermesのMCP経路（片方向）は5.16で確立済みだが、逆方向（Hermes → Claude Code）については別途Hermesの `claude-code` バンドルスキルを経由する必要がある。個人契約のClaude Pro/Maxプランで認証したCLIをミニPC側に導入し、逆方向連携を成立させた。
+
+**アカウント分離の設計**:
+
+- 開発用PC上のClaude Code: 会社発行Team plan。会社の開発業務・会社発行MCP（Datadog等）用
+- ミニPC上のClaude Code: 個人契約Pro or Maxプラン。プライベート開発・私生活情報処理用
+- 認証情報の境界を維持することを設計原則とし、Team planのOAuthトークンをミニPC側に置く選択肢は棄却した
+
+**Node.jsランタイム**:
+
+- Hermes自体がNode 22（`~/.hermes/node/bin/node`、`~/.local/bin/node` にsymlink）を既に含んでいたためこれを流用
+- 将来の切り替え余地として `nvm` も導入済み（Node 24 LTSがインストール済み・未アクティブ）
+
+**Claude Code CLIの導入**:
+
+- ネイティブインストーラで `~/.local/share/claude/versions/2.1.205` に導入、`~/.local/bin/claude` にsymlink
+- `claude --version` で `2.1.205 (Claude Code)` を確認
+
+**OAuthトークンによる認証**:
+
+- ユーザーがミニPC上で `claude setup-token` を実行し、個人アカウントでログイン済みブラウザから認可を行うことで1年有効な長期OAuthトークンを発行
+- トークンは `~/.hermes/.env` の `CLAUDE_CODE_OAUTH_TOKEN` に格納（ファイル権限 `chmod 600`）
+- 会社アカウントのブラウザセッションで誤って認可しないよう、個人アカウント専用のブラウザ・プライベートウィンドウ・スマホブラウザ等を使い分ける運用とする
+
+**Hermes側スキルの状態確認**:
+
+- `hermes skills list` で `claude-code` が `enabled` かつ `builtin` であることを確認
+- 追加のopt-in操作は不要（バンドルスキルとしてデフォルト有効）
+- スキルは `skills-sh/nousresearch/hermes-agent/claude-code` v2.2.0 を使用
+
+**hermes-gateway再起動と動作確認**:
+
+- `systemctl --user restart hermes-gateway.service` で環境変数を反映
+- 動作確認: OpenAI互換エンドポイント `/v1/chat/completions` に対して、Hermesに `claude-code` スキル経由で `/tmp/pda_reverse_test.txt` にテキスト書き込みを依頼
+- 結果: ファイルが指定通り27バイトで作成され、Hermesからは「Claude Code CLI経由で確認済み」の応答が返った
+- これにより Hermes → claude CLI（個人プラン認証）→ ローカル実行 → Hermesへの結果返却 のパスが動作していることを確認
+
+**制約・注意事項**:
+
+- OAuthトークンは1年後に失効するため、再発行運用が必要
+- claude CLIが実行するタスクはミニPCのユーザー権限で動作するため、Hermesが誤った指示を出した場合の影響範囲を意識する必要がある
+- `claude -p` の非対話モードで動くため、対話が必要なプロンプト（Workspace Trust承認等）はスキルの実装側で処理されている前提
+
 ---
 
 ## 6. Hermes運用上の設計判断
@@ -339,38 +432,47 @@ PDAへのアクセス経路として、以下の3つが計画されている。�
 - macOS CLI: 現行のSSH経由でミニPC上の `hermes chat` を叩く経路を継続利用する
 - Claude Code MCP: 直接HTTP接続はできない（`hermes mcp serve` はstdio専用）ため、`claude mcp add --scope user hermes -- ssh agent-node <hermes絶対パス> mcp serve` の形でSSHをstdioラッパーとして用いる構成を採用した。認証はSSH鍵で、暗号化もSSHが担う
 
-現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Web Dashboard（LAN経由、スマホ含む）、Claude Code MCP（片方向：Claude Code → Hermes）。逆方向（Hermes → Claude Code）は未実装。
+現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Open WebUI（LAN経由、スマホ含む）、Hermes Dashboard（監視用途）、Claude Code MCP（双方向：Claude Code → Hermes はSSH stdio、Hermes → Claude Code はミニPC上のclaude CLIをバンドルスキルで呼び出し）。
 
 ### 6.2 コンテキスト圧縮エンジンについて
 
 `context_engine` は `hermes tools` 上でチェックを入れることで有効化した。デフォルトの組み込みエンジン `compressor` が使われる。将来的に別方式（LCM等のプラグイン）を試したくなった時点で `config.yaml` の `context.engine` を書き換える。
 
+### 6.3 Hermes中核推論エンジンの選定（Codex据え置き）
+
+Hermes自体がタスクを判断・分解する際に用いる推論エンジンについて、以下の理由でCodex据え置きとする方針を確定した。
+
+**背景**:
+
+計画初期には「個人契約のClaude Pro/Maxプランを用いて、HermesのメインモデルをClaudeに切り替える」という案があった。しかし詳細調査の結果、以下の制約が判明した。
+
+- Hermesの `anthropic` プロバイダ（alias: `claude` / `claude-code`）は3経路のいずれかで認証する必要がある: (1) `ANTHROPIC_API_KEY` による従量課金、(2) Anthropic OAuth（Max plan + 追加extra credits必須、Pro plan不可）、(3) `~/.claude/.credentials.json` からのauto-detect（実装バグ既知）
+- **個人契約のPro/Maxサブスクリプション代金だけでは、Hermesの中核推論として常用することはできない**。いずれの経路でも別途API課金が必須
+- サードパーティ経由でClaude Code OAuthトークン（`CLAUDE_CODE_OAUTH_TOKEN`）を推論APIとして流用する経路は、2026-04-04にAnthropic側で遮断済み。仮に動作してもMax割当ではなくextra_usageプールに課金される
+- Sonnet 4.5の従量単価はどの経路でも同水準（1M input $3 / output $15）
+
+**決定**:
+
+- Hermesの中核推論エンジンは引き続き `openai-codex`（ChatGPT Plus/Pro subscription経由OAuth）を使用する
+- 個人契約のClaude Pro/Maxサブスクリプションは、Hermes → Claude Code逆方向連携（5.18）を通じてコード関連の重い委任タスク実行に利用することで、subscription代金分の価値を回収する
+- Hermes中核をClaudeに切り替えるオプションは、明確な必要性と追加課金の許容が揃った時点で再検討する
+
+**教訓（プロジェクト固有の記録として）**:
+
+有料プランの契約前に、想定用途全体をそのプランでカバーできるかを一次情報（公式pricing・providers doc・ToS）で検証すべきだった。目の前のサブタスク（今回はClaude Code CLI認証）だけで判断せず、セッション全体・計画書レベルの目的（Hermes中核化）にも接続して検証すべきだった。
+
 ---
 
 ## 7. 未実施・次工程
 
-### 7.1 HermesからClaude Codeへの逆方向連携（双方向化）
+### 7.1 スマホアクセスの外出先対応
 
-現状はClaude Code → Hermesの片方向のみ確立している。逆方向を追加して双方向連携を成立させる。
-
-- Hermes側の `claude-code` スキル（バンドル済み）を有効化する
-- `claude` CLI（Claude Code）を開発用PC側ではなくミニPC側にも導入する、あるいは開発用PC上のClaude Codeを何らかの経路でHermesから叩けるようにする
-- 実行モードとしては非対話印刷モード（`claude -p 'タスク説明' --max-turns N`）が推奨される（tmux経由の対話モードよりオーケストレーションが単純）
-- 動作確認: Hermesにコード変更タスクを依頼し、それがClaude Code経由で実行され、結果がHermesに戻ることを確認する
-
-### 7.2 スマホアクセスの外出先対応
-
-現状はLAN内限定。外出先からもWeb Dashboardを利用できるようにする。
+現状はLAN内限定。外出先からもOpen WebUI・Hermes Dashboardを利用できるようにする。
 
 - Tailscale等のオーバーレイVPNをミニPCと利用端末（スマホ・開発用PC）に導入する
 - ポート開放は行わない方針を継続する
 
-### 7.3 メインモデルのClaude移行
-
-- Anthropicアカウント準備完了後、`hermes model` で `anthropic-claude` に切り替える
-- Codexは補助モデルとして残すか、切り替え動作の検証用途に留めるかを判断する
-
-### 7.4 情報取り込み基盤の整備（フェーズ4開始）
+### 7.2 情報取り込み基盤の整備（フェーズ4開始）
 
 PDA計画書のフェーズ4に相当する作業。以下の情報源からHermesへの取り込み経路を順次確立する。
 
@@ -380,7 +482,7 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 - Backlog（プロジェクト管理）
 - Git（開発履歴）
 
-### 7.5 PKB／コンテキストグラフの成立（フェーズ5準備）
+### 7.3 PKB／コンテキストグラフの成立（フェーズ5準備）
 
 情報取り込みが一定量進んだ段階で、PKB／グラフネットワークの設計に着手する。Firecrawlによる本文取得はこの段階で本格利用される。
 
@@ -388,7 +490,7 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 
 ## 8. 初期構築完了の定義
 
-以下をもって「PDAミニPC初期構築完了」とみなす。この時点までがフェーズ1「常時稼働基盤の構築」の到達内容であり、加えてフェーズ2（Hermesを中核とした最小PDA）およびフェーズ3（複数エージェントランタイム統合）の片方向連携までを達成した状態。
+以下をもって「PDAミニPC初期構築完了」とみなす。この時点までがフェーズ1「常時稼働基盤の構築」の到達内容であり、加えてフェーズ2（Hermesを中核とした最小PDA）およびフェーズ3（複数エージェントランタイム統合）の双方向連携までを達成した状態。
 
 **フェーズ1 相当の到達内容**:
 
@@ -397,20 +499,18 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 - Hermesが導入されており、モデルプロバイダー（Codex）で対話・ツール実行ができる
 - Hermesが実行可能なツールとして、ファイル操作、ターミナル、ブラウザ、Web検索・本文取得（Firecrawl経由）、記憶、スキル管理、視覚解析等を持つ
 - 外部Web情報を自前スタック（Firecrawl Self-Hosted）で取得可能な状態にある
-- Hermes本体・Web Dashboard・GatewayがすべてsystemdによりミニPC再起動後も自動起動する
+- Hermes本体・Web Dashboard・Gateway・Open WebUIがすべてsystemd/Docker restart policyによりミニPC再起動後も自動起動する
 
 **フェーズ2 相当の到達内容**:
 
-- Web Dashboardがスマホブラウザから閲覧可能（LAN内、Basic認証）
-- Web Dashboard上でGatewayステータス、セッション、cron、ログ、設定を管理できる
+- Open WebUIがスマホ・macOSブラウザから利用可能（LAN内、Markdownレンダリング・コピペ・テキスト選択すべて正常動作）
+- Hermes Web DashboardがGatewayステータス・セッション・cron・ログ・設定の監視用途で利用可能
 - Hermesが対話、タスク受付、ツール実行を単独で完結できる
 
-**フェーズ3 相当の到達内容（片方向）**:
+**フェーズ3 相当の到達内容（双方向）**:
 
-- 開発用PC上のClaude CodeがMCP経由でHermesを呼び出せる（SSH越しのstdio wrapper構成）
-- Hermes MCPが公開する10ツール（`conversations_list`, `messages_send` 等）を Claude Code側から利用可能
-- 逆方向（Hermes → Claude Code）は未実装で、7.1で対応する
+- 開発用PC上のClaude Code（会社Team plan）→ Hermes: MCP経由（SSH越しのstdio wrapper構成）で `conversations_list`, `messages_send` 等の10ツールが利用可能
+- Hermes → ミニPC上のClaude Code（個人プラン）: バンドルスキル `claude-code` 経由で `claude -p` を呼び出し、コードタスクをローカル実行して結果を返す
+- 認証情報の境界を維持（会社と個人のAnthropicアカウントを別マシンに分離）
 
-以降は「7. 未実施・次工程」の項目実装と、PDA計画書のフェーズ3完成（双方向化）・フェーズ4（情報取り込み）への移行となる。
-
-上記はすべて満たされている。以降は「7. 未実施・次工程」に記載した項目の実装と、PDA計画書のフェーズ2以降への移行となる。
+以降は「7. 未実施・次工程」の項目実装と、PDA計画書のフェーズ4（情報取り込み）・フェーズ5（PKB）への移行となる。
