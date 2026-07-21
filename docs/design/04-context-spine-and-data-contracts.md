@@ -96,11 +96,18 @@ flowchart LR
 - **ID形式**: `<prefix>_<ULID>`。prefix: `ev`(event) / `cl`(claim) / `ta`(task) / `run`(run) /
   `art`(artifact) / `src`(source) / `ing`(ingest run) / `vd`(verdict) / `ap`(approval) / `au`(audit)。
   ULIDは時刻順ソート可能で単一ホスト生成に衝突懸念がない
-- **pack_id** のみ内容由来: `pk_` + SHA-256の先頭 **8バイト（16 hex文字）**。
-  ハッシュ入力は `query, scope, as_of, builder_version, token_budget, 採用item参照列（seq昇順で正規化）`。
-  すなわちpack_idは **採用item列とbudgetを含む全入力パラメータのhash** であり、budget差でtruncationが
-  変われば別IDになる。決定性の担保は§4.5（builderの全順序tie-break）に委ねる。同一pack_idへの再insertは
-  内容バイト一致を検証したうえでのno-opとする（不一致は `E_CONFLICT`）
+- **pack_id** のみ内容由来: `pk_` + SHA-256の先頭 **16バイト（32 hex文字）**。
+  ハッシュ入力は `query, scope, as_of, builder_version, token_budget, 採用item参照列（seq昇順で正規化）` を
+  canonical JSON化（下記「hash計算の正規化」）した文字列。すなわちpack_idは **採用item列とbudgetを含む
+  全入力パラメータのhash** であり、budget差でtruncationが変われば別IDになる。決定性の担保は§4.5（builderの
+  全順序tie-break）に委ねる。
+  - **サイズ選定の根拠**: 128bit空間（birthday paradoxで 2^64 pack で50%衝突）を採り、個人利用の lifetime で
+    実用上ゼロ衝突を得る。参考として 8バイト（64bit空間）は 2^32 pack ≈ 65,536 pack で50%衝突に達するため
+    採用しない
+  - **衝突検証（多層防御）**: 同一pack_idへの再insertは、hash値の一致だけでなく **hash入力そのもの**
+    （query/scope/as_of/builder_version/token_budget/採用item参照列）の完全一致を `context_packs` に保存済みの
+    入力fingerprintと突合し、一致すればno-op、不一致なら `E_CONFLICT`。**真の衝突**（異なる入力→同一hash）を
+    「重複」と誤判定しないためhash値だけに依存しない
 - **hash**: `sha256:<64hex>`。blobはhash自体がアドレス
 - **schema_version**: 全contractに整数で付与。後方互換の追加はversion据え置き、
   意味変更・必須追加はversion増分＋migration（§8.3）
@@ -118,6 +125,15 @@ flowchart LR
   - **FS（blob）を跨ぐ操作**: SQLiteとファイルシステムに跨るトランザクションは成立しないため、
     **順序＋冪等再実行** で担保する。ingestは「blob書込→fsync→DB commit」の順（commit済みeventが
     欠損blobを指さない）。redaction・backupの順序契約は§7・§8.2に定める
+- **hash計算の正規化（共通契約）**: JSON構造からhashを導出するすべての箇所は **canonical JSON = RFC 8785
+  (JCS: JSON Canonicalization Scheme)** に統一する。適用対象は `revision_hash`（event正規化payloadの
+  sha256）、構造化payloadから導出する `content_hash`、`statement_hash`（claim）、`entry_hash`（audit、§4.8）、
+  pack_id生成入力（§4.5）、`idempotency_key` の内容hash判定（§4.3）、その他 hash入力にJSONを含む全処理。
+  JCSの規約: (a) UTF-8符号化、(b) オブジェクトキーはRFC 8259 コードポイント順にソート、(c) 数値はES6
+  `Number.prototype.toString`（RFC 8785 §3.2.2.3）表現、(d) 余分な空白・改行なし、(e) `null` を含む
+  全フィールド保存（プロパティ省略と明示的null は区別）。**バイナリblob** の `content_hash` はJCS対象外で
+  生バイト列のsha256とする。この規約により、実装（Python/TS/Go等）を跨いだhash再現性が保証される
+  ([08 T-AUDIT-CHAIN, T-INGEST-IDEM, T-PACK-CONTRACT](08-evaluation-and-phase-gates.md) の前提)
 
 ## 4. Canonical contracts
 
@@ -338,7 +354,7 @@ CREATE TABLE claim_transitions (
   "model": "claude-sonnet-5",
   "adapter": "adapter-claude-code@0.1.0",
   "tool_versions": {"pda-mcp": "0.1.0", "git": "2.43"},
-  "pack_id": "pk_9f2c41ab07e355d1",
+  "pack_id": "pk_9f2c41ab07e355d1c2f80f5e6a7b8c9d",
   "prompt_ref": "sha256:aa31...",
   "status": "succeeded",
   "started_at": "2026-07-21T10:02:11+09:00",
@@ -384,7 +400,7 @@ CREATE TABLE claim_transitions (
 
 ```json
 {
-  "pack_id": "pk_9f2c41ab07e355d1",
+  "pack_id": "pk_9f2c41ab07e355d1c2f80f5e6a7b8c9d",
   "schema_version": 1,
   "built_at": "2026-07-21T10:01:58+09:00",
   "builder_version": "pda-pack@0.1.0",
@@ -516,7 +532,9 @@ approval policyが定める。
 }
 ```
 
-- `entry_hash = sha256(canonical_json(entry without entry_hash) || prev_hash)`
+- `entry_hash = sha256(canonical_json(entry without entry_hash) || prev_hash)`。
+  `canonical_json` は §3 の共通契約（RFC 8785 / JCS）に従う。`prev_hash` は文字列としてそのまま連結
+  （区切り文字なし、UTF-8バイト列で結合してからsha256）。chain先頭の `prev_hash` は空文字列とする
 - append-only。UPDATE/DELETE経路なし。redactionでもaudit本体は削除しない
   （個人データはauditの `details` に本文を入れない規約で回避）
 - 日次でオフホストへ複製（backupとは別系統でも可）。連鎖検証は `pda audit verify`
