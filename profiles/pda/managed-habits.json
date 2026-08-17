@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "habits": [
+    {
+      "id": "daily-local-continuity-backup",
+      "status": "managed-desired-state",
+      "desired_status": "active",
+      "observed_status": {
+        "source": "deployment verification: systemd timer + pda_backup.py status + restore drill",
+        "stored_in_git": false,
+        "activation_requires": [
+          "timer-enabled-and-active",
+          "current-policy-snapshot-fresh",
+          "real-snapshot-restore-drill-passed"
+        ]
+      },
+      "class": "continuity",
+      "owner_intent": "PDAの現在の実体を、毎日ローカルへ復元可能な世代として保存する。",
+      "policy_source": "continuity/local-backup.json",
+      "runtime_units": [
+        "pda-local-backup.service",
+        "pda-local-backup.timer"
+      ],
+      "schedule": {
+        "local_time": "05:00:00",
+        "timezone": "Asia/Tokyo"
+      },
+      "retention": {
+        "successful_snapshots": 7,
+        "semantics": "newest-successful-generation-per-local-calendar-day"
+      },
+      "freshness": {
+        "max_age_hours": 36,
+        "stale_is_unhealthy": true
+      },
+      "self_recognition": {
+        "managed_continuity_asset": true,
+        "meaning": "バックアップの設定、実行履歴、鮮度、検証結果をPDA自身の継続性の一部として扱い、黙って無効化しない。"
+      },
+      "limitations": {
+        "protects_against_host_or_disk_loss": false,
+        "off_host_export": "deferred"
+      }
+    }
+  ]
+}

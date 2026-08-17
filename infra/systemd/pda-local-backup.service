@@ -1,0 +1,16 @@
+[Unit]
+Description=PDA local continuity backup
+Documentation=file://%h/projects/pda/docs/operations/local-continuity-backup.md
+After=default.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=18h
+TimeoutStopSec=5min
+KillSignal=SIGINT
+UMask=0077
+ExecStart=/usr/bin/sg docker -c '/usr/bin/python3 %h/projects/pda/operations/backup/pda_backup.py run --config %h/.config/pda/local-backup.json'
+Nice=10
+IOSchedulingClass=idle
+StandardOutput=journal
+StandardError=journal

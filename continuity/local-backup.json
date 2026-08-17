@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "habit_id": "daily-local-continuity-backup",
+  "timezone": "Asia/Tokyo",
+  "schedule": {
+    "local_time": "05:00:00",
+    "timezone": "Asia/Tokyo"
+  },
+  "retention": {
+    "successful_snapshots": 7,
+    "semantics": "newest-successful-generation-per-local-calendar-day"
+  },
+  "freshness": {
+    "max_age_hours": 36
+  },
+  "backup_root": "~/pda-backups/local-continuity",
+  "sources": [
+    {
+      "name": "hermes-home",
+      "kind": "tree",
+      "path": "~/.hermes",
+      "sqlite": "discover"
+    },
+    {
+      "name": "pda-repository",
+      "kind": "tree",
+      "path": "~/projects/pda",
+      "sqlite": "discover"
+    },
+    {
+      "name": "firecrawl-runtime",
+      "kind": "tree",
+      "path": "~/firecrawl",
+      "sqlite": "discover"
+    },
+    {
+      "name": "openwebui-config",
+      "kind": "tree",
+      "path": "~/openwebui",
+      "sqlite": "discover"
+    },
+    {
+      "name": "openwebui-data",
+      "kind": "docker-container",
+      "container": "openwebui",
+      "path": "/app/backend/data",
+      "sqlite": "discover"
+    },
+    {
+      "name": "tailscale-pda-state",
+      "kind": "tree",
+      "path": "~/.local/share/tailscale-pda",
+      "sqlite": "discover",
+      "allowed_special_files": [
+        {
+          "path": "tailscaled.sock",
+          "kind": "socket"
+        }
+      ]
+    },
+    {
+      "name": "systemd-user-units",
+      "kind": "tree",
+      "path": "~/.config/systemd/user",
+      "sqlite": "none"
+    }
+  ]
+}
