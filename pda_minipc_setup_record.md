@@ -1,10 +1,10 @@
 # PDAミニPC セットアップ検討・実行記録
 
-- 更新日: 2026-07-20
+- 更新日: 2026-08-17
 - 対象プロジェクト: Personal Delegate Agent（PDA）
 - 対象機器: GMKtec M8（AMD Ryzen 5 PRO 6650H / 16GB LPDDR5 / 512GB SSD）
-- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化。主UIをOpen WebUI（LAN内・スマホ含む）に差し替え済み。Claude CodeとHermesの双方向連携（Claude Code → Hermes は会社Team plan/SSH stdio経由MCP、Hermes → Claude Code は個人プラン/バンドルスキル経由）まで完了。Hermes中核推論エンジンはCodex据え置きの方針で確定。
-- 次工程: 外出先対応（Tailscale等）、PKB取り込み系の整備
+- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化。主UIはOpen WebUI v0.11.0。Tailscale Serveによるtailnet限定HTTPS導線を追加し、Windows・開発PC・iPhoneからの利用を確認済み。Claude CodeとHermesの双方向連携まで完了し、Hermes中核推論エンジンはCodex据え置きの方針で確定。
+- 次工程: PKB取り込み系の整備
 
 ---
 
@@ -343,8 +343,8 @@ Hermes標準のWeb Dashboardはチャットタブがxterm.js（Canvas/WebGL描�
 
 **Open WebUIのDocker Compose設置**:
 
-- `~/openwebui/` にDocker Compose構成を配置（image: `ghcr.io/open-webui/open-webui:main`）
-- ポート: `9120`（3000番台・5000番台は他用途で開けておきたいため9119の隣を採用）
+- `~/openwebui/` にDocker Compose構成を配置（現在のimage: `ghcr.io/open-webui/open-webui:v0.11.0`）
+- ホスト側ポート: `127.0.0.1:9120`。Tailscale Serveのバックエンドと同一ホスト上の保守アクセスだけに使用し、LANには直接公開しない
 - APIキー等の秘密情報は `~/openwebui/.env`（`chmod 600`）に分離し、`docker-compose.yml` からは `${HERMES_API_KEY}` として参照
 - 設定内容:
   - `WEBUI_AUTH=true`（Open WebUI内蔵の認証を使用）
@@ -358,9 +358,8 @@ Hermes標準のWeb Dashboardはチャットタブがxterm.js（Canvas/WebGL描�
 
 **Open WebUIの常駐化**:
 
-- `~/.config/systemd/user/openwebui.service`（Type=oneshot / RemainAfterExit=yes / WorkingDirectory=%h/openwebui / ExecStart=docker compose up -d）を作成
-- `systemctl --user enable openwebui.service` で有効化
-- Docker Compose自体の `restart: unless-stopped` に加え、systemd user service経由でも管理する二重構成
+- Docker Composeの `restart: unless-stopped` と、system Dockerサービスの自動起動を正規の常駐経路とする
+- 旧 `~/.config/systemd/user/openwebui.service` は、一般ユーザーがDockerソケットへ接続できず、存在しないuser-level `docker.service` に依存する無効な二重管理だったため、2026-08-17に無効化・削除した
 
 **動作確認**:
 
@@ -419,20 +418,57 @@ Claude Code → HermesのMCP経路（片方向）は5.16で確立済みだが、
 - claude CLIが実行するタスクはミニPCのユーザー権限で動作するため、Hermesが誤った指示を出した場合の影響範囲を意識する必要がある
 - `claude -p` の非対話モードで動くため、対話が必要なプロンプト（Workspace Trust承認等）はスキルの実装側で処理されている前提
 
+### 5.19 Tailscale Serveによる外出先アクセス
+
+Open WebUIをインターネットへ直接公開せず、個人tailnetへ参加している端末からだけHTTPSで利用できる導線を追加した。Tailscale Personalプランの無料範囲で運用する。
+
+**構成**:
+
+- Tailscale v1.102.2の公式static buildを `~/.local/opt/tailscale-1.102.2/` に配置
+- root権限を要求しないuserspace networkingモードで `tailscaled` を起動し、`~/.config/systemd/user/tailscale-pda.service` で常駐化
+- ノード名: `pda-web`
+- HTTPS URL: `https://pda-web.tailaff53a.ts.net`
+- Tailscale Serve: `/` を `http://127.0.0.1:9120` へリバースプロキシ
+- 公開範囲は `tailnet only`。Tailscale Funnelは無効で、ルーターのポート開放も行わない
+- Tailscale SSH、Web管理UI、Exit Node、subnet routeは有効化しない
+- Open WebUI内蔵認証 (`WEBUI_AUTH=true`) と新規登録禁止 (`ENABLE_SIGNUP=false`) は維持する
+- userspace networkingのためホストに `tailscale0` を作らず、tailnet側へ明示的に公開される入口はServeのTCP 443だけとする
+
+**永続化・確認**:
+
+- `tailscale-pda.service` はenabled、user lingerもenabled
+- Tailscaleの状態・証明書・Serve設定は `~/.local/share/tailscale-pda/` に永続化
+- `tailscale-pda.service` を実際に再起動し、ノードが再接続すること、Serve設定が保持されること、Open WebUI `/health` が正常なことを2026-08-17に確認
+- Windowsマシン、開発PC、iPhoneからHTTPS URLへの疎通とOpen WebUI表示をユーザー側で確認
+- ホスト自身からは `http://127.0.0.1:9120` を保守導線として利用可能。旧LAN導線 `http://192.168.0.59:9120` は意図的に遮断
+
+**運用確認コマンド**:
+
+```bash
+systemctl --user status tailscale-pda.service
+"$HOME/.local/opt/tailscale-1.102.2/tailscale" \
+  --socket="$HOME/.local/share/tailscale-pda/tailscaled.sock" status
+"$HOME/.local/opt/tailscale-1.102.2/tailscale" \
+  --socket="$HOME/.local/share/tailscale-pda/tailscaled.sock" serve status
+curl -fsS http://127.0.0.1:9120/health
+```
+
+導入試行中に作成した旧Docker版TailscaleのCompose・state（旧ノード `pda-node`）と、未適用のpolicy案は、現行構成への誤切替と旧machine key残置を防ぐため削除した。
+
 ---
 
 ## 6. Hermes運用上の設計判断
 
 ### 6.1 スマホ・macOS CLI・Claude Code MCPの3経路について
 
-PDAへのアクセス経路として、以下の3つが計画されている。それぞれ利用する仕組みが異なる。
+PDAへのアクセス経路として、以下を併用する。それぞれ利用する仕組みが異なる。
 
-- スマホからのアクセス: Web Dashboard（`hermes dashboard --host 0.0.0.0`）を主軸とする方針。LAN内はそのまま到達可能。外出先からのアクセスは、ポート開放ではなくTailscale等のオーバーレイVPNを後段で追加する
+- スマホ・ブラウザからのアクセス: Tailscale接続後、`https://pda-web.tailaff53a.ts.net` のOpen WebUIを主UIとして利用する。Funnelとポート開放は使わない
 - Telegram: 通知チャネル（PDA側から能動的にプッシュ可能）として位置付ける。Web Dashboardのpull型を補完する
 - macOS CLI: 現行のSSH経由でミニPC上の `hermes chat` を叩く経路を継続利用する
 - Claude Code MCP: 直接HTTP接続はできない（`hermes mcp serve` はstdio専用）ため、`claude mcp add --scope user hermes -- ssh agent-node <hermes絶対パス> mcp serve` の形でSSHをstdioラッパーとして用いる構成を採用した。認証はSSH鍵で、暗号化もSSHが担う
 
-現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Open WebUI（LAN経由、スマホ含む）、Hermes Dashboard（監視用途）、Claude Code MCP（双方向：Claude Code → Hermes はSSH stdio、Hermes → Claude Code はミニPC上のclaude CLIをバンドルスキルで呼び出し）。
+現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Open WebUI（Tailscale Serve経由でWindows・開発PC・iPhoneから利用）、Hermes Dashboard（監視用途）、Claude Code MCP（双方向：Claude Code → Hermes はSSH stdio、Hermes → Claude Code はミニPC上のclaude CLIをバンドルスキルで呼び出し）。
 
 ### 6.2 コンテキスト圧縮エンジンについて
 
@@ -463,16 +499,9 @@ Hermes自体がタスクを判断・分解する際に用いる推論エンジ�
 
 ---
 
-## 7. 未実施・次工程
+## 7. 次工程
 
-### 7.1 スマホアクセスの外出先対応
-
-現状はLAN内限定。外出先からもOpen WebUI・Hermes Dashboardを利用できるようにする。
-
-- Tailscale等のオーバーレイVPNをミニPCと利用端末（スマホ・開発用PC）に導入する
-- ポート開放は行わない方針を継続する
-
-### 7.2 情報取り込み基盤の整備（フェーズ4開始）
+### 7.1 情報取り込み基盤の整備（フェーズ4開始）
 
 PDA計画書のフェーズ4に相当する作業。以下の情報源からHermesへの取り込み経路を順次確立する。
 
@@ -482,7 +511,7 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 - Backlog（プロジェクト管理）
 - Git（開発履歴）
 
-### 7.3 PKB／コンテキストグラフの成立（フェーズ5準備）
+### 7.2 PKB／コンテキストグラフの成立（フェーズ5準備）
 
 情報取り込みが一定量進んだ段階で、PKB／グラフネットワークの設計に着手する。Firecrawlによる本文取得はこの段階で本格利用される。
 
@@ -503,7 +532,7 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 
 **フェーズ2 相当の到達内容**:
 
-- Open WebUIがスマホ・macOSブラウザから利用可能（LAN内、Markdownレンダリング・コピペ・テキスト選択すべて正常動作）
+- Open WebUIがTailscale Serve経由でWindows・開発PC・iPhoneから利用可能（tailnet限定HTTPS、Markdownレンダリング・コピペ・テキスト選択すべて正常動作）
 - Hermes Web DashboardがGatewayステータス・セッション・cron・ログ・設定の監視用途で利用可能
 - Hermesが対話、タスク受付、ツール実行を単独で完結できる
 
@@ -513,4 +542,4 @@ PDA計画書のフェーズ4に相当する作業。以下の情報源からHerm
 - Hermes → ミニPC上のClaude Code（個人プラン）: バンドルスキル `claude-code` 経由で `claude -p` を呼び出し、コードタスクをローカル実行して結果を返す
 - 認証情報の境界を維持（会社と個人のAnthropicアカウントを別マシンに分離）
 
-以降は「7. 未実施・次工程」の項目実装と、PDA計画書のフェーズ4（情報取り込み）・フェーズ5（PKB）への移行となる。
+以降は「7. 次工程」の項目実装と、PDA計画書のフェーズ4（情報取り込み）・フェーズ5（PKB）への移行となる。
