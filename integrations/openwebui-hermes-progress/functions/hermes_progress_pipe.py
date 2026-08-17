@@ -1,9 +1,9 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.5
+version: 2.1.0-local.11
 required_open_webui_version: 0.10.2
-description: Hermes Runs API adapter with model-invisible tool status, per-chat sessions, interactive approvals, fail-safe cleanup, and content-free completion push.
+description: Hermes Runs API adapter with model-invisible tool status, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
 
 # Derived from MartianInGreen/openwebui-hermes (MIT), pinned during review at
@@ -37,6 +37,8 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import importlib
+import ipaddress
 import json
 import logging
 import os
@@ -44,7 +46,7 @@ import re
 import time
 import uuid
 from typing import Any, AsyncGenerator, Awaitable, Callable, Optional
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit, urlunsplit
 
 import aiohttp
 from fastapi.responses import StreamingResponse
@@ -56,6 +58,16 @@ FUNCTION_ID = "hermes_progress_pipe"
 MODEL_NAME = "Hermes Agent (Progress)"
 TERMINAL_EVENTS = frozenset({"run.completed", "run.failed", "run.cancelled"})
 _SAFE_ROLE = frozenset({"user", "assistant"})
+_UNTITLED_CHAT_NAMES = frozenset({"", "New Chat", "新しいチャット"})
+_NONINTERACTIVE_REQUEST_PATHS = frozenset(
+    {
+        "/api/v1/automations/internal",
+        "/api/v1/timers/internal",
+        "/api/v1/subagents/internal",
+    }
+)
+_NOTIFICATION_TITLE_CHARS = 100
+_NOTIFICATION_PREVIEW_CHARS = 240
 
 
 class Pipe:
@@ -109,6 +121,10 @@ class Pipe:
             default="",
             description="Private ntfy topic. Empty disables completion push.",
         )
+        NTFY_ALLOWED_USER_ID: str = Field(
+            default="",
+            description="Only this authenticated Open WebUI user may emit completion push.",
+        )
         OPENWEBUI_PUBLIC_URL: str = Field(
             default="",
             description="HTTPS Open WebUI URL opened when the push notification is tapped.",
@@ -129,6 +145,7 @@ class Pipe:
             HERMES_MODEL=os.getenv("HERMES_MODEL", "hermes-agent"),
             NTFY_SERVER_URL=os.getenv("PDA_NTFY_SERVER_URL", "https://ntfy.sh"),
             NTFY_TOPIC=os.getenv("PDA_NTFY_TOPIC", ""),
+            NTFY_ALLOWED_USER_ID=os.getenv("PDA_NTFY_ALLOWED_USER_ID", ""),
             OPENWEBUI_PUBLIC_URL=os.getenv("PDA_OPENWEBUI_PUBLIC_URL", ""),
         )
         self.user_valves = self.UserValves()
@@ -136,6 +153,9 @@ class Pipe:
         # tasks until delivery finishes so closing the response generator does
         # not silently discard them.
         self._notification_tasks: set[asyncio.Task] = set()
+        # Notification delivery is advisory and at-most-once per Open WebUI
+        # assistant message for the lifetime of this Function instance.
+        self._notified_message_keys: set[str] = set()
 
     async def pipe(
         self,
@@ -147,12 +167,29 @@ class Pipe:
         __session_id__: Optional[str] = None,
         __message_id__: Optional[str] = None,
         __metadata__: Optional[dict] = None,
+        __task__: Optional[str] = None,
+        __request__: Any = None,
     ) -> Any:
         messages = body.get("messages") or []
         if not messages:
             return {"error": {"detail": "No messages supplied"}}
 
-        user_id = str((__user__ or {}).get("id") or "unknown-user")
+        authenticated_user_id = str((__user__ or {}).get("id") or "").strip()
+        user_id = authenticated_user_id or "unknown-user"
+        metadata = __metadata__ or {}
+        user_message = metadata.get("user_message")
+        user_message_meta = (
+            user_message.get("meta") if isinstance(user_message, dict) else None
+        )
+        request_path = self._request_path(__request__)
+        is_internal = bool(
+            metadata.get("internal") is True
+            or (
+                isinstance(user_message_meta, dict)
+                and user_message_meta.get("internal") is True
+            )
+            or request_path in _NONINTERACTIVE_REQUEST_PATHS
+        )
         scope = self._scope_key(
             user_id=user_id,
             chat_id=__chat_id__,
@@ -177,6 +214,22 @@ class Pipe:
             session_key=hermes_session_key,
             event_emitter=__event_emitter__,
             event_call=__event_call__,
+            chat_id=str(
+                __chat_id__ or metadata.get("chat_id") or ""
+            ),
+            user_id=authenticated_user_id,
+            is_internal=is_internal,
+            task=str(__task__ or metadata.get("task") or "").strip(),
+            message_id=str(__message_id__ or "").strip(),
+            host_task=self._current_openwebui_host_task(),
+            require_host_task=True,
+            ui_context=bool(
+                __event_emitter__ is not None
+                and __chat_id__
+                and __session_id__
+                and __message_id__
+                and not is_internal
+            ),
         )
 
         if stream:
@@ -226,6 +279,19 @@ class Pipe:
                 # tool cards, and other UI metadata never enter Hermes context.
                 history.append({"role": role, "content": content})
         return history, "\n\n".join(instructions) or None
+
+    @staticmethod
+    def _request_path(request: Any) -> str:
+        if request is None:
+            return ""
+        path = str(getattr(getattr(request, "url", None), "path", "") or "")
+        if not path:
+            scope = getattr(request, "scope", None)
+            if isinstance(scope, dict):
+                path = str(scope.get("path") or "")
+        if path != "/":
+            path = path.rstrip("/")
+        return path
 
     @staticmethod
     def _scope_key(
@@ -282,6 +348,70 @@ class Pipe:
         if len(text) > limit:
             return text[: max(0, limit - 1)] + "…"
         return text
+
+    @staticmethod
+    def _validated_notification_url(
+        value: Any, *, allow_loopback_http: bool = False
+    ) -> Optional[str]:
+        supplied = str(value or "")
+        if supplied != supplied.strip():
+            return None
+        raw = supplied.rstrip("/")
+        if (
+            not raw
+            or "\\" in raw
+            or "%" in raw
+            or any(
+                char.isspace() or ord(char) < 33 or ord(char) == 127
+                for char in raw
+            )
+        ):
+            return None
+        try:
+            parsed = urlsplit(raw)
+            hostname = parsed.hostname
+            port = parsed.port
+        except (TypeError, ValueError):
+            return None
+        if not hostname:
+            return None
+        try:
+            ipaddress.ip_address(hostname)
+            valid_hostname = True
+        except ValueError:
+            try:
+                ascii_hostname = hostname.rstrip(".").encode("idna").decode("ascii")
+            except UnicodeError:
+                return None
+            labels = ascii_hostname.split(".")
+            valid_hostname = (
+                0 < len(ascii_hostname) <= 253
+                and all(
+                    re.fullmatch(
+                        r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?",
+                        label,
+                    )
+                    for label in labels
+                )
+            )
+        if not valid_hostname:
+            return None
+        loopback = hostname in {"127.0.0.1", "localhost", "::1"}
+        if parsed.scheme != "https" and not (
+            allow_loopback_http and parsed.scheme == "http" and loopback
+        ):
+            return None
+        if (
+            parsed.username
+            or parsed.password
+            or parsed.query
+            or parsed.fragment
+            or (port is not None and not 1 <= port <= 65535)
+        ):
+            return None
+        return urlunsplit(
+            (parsed.scheme, parsed.netloc, parsed.path.rstrip("/"), "", "")
+        )
 
     async def _emit_status(
         self,
@@ -522,12 +652,115 @@ class Pipe:
             sock_read=None,
         )
 
-    async def _publish_completion_notification(self, session_id: Any) -> None:
+    @classmethod
+    def _saved_assistant_text(cls, message: Any) -> str:
+        if not isinstance(message, dict):
+            return ""
+        direct = cls._extract_text(message.get("content"))
+        if direct:
+            return direct
+
+        parts: list[str] = []
+
+        def visit(value: Any) -> None:
+            if isinstance(value, str):
+                if value:
+                    parts.append(value)
+                return
+            if isinstance(value, list):
+                for item in value:
+                    visit(item)
+                return
+            if not isinstance(value, dict):
+                return
+            item_type = str(value.get("type") or "").lower()
+            # Never include reasoning or tool traces in notification previews.
+            if item_type in {"reasoning", "tool", "tool_call", "tool_result"}:
+                return
+            if item_type in {"output_text", "text"}:
+                visit(value.get("text"))
+                return
+            if item_type == "message":
+                visit(value.get("content"))
+
+        visit(message.get("output"))
+        return "".join(parts).strip()
+
+    async def _load_openwebui_completion(
+        self, chat_id: str, message_id: str, user_id: str
+    ) -> Optional[tuple[str, bool, str]]:
+        try:
+            chats_module = importlib.import_module("open_webui.models.chats")
+            chat = await chats_module.Chats.get_chat_by_id_and_user_id(
+                chat_id, user_id
+            )
+            if chat is None:
+                return None
+            message = await chats_module.Chats.get_message_by_id_and_message_id(
+                chat_id, message_id
+            )
+        except Exception:
+            logger.warning("Could not load owned Open WebUI completion", exc_info=True)
+            return None
+        if not isinstance(message, dict) or message.get("role") != "assistant":
+            return None
+        title = self._clean_text(
+            getattr(chat, "title", ""), _NOTIFICATION_TITLE_CHARS
+        ) or "New Chat"
+        return title, message.get("done") is True, self._saved_assistant_text(message)
+
+    async def _await_openwebui_completion(
+        self, chat_id: str, message_id: str, user_id: str
+    ) -> Optional[tuple[str, str]]:
+        last_ready: Optional[tuple[str, str]] = None
+        for attempt in range(80):
+            loaded = await self._load_openwebui_completion(
+                chat_id, message_id, user_id
+            )
+            if loaded is None:
+                return None
+            title, done, answer = loaded
+            if done:
+                last_ready = (title, answer)
+                if title not in _UNTITLED_CHAT_NAMES:
+                    return last_ready
+            if attempt < 79:
+                await asyncio.sleep(0.25)
+        return last_ready
+
+    async def _publish_completion_notification(
+        self,
+        session_id: Any,
+        *,
+        chat_id: Any = "",
+        user_id: Any = "",
+        is_internal: bool = False,
+        task: Any = "",
+        message_id: Any = "",
+        host_task: Optional[asyncio.Task] = None,
+    ) -> None:
+        if is_internal or str(task or "").strip():
+            return
+        allowed_user_id = str(self.valves.NTFY_ALLOWED_USER_ID or "").strip()
+        authenticated_user_id = str(user_id or "").strip()
+        if not allowed_user_id or authenticated_user_id != allowed_user_id:
+            return
         # This exact shape is created only by _hermes_session_ids() for an
         # interactive Open WebUI chat. Direct/async API runs, cron sessions,
         # live probes, and delegated subagents must not produce this push.
         if not re.fullmatch(r"owui_[0-9a-f]{32}", str(session_id or "")):
             return
+
+        chat_id_text = str(chat_id or "").strip()
+        if not re.fullmatch(r"[-_:A-Za-z0-9]{1,256}", chat_id_text):
+            return
+
+        click_url = self._validated_notification_url(
+            self.valves.OPENWEBUI_PUBLIC_URL
+        )
+        if click_url is None:
+            return
+        click_target = f"{click_url}/c/{quote(chat_id_text, safe='')}"
 
         topic = str(self.valves.NTFY_TOPIC or "").strip()
         if not topic:
@@ -536,29 +769,51 @@ class Pipe:
             logger.warning("Skipping ntfy notification: invalid topic name")
             return
 
-        server = str(self.valves.NTFY_SERVER_URL or "").strip().rstrip("/")
-        parsed = urlsplit(server)
-        if (
-            parsed.scheme not in {"http", "https"}
-            or not parsed.hostname
-            or parsed.username
-            or parsed.password
-            or parsed.query
-            or parsed.fragment
-        ):
+        server = self._validated_notification_url(
+            self.valves.NTFY_SERVER_URL,
+            allow_loopback_http=True,
+        )
+        if server is None:
             logger.warning("Skipping ntfy notification: invalid server URL")
             return
 
+        message_id_text = str(message_id or "").strip()
+        if not re.fullmatch(r"[-_:A-Za-z0-9]{1,256}", message_id_text):
+            return
+        if host_task is not None:
+            try:
+                await asyncio.shield(host_task)
+            except asyncio.CancelledError:
+                # Host completion is only a sequencing barrier. Open WebUI can
+                # persist a partial assistant response as done before propagating
+                # cancellation. Preserve cancellation only when this advisory
+                # notification task itself was cancelled.
+                if not host_task.cancelled():
+                    raise
+            except Exception:
+                logger.debug(
+                    "Open WebUI host task failed after response handling; checking the persisted completion",
+                    exc_info=True,
+                )
+        persisted = await self._await_openwebui_completion(
+            chat_id_text,
+            message_id_text,
+            authenticated_user_id,
+        )
+        if persisted is None:
+            return
+        title, persisted_answer = persisted
+        preview = self._clean_text(
+            persisted_answer, _NOTIFICATION_PREVIEW_CHARS
+        )
+        if not preview:
+            return
+
         headers = {
-            "Title": "PDA",
+            "Title": title,
             "Priority": "default",
-            "Tags": "white_check_mark,robot_face",
+            "Click": click_target,
         }
-        click_url = str(self.valves.OPENWEBUI_PUBLIC_URL or "").strip()
-        if click_url:
-            click = urlsplit(click_url)
-            if click.scheme == "https" and click.hostname and not click.username and not click.password:
-                headers["Click"] = click_url
 
         timeout = aiohttp.ClientTimeout(total=5, connect=3, sock_read=3)
         try:
@@ -566,7 +821,7 @@ class Pipe:
                 async with session.post(
                     f"{server}/{topic}",
                     headers=headers,
-                    data="Open WebUIでPDAの応答が完了しました。".encode("utf-8"),
+                    data=preview.encode("utf-8"),
                     allow_redirects=False,
                 ) as response:
                     await response.read()
@@ -579,13 +834,54 @@ class Pipe:
             # Push is advisory and must never turn a completed chat into an error.
             logger.warning("ntfy completion notification failed", exc_info=True)
 
-    def _schedule_completion_notification(self, session_id: Any) -> None:
-        task = asyncio.create_task(
-            self._publish_completion_notification(session_id),
+    def _schedule_completion_notification(
+        self,
+        session_id: Any,
+        *,
+        chat_id: Any = "",
+        user_id: Any = "",
+        is_internal: bool = False,
+        task: Any = "",
+        message_id: Any = "",
+        host_task: Optional[asyncio.Task] = None,
+        require_host_task: bool = False,
+        ui_context: bool = True,
+    ) -> None:
+        if is_internal or str(task or "").strip() or not ui_context:
+            return
+        message_id_text = str(message_id or "").strip()
+        if not re.fullmatch(r"[-_:A-Za-z0-9]{1,256}", message_id_text):
+            return
+        if require_host_task and not isinstance(host_task, asyncio.Task):
+            logger.warning(
+                "Skipping completion push because the Open WebUI host task was unavailable"
+            )
+            return
+        notification_key = f"{user_id}:{chat_id}:{message_id_text}"
+        if notification_key in self._notified_message_keys:
+            return
+        self._notified_message_keys.add(notification_key)
+        notification_task = asyncio.create_task(
+            self._publish_completion_notification(
+                session_id,
+                chat_id=chat_id,
+                user_id=user_id,
+                is_internal=is_internal,
+                task=task,
+                message_id=message_id_text,
+                host_task=host_task,
+            ),
             name="openwebui-completion-push",
         )
-        self._notification_tasks.add(task)
-        task.add_done_callback(self._notification_tasks.discard)
+        self._notification_tasks.add(notification_task)
+        notification_task.add_done_callback(self._notification_tasks.discard)
+
+    @staticmethod
+    def _current_openwebui_host_task() -> Optional[asyncio.Task]:
+        try:
+            return asyncio.current_task()
+        except RuntimeError:
+            return None
 
     async def _run_events(
         self,
@@ -770,6 +1066,37 @@ class Pipe:
         return f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
     async def _stream_response(self, **run_args: Any) -> AsyncGenerator[str, None]:
+        try:
+            async for chunk in self._stream_response_chunks(**run_args):
+                yield chunk
+        finally:
+            # Cover every consumer close point: during Hermes events, after the
+            # final content, after the stop chunk, and after [DONE]. The
+            # publisher still requires the persisted Open WebUI message to be
+            # done, owned by this user, and non-empty before exporting it.
+            self._schedule_completion_notification(
+                run_args.get("session_id"),
+                chat_id=run_args.get("chat_id", ""),
+                user_id=run_args.get("user_id", ""),
+                is_internal=bool(run_args.get("is_internal", False)),
+                task=run_args.get("task", ""),
+                message_id=run_args.get("message_id", ""),
+                host_task=run_args.get("host_task"),
+                require_host_task=bool(run_args.get("require_host_task", False)),
+                ui_context=bool(run_args.get("ui_context", False)),
+            )
+
+    async def _stream_response_chunks(
+        self, **run_args: Any
+    ) -> AsyncGenerator[str, None]:
+        chat_id = run_args.pop("chat_id", "")
+        user_id = run_args.pop("user_id", "")
+        is_internal = bool(run_args.pop("is_internal", False))
+        task = run_args.pop("task", "")
+        message_id = run_args.pop("message_id", "")
+        host_task = run_args.pop("host_task", None)
+        require_host_task = bool(run_args.pop("require_host_task", False))
+        ui_context = bool(run_args.pop("ui_context", False))
         completion_id = f"chatcmpl-hermes-{uuid.uuid4().hex[:16]}"
         accumulated = ""
         terminal_output: Optional[str] = None
@@ -847,16 +1174,17 @@ class Pipe:
             )
 
         yield self._completion_chunk(completion_id, {}, "stop")
-        try:
-            yield "data: [DONE]\n\n"
-        finally:
-            # Open WebUI closes the inner stream as soon as it sees [DONE].
-            # Schedule from the generator's close/finalization path, after the
-            # consumer has observed completion but without delaying HTTP EOF.
-            if terminal_output is not None and terminal_error is None and not cancelled and not timed_out:
-                self._schedule_completion_notification(run_args.get("session_id"))
+        yield "data: [DONE]\n\n"
 
     async def _blocking_response(self, **run_args: Any) -> dict:
+        chat_id = run_args.pop("chat_id", "")
+        user_id = run_args.pop("user_id", "")
+        is_internal = bool(run_args.pop("is_internal", False))
+        task = run_args.pop("task", "")
+        message_id = run_args.pop("message_id", "")
+        host_task = run_args.pop("host_task", None)
+        require_host_task = bool(run_args.pop("require_host_task", False))
+        ui_context = bool(run_args.pop("ui_context", False))
         deltas: list[str] = []
         output: Optional[str] = None
         error: Optional[str] = None
@@ -888,6 +1216,18 @@ class Pipe:
             content = "Hermesの実行はキャンセルされました。"
         elif not content:
             content = "Hermesから応答がありませんでした。"
+
+        self._schedule_completion_notification(
+            run_args.get("session_id"),
+            chat_id=chat_id,
+            user_id=user_id,
+            is_internal=is_internal,
+            task=task,
+            message_id=message_id,
+            host_task=host_task,
+            require_host_task=require_host_task,
+            ui_context=ui_context,
+        )
 
         return {
             "id": f"chatcmpl-hermes-{uuid.uuid4().hex[:16]}",

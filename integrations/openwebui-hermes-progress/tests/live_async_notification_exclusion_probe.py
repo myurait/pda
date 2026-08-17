@@ -35,7 +35,7 @@ async def ntfy_message_ids(client, server: str, topic: str) -> set[str]:
     return {
         str(event["id"])
         for event in events
-        if event.get("event") == "message" and event.get("title") == "PDA"
+        if event.get("event") == "message"
     }
 
 
