@@ -1,7 +1,7 @@
 ---
 name: pda-user-escalation
 description: "Use when reporting non-trivial work to the PDA owner, requesting a decision or authorization, presenting a plan, or surfacing a blocker or risk. Convert internal execution state into a purpose-explicit owner-level message with one clear ask, or state explicitly that no action is required."
-version: 1.0.0
+version: 1.1.0
 author: PDA
 license: MIT
 metadata:
@@ -29,6 +29,22 @@ Use for:
 - recommendations with owner-level tradeoffs.
 
 Do not force a formal template onto greetings, simple factual answers, or brief conversational exchanges. Even then, answer the user's actual question first.
+
+## 0. Communication Integrity and Preemption
+
+A direct owner request to report, stop, or state current status preempts ordinary investigation, implementation, and optional verification. Completeness never justifies silence.
+
+When such a request arrives:
+
+1. Stop starting new work and safely interrupt or leave bounded work stopped.
+2. Answer in the next owner-facing response from facts already verified.
+3. State what is unknown or unverified rather than investigating first to make the report look complete.
+4. Distinguish clearly between work that is complete, paused, blocked, still running, or never started.
+5. Continue investigation only after the initial status has been delivered and only when it remains authorized.
+
+For long-running work, use the available progress channel to keep owner visibility bounded. Surface a stall, blocker, material scope change, or inability to honor a requested report before the owner must chase the PDA. A progress update is not a console transcript: it still states owner-level outcome, risk, and required action.
+
+This timing rule is part of communication integrity. A late, polished report does not repair an earlier failure to answer.
 
 ## 1. Choose One Primary Purpose
 
@@ -157,6 +173,7 @@ A non-trivial owner-facing message is ready only if a reader can answer all thre
 
 Then verify:
 
+- if the owner asked for a report, stop, or status, that request was answered before optional investigation continued;
 - there is one primary purpose;
 - the ask is explicit and answerable;
 - a recommendation accompanies a decision request;
@@ -176,6 +193,8 @@ If any check fails, rewrite before sending.
 5. Mixed speech acts: combining completion, risk, and approval into one undifferentiated block.
 6. Detail-first ordering: making the owner reconstruct the conclusion from a work log.
 7. Courtesy ambiguity: ending a completed, authorized action with a question that sounds like a new approval gate.
+8. Investigation before acknowledgement: withholding a requested status while trying to produce a more complete answer.
+9. Operational silence: allowing a long run, stall, or blocker to remain invisible until the owner asks what happened.
 
 ## Worked Correction
 
