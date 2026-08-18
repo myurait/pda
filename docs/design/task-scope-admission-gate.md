@@ -1,6 +1,6 @@
 # PDAタスク・スコープ審査ゲート設計
 
-Status: Proposed
+Status: Implemented through rollout S1; production activation pending
 Checked: 2026-08-18 JST
 Initial target: Hermes Agent v0.20.2 on the PDA runtime
 
@@ -294,6 +294,8 @@ Hermes coreを直接forkしない。canonical sourceはPDA repositoryの`integra
 
 ただしPython plugin callbackの例外はHermesによりlogされ、base runtimeは継続する。したがってhard boundaryは同じvalidator executableを呼ぶshell `pre_tool_call`にも登録し、`fail_closed: true`にする。plugin hookは低遅延の通常経路、shell hookはfailure boundaryとする。
 
+実装ではさらに`pre_tool_call`の全`modify` directiveが集約された後の実引数を`tool_execution` middlewareで再審査する。同一`tool_call_id`でfingerprintが変わればfail closedし、downstream handlerを呼ばない。これは善意のhook rewriteによる迂回を閉じる。任意コードを実行できる別のenabled plugin自体は同一信頼境界にあり、後段execution middlewareを追加する場合はS1の互換審査対象とする。
+
 ```yaml
 hooks:
   pre_tool_call:
@@ -347,14 +349,14 @@ hooks:
 
 ## 11. Rollout
 
-### S0: contract and replay harness
+### S0: contract and replay harness (implemented)
 
 - ScopeContract JSON Schema、normalizer、incident fixturesを実装する。
 - 実repositoryを変更しないfixtureでallow/deny、budget、parallel raceを検証する。
 
 Exit: 元事例の不要actionをすべて拒否し、必要なcloseout actionを拒否しない。
 
-### S1: hard gate for `repository-closeout`
+### S1: hard gate for `repository-closeout` (implemented; pilot metrics pending)
 
 - このclassだけhard enforcementを有効化する。
 - 他classはcontract/auditのみで、既存作業を突然blockしない。

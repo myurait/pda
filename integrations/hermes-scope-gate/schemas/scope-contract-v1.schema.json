@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pda.local/schemas/scope-contract-v1.schema.json",
+  "title": "PDA ScopeContract v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "turn_id",
+    "origin_message_sha256",
+    "task_class",
+    "objective",
+    "targets",
+    "actions",
+    "completion",
+    "budget",
+    "state"
+  ],
+  "properties": {
+    "schema": {"const": "pda.scope-contract/v1"},
+    "turn_id": {"type": "string", "minLength": 1, "maxLength": 512},
+    "origin_message_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "task_class": {
+      "enum": [
+        "answer-only",
+        "repository-closeout",
+        "bounded-operation",
+        "artifact-change",
+        "open-mission"
+      ]
+    },
+    "objective": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repositories", "worktrees", "branches", "worktree_branches"],
+      "properties": {
+        "repositories": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+        "worktrees": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+        "branches": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+        "worktree_branches": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "prerequisite", "verification", "forbidden"],
+      "properties": {
+        "required": {"$ref": "#/$defs/uniqueStrings"},
+        "prerequisite": {"$ref": "#/$defs/uniqueStrings"},
+        "verification": {"$ref": "#/$defs/uniqueStrings"},
+        "forbidden": {"$ref": "#/$defs/nonEmptyUniqueStrings"}
+      }
+    },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all", "blocked_targets_may_be_reported"],
+      "properties": {
+        "all": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+        "blocked_targets_may_be_reported": {"type": "boolean"}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_wall_seconds",
+        "max_tool_calls",
+        "max_denied_calls",
+        "max_expansions",
+        "background_processes",
+        "subagents"
+      ],
+      "properties": {
+        "max_wall_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "max_tool_calls": {"type": "integer", "minimum": 1, "maximum": 500},
+        "max_denied_calls": {"type": "integer", "minimum": 0, "maximum": 20},
+        "max_expansions": {"type": "integer", "minimum": 0, "maximum": 20},
+        "background_processes": {"type": "integer", "minimum": 0, "maximum": 20},
+        "subagents": {"type": "integer", "minimum": 0, "maximum": 20}
+      }
+    },
+    "state": {"const": "locked"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"task_class": {"const": "repository-closeout"}},
+        "required": ["task_class"]
+      },
+      "then": {
+        "properties": {
+          "budget": {
+            "properties": {
+              "max_wall_seconds": {"maximum": 900},
+              "max_tool_calls": {"maximum": 32},
+              "max_expansions": {"const": 0},
+              "background_processes": {"const": 0},
+              "subagents": {"const": 0}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uniqueStrings": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 512},
+      "uniqueItems": true
+    },
+    "nonEmptyUniqueStrings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1, "maxLength": 4096},
+      "uniqueItems": true
+    }
+  }
+}

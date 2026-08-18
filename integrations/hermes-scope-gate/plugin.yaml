@@ -1,0 +1,17 @@
+name: pda-scope-gate
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: Fail-closed PDA task-scope admission for narrow repository closeout turns.
+license: MIT
+tags: [pda, guardrails, scope-control]
+python_dependencies:
+  - "jsonschema>=4,<5"
+provides_tools:
+  - scope_gate
+provides_hooks:
+  - pre_llm_call
+  - pre_tool_call
+  - post_tool_call
+  - post_llm_call
+  - on_session_end
