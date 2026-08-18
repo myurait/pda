@@ -59,7 +59,12 @@ class FakeContainerClient:
 
 
 def write_config(
-    path: Path, *, backup_root: Path, source: Path, retention: int = 7
+    path: Path,
+    *,
+    backup_root: Path,
+    source: Path,
+    retention: int = 7,
+    opaque_sqlite: tuple[str, ...] = (),
 ) -> Path:
     config = {
         "schema_version": 1,
@@ -73,6 +78,7 @@ def write_config(
                 "kind": "tree",
                 "path": str(source),
                 "sqlite": "discover",
+                "opaque_sqlite": list(opaque_sqlite),
             }
         ],
     }
@@ -165,6 +171,7 @@ def test_run_snapshot_backs_up_live_wal_database_and_verifies(tmp_path: Path) ->
             "allowed_special_files": [],
             "kind": "tree",
             "name": "runtime",
+            "opaque_sqlite": [],
             "origin": str(source.resolve()),
             "sqlite": "discover",
         }
@@ -173,6 +180,73 @@ def test_run_snapshot_backs_up_live_wal_database_and_verifies(tmp_path: Path) ->
     rogue.write_text("not in manifest\n", encoding="utf-8")
     with pytest.raises(BackupError, match="inventory mismatch"):
         verify_snapshot(result.snapshot_path)
+
+
+def test_declared_historical_sqlite_is_preserved_as_opaque_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source = tmp_path / "runtime"
+    historical = source / "state-snapshots/legacy/state.db"
+    historical.parent.mkdir(parents=True)
+    with sqlite3.connect(historical) as connection:
+        connection.execute("CREATE TABLE memory (value TEXT)")
+        connection.execute("INSERT INTO memory VALUES ('legacy')")
+    original = historical.read_bytes()
+    config_path = write_config(
+        tmp_path / "backup.json",
+        backup_root=tmp_path / "backups",
+        source=source,
+        opaque_sqlite=("state-snapshots/*/state.db",),
+    )
+
+    def reject_online_backup(*args: object, **kwargs: object) -> None:
+        del args, kwargs
+        raise AssertionError("opaque historical SQLite must not be opened or rewritten")
+
+    monkeypatch.setattr(local_snapshot, "_backup_sqlite", reject_online_backup)
+    result = BackupEngine.from_file(config_path).run(
+        now=datetime(2026, 8, 17, 5, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
+    )
+
+    copied = result.snapshot_path / "data/runtime/state-snapshots/legacy/state.db"
+    assert copied.read_bytes() == original
+    manifest = json.loads(
+        (result.snapshot_path / "manifest.json").read_text(encoding="utf-8")
+    )
+    assert manifest["sqlite_databases"] == []
+    assert manifest["opaque_sqlite_databases"] == [
+        "data/runtime/state-snapshots/legacy/state.db"
+    ]
+    assert verify_snapshot(result.snapshot_path)["ok"] is True
+
+
+def test_declared_opaque_sqlite_preserves_native_sidecar_bundle(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "runtime"
+    historical = source / "state-snapshots/legacy/state.db"
+    historical.parent.mkdir(parents=True)
+    with sqlite3.connect(historical) as connection:
+        connection.execute("CREATE TABLE memory (value TEXT)")
+    wal = Path(str(historical) + "-wal")
+    shm = Path(str(historical) + "-shm")
+    wal.write_bytes(b"historical-wal-bytes")
+    shm.write_bytes(b"historical-shm-bytes")
+    config_path = write_config(
+        tmp_path / "backup.json",
+        backup_root=tmp_path / "backups",
+        source=source,
+        opaque_sqlite=("state-snapshots/*/state.db",),
+    )
+
+    result = BackupEngine.from_file(config_path).run(
+        now=datetime(2026, 8, 17, 5, 0, tzinfo=ZoneInfo("Asia/Tokyo"))
+    )
+
+    copied = result.snapshot_path / "data/runtime/state-snapshots/legacy/state.db"
+    assert Path(str(copied) + "-wal").read_bytes() == b"historical-wal-bytes"
+    assert Path(str(copied) + "-shm").read_bytes() == b"historical-shm-bytes"
+    assert verify_snapshot(result.snapshot_path)["ok"] is True
 
 
 def test_verify_rejects_file_entry_that_claims_a_symlink_is_regular(
