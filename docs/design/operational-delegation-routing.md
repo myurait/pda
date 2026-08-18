@@ -164,7 +164,7 @@ Direct pathがofflineでも、PDAホスト上の個人Claude accountへsilent fa
 
 Use when:
 
-- repository、toolchain、credential、Desktop/Agent Viewがある開発Macで実行すべきである。
+- repository、toolchain、credential、Agent View / CLI session historyがある開発Macで実行すべきである。
 - 長時間作業、再開、人間の途中介入、session履歴が必要である。
 - task単位のworktreeとGit artifactを作れる。
 
@@ -312,52 +312,53 @@ Rules:
 
 ## 11. Durable flow: PDA Kanban → development Mac → Claude Code
 
+The detailed integration contract is [`development-mac-claude-kanban-integration.md`](development-mac-claude-kanban-integration.md). This section fixes only the routing-level invariants.
+
 ```text
 PDA / Sol
-  -> creates classified task card on PDA board
-  -> Mac launchd worker polls through outbound SSH
-  -> atomically claims card and journals local task_id
-  -> creates task-specific worktree
-  -> starts Claude Code background session beside checkout
-  -> persists job ID, session UUID, effective model, raw result locally
-  -> posts result/outbox to PDA board
-  -> Sol verifies Git/artifact/test evidence
+  -> creates a classified task on the PDA-hosted `dev-main` board
+  -> assigns the external terminal lane `main-claude`
+  -> Mac launchd bridge polls over Mac -> PDA SSH without invoking a model
+  -> atomically claims the card and records its Kanban run ID
+  -> reconciles local journal, outbox, worktree, and Claude session
+  -> creates a deterministic task worktree when no prior execution exists
+  -> starts one official `claude --bg` conversation in that worktree
+  -> records Claude job ID and full session UUID
+  -> mirrors needs-input / done / failed state back to Kanban
+  -> persists and validates the local result before remote delivery
+  -> Sol verifies Git, artifact, test, principal, and owner-gate evidence
   -> follow-up, review, owner escalation, or completion
 ```
 
-The queue is the control plane; Git and artifact storage are the deliverable plane. SQLite board files are never mounted or synchronized across hosts.
+The queue is the control plane; Git and bridge-owned outbox are the deliverable plane; Claude's saved conversation is the execution-history plane. SQLite board files are never mounted or synchronized across hosts.
 
-Use the existing Mac → PDA SSH direction for normal queue operation. A reverse SSH tunnel is optional for direct inspection/rescue and is not a dependency of task retention.
+Use the existing Mac → PDA SSH direction for normal queue operation. A reverse SSH tunnel is optional for direct inspection, rescue, or a bounded synchronous advisor call and is not a dependency of task retention.
+
+`main-claude` is deliberately not a Hermes profile. The current Hermes v0.20.2 dispatcher classifies a ready card assigned to a non-profile lane as `skipped_nonspawnable`; the Mac terminal claims it explicitly. This behavior, external claim, guarded completion, and stale-run rejection were verified on an isolated board on 2026-08-18. Re-run that probe after Hermes upgrades.
 
 Mac worker invariants:
 
-- Run as the same macOS user as the Team-authenticated Claude Code.
-- Use the exact repository cwd.
-- Do not forward the PDA host's full environment or API keys.
-- Verify `claude auth status --text` through the launch path.
-- Pin `--model claude-fable-5` when Fable is required.
-- Read actual model from structured init/result or Agent View metadata; fail closed on substitution.
-- Persist output before remote delivery.
-- Use task ID as idempotency key for local journal, worktree, session name, and result delivery.
-- Reconcile local outbox before re-running a claimed task after SSH loss.
-- Mac offline means task remains queued; it does not fall back silently to the personal Claude token on PDA.
+- Run as the same macOS user and config identity as the Team-authenticated interactive Claude Code.
+- Resolve a logical `repo_key` through a local allowlist; never interpret the PDA board's workspace path as a Mac path.
+- Start inside a bridge-created task-specific linked worktree so existing dirty checkouts and concurrent threads remain untouched.
+- Do not forward the PDA host's environment, OAuth token, API key, or arbitrary path.
+- Remove higher-priority provider/API credential variables and verify the Team login path before enabling the lane.
+- Use a PDA-issued request ID as the card-creation idempotency key, then use the returned Kanban task ID for local journal, branch, worktree, Claude session name, and outbox delivery.
+- Use the Kanban run ID as a fencing token on complete, block, request-review, and other terminal lifecycle writes.
+- Set claim TTL from the bounded task runtime plus grace. In v0.20.2, CLI `heartbeat` records liveness but does not extend `claim_expires`; do not assume otherwise.
+- Reconcile a local outbox or existing Claude session before re-running a claimed task after SSH loss.
+- Mac offline means the task remains queued; it does not fall back silently to the personal Claude token on PDA.
 
-The Mac supports two fixed wrappers rather than one ambiguous launcher:
+The Mac has two distinct launch contracts rather than one ambiguous wrapper:
 
-1. `fable-advisor`: bounded `claude -p --model claude-fable-5 --output-format json --json-schema ...` with no tools or a read-only tool allowlist. The wrapper captures stdout/stderr separately and verifies `modelUsage`. It can be reached synchronously through a verified reverse SSH tunnel, or invoked by a claimed board task.
-2. `claude-executor`: `claude --bg` for durable repository work. The task contract names a task-specific result artifact; Agent View/logs are human audit surfaces, not the machine result protocol.
+1. `fable-advisor`: optional, bounded, read-only `claude -p --model claude-fable-5 --output-format json --json-schema ...`. This lane is non-interactive and is used only when its result is required in the current turn or when board/outbox durability is sufficient without a saved interactive history.
+2. `claude-executor`: official `claude --bg --name pda-<repo>-<task-id> ...` for repository work that needs a resumable, human-inspectable Claude Code conversation. Agent View, `claude attach`, `claude logs`, `claude respawn`, and the normal resume picker are the human control and history surfaces.
 
-For both wrappers, the board card remains the durable control record. A synchronous advisor call is intentionally non-durable and is used only when its result is required in the current turn.
+For the durable development lane, `claude -p` is not a substitute for `--bg`: print/Agent SDK sessions do not satisfy the normal session-picker requirement. The background session writes a model-authored executor payload into its documented Claude job scratch area; the bridge copies it to its own outbox, independently verifies its claims, and wraps it with control-owned principal/run evidence before producing the final delegation result. Agent View's `done` label and model prose are audit material, not the machine result protocol.
 
-For a bounded read-only perspective task, prefer structured print mode inside the durable board worker. The board card and local outbox provide durability; the model process does not need to be the durable state:
+Exact model routing remains fail-closed. `--model claude-fable-5` is a request, not proof of the effective model, and the documented `claude agents --json` contract does not currently expose effective model. Until the Mac pilot establishes a supported attestation path, Fable-specific background work requires an Agent View / `/status` check and control-owned evidence; general Claude Code work may use the verified Team default.
 
-```text
-claude -p --model claude-fable-5 --output-format json --json-schema <PerspectiveResult-schema> --max-turns <bounded> "<validated task prompt>"
-```
-
-Use `claude --bg --model claude-fable-5` when the work itself needs a resumable human-inspectable Claude Code conversation or repository execution. A background coding session must write a validated result artifact into its task-specific outbox/worktree; `claude logs` is human audit material, not the machine result protocol.
-
-The fixed local wrapper must read and validate a task file, resolve any authorization/context references, render the bounded prompt, and pass it as one argument in a subprocess argv array. It must not paste untrusted task text into a remote shell command.
+The fixed local wrapper reads and validates a task file, resolves authorization and context references, renders a bounded instruction, and passes it as one subprocess argv item. It never pastes untrusted task text into a remote shell command. The PDA SSH key is restricted to one board, one lane, and a narrow structured wrapper rather than arbitrary shell access.
 
 ## 12. Information and account boundaries
 
