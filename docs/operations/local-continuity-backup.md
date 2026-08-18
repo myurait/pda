@@ -40,6 +40,10 @@ Restore only into a new, empty drill location; the command refuses to overwrite 
 
 The restored snapshot is verified again after copying. Its `manifest.json` records each original source, and the restorable trees are under `data/`. Applying those trees over a live runtime is a separate, explicit recovery operation and is not performed automatically.
 
+SQLite compatibility epochs
+
+A historical generation can contain an FTS index that is valid only under the SQLite implementation that created it. The backup command must not silently retry a failed integrity check under a different interpreter, because that would blur corruption with compatibility. Restore a current generation with the Hermes-managed Python recorded by the current service. Restore a preserved pre-transition generation only with its separately verified compatible interpreter, then migrate the restored state forward before making it current. Check the interpreter's `sqlite3.sqlite_version` first and keep the original generation immutable. The verified transition evidence and the exact legacy/current restore routes for the 2026-08-18 migration are recorded in `../status/backup-sqlite-compatibility-2026-08-18.md`.
+
 Limitation
 
 This is a same-host recovery point. It does not protect against failure, loss, or destruction of the host or disk. Off-host export and custody are deferred and must not be reported as complete.
