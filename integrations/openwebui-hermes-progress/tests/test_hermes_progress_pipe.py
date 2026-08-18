@@ -23,11 +23,13 @@ class FakeHermes:
         events,
         *,
         event_delay: float = 0,
+        event_delays=None,
         approval_status=200,
         approval_error_code="approval_not_active",
     ):
         self.events = events
         self.event_delay = event_delay
+        self.event_delays = list(event_delays or [])
         self.approval_status = approval_status
         self.approval_error_code = approval_error_code
         self.approvals = []
@@ -67,7 +69,9 @@ class FakeHermes:
         await response.prepare(request)
         if self.event_delay:
             await asyncio.sleep(self.event_delay)
-        for event in self.events:
+        for index, event in enumerate(self.events):
+            if index < len(self.event_delays) and self.event_delays[index]:
+                await asyncio.sleep(self.event_delays[index])
             try:
                 await response.write(
                     f"data: {json.dumps(event)}\n\n".encode("utf-8")
@@ -183,18 +187,167 @@ def test_run_timeout_defaults_to_unlimited():
     assert timeout.sock_read is None
 
 
-def test_progress_heartbeat_defaults_to_fifteen_minutes_and_can_be_disabled():
+def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
     valves = Pipe.Valves()
     schema = valves.model_json_schema()["properties"]["PROGRESS_HEARTBEAT_SECONDS"]
 
-    assert valves.PROGRESS_HEARTBEAT_SECONDS == 900
+    assert valves.PROGRESS_HEARTBEAT_SECONDS == 300
+    assert valves.SHOW_TOOL_ACTIVITY is False
+    assert valves.SHOW_REASONING_STATUS is False
     assert schema["minimum"] == 0
 
     disabled = Pipe.Valves(PROGRESS_HEARTBEAT_SECONDS=0)
     assert disabled.PROGRESS_HEARTBEAT_SECONDS == 0
 
 
-def test_progress_heartbeat_description_reports_active_tool_without_preview():
+def test_progress_heartbeat_reports_plan_milestone_and_current_work():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "investigate",
+                    "content": "通知の発生源を特定",
+                    "status": "completed",
+                },
+                {
+                    "id": "outline",
+                    "content": "設計の大枠を確定",
+                    "status": "completed",
+                },
+                {
+                    "id": "integration",
+                    "content": "外部システムとの疎通条件を追加調査中",
+                    "status": "in_progress",
+                },
+                {
+                    "id": "verify",
+                    "content": "実環境で通知を検証",
+                    "status": "pending",
+                },
+            ],
+        },
+    )
+
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+    )
+
+    assert description == (
+        "[5分経過] 処理中 (50%) - "
+        "完了: 設計の大枠を確定。"
+        "現在: 外部システムとの疎通条件を追加調査中。"
+    )
+    assert "ツール" not in description
+
+
+def test_malformed_plan_update_does_not_clear_last_valid_progress():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    valid = {
+        "event": "plan.updated",
+        "items": [
+            {
+                "id": "integration",
+                "content": "外部システムとの疎通を追加調査中",
+                "status": "in_progress",
+            }
+        ],
+    }
+    pipe._track_progress_event(progress, valid)
+
+    pipe._track_progress_event(progress, {"event": "plan.updated", "items": {}})
+    assert progress["plan_items"] == valid["items"]
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [{"id": "bad", "content": "bad", "status": "unknown"}],
+        },
+    )
+    assert progress["plan_items"] == valid["items"]
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {"id": str(index), "content": "oversized", "status": "pending"}
+                for index in range(101)
+            ],
+        },
+    )
+    assert progress["plan_items"] == valid["items"]
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {"id": "same", "content": "工程A", "status": "completed"},
+                {"id": "same", "content": "工程B", "status": "pending"},
+            ],
+        },
+    )
+    assert progress["plan_items"] == valid["items"]
+
+    pipe._track_progress_event(progress, {"event": "plan.updated", "items": []})
+    assert progress["plan_items"] == []
+
+
+def test_all_cancelled_plan_does_not_invent_a_percentage():
+    pipe = Pipe()
+    progress = {
+        "plan_items": [
+            {"id": "obsolete", "content": "不要になった工程", "status": "cancelled"}
+        ]
+    }
+
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+    )
+
+    assert "進捗率未算出" in description
+    assert "(0%)" not in description
+
+
+def test_plan_progress_redacts_credential_urls_at_the_pipe_boundary():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "remote",
+                    "content": (
+                        "open https://user:password@example.com/path?token="
+                        "secret-token-value-1234567890"
+                    ),
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+    )
+
+    assert "password" not in description
+    assert "secret-token-value" not in description
+    assert "https://user:***@example.com/path?token=***" in description
+
+
+def test_progress_heartbeat_does_not_treat_active_tool_as_user_progress():
     pipe = Pipe()
     progress = pipe._initial_progress_state()
 
@@ -211,7 +364,8 @@ def test_progress_heartbeat_description_reports_active_tool_without_preview():
         progress=progress,
     )
 
-    assert description == "⏳ 開始から15分。現在: terminalを実行中。"
+    assert description.startswith("[15分経過] 処理中 (進捗率未算出)")
+    assert "terminal" not in description
     assert "SECRET_COMMAND_MUST_NOT_APPEAR" not in description
 
 
@@ -231,7 +385,7 @@ def test_progress_heartbeat_uses_generic_label_for_untrusted_tool_name():
     )
     immediate = pipe._tool_description(event, completed=False)
 
-    assert "現在: ツールを実行中" in heartbeat
+    assert "ツールを実行中" not in heartbeat
     assert immediate == "実行中: ツール"
     assert "USER_INPUT_SECRET_7f9c" not in heartbeat
     assert "USER_INPUT_SECRET_7f9c" not in immediate
@@ -239,7 +393,7 @@ def test_progress_heartbeat_uses_generic_label_for_untrusted_tool_name():
     assert "ANOTHER_SECRET" not in immediate
 
 
-def test_progress_heartbeat_reports_completed_count_and_generic_last_activity():
+def test_progress_heartbeat_does_not_report_tool_count_or_reasoning_activity():
     pipe = Pipe()
     progress = pipe._initial_progress_state()
 
@@ -268,10 +422,9 @@ def test_progress_heartbeat_reports_completed_count_and_generic_last_activity():
         progress=progress,
     )
 
-    assert description == (
-        "⏳ 開始から30分。処理を継続中。"
-        "直近: Hermesが考えています。完了したツール: 1件。"
-    )
+    assert description.startswith("[30分経過] 処理中 (進捗率未算出)")
+    assert "完了したツール" not in description
+    assert "Hermesが考えています" not in description
     assert "SECRET_RESULT_MUST_NOT_APPEAR" not in description
     assert "PRIVATE_REASONING_MUST_NOT_APPEAR" not in description
 
@@ -289,7 +442,7 @@ def test_progress_heartbeat_reports_completed_count_and_generic_last_activity():
         ),
     ],
 )
-def test_progress_heartbeat_uses_generic_message_and_approval_activity(
+def test_progress_heartbeat_does_not_expose_message_or_approval_payload(
     event, expected_activity
 ):
     pipe = Pipe()
@@ -301,7 +454,8 @@ def test_progress_heartbeat_uses_generic_message_and_approval_activity(
         progress=progress,
     )
 
-    assert f"直近: {expected_activity}。" in description
+    assert description.startswith("[1時間経過] 処理中 (進捗率未算出)")
+    assert expected_activity not in description
     assert "PRIVATE_DRAFT_MUST_NOT_APPEAR" not in description
     assert "SECRET_COMMAND" not in description
 
@@ -334,7 +488,7 @@ def test_session_scope_is_per_user_and_chat_and_stable():
 
 
 @pytest.mark.asyncio
-async def test_tool_progress_uses_status_not_assistant_content():
+async def test_tool_lifecycle_is_suppressed_from_status_and_content_by_default():
     fake = await FakeHermes(
         [
             {"event": "reasoning.available", "text": "private chain of thought"},
@@ -371,8 +525,13 @@ async def test_tool_progress_uses_status_not_assistant_content():
         assert "terminal" not in content
         assert "SECRET_COMMAND" not in content
         assert "private chain of thought" not in content
-        assert any("実行中: terminal" in item["description"] for item in statuses)
-        assert any("完了: terminal" in item["description"] for item in statuses)
+        assert not any(
+            item["description"].startswith("実行中:") for item in statuses
+        )
+        assert not any(
+            item["description"].startswith("完了: terminal") for item in statuses
+        )
+        assert not any("考えています" in item["description"] for item in statuses)
         assert statuses[-1]["description"] == "完了"
         assert statuses[-1]["done"] is True
         assert fake.stops == []
@@ -385,8 +544,25 @@ async def test_tool_progress_uses_status_not_assistant_content():
 @pytest.mark.asyncio
 async def test_long_run_emits_periodic_status_only_and_stops_after_terminal_event():
     fake = await FakeHermes(
-        [{"event": "run.completed", "output": "LONG_RUN_OK"}],
-        event_delay=1.2,
+        [
+            {
+                "event": "plan.updated",
+                "items": [
+                    {
+                        "id": "design",
+                        "content": "設計の大枠を確定",
+                        "status": "completed",
+                    },
+                    {
+                        "id": "integration",
+                        "content": "外部システムとの疎通条件を追加調査中",
+                        "status": "in_progress",
+                    },
+                ],
+            },
+            {"event": "run.completed", "output": "LONG_RUN_OK"},
+        ],
+        event_delays=[0, 1.2],
     ).start()
     try:
         pipe = configured_pipe(fake.base_url)
@@ -414,7 +590,12 @@ async def test_long_run_emits_periodic_status_only_and_stops_after_terminal_even
         assert content == "LONG_RUN_OK"
         assert "開始から" not in content
         assert len(heartbeats) == 1
-        assert heartbeats[0]["description"].startswith("⏳ 開始から1秒。")
+        assert heartbeats[0]["description"].startswith("[1秒経過] 処理中 (50%)")
+        assert "完了: 設計の大枠を確定。" in heartbeats[0]["description"]
+        assert (
+            "現在: 外部システムとの疎通条件を追加調査中。"
+            in heartbeats[0]["description"]
+        )
         assert heartbeats[0]["done"] is False
         assert heartbeats[0]["run_id"] == "run_test"
         assert status_data(emitted)[-1]["description"] == "完了"
@@ -577,15 +758,34 @@ async def test_concurrent_progress_heartbeats_keep_run_state_isolated():
     search_progress = pipe._initial_progress_state()
     pipe._track_progress_event(
         terminal_progress,
-        {"event": "tool.started", "tool": "terminal"},
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "local",
+                    "content": "ローカル設定を確認中",
+                    "status": "in_progress",
+                }
+            ],
+        },
     )
     pipe._track_progress_event(
         search_progress,
-        {"event": "tool.started", "tool": "web_search"},
-    )
-    pipe._track_progress_event(
-        search_progress,
-        {"event": "tool.completed", "tool": "web_search"},
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "sources",
+                    "content": "一次情報を確認",
+                    "status": "completed",
+                },
+                {
+                    "id": "compare",
+                    "content": "候補を比較中",
+                    "status": "in_progress",
+                },
+            ],
+        },
     )
 
     emitted = {"run_terminal": [], "run_search": []}
@@ -636,12 +836,12 @@ async def test_concurrent_progress_heartbeats_keep_run_state_isolated():
     terminal_status = status_data(emitted["run_terminal"])[0]
     search_status = status_data(emitted["run_search"])[0]
     assert terminal_status["run_id"] == "run_terminal"
-    assert "terminal" in terminal_status["description"]
-    assert "web_search" not in terminal_status["description"]
+    assert "ローカル設定を確認中" in terminal_status["description"]
+    assert "一次情報を確認" not in terminal_status["description"]
     assert search_status["run_id"] == "run_search"
-    assert "web_search" in search_status["description"]
-    assert "完了したツール: 1件" in search_status["description"]
-    assert "terminal" not in search_status["description"]
+    assert "一次情報を確認" in search_status["description"]
+    assert "候補を比較中" in search_status["description"]
+    assert "ローカル設定を確認中" not in search_status["description"]
 
 
 @pytest.mark.asyncio
@@ -666,8 +866,8 @@ async def test_heartbeat_and_event_statuses_use_serial_emitter_calls():
             active_calls += 1
             max_active_calls = max(max_active_calls, active_calls)
             try:
-                description = str((event.get("data") or {}).get("description") or "")
-                if description.startswith("⏳") and not heartbeat_entered.is_set():
+                data = event.get("data") or {}
+                if data.get("heartbeat") and not heartbeat_entered.is_set():
                     heartbeat_entered.set()
                     await release_heartbeat.wait()
                 await asyncio.sleep(0)

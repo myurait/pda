@@ -312,13 +312,14 @@ def build_valves_payload(
         "RUN_TIMEOUT_SECONDS": 0,
         # Emit a model-invisible Open WebUI status while a long run remains
         # active. Set this Valve to 0 to disable periodic heartbeat statuses.
-        "PROGRESS_HEARTBEAT_SECONDS": 900,
+        "PROGRESS_HEARTBEAT_SECONDS": 300,
         # Hermes owns the canonical approval deadline (60s by default).
         # Expire the UI first so its deny reaches an active session.
         "APPROVAL_TIMEOUT_SECONDS": 55,
         "SHOW_TOOL_PREVIEW": False,
+        "SHOW_TOOL_ACTIVITY": False,
         "TOOL_PREVIEW_CHARS": 160,
-        "SHOW_REASONING_STATUS": True,
+        "SHOW_REASONING_STATUS": False,
         "NTFY_SERVER_URL": ntfy_server,
         "NTFY_TOPIC": ntfy_topic,
         "NTFY_ALLOWED_USER_ID": allowed_user_id,
@@ -385,7 +386,7 @@ async def main() -> None:
             "content": source,
             "meta": {
                 "description": (
-                    "Hermes Runs API adapter with model-invisible tool status, "
+                    "Hermes Runs API adapter with plan-based semantic progress, "
                     "per-chat sessions, fail-safe approvals, and topic-titled "
                     "Open WebUI completion previews."
                 ),

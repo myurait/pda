@@ -40,6 +40,8 @@ async def main() -> None:
             test_valves = dict(original_valves)
             test_valves["PROGRESS_HEARTBEAT_SECONDS"] = 2
             test_valves["SHOW_TOOL_PREVIEW"] = False
+            test_valves["SHOW_TOOL_ACTIVITY"] = False
+            test_valves["SHOW_REASONING_STATUS"] = False
             # Do not send a phone notification for this synthetic E2E run.
             test_valves["NTFY_TOPIC"] = ""
             updated = await helpers.openwebui_json(
@@ -53,9 +55,13 @@ async def main() -> None:
                 raise RuntimeError("short heartbeat Valve was not applied")
 
             prompt = (
-                "Use the terminal tool exactly once. Run this exact command and wait for it: "
+                "First use the todo tool to create exactly two items. Mark "
+                "'設計の大枠を確認' completed and "
+                "'外部システムとの疎通を追加調査中' in_progress. "
+                "Then use the terminal tool exactly once. Run this exact command and wait for it: "
                 f"python3 -c \"import time; time.sleep(7); print('{PRIVATE_TOOL_INPUT}')\". "
-                f"After the tool finishes, reply with exactly {EXPECTED} and nothing else."
+                "After the terminal finishes, mark the second todo completed. "
+                f"Then reply with exactly {EXPECTED} and nothing else."
             )
             user_message_id = uuid.uuid4().hex
             assistant_message_id = uuid.uuid4().hex
@@ -121,11 +127,15 @@ async def main() -> None:
                 item
                 for item in statuses
                 if item.get("heartbeat") is True
-                or str(item.get("description") or "").startswith("⏳")
             ]
             heartbeat_text = "\n".join(
                 str(item.get("description") or "") for item in heartbeats
             )
+            midflight_heartbeats = [
+                item
+                for item in heartbeats
+                if "(50%)" in str(item.get("description") or "")
+            ]
             heartbeat_count_at_done = len(heartbeats)
 
             await asyncio.sleep(3)
@@ -137,10 +147,7 @@ async def main() -> None:
                 item
                 for item in (final_saved.get("statusHistory") or [])
                 if isinstance(item, dict)
-                and (
-                    item.get("heartbeat") is True
-                    or str(item.get("description") or "").startswith("⏳")
-                )
+                and item.get("heartbeat") is True
             ]
 
             result = {
@@ -152,13 +159,25 @@ async def main() -> None:
                 "heartbeat_count": heartbeat_count_at_done,
                 "heartbeat_count_after_terminal_wait": len(final_heartbeats),
                 "heartbeat_has_elapsed": all(
-                    "開始から" in str(item.get("description") or "")
+                    str(item.get("description") or "").startswith("[")
                     for item in heartbeats
                 ),
-                "heartbeat_has_safe_tool_name": any(
-                    "terminal" in str(item.get("description") or "")
-                    for item in heartbeats
+                "midflight_heartbeat_count": len(midflight_heartbeats),
+                "heartbeat_has_completed_milestone": all(
+                    "完了: 設計の大枠を確認。"
+                    in str(item.get("description") or "")
+                    for item in midflight_heartbeats
                 ),
+                "heartbeat_has_current_work": all(
+                    "現在: 外部システムとの疎通を追加調査中。"
+                    in str(item.get("description") or "")
+                    for item in midflight_heartbeats
+                ),
+                "tool_lifecycle_status_absent": not any(
+                    str(item.get("description") or "").startswith(("実行中:", "完了:"))
+                    for item in statuses
+                ),
+                "tool_name_absent": "terminal" not in heartbeat_text,
                 "private_tool_input_absent": PRIVATE_TOOL_INPUT not in heartbeat_text,
                 "prompt_absent": "python3 -c" not in heartbeat_text,
                 "all_heartbeat_done_false": all(
@@ -180,7 +199,11 @@ async def main() -> None:
                 == result["heartbeat_count"]
             ), result
             assert result["heartbeat_has_elapsed"], result
-            assert result["heartbeat_has_safe_tool_name"], result
+            assert result["midflight_heartbeat_count"] >= 2, result
+            assert result["heartbeat_has_completed_milestone"], result
+            assert result["heartbeat_has_current_work"], result
+            assert result["tool_lifecycle_status_absent"], result
+            assert result["tool_name_absent"], result
             assert result["private_tool_input_absent"], result
             assert result["prompt_absent"], result
             assert result["all_heartbeat_done_false"], result

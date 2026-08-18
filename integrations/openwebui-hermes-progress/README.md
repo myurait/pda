@@ -4,9 +4,12 @@ PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終�
 
 ## 長時間runの定期進捗
 
-- ユーザー向けHermes runが継続している間、Open WebUIの `status` イベントとして既定900秒（15分）ごとにheartbeatを送る。通常のassistant本文へ追記しないため、会話本文や次ターンのモデル入力を汚染しない。
-- `PROGRESS_HEARTBEAT_SECONDS` Valveで間隔を秒単位に設定する。既定値は `900`、`0`で無効化する。
-- heartbeatには経過時間、allowlistで検証した実行中ツール名、完了済みツール件数、一般化した直近活動だけを含める。推論本文、回答途中の本文、ユーザー入力、tool引数・preview・結果、未知のtool名は含めない。
+- ユーザー向けHermes runが継続している間、Open WebUIの `status` イベントとして既定300秒（5分）ごとにheartbeatを送る。通常のassistant本文へ追記しないため、会話本文や次ターンのモデル入力を汚染しない。
+- heartbeatはHermes Runs APIの `plan.updated` イベントを正本とし、`todo`計画の完了項目数をcancelled以外の全項目数で割った概算進捗率、直近の完了項目、現在のin-progress項目だけを表示する。例: `[5分経過] 処理中 (50%) - 完了: 設計の大枠を確定。現在: 外部システムとの疎通条件を追加調査中。`
+- 前提となるHermes APIは `/v1/capabilities` の `features.plan_progress_events=true` を公開する。未対応APIでもrun自体は継続するが、heartbeatは率を捏造せず未算出になる。
+- 計画が未登録なら率を捏造せず `進捗率未算出` と表示する。`PROGRESS_HEARTBEAT_SECONDS` Valveは既定 `300`、`0`で無効化できる。
+- `実行中: terminal`、`完了: read_file`、tool件数、汎用reasoning表示のような低水準ログは既定で送らない。診断時だけ `SHOW_TOOL_ACTIVITY=true` でtool lifecycleを再表示できる。`SHOW_REASONING_STATUS`も既定false。
+- 推論本文、回答途中の本文、生のユーザー入力、tool引数・preview・raw結果、未知のtool名はheartbeatへ直接含めない。表示するtodo項目はモデルが作成した作業要約であり、Hermes API側で件数・長さを制限して秘密情報とcredential付きURLのredactionを通す。Pipe側でもcredential付きURL、secret代入、Bearer値を再度redactする。これはntfy pushには送らず、Open WebUIのローカル`statusHistory`に保存する。
 - heartbeatのtask、進捗状態、status送信lockはrun単位で分離する。terminal event、例外、取消、streamの `aclose()` ではheartbeatを同期的に停止し、その後の遅延通知を残さない。
 - title/tag/follow-up生成、automation、timer、subagent継続などOpen WebUI内部taskではprogress statusを送らない。本回答の「完了」後に内部taskのheartbeatが混入しない。
 - statusはOpen WebUIのassistant messageの `statusHistory` に保存されるため、run中の画面だけでなくチャット再読込後にも確認できる。
@@ -21,7 +24,7 @@ PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終�
 
 ## 完了タイミングと表示内容
 
-実装バージョンは `hermes_progress_pipe` v2.1.0-local.12。
+実装バージョンは `hermes_progress_pipe` v2.1.0-local.13。
 
 ストリーミング時は、Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信タスクを起動する。Pipe開始時のOpen WebUI host taskの終了を待ってから、Open WebUI DB上の対象assistant messageを読む。success、failure、cancel、timeoutやhost taskの終了状態は通知種別として区別せず、所有者本人のmessageが `done=true` かつ本文が非空なら保存済み内容を通知する。通知タイトルと本文は保存済みレコードだけから読み、Hermesのterminal outputやユーザー入力を代用しない。outlet filterによるredactionを前提にする環境では、filter失敗時にも保存済み本文が通知され得るため、`NTFY_TOPIC`を空にして外部pushを無効化する。
 
@@ -76,7 +79,7 @@ pushだけ一時停止する場合は、Open WebUI管理画面のFunction Valves
 
 ## テスト
 
-単体・ローカル統合テスト（現在71件）:
+単体・ローカル統合テスト（現在75件）:
 
 ```bash
 cd "$HOME/openwebui"
@@ -93,14 +96,14 @@ uv run --with aiohttp python tests/live_openwebui_notification_probe.py
 
 このlive probeは、通知タップ先も検証できるようテストチャットを1件残す。assistant messageの `done=true`、`Hermesが処理を開始しました…` と `完了` のstatus履歴、pushが厳密に1件であることも確認する。失敗時は作成したチャットを削除する。
 
-実Open WebUI + 短縮heartbeat間隔（完了後にValveを元の900秒へ復元し、合成E2Eのntfy pushは抑止）:
+実Open WebUI + 短縮heartbeat間隔（完了後にValveを元の300秒へ復元し、合成E2Eのntfy pushは抑止）:
 
 ```bash
 cd "$HOME/openwebui"
 uv run --with aiohttp python tests/live_openwebui_heartbeat_probe.py
 ```
 
-このheartbeat probeは2秒間隔で実toolを含む長時間runを行い、複数heartbeatの `statusHistory` 永続化、入力・prompt非混入、terminal後3秒間の追加heartbeatなしを確認する。成功時は確認用チャットを1件残し、失敗時は削除する。
+このheartbeat probeは2項目の実todo計画と7秒の実toolを含む長時間runを行い、2秒間隔の複数heartbeatが50%・完了節目・現在工程を表示すること、tool lifecycleログ・tool名・入力・promptを表示しないこと、terminal後3秒間の追加heartbeatがないことを確認する。成功時は確認用チャットを1件残し、失敗時は削除する。
 
 実Runs API非同期経路（runは完了するが新規pushは0件）:
 

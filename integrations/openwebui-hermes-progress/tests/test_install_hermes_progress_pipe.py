@@ -66,7 +66,7 @@ def test_ntfy_server_validation_matches_runtime_loopback_policy():
         )
 
 
-def test_default_install_valves_enable_fifteen_minute_progress_heartbeat():
+def test_default_install_valves_enable_semantic_progress_without_tool_log_noise():
     valves = installer.build_valves_payload(
         hermes_url="http://host.docker.internal:8642/v1",
         hermes_key="test-key",
@@ -76,7 +76,9 @@ def test_default_install_valves_enable_fifteen_minute_progress_heartbeat():
         openwebui_public_url="https://pda-web.example.ts.net",
     )
 
-    assert valves["PROGRESS_HEARTBEAT_SECONDS"] == 900
+    assert valves["PROGRESS_HEARTBEAT_SECONDS"] == 300
+    assert valves["SHOW_TOOL_ACTIVITY"] is False
+    assert valves["SHOW_REASONING_STATUS"] is False
     assert valves["RUN_TIMEOUT_SECONDS"] == 0
 
 

@@ -468,7 +468,7 @@ curl -fsS http://127.0.0.1:9120/health
 
 **完了タイミングと通知内容**:
 
-- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.12
+- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.13
 - Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信をscheduleし、通知タスクをPipe instanceが完了まで強参照する
 - Pipe開始時のOpen WebUI host taskの終了を待ってからDBを読み、host taskのsuccess・failure・cancelではなく、所有者本人の保存済みassistant messageが `done=true` かつ本文が非空かを通知条件にする。outlet filterによるredactionを前提にする場合は、filter失敗時の保存内容も通知され得るため外部pushを無効化する
 - 通知前にOpen WebUI DB上の所有者スコープ付きassistant messageをpollし、`done=true` を確認する。通知タイトル・本文は保存済みchat/messageから取得し、Hermes terminal outputやユーザー入力で代用しない
@@ -486,14 +486,16 @@ curl -fsS http://127.0.0.1:9120/health
 
 - `PDA_NTFY_SERVER_URL`、`PDA_NTFY_TOPIC`、`PDA_OPENWEBUI_PUBLIC_URL` をmode 0600の `~/openwebui/.env` に保存
 - ntfy topicはtopic名自体がpasswordとなるため、192-bit乱数の52文字topicを生成した。実値はGitと本記録へ保存しない
-- installerは更新前のsource・metadata・active state・Valvesを退避し、失敗時は全項目を復元する。新規作成rollbackではinstall transaction固有nonceとsourceが一致するFunctionだけを削除し、競合処理が作成・更新したFunctionを巻き込まない。成功時はFunction source v2.1.0-local.12・active・全ValvesをAPIから再読込して一致を確認する。rollback時も復元後のsource・metadata・active state・全Valvesを再読込し、不一致を成功扱いにしない
+- installerは更新前のsource・metadata・active state・Valvesを退避し、失敗時は全項目を復元する。新規作成rollbackではinstall transaction固有nonceとsourceが一致するFunctionだけを削除し、競合処理が作成・更新したFunctionを巻き込まない。成功時はFunction source v2.1.0-local.13・active・全ValvesをAPIから再読込して一致を確認する。rollback時も復元後のsource・metadata・active state・全Valvesを再読込し、不一致を成功扱いにしない
 - ユーザー要望により、ホスト版ntfy.shへチャットタイトルと回答冒頭を送る。これらはntfy.sh側のmessage cacheとiPhone通知履歴へ残り得る。機密会話で使わないこと。外部保持を避ける場合は `NTFY_TOPIC` を空にするか、将来ntfyをtailnet内へself-hostする
 
-**検証結果（2026-08-17）**:
+**検証結果（2026-08-18）**:
 
-- 単体・ローカル統合テスト: 71件すべて成功
-- 長時間runでは `PROGRESS_HEARTBEAT_SECONDS=900` を既定とし、15分ごとに経過時間・安全な実行中ツール名・完了件数・一般化した直近活動をOpen WebUI `statusHistory`へ保存する。`0`で無効化できる
-- heartbeatはrun単位で状態と送信lockを分離し、内部taskでは無効化する。terminal・例外・取消・stream close時に同期停止し、推論本文、tool引数・preview・結果、ユーザー入力、未知tool名を保存しない
+- Open WebUI Pipe単体・ローカル統合テスト: 75件すべて成功
+- Hermes Runs API対象テスト: 130件すべて成功。`todo`結果からの`plan.updated`生成、credential付きURLを含む秘密情報redaction、入力・項目数上限、deeply nested JSON・重複IDを含むmalformed結果のfail-closed、イベント順序を検証した
+- 両実装を直接接続した契約テストで `[5分経過] 処理中 (50%) - 完了: 設計の大枠を確定。現在: 外部システムとの疎通条件を追加調査中。` の完全一致を確認した
+- 長時間runでは `PROGRESS_HEARTBEAT_SECONDS=300` を既定とし、5分ごとにtodo計画由来の概算進捗率・直近の完了節目・現在工程をOpen WebUI `statusHistory`へ保存する。計画がなければ率を捏造せず未算出とし、`0`で無効化できる
+- tool開始・完了ログと汎用reasoning statusは既定で抑止する。heartbeatはrun単位で状態と送信lockを分離し、内部taskでは無効化する。terminal・例外・取消・stream close時に同期停止し、推論本文、tool引数・preview・raw結果、生のユーザー入力、tool名を直接保存しない。表示対象は件数・長さ制限とHermes API・Pipe双方の秘密情報／credential付きURL redactionを通したモデル作成のtodo要約だけとし、ntfy pushには送らない
 - 実Open WebUI API → Progress Pipe → Hermes Runs API: 最終応答 `OWUI_PUSH_PREVIEW_OK` 後、チャットタイトル、回答冒頭、対象チャット直リンクを持ちemoji tagを持たないpushが1件だけ発生。期待通知の検出後も2秒間pollし、余分な通知0件を確認
 - 上記E2Eで詳細progressを3件保存し、開始statusと完了statusの双方を確認
 - 通知先のテストチャットがOpen WebUI上に存在し、タイトルと回答本文を保持していること、ローカルの `/c/<chat_id>` がHTTP 200を返すことを確認

@@ -95,10 +95,10 @@ async def main():
     result = {
         "visible_content": content,
         "status_descriptions": [item.get("description") for item in statuses],
-        "saw_tool_started": any(
+        "tool_started_suppressed": not any(
             str(item.get("description", "")).startswith("実行中:") for item in statuses
         ),
-        "saw_tool_completed": any(
+        "tool_completed_suppressed": not any(
             str(item.get("description", "")).startswith("完了:") for item in statuses
         ),
         "final_status_done": bool(statuses and statuses[-1].get("done") is True),
@@ -115,8 +115,8 @@ async def main():
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
     assert content.strip() == "PIPE_LIVE_OK", result
-    assert result["saw_tool_started"], result
-    assert result["saw_tool_completed"], result
+    assert result["tool_started_suppressed"], result
+    assert result["tool_completed_suppressed"], result
     assert result["final_status_done"], result
     assert not result["assistant_content_has_status_marker"], result
     assert transcript_status == 200, result
