@@ -1,0 +1,401 @@
+From 0778d86c310f9e4607029a5dc222f16bb0fc2d44 Mon Sep 17 00:00:00 2001
+From: myurait <myurait@gmail.com>
+Date: Tue, 18 Aug 2026 15:26:52 +0900
+Subject: [PATCH] feat(api): emit semantic plan progress events
+
+---
+ gateway/platforms/api_server.py               |  75 +++++-
+ tests/gateway/test_api_server.py              |   1 +
+ tests/gateway/test_api_server_runs.py         | 217 ++++++++++++++++++
+ .../docs/user-guide/features/api-server.md    |   8 +
+ 4 files changed, 300 insertions(+), 1 deletion(-)
+
+diff --git a/gateway/platforms/api_server.py b/gateway/platforms/api_server.py
+index ce9391cdf79ceda6377422223fd56316d80cb4cc..78d07c001eaa05261a1139efe399dabd2b469b4d 100644
+--- a/gateway/platforms/api_server.py
++++ b/gateway/platforms/api_server.py
+@@ -46,6 +46,7 @@ import hashlib
+ import hmac
+ import itertools
+ import json
++import math
+ from contextlib import contextmanager, nullcontext, suppress
+ from contextvars import ContextVar
+ from functools import wraps
+@@ -3147,6 +3148,7 @@ class APIServerAdapter(BasePlatformAdapter):
+                 "run_submission": True,
+                 "run_status": True,
+                 "run_events_sse": True,
++                "plan_progress_events": True,
+                 "run_stop": True,
+                 "run_steer": True,
+                 "run_approval_response": True,
+@@ -6524,6 +6526,7 @@ class APIServerAdapter(BasePlatformAdapter):
+ 
+     _RUN_STREAM_TTL = 300  # seconds before orphaned runs are swept
+     _RUN_STATUS_TTL = 3600  # seconds to retain terminal run status for polling
++    _MAX_PLAN_RESULT_CHARS = 256_000
+ 
+     def _set_run_status(self, run_id: str, status: str, **fields: Any) -> Dict[str, Any]:
+         """Update pollable run status without exposing private agent objects."""
+@@ -6540,6 +6543,61 @@ class APIServerAdapter(BasePlatformAdapter):
+         self._run_statuses[run_id] = current
+         return current
+ 
++    @staticmethod
++    def _bounded_plan_text(value: Any, limit: int) -> str:
++        text = re.sub(
++            r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]",
++            " ",
++            str(value or ""),
++        )
++        text = re.sub(r"\s+", " ", text).strip()
++        return redact_sensitive_text(
++            text,
++            force=True,
++            redact_url_credentials=True,
++        )[:limit]
++
++    @classmethod
++    def _plan_items_from_todo_result(
++        cls, result: Any
++    ) -> Optional[List[Dict[str, str]]]:
++        """Project a todo result into a bounded, client-safe plan snapshot."""
++        if isinstance(result, str) and len(result) > cls._MAX_PLAN_RESULT_CHARS:
++            return None
++        try:
++            payload = json.loads(result) if isinstance(result, str) else result
++        except (json.JSONDecodeError, RecursionError, TypeError, ValueError):
++            return None
++        if not isinstance(payload, dict) or not isinstance(payload.get("todos"), list):
++            return None
++
++        raw_items = payload["todos"]
++        if len(raw_items) > 100:
++            return None
++        items: List[Dict[str, str]] = []
++        seen_ids: set[str] = set()
++        valid_statuses = {"pending", "in_progress", "completed", "cancelled"}
++        for raw in raw_items[:100]:
++            if not isinstance(raw, dict):
++                continue
++            status = str(raw.get("status") or "").strip().lower()
++            item_id = cls._bounded_plan_text(raw.get("id"), 100)
++            content = cls._bounded_plan_text(raw.get("content"), 500)
++            if (
++                status not in valid_statuses
++                or not item_id
++                or not content
++                or item_id in seen_ids
++            ):
++                if item_id in seen_ids:
++                    return None
++                continue
++            seen_ids.add(item_id)
++            items.append({"id": item_id, "content": content, "status": status})
++        if raw_items and not items:
++            return None
++        return items
++
+     def _make_run_event_callback(self, run_id: str, loop: "asyncio.AbstractEventLoop"):
+         """Return a tool_progress_callback that pushes structured events to the run's SSE queue."""
+         def _push(event: Dict[str, Any]) -> None:
+@@ -6567,14 +6625,29 @@ class APIServerAdapter(BasePlatformAdapter):
+                     "preview": preview,
+                 })
+             elif event_type == "tool.completed":
++                try:
++                    duration = float(kwargs.get("duration", 0) or 0)
++                    if not math.isfinite(duration):
++                        duration = 0.0
++                except (TypeError, ValueError):
++                    duration = 0.0
+                 _push({
+                     "event": "tool.completed",
+                     "run_id": run_id,
+                     "timestamp": ts,
+                     "tool": tool_name,
+-                    "duration": round(kwargs.get("duration", 0), 3),
++                    "duration": round(duration, 3),
+                     "error": kwargs.get("is_error", False),
+                 })
++                if tool_name == "todo" and not kwargs.get("is_error", False):
++                    items = self._plan_items_from_todo_result(kwargs.get("result"))
++                    if items is not None:
++                        _push({
++                            "event": "plan.updated",
++                            "run_id": run_id,
++                            "timestamp": ts,
++                            "items": items,
++                        })
+             elif event_type == "reasoning.available":
+                 _push({
+                     "event": "reasoning.available",
+diff --git a/tests/gateway/test_api_server.py b/tests/gateway/test_api_server.py
+index 57ac52dbe4b002f8668f112741d21d91f893fdfa..7c2d3a8d077c88e68ba4e394e391e0e0e1bdec03 100644
+--- a/tests/gateway/test_api_server.py
++++ b/tests/gateway/test_api_server.py
+@@ -870,6 +870,7 @@ class TestCapabilitiesEndpoint:
+             assert data["features"]["chat_completions"] is True
+             assert data["features"]["run_status"] is True
+             assert data["features"]["run_events_sse"] is True
++            assert data["features"]["plan_progress_events"] is True
+             assert data["features"]["model_options"] is True
+             assert data["features"]["session_continuity_header"] == "X-Hermes-Session-Id"
+             assert data["endpoints"]["run_status"]["path"] == "/v1/runs/{run_id}"
+diff --git a/tests/gateway/test_api_server_runs.py b/tests/gateway/test_api_server_runs.py
+index d3edc9d15127711fbbf02f9edf6be3e80af44b61..12669a0e064d71f260b22bdcb3745b6b6b0388ef 100644
+--- a/tests/gateway/test_api_server_runs.py
++++ b/tests/gateway/test_api_server_runs.py
+@@ -10,6 +10,7 @@ Covers:
+ """
+ 
+ import asyncio
++import json
+ import threading
+ import time
+ from unittest.mock import MagicMock, patch
+@@ -333,6 +334,222 @@ class TestRunEvents:
+                 assert "run.completed" in body
+                 assert "Hello!" in body
+ 
++    @pytest.mark.asyncio
++    async def test_todo_completion_emits_sanitized_plan_update(self, adapter):
++        run_id = "run_plan"
++        queue = asyncio.Queue()
++        adapter._run_streams[run_id] = queue
++        adapter._set_run_status(run_id, "running")
++        callback = adapter._make_run_event_callback(
++            run_id, asyncio.get_running_loop()
++        )
++
++        callback(
++            "tool.completed",
++            "todo",
++            duration=0.1,
++            is_error=False,
++            result=json.dumps(
++                {
++                    "todos": [
++                        {
++                            "id": "investigate",
++                            "content": "通知の発生源を特定する",
++                            "status": "completed",
++                        },
++                        {
++                            "id": "design",
++                            "content": (
++                                "外部\u0000システムとの疎通条件を追加調査する "
++                                "https://user:password@example.com/path?token="
++                                "secret-token-value-1234567890"
++                            ),
++                            "status": "in_progress",
++                        },
++                    ],
++                    "private": "RAW_RESULT_MUST_NOT_LEAK",
++                },
++                ensure_ascii=False,
++            ),
++        )
++
++        completed = await asyncio.wait_for(queue.get(), timeout=0.2)
++        plan = await asyncio.wait_for(queue.get(), timeout=0.2)
++
++        assert completed["event"] == "tool.completed"
++        assert plan == {
++            "event": "plan.updated",
++            "run_id": run_id,
++            "timestamp": plan["timestamp"],
++            "items": [
++                {
++                    "id": "investigate",
++                    "content": "通知の発生源を特定する",
++                    "status": "completed",
++                },
++                {
++                    "id": "design",
++                    "content": (
++                        "外部 システムとの疎通条件を追加調査する "
++                        "https://user:***@example.com/path?token=***"
++                    ),
++                    "status": "in_progress",
++                },
++            ],
++        }
++        assert "RAW_RESULT_MUST_NOT_LEAK" not in json.dumps(plan, ensure_ascii=False)
++        assert "password" not in json.dumps(plan, ensure_ascii=False)
++        assert "secret-token-value" not in json.dumps(plan, ensure_ascii=False)
++
++    def test_plan_projection_rejects_oversized_json_before_parsing(
++        self, adapter, monkeypatch
++    ):
++        called = False
++
++        def unexpected_loads(_value):
++            nonlocal called
++            called = True
++            raise AssertionError("oversized plan JSON must not be parsed")
++
++        monkeypatch.setattr("gateway.platforms.api_server.json.loads", unexpected_loads)
++
++        result = adapter._plan_items_from_todo_result(
++            "x" * (adapter._MAX_PLAN_RESULT_CHARS + 1)
++        )
++
++        assert result is None
++        assert called is False
++
++    def test_plan_projection_rejects_deeply_nested_json_fail_closed(self, adapter):
++        deeply_nested = '{"todos":' + ("[" * 1_000) + "0" + ("]" * 1_000) + "}"
++
++        assert adapter._plan_items_from_todo_result(deeply_nested) is None
++
++    def test_plan_projection_distinguishes_empty_from_all_invalid_snapshot(
++        self, adapter
++    ):
++        assert adapter._plan_items_from_todo_result({"todos": []}) == []
++        assert (
++            adapter._plan_items_from_todo_result(
++                {
++                    "todos": [
++                        {"id": "", "content": "missing id", "status": "pending"},
++                        {"id": "bad", "content": "bad status", "status": "unknown"},
++                    ]
++                }
++            )
++            is None
++        )
++
++    def test_plan_projection_rejects_more_than_one_hundred_items(self, adapter):
++        oversized = {
++            "todos": [
++                {
++                    "id": f"item-{index}",
++                    "content": f"工程 {index}",
++                    "status": "pending",
++                }
++                for index in range(101)
++            ]
++        }
++
++        assert adapter._plan_items_from_todo_result(oversized) is None
++
++    def test_plan_projection_rejects_duplicate_item_ids(self, adapter):
++        duplicated = {
++            "todos": [
++                {"id": "same", "content": "工程A", "status": "completed"},
++                {"id": "same", "content": "工程B", "status": "pending"},
++            ]
++        }
++
++        assert adapter._plan_items_from_todo_result(duplicated) is None
++
++    @pytest.mark.asyncio
++    async def test_malformed_duration_does_not_drop_todo_plan_update(self, adapter):
++        run_id = "run_plan_bad_duration"
++        queue = asyncio.Queue()
++        adapter._run_streams[run_id] = queue
++        adapter._set_run_status(run_id, "running")
++        callback = adapter._make_run_event_callback(
++            run_id, asyncio.get_running_loop()
++        )
++
++        callback(
++            "tool.completed",
++            "todo",
++            duration=None,
++            is_error=False,
++            result={
++                "todos": [
++                    {
++                        "id": "verify",
++                        "content": "意味的進捗イベントを検証",
++                        "status": "in_progress",
++                    }
++                ]
++            },
++        )
++
++        completed = await asyncio.wait_for(queue.get(), timeout=0.2)
++        plan = await asyncio.wait_for(queue.get(), timeout=0.2)
++        assert completed["event"] == "tool.completed"
++        assert completed["duration"] == 0
++        assert plan["event"] == "plan.updated"
++        assert plan["items"][0]["id"] == "verify"
++
++    @pytest.mark.asyncio
++    async def test_runs_stream_forwards_todo_plan_update(self, adapter):
++        app = _create_runs_app(adapter)
++
++        async with TestClient(TestServer(app)) as cli:
++            with patch.object(adapter, "_create_agent") as mock_create:
++                def create_agent(**kwargs):
++                    agent = MagicMock()
++
++                    def run_conversation(**_run_kwargs):
++                        kwargs["tool_progress_callback"](
++                            "tool.completed",
++                            "todo",
++                            duration=0.1,
++                            is_error=False,
++                            result=json.dumps(
++                                {
++                                    "todos": [
++                                        {
++                                            "id": "research",
++                                            "content": "外部システムとの疎通を追加調査中",
++                                            "status": "in_progress",
++                                        }
++                                    ]
++                                },
++                                ensure_ascii=False,
++                            ),
++                        )
++                        return {"final_response": "done"}
++
++                    agent.run_conversation.side_effect = run_conversation
++                    agent.session_prompt_tokens = 0
++                    agent.session_completion_tokens = 0
++                    agent.session_total_tokens = 0
++                    return agent
++
++                mock_create.side_effect = create_agent
++                started = await cli.post("/v1/runs", json={"input": "work"})
++                run_id = (await started.json())["run_id"]
++                events = await cli.get(f"/v1/runs/{run_id}/events")
++                body = await events.text()
++
++        assert events.status == 200
++        payloads = [
++            json.loads(line[6:])
++            for line in body.splitlines()
++            if line.startswith("data: ")
++        ]
++        plan = next(item for item in payloads if item.get("event") == "plan.updated")
++        assert plan["items"][0]["content"] == "外部システムとの疎通を追加調査中"
++        assert any(item.get("event") == "run.completed" for item in payloads)
++
+ 
+     @pytest.mark.asyncio
+     async def test_approval_resolve_all_is_scoped_to_target_run(self, auth_adapter):
+diff --git a/website/docs/user-guide/features/api-server.md b/website/docs/user-guide/features/api-server.md
+index ccba76e104d1c5b3e196fd901da098375b6a6e0d..5e52dd72a2532277fea403ad26d331792cdf2e66 100644
+--- a/website/docs/user-guide/features/api-server.md
++++ b/website/docs/user-guide/features/api-server.md
+@@ -388,6 +388,14 @@ redaction before leaving the process. Per-tool child events
+ are high-volume UI noise; use the per-child live transcript files for
+ play-by-play.
+ 
++When the agent updates its `todo` plan, the stream emits a `plan.updated`
++event after the corresponding `tool.completed` event. The payload contains a
++bounded snapshot of plan item IDs, user-facing descriptions, and statuses
++(`pending`, `in_progress`, `completed`, or `cancelled`). Free text passes
++forced secret redaction, and the raw tool result is never forwarded. Clients
++can use this event to render milestone-based progress instead of treating tool
++call counts as completion percentage.
++
+ Unconsumed event buffers expire after five minutes so a detached client cannot
+ grow memory indefinitely. This expires transport state only: a run that is
+ still executing remains visible to status polling, approval, stop control, and
+-- 
+2.43.0
