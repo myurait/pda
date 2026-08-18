@@ -96,6 +96,20 @@ def test_installer_failure_path_has_no_destructive_function_rollback():
     assert "restore_existing_function" not in source
 
 
+def test_default_install_valves_enable_fifteen_minute_progress_heartbeat():
+    valves = installer.build_valves_payload(
+        hermes_url="http://host.docker.internal:8642/v1",
+        hermes_key="test-key",
+        ntfy_server="https://ntfy.sh",
+        ntfy_topic="test-topic",
+        allowed_user_id="owner-user",
+        openwebui_public_url="https://pda-web.example.ts.net",
+    )
+
+    assert valves["PROGRESS_HEARTBEAT_SECONDS"] == 900
+    assert valves["RUN_TIMEOUT_SECONDS"] == 0
+
+
 @pytest.mark.asyncio
 async def test_late_expected_notification_still_gets_full_quiet_window():
     class FakeClock:

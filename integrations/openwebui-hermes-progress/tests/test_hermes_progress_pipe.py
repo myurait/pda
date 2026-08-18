@@ -22,7 +22,7 @@ class FakeHermes:
         self,
         events,
         *,
-        event_delay=0,
+        event_delay: float = 0,
         approval_status=200,
         approval_error_code="approval_not_active",
     ):
@@ -183,6 +183,129 @@ def test_run_timeout_defaults_to_unlimited():
     assert timeout.sock_read is None
 
 
+def test_progress_heartbeat_defaults_to_fifteen_minutes_and_can_be_disabled():
+    valves = Pipe.Valves()
+    schema = valves.model_json_schema()["properties"]["PROGRESS_HEARTBEAT_SECONDS"]
+
+    assert valves.PROGRESS_HEARTBEAT_SECONDS == 900
+    assert schema["minimum"] == 0
+
+    disabled = Pipe.Valves(PROGRESS_HEARTBEAT_SECONDS=0)
+    assert disabled.PROGRESS_HEARTBEAT_SECONDS == 0
+
+
+def test_progress_heartbeat_description_reports_active_tool_without_preview():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "tool.started",
+            "tool": "terminal",
+            "preview": "SECRET_COMMAND_MUST_NOT_APPEAR",
+        },
+    )
+    description = pipe._heartbeat_description(
+        elapsed_seconds=900,
+        progress=progress,
+    )
+
+    assert description == "⏳ 開始から15分。現在: terminalを実行中。"
+    assert "SECRET_COMMAND_MUST_NOT_APPEAR" not in description
+
+
+def test_progress_heartbeat_uses_generic_label_for_untrusted_tool_name():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    event = {
+        "event": "tool.started",
+        "tool": "terminal — USER_INPUT_SECRET_7f9c",
+        "preview": "ANOTHER_SECRET",
+    }
+
+    pipe._track_progress_event(progress, event)
+    heartbeat = pipe._heartbeat_description(
+        elapsed_seconds=900,
+        progress=progress,
+    )
+    immediate = pipe._tool_description(event, completed=False)
+
+    assert "現在: ツールを実行中" in heartbeat
+    assert immediate == "実行中: ツール"
+    assert "USER_INPUT_SECRET_7f9c" not in heartbeat
+    assert "USER_INPUT_SECRET_7f9c" not in immediate
+    assert "ANOTHER_SECRET" not in heartbeat
+    assert "ANOTHER_SECRET" not in immediate
+
+
+def test_progress_heartbeat_reports_completed_count_and_generic_last_activity():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "web_search"},
+    )
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "tool.completed",
+            "tool": "web_search",
+            "error": False,
+            "result": "SECRET_RESULT_MUST_NOT_APPEAR",
+        },
+    )
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "reasoning.available",
+            "text": "PRIVATE_REASONING_MUST_NOT_APPEAR",
+        },
+    )
+    description = pipe._heartbeat_description(
+        elapsed_seconds=1800,
+        progress=progress,
+    )
+
+    assert description == (
+        "⏳ 開始から30分。処理を継続中。"
+        "直近: Hermesが考えています。完了したツール: 1件。"
+    )
+    assert "SECRET_RESULT_MUST_NOT_APPEAR" not in description
+    assert "PRIVATE_REASONING_MUST_NOT_APPEAR" not in description
+
+
+@pytest.mark.parametrize(
+    ("event", "expected_activity"),
+    [
+        (
+            {"event": "message.delta", "delta": "PRIVATE_DRAFT_MUST_NOT_APPEAR"},
+            "回答を生成中",
+        ),
+        (
+            {"event": "approval.request", "command": "SECRET_COMMAND"},
+            "ユーザーの承認待ち",
+        ),
+    ],
+)
+def test_progress_heartbeat_uses_generic_message_and_approval_activity(
+    event, expected_activity
+):
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+
+    pipe._track_progress_event(progress, event)
+    description = pipe._heartbeat_description(
+        elapsed_seconds=3600,
+        progress=progress,
+    )
+
+    assert f"直近: {expected_activity}。" in description
+    assert "PRIVATE_DRAFT_MUST_NOT_APPEAR" not in description
+    assert "SECRET_COMMAND" not in description
+
+
 def test_context_excludes_openwebui_ui_metadata():
     history, instructions = Pipe._build_context(
         [
@@ -255,6 +378,358 @@ async def test_tool_progress_uses_status_not_assistant_content():
         assert fake.stops == []
         assert fake.run_payloads[0]["session_id"] == "owui_test"
         assert fake.headers[0]["X-Hermes-Session-Key"] == "openwebui:test"
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_long_run_emits_periodic_status_only_and_stops_after_terminal_event():
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "LONG_RUN_OK"}],
+        event_delay=1.2,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="long run",
+                history=[],
+                instructions=None,
+                session_id="owui_long_run",
+                session_key="openwebui:long-run",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        content = visible_content(chunks)
+        heartbeats = [item for item in status_data(emitted) if item.get("heartbeat")]
+        assert content == "LONG_RUN_OK"
+        assert "開始から" not in content
+        assert len(heartbeats) == 1
+        assert heartbeats[0]["description"].startswith("⏳ 開始から1秒。")
+        assert heartbeats[0]["done"] is False
+        assert heartbeats[0]["run_id"] == "run_test"
+        assert status_data(emitted)[-1]["description"] == "完了"
+
+        emitted_count = len(emitted)
+        await asyncio.sleep(1.1)
+        assert len(emitted) == emitted_count
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_zero_progress_heartbeat_interval_does_not_start_background_task():
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "HEARTBEAT_DISABLED_OK"}]
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 0
+        heartbeat_started = False
+
+        async def unexpected_heartbeat(**_kwargs):
+            nonlocal heartbeat_started
+            heartbeat_started = True
+
+        pipe._progress_heartbeat = unexpected_heartbeat
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="disabled heartbeat",
+                history=[],
+                instructions=None,
+                session_id="owui_disabled_heartbeat",
+                session_key="openwebui:disabled-heartbeat",
+                event_emitter=lambda _event: asyncio.sleep(0),
+                event_call=None,
+            )
+        ]
+
+        assert visible_content(chunks) == "HEARTBEAT_DISABLED_OK"
+        assert heartbeat_started is False
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_run_stops_heartbeat_before_delayed_tick():
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "too late"}],
+        event_delay=2,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        async def consume():
+            return [
+                chunk
+                async for chunk in pipe._stream_response(
+                    message="cancel heartbeat",
+                    history=[],
+                    instructions=None,
+                    session_id="owui_cancel_heartbeat",
+                    session_key="openwebui:cancel-heartbeat",
+                    event_emitter=emitter,
+                    event_call=None,
+                )
+            ]
+
+        consumer = asyncio.create_task(consume())
+        deadline = asyncio.get_running_loop().time() + 1
+        while not emitted and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.01)
+        assert emitted
+
+        consumer.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await consumer
+
+        statuses = status_data(emitted)
+        assert statuses[-1]["description"] == "キャンセル済み"
+        assert fake.stops == ["run_test"]
+        emitted_count = len(emitted)
+        await asyncio.sleep(1.1)
+        assert len(emitted) == emitted_count
+        assert not any(item.get("heartbeat") for item in status_data(emitted))
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_stream_aclose_waits_for_inner_run_and_heartbeat_cleanup():
+    fake = await FakeHermes(
+        [
+            {"event": "message.delta", "delta": "partial"},
+            {"event": "run.completed", "output": "partial"},
+        ]
+    ).start()
+    stream = None
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        stream = pipe._stream_response(
+            message="close stream",
+            history=[],
+            instructions=None,
+            session_id="owui_close_heartbeat",
+            session_key="openwebui:close-heartbeat",
+            event_emitter=emitter,
+            event_call=None,
+        )
+        await anext(stream)
+        assert visible_content([await anext(stream)]) == "partial"
+        await asyncio.sleep(1.1)
+        assert any(item.get("heartbeat") for item in status_data(emitted))
+
+        await stream.aclose()
+
+        active_heartbeats = [
+            task
+            for task in asyncio.all_tasks()
+            if not task.done()
+            and task.get_name().startswith("hermes-progress-heartbeat-")
+        ]
+        assert active_heartbeats == []
+        assert status_data(emitted)[-1]["description"] == "キャンセル済み"
+        assert fake.stops == ["run_test"]
+        emitted_count = len(emitted)
+        await asyncio.sleep(1.1)
+        assert len(emitted) == emitted_count
+    finally:
+        if stream is not None:
+            await stream.aclose()
+        leftovers = [
+            task
+            for task in asyncio.all_tasks()
+            if not task.done()
+            and task.get_name().startswith("hermes-progress-heartbeat-")
+        ]
+        for task in leftovers:
+            task.cancel()
+        if leftovers:
+            await asyncio.gather(*leftovers, return_exceptions=True)
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_concurrent_progress_heartbeats_keep_run_state_isolated():
+    pipe = Pipe()
+    terminal_progress = pipe._initial_progress_state()
+    search_progress = pipe._initial_progress_state()
+    pipe._track_progress_event(
+        terminal_progress,
+        {"event": "tool.started", "tool": "terminal"},
+    )
+    pipe._track_progress_event(
+        search_progress,
+        {"event": "tool.started", "tool": "web_search"},
+    )
+    pipe._track_progress_event(
+        search_progress,
+        {"event": "tool.completed", "tool": "web_search"},
+    )
+
+    emitted = {"run_terminal": [], "run_search": []}
+
+    async def terminal_emitter(event):
+        emitted["run_terminal"].append(event)
+
+    async def search_emitter(event):
+        emitted["run_search"].append(event)
+
+    stop_terminal = asyncio.Event()
+    stop_search = asyncio.Event()
+    started_at = asyncio.get_running_loop().time() - 900
+    tasks = [
+        asyncio.create_task(
+            pipe._progress_heartbeat(
+                emitter=terminal_emitter,
+                run_id="run_terminal",
+                interval_seconds=0.01,
+                started_at=started_at,
+                progress=terminal_progress,
+                stop_event=stop_terminal,
+            )
+        ),
+        asyncio.create_task(
+            pipe._progress_heartbeat(
+                emitter=search_emitter,
+                run_id="run_search",
+                interval_seconds=0.01,
+                started_at=started_at,
+                progress=search_progress,
+                stop_event=stop_search,
+            )
+        ),
+    ]
+    try:
+        deadline = asyncio.get_running_loop().time() + 1
+        while (
+            not emitted["run_terminal"] or not emitted["run_search"]
+        ) and asyncio.get_running_loop().time() < deadline:
+            await asyncio.sleep(0.01)
+        assert emitted["run_terminal"] and emitted["run_search"]
+    finally:
+        stop_terminal.set()
+        stop_search.set()
+        await asyncio.gather(*tasks)
+
+    terminal_status = status_data(emitted["run_terminal"])[0]
+    search_status = status_data(emitted["run_search"])[0]
+    assert terminal_status["run_id"] == "run_terminal"
+    assert "terminal" in terminal_status["description"]
+    assert "web_search" not in terminal_status["description"]
+    assert search_status["run_id"] == "run_search"
+    assert "web_search" in search_status["description"]
+    assert "完了したツール: 1件" in search_status["description"]
+    assert "terminal" not in search_status["description"]
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_and_event_statuses_use_serial_emitter_calls():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "terminal"},
+            {"event": "run.completed", "output": "SERIAL_STATUS_OK"},
+        ],
+        event_delay=1.05,
+    ).start()
+    release_heartbeat = asyncio.Event()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        active_calls = 0
+        max_active_calls = 0
+        heartbeat_entered = asyncio.Event()
+
+        async def emitter(event):
+            nonlocal active_calls, max_active_calls
+            active_calls += 1
+            max_active_calls = max(max_active_calls, active_calls)
+            try:
+                description = str((event.get("data") or {}).get("description") or "")
+                if description.startswith("⏳") and not heartbeat_entered.is_set():
+                    heartbeat_entered.set()
+                    await release_heartbeat.wait()
+                await asyncio.sleep(0)
+            finally:
+                active_calls -= 1
+
+        async def release_after_overlap_window():
+            await asyncio.wait_for(heartbeat_entered.wait(), timeout=2)
+            await asyncio.sleep(0.15)
+            release_heartbeat.set()
+
+        releaser = asyncio.create_task(release_after_overlap_window())
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="serialize statuses",
+                history=[],
+                instructions=None,
+                session_id="owui_serial_status",
+                session_key="openwebui:serial-status",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+        await releaser
+
+        assert visible_content(chunks) == "SERIAL_STATUS_OK"
+        assert max_active_calls == 1
+    finally:
+        release_heartbeat.set()
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_internal_openwebui_task_does_not_emit_progress_statuses():
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "internal result"}],
+        event_delay=1.2,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        response = await pipe.pipe(
+            {
+                "messages": [{"role": "user", "content": "generate a title"}],
+                "stream": False,
+            },
+            __user__={"id": "owner-user"},
+            __chat_id__="heartbeat-internal-chat",
+            __session_id__="heartbeat-internal-session",
+            __message_id__="heartbeat-internal-message",
+            __event_emitter__=emitter,
+            __metadata__={"task": "title_generation", "internal": False},
+        )
+
+        assert response["choices"][0]["message"]["content"] == "internal result"
+        assert emitted == []
     finally:
         await fake.close()
 
