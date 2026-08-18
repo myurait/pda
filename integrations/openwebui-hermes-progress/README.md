@@ -2,6 +2,13 @@
 
 PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終応答完了時だけiPhoneへntfy pushを送るローカル統合。
 
+## ツール実行前の即時中間メッセージ
+
+- Hermes Runs APIの`message.interim`をOpenAI互換content chunkへ直ちに変換する。モデルが「短い計画」を出した時点でOpen WebUI本文へ表示し、同じrunを閉じずにtool実行と最終回答を続ける。
+- 通常のtoken streamですでに表示された中間文はHermes側の`already_streamed`判定で重複送信しない。中間文と最終回答の間には空行を置く。
+- Open WebUIの保存済みassistant本文には中間文と最終回答の両方を残す。一方、完了時ntfy pushは中間prefixを除き、従来どおり最終回答の冒頭を通知する。
+- この経路には、Hermes core側で`interim_assistant_callback`をRuns SSEへ接続する管理パッチが必要。復元可能なpatch seriesは`hermes-core/`に保存する。
+
 ## 長時間runの定期進捗
 
 - ユーザー向けHermes runが継続している間、Open WebUIの `status` イベントとして既定300秒（5分）ごとにheartbeatを送る。通常のassistant本文へ追記しないため、会話本文や次ターンのモデル入力を汚染しない。
@@ -24,7 +31,7 @@ PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終�
 
 ## 完了タイミングと表示内容
 
-実装バージョンは `hermes_progress_pipe` v2.1.0-local.13。
+実装バージョンは `hermes_progress_pipe` v2.1.0-local.14。
 
 ストリーミング時は、Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信タスクを起動する。Pipe開始時のOpen WebUI host taskの終了を待ってから、Open WebUI DB上の対象assistant messageを読む。success、failure、cancel、timeoutやhost taskの終了状態は通知種別として区別せず、所有者本人のmessageが `done=true` かつ本文が非空なら保存済み内容を通知する。通知タイトルと本文は保存済みレコードだけから読み、Hermesのterminal outputやユーザー入力を代用しない。outlet filterによるredactionを前提にする環境では、filter失敗時にも保存済み本文が通知され得るため、`NTFY_TOPIC`を空にして外部pushを無効化する。
 
@@ -79,7 +86,7 @@ pushだけ一時停止する場合は、Open WebUI管理画面のFunction Valves
 
 ## テスト
 
-単体・ローカル統合テスト（現在75件）:
+単体・ローカル統合テスト（現在76件）:
 
 ```bash
 cd "$HOME/openwebui"
@@ -87,6 +94,14 @@ uv run --with pytest --with pytest-asyncio --with aiohttp --with fastapi \
   python -m pytest tests/test_hermes_progress_pipe.py \
   tests/test_install_hermes_progress_pipe.py -q
 ```
+
+実Open WebUIで、中間計画がtool待機中に保存・表示可能になり、人間の追加ターンなしで最終回答まで続くことを時刻付きで確認:
+
+```bash
+uv run --with aiohttp python tests/live_openwebui_interim_probe.py
+```
+
+成功条件は、中間計画が`done=false`の間に現れ、5秒toolの完了後に最終回答が同じassistant本文へ追記され、両者の観測時刻に4秒以上の差があること。この合成runのntfy pushは抑止し、確認用チャットを1件残す。
 
 実Open WebUIフロントエンド相当のasync経路（DB保存済みタイトル・回答、詳細progress、チャット直リンクを持つpushが1件）:
 

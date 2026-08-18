@@ -1,9 +1,9 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.13
+version: 2.1.0-local.14
 required_open_webui_version: 0.10.2
-description: Hermes Runs API adapter with plan-based semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
+description: Hermes Runs API adapter with live interim assistant messages, plan-based semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
 
 # Derived from MartianInGreen/openwebui-hermes (MIT), pinned during review at
@@ -951,6 +951,7 @@ class Pipe:
         task: Any = "",
         message_id: Any = "",
         host_task: Optional[asyncio.Task] = None,
+        interim_prefix: str = "",
     ) -> None:
         if is_internal or str(task or "").strip():
             return
@@ -1023,6 +1024,10 @@ class Pipe:
         if persisted is None:
             return
         title, persisted_answer = persisted
+        if interim_prefix and persisted_answer.startswith(interim_prefix):
+            # Keep the live plan in Open WebUI, but completion pushes should
+            # preview the terminal answer rather than repeat already-seen setup.
+            persisted_answer = persisted_answer[len(interim_prefix) :].lstrip()
         preview = self._clean_text(
             persisted_answer, _NOTIFICATION_PREVIEW_CHARS
         )
@@ -1066,6 +1071,7 @@ class Pipe:
         host_task: Optional[asyncio.Task] = None,
         require_host_task: bool = False,
         ui_context: bool = True,
+        interim_prefix: str = "",
     ) -> None:
         if is_internal or str(task or "").strip() or not ui_context:
             return
@@ -1090,6 +1096,7 @@ class Pipe:
                 task=task,
                 message_id=message_id_text,
                 host_task=host_task,
+                interim_prefix=interim_prefix,
             ),
             name="openwebui-completion-push",
         )
@@ -1339,6 +1346,7 @@ class Pipe:
         ui_context = bool(run_args.pop("ui_context", False))
         completion_id = f"chatcmpl-hermes-{uuid.uuid4().hex[:16]}"
         accumulated = ""
+        interim_prefix = ""
         terminal_output: Optional[str] = None
         terminal_error: Optional[str] = None
         cancelled = False
@@ -1351,7 +1359,20 @@ class Pipe:
         try:
             async for event in event_stream:
                 event_type = str(event.get("event") or "")
-                if event_type == "message.delta":
+                if event_type == "message.interim":
+                    content = str(event.get("content") or "")
+                    if content:
+                        if content.endswith("\n\n"):
+                            visible_interim = content
+                        elif content.endswith("\n"):
+                            visible_interim = content + "\n"
+                        else:
+                            visible_interim = content + "\n\n"
+                        interim_prefix += visible_interim
+                        yield self._completion_chunk(
+                            completion_id, {"content": visible_interim}
+                        )
+                elif event_type == "message.delta":
                     delta = str(event.get("delta") or "")
                     if delta:
                         accumulated += delta
@@ -1387,6 +1408,7 @@ class Pipe:
                         host_task=host_task,
                         require_host_task=require_host_task,
                         ui_context=ui_context,
+                        interim_prefix=interim_prefix,
                     )
 
         if terminal_output:
@@ -1453,6 +1475,7 @@ class Pipe:
                 host_task=host_task,
                 require_host_task=require_host_task,
                 ui_context=ui_context,
+                interim_prefix=interim_prefix,
             )
 
     async def _blocking_response(self, **run_args: Any) -> dict:

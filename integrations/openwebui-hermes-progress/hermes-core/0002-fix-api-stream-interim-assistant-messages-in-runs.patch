@@ -1,0 +1,189 @@
+From efcee40d0eafc8f2fc4e28600de681e07c225493 Mon Sep 17 00:00:00 2001
+From: myurait <myurait@gmail.com>
+Date: Tue, 18 Aug 2026 17:57:18 +0900
+Subject: [PATCH] fix(api): stream interim assistant messages in runs
+
+---
+ gateway/platforms/api_server.py               | 24 +++++++
+ tests/gateway/test_api_server.py              |  7 +-
+ tests/gateway/test_api_server_runs.py         | 68 +++++++++++++++++++
+ .../docs/user-guide/features/api-server.md    |  7 ++
+ 4 files changed, 105 insertions(+), 1 deletion(-)
+
+diff --git a/gateway/platforms/api_server.py b/gateway/platforms/api_server.py
+index 78d07c00..d3ed1fc0 100644
+--- a/gateway/platforms/api_server.py
++++ b/gateway/platforms/api_server.py
+@@ -2618,6 +2618,7 @@ class APIServerAdapter(BasePlatformAdapter):
+         ephemeral_system_prompt: Optional[str] = None,
+         session_id: Optional[str] = None,
+         stream_delta_callback=None,
++        interim_assistant_callback=None,
+         tool_progress_callback=None,
+         tool_start_callback=None,
+         tool_complete_callback=None,
+@@ -2930,6 +2931,7 @@ class APIServerAdapter(BasePlatformAdapter):
+             "session_id": session_id,
+             "platform": "api_server",
+             "stream_delta_callback": stream_delta_callback,
++            "interim_assistant_callback": interim_assistant_callback,
+             "tool_progress_callback": tool_progress_callback,
+             "tool_start_callback": tool_start_callback,
+             "tool_complete_callback": tool_complete_callback,
+@@ -6832,6 +6834,27 @@ class APIServerAdapter(BasePlatformAdapter):
+             except Exception:
+                 pass
+ 
++        def _interim_cb(content: str, already_streamed: bool = False) -> None:
++            """Publish a completed mid-turn assistant message exactly once.
++
++            Codex commentary uses ``interim_assistant_callback`` instead of the
++            ordinary token stream. Other runtimes can send the same text to
++            both callbacks; ``already_streamed`` keeps those paths deduplicated.
++            """
++            if already_streamed or not isinstance(content, str) or not content:
++                return
++            if run_id not in self._run_streams:
++                return
++            try:
++                loop.call_soon_threadsafe(_put_event_if_active, {
++                    "event": "message.interim",
++                    "run_id": run_id,
++                    "timestamp": time.time(),
++                    "content": content,
++                })
++            except Exception:
++                pass
++
+         self._set_run_status(
+             run_id,
+             "queued",
+@@ -6864,6 +6887,7 @@ class APIServerAdapter(BasePlatformAdapter):
+                         ephemeral_system_prompt=ephemeral_system_prompt,
+                         session_id=session_id,
+                         stream_delta_callback=_text_cb,
++                        interim_assistant_callback=_interim_cb,
+                         tool_progress_callback=event_cb,
+                         gateway_session_key=gateway_session_key,
+                         requested_model=agent_overrides.get("requested_model"),
+diff --git a/tests/gateway/test_api_server.py b/tests/gateway/test_api_server.py
+index 7c2d3a8d..34250fdc 100644
+--- a/tests/gateway/test_api_server.py
++++ b/tests/gateway/test_api_server.py
+@@ -216,10 +216,15 @@ class TestAdapterInit:
+ 
+         adapter = APIServerAdapter(PlatformConfig(enabled=True))
+         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
++        interim_callback = MagicMock()
+ 
+-        agent = adapter._create_agent(session_id="api-session")
++        agent = adapter._create_agent(
++            session_id="api-session",
++            interim_assistant_callback=interim_callback,
++        )
+ 
+         assert isinstance(agent, FakeAgent)
++        assert captured["interim_assistant_callback"] is interim_callback
+         assert captured["reasoning_config"] == {"enabled": True, "effort": "xhigh"}
+         assert captured["checkpoints_enabled"] is True
+         assert captured["checkpoint_max_snapshots"] == 7
+diff --git a/tests/gateway/test_api_server_runs.py b/tests/gateway/test_api_server_runs.py
+index 12669a0e..13480905 100644
+--- a/tests/gateway/test_api_server_runs.py
++++ b/tests/gateway/test_api_server_runs.py
+@@ -334,6 +334,74 @@ class TestRunEvents:
+                 assert "run.completed" in body
+                 assert "Hello!" in body
+ 
++    @pytest.mark.asyncio
++    async def test_events_stream_emits_unstreamed_interim_before_final_delta(
++        self, adapter
++    ):
++        """A real mid-turn assistant message must reach Runs clients before work ends.
++
++        Codex commentary is delivered through ``interim_assistant_callback``, not
++        ``stream_delta_callback``.  The Runs adapter must bridge that separate
++        callback without duplicating commentary that the normal token stream
++        already displayed.
++        """
++        app = _create_runs_app(adapter)
++
++        async with TestClient(TestServer(app)) as cli:
++            with patch.object(adapter, "_create_agent") as mock_create:
++
++                def create_agent(**kwargs):
++                    agent = MagicMock()
++
++                    def run_conversation(**_run_kwargs):
++                        kwargs["interim_assistant_callback"](
++                            "短い計画：状態を確認してから修正します。",
++                            already_streamed=False,
++                        )
++                        kwargs["stream_delta_callback"]("修正と検証が完了しました。")
++                        kwargs["interim_assistant_callback"](
++                            "修正と検証が完了しました。",
++                            already_streamed=True,
++                        )
++                        return {"final_response": "修正と検証が完了しました。"}
++
++                    agent.run_conversation.side_effect = run_conversation
++                    agent.session_prompt_tokens = 0
++                    agent.session_completion_tokens = 0
++                    agent.session_total_tokens = 0
++                    return agent
++
++                mock_create.side_effect = create_agent
++                started = await cli.post("/v1/runs", json={"input": "修正して"})
++                run_id = (await started.json())["run_id"]
++                events = await cli.get(f"/v1/runs/{run_id}/events")
++                body = await events.text()
++
++        payloads = [
++            json.loads(line[6:])
++            for line in body.splitlines()
++            if line.startswith("data: ")
++        ]
++        visible = [
++            item
++            for item in payloads
++            if item.get("event") in {"message.interim", "message.delta"}
++        ]
++        assert visible == [
++            {
++                "event": "message.interim",
++                "run_id": run_id,
++                "timestamp": visible[0]["timestamp"],
++                "content": "短い計画：状態を確認してから修正します。",
++            },
++            {
++                "event": "message.delta",
++                "run_id": run_id,
++                "timestamp": visible[1]["timestamp"],
++                "delta": "修正と検証が完了しました。",
++            },
++        ]
++
+     @pytest.mark.asyncio
+     async def test_todo_completion_emits_sanitized_plan_update(self, adapter):
+         run_id = "run_plan"
+diff --git a/website/docs/user-guide/features/api-server.md b/website/docs/user-guide/features/api-server.md
+index 5e52dd72..0da89361 100644
+--- a/website/docs/user-guide/features/api-server.md
++++ b/website/docs/user-guide/features/api-server.md
+@@ -377,6 +377,13 @@ Statuses are retained briefly after terminal states (`completed`, `failed`, or `
+ 
+ Server-Sent Events stream of the run's tool-call progress, token deltas, and lifecycle events. Designed for dashboards and thick clients that want to attach/detach without losing state.
+ 
++A completed user-visible assistant message that occurs before tool execution is
++emitted as `message.interim` with a `content` field. This is distinct from
++`message.delta`: clients should render it immediately, keep the run open, and
++continue consuming later tool events and final-answer deltas. If the same text
++already flowed through `message.delta`, Hermes suppresses the interim event to
++avoid duplicate display.
++
+ When the agent delegates work to background subagents, the stream also carries
+ `subagent.start` and `subagent.complete` lifecycle events, so clients can
+ observe delegation outcomes — including timeouts and failures — instead of the
+-- 
+2.43.0
+

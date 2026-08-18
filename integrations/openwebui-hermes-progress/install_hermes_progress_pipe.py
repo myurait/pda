@@ -386,9 +386,9 @@ async def main() -> None:
             "content": source,
             "meta": {
                 "description": (
-                    "Hermes Runs API adapter with plan-based semantic progress, "
-                    "per-chat sessions, fail-safe approvals, and topic-titled "
-                    "Open WebUI completion previews."
+                    "Hermes Runs API adapter with live interim assistant messages, "
+                    "plan-based semantic progress, per-chat sessions, fail-safe "
+                    "approvals, and topic-titled Open WebUI completion previews."
                 ),
                 "manifest": {INSTALL_NONCE_KEY: install_nonce},
             },

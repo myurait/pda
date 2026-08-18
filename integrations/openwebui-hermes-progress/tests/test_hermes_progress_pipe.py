@@ -542,6 +542,48 @@ async def test_tool_lifecycle_is_suppressed_from_status_and_content_by_default()
 
 
 @pytest.mark.asyncio
+async def test_interim_assistant_message_is_visible_before_final_answer():
+    fake = await FakeHermes(
+        [
+            {
+                "event": "message.interim",
+                "content": "短い計画：状態を確認してから修正します。",
+            },
+            {"event": "tool.started", "tool": "terminal"},
+            {"event": "tool.completed", "tool": "terminal", "error": False},
+            {"event": "message.delta", "delta": "修正と検証が完了しました。"},
+            {"event": "run.completed", "output": "修正と検証が完了しました。"},
+        ]
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        stream = pipe._stream_response(
+            message="修正して",
+            history=[],
+            instructions=None,
+            session_id="owui_interim",
+            session_key="openwebui:interim",
+            event_emitter=None,
+            event_call=None,
+        )
+
+        role_chunk = await anext(stream)
+        interim_chunk = await anext(stream)
+        remaining = [chunk async for chunk in stream]
+
+        assert visible_content([role_chunk]) == ""
+        assert visible_content([interim_chunk]) == (
+            "短い計画：状態を確認してから修正します。\n\n"
+        )
+        assert visible_content([interim_chunk, *remaining]) == (
+            "短い計画：状態を確認してから修正します。\n\n"
+            "修正と検証が完了しました。"
+        )
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
 async def test_long_run_emits_periodic_status_only_and_stops_after_terminal_event():
     fake = await FakeHermes(
         [
@@ -1375,9 +1417,12 @@ async def test_notification_waits_for_generated_openwebui_topic(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_completed_openwebui_chat_publishes_chat_title_and_answer_preview():
+    interim = "短い計画：状態を確認してから作業します。"
     answer = "結論です。\n\n次はPKB取り込み経路を整備します。"
+    saved_answer = f"{interim}\n\n{answer}"
     hermes = await FakeHermes(
         [
+            {"event": "message.interim", "content": interim},
             {"event": "message.delta", "delta": answer},
             {"event": "run.completed", "output": answer},
         ]
@@ -1393,7 +1438,7 @@ async def test_completed_openwebui_chat_publishes_chat_title_and_answer_preview(
             assert chat_id == "2b7e1516-28ae-4d2a-abf7-158809cf4f3c"
             assert message_id == "assistant-message-stream"
             assert user_id == "owner-user"
-            return "PDAの次工程", answer
+            return "PDAの次工程", saved_answer
 
         pipe._await_openwebui_completion = persisted
 
@@ -1414,7 +1459,7 @@ async def test_completed_openwebui_chat_publishes_chat_title_and_answer_preview(
             )
         ]
 
-        assert visible_content(chunks) == answer
+        assert visible_content(chunks) == saved_answer
         assert chunks[-1] == "data: [DONE]\n\n"
         assert await wait_for_message_count(ntfy, 1) == 1
         notification = ntfy.messages[0]
