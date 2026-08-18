@@ -497,7 +497,8 @@ curl -fsS http://127.0.0.1:9120/health
 - 長時間runでは `PROGRESS_HEARTBEAT_SECONDS=300` を既定とし、5分ごとにtodo計画由来の概算進捗率・直近の完了節目・現在工程をOpen WebUI `statusHistory`へ保存する。計画がなければ率を捏造せず未算出とし、`0`で無効化できる
 - tool開始・完了ログと汎用reasoning statusは既定で抑止する。heartbeatはrun単位で状態と送信lockを分離し、内部taskでは無効化する。terminal・例外・取消・stream close時に同期停止し、推論本文、tool引数・preview・raw結果、生のユーザー入力、tool名を直接保存しない。表示対象は件数・長さ制限とHermes API・Pipe双方の秘密情報／credential付きURL redactionを通したモデル作成のtodo要約だけとし、ntfy pushには送らない
 - 実Open WebUI API → Progress Pipe → Hermes Runs API: 最終応答 `OWUI_PUSH_PREVIEW_OK` 後、チャットタイトル、回答冒頭、対象チャット直リンクを持ちemoji tagを持たないpushが1件だけ発生。期待通知の検出後も2秒間pollし、余分な通知0件を確認
-- 上記E2Eで詳細progressを3件保存し、開始statusと完了statusの双方を確認
+- 上記の完了push E2Eで保存するstatusは、低レベルなtoolログを抑止した開始・完了の2件だけであることを確認
+- 実Open WebUI semantic heartbeat E2Eではheartbeat 10件（うち処理中50%が7件）を保存し、完了済み節目・現在工程を表示した。tool lifecycle status・tool名・非公開入力・promptは含まず、応答完了後の追加heartbeatは0件で、完了statusを確認
 - 通知先のテストチャットがOpen WebUI上に存在し、タイトルと回答本文を保持していること、ローカルの `/c/<chat_id>` がHTTP 200を返すことを確認
 - 実Hermes直接Runs API: `ASYNC_NO_PUSH_OK` で正常完了し、新規pushは0件
 - 実稼働Function source、デプロイファイル、Git保存版のSHA-256が一致
