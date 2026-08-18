@@ -286,6 +286,14 @@ Kanban bodyは会話文ではなく、versioned execution envelopeとする。ge
 
 ここで`task.task_id`はPDAがcard作成前に発行するstable request identityであり、以後`request_id`と呼ぶ。Kanban createの`idempotency_key`にも同じ値を使う。Kanban自身が返す`id`は別のboard identityで、以後`kanban_task_id`と呼ぶ。bridgeは`kanban_task_id`をlist / claim responseから取得し、run fencing、branch、worktree、session name、outbox keyに使う。生成後の`kanban_task_id`を作成前のbodyへ埋め込めるとは仮定しない。
 
+Normative serialization mapping:
+
+- `pda.delegation-task/v1.task_id` = `request_id`
+- `pda.delegation-result/v1.task_id` = 同じ`request_id`
+- `pda.delegation-result/v1.run_id` = bridgeがcurrent Kanban attemptから生成するstring `kanban:<board_slug>:<kanban_task_id>:<run_id>`
+- `kanban_task_id`は上記どの`task_id`にも代入せず、board routing、journal、worktree、session、outboxのcontrol metadataだけに使う
+- model-authored executor payloadは`request_id`だけを持ち、`kanban_task_id`や`run_id`を持たない
+
 D3実装前に、このenvelopeをJSON Schemaとしてversion controlへ追加する。実装が先行して暗黙のfieldを増やしてはならない。
 
 Card creation invariants:

@@ -241,7 +241,7 @@ Raw conversation全体、memory全文、secret、無関係なPKBを渡さない�
 
 ## 8. Result contract
 
-Machine-readable contractは`schemas/delegation-result-v1.schema.json`を正とする。
+Machine-readable contractは`schemas/delegation-result-v1.schema.json`を正とする。development-Mac laneでは`task_id`をPDA-issued `request_id`としてserializeし、`run_id`はbridge-owned Kanban attempt表現とする。`kanban_task_id`をschema上の`task_id`へ代入しない。詳細mappingは[`development-mac-claude-kanban-integration.md`](development-mac-claude-kanban-integration.md)を正とする。
 
 結果は少なくとも次を含む。
 
