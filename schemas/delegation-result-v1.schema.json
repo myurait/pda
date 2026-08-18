@@ -14,6 +14,7 @@
     "effective_model",
     "execution_host",
     "principal_attestation",
+    "runtime_outcome",
     "summary",
     "perspective_result",
     "artifacts",
@@ -56,14 +57,14 @@
           "enum": [
             "none",
             "pda-codex",
-            "pda-personal-claude",
+            "pda-local-claude",
             "dev-mac-team-claude",
             "other",
             "unknown"
           ]
         },
         "auth_method": {
-          "enum": ["none", "codex-oauth", "team-oauth", "personal-oauth", "api-key", "unknown"]
+          "enum": ["none", "codex-oauth", "team-oauth", "personal-oauth", "oauth-token", "api-key", "unknown"]
         },
         "host_id": {"type": "string", "minLength": 1, "maxLength": 256},
         "attestation_source": {
@@ -71,6 +72,34 @@
         },
         "evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096},
         "verified": {"type": "boolean"}
+      }
+    },
+    "runtime_outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process_exit_code",
+        "result_received",
+        "result_subtype",
+        "is_error",
+        "api_error_status",
+        "terminal_reason",
+        "models_used",
+        "evidence_uri"
+      ],
+      "properties": {
+        "process_exit_code": {"type": ["integer", "null"]},
+        "result_received": {"type": "boolean"},
+        "result_subtype": {"type": ["string", "null"], "maxLength": 256},
+        "is_error": {"type": ["boolean", "null"]},
+        "api_error_status": {"type": ["integer", "null"], "minimum": 100, "maximum": 599},
+        "terminal_reason": {"type": ["string", "null"], "maxLength": 256},
+        "models_used": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 256}
+        },
+        "evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096}
       }
     },
     "summary": {"type": "string", "minLength": 1, "maxLength": 12000},
@@ -207,6 +236,24 @@
   "allOf": [
     {
       "if": {
+        "properties": {"lane": {"const": "claude-fable"}},
+        "required": ["lane"]
+      },
+      "then": {
+        "properties": {
+          "execution_host": {"const": "pda"},
+          "principal_attestation": {
+            "properties": {
+              "account_class": {"const": "pda-local-claude"},
+              "auth_method": {"const": "oauth-token"},
+              "host_id": {"const": "pda"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
         "properties": {
           "status": {"const": "succeeded"},
           "lane": {"const": "codex-luna"}
@@ -241,14 +288,27 @@
       "then": {
         "properties": {
           "effective_model": {"const": "claude-fable-5"},
-          "execution_host": {"const": "dev-mac"},
+          "execution_host": {"const": "pda"},
           "principal_attestation": {
             "properties": {
-              "account_class": {"const": "dev-mac-team-claude"},
-              "auth_method": {"const": "team-oauth"},
+              "account_class": {"const": "pda-local-claude"},
+              "auth_method": {"const": "oauth-token"},
+              "host_id": {"const": "pda"},
               "attestation_source": {"const": "trusted-wrapper"},
               "evidence_uri": {"type": "string", "minLength": 1},
               "verified": {"const": true}
+            }
+          },
+          "runtime_outcome": {
+            "properties": {
+              "process_exit_code": {"const": 0},
+              "result_received": {"const": true},
+              "result_subtype": {"const": "success"},
+              "is_error": {"const": false},
+              "api_error_status": {"const": null},
+              "terminal_reason": {"const": "completed"},
+              "models_used": {"const": ["claude-fable-5"]},
+              "evidence_uri": {"type": "string", "minLength": 1}
             }
           },
           "perspective_result": {"type": "object"}

@@ -1,8 +1,8 @@
 # PDAのタスク分解・モデルルーティング設計
 
-Status: Initial design; D0 Hermes quota guardrails applied and read back
+Status: D0 Hermes quota guardrails applied; D2 PDA-local Fable probe blocked before inference by inaccessible usage credits
 Checked: 2026-08-18 JST
-Scope: Hermes primary agent, Hermes delegates, Claude Code on the development Mac
+Scope: Hermes primary agent, Hermes delegates, PDA-local Claude Code, and a separate development-Mac executor
 
 ## 1. Purpose
 
@@ -32,6 +32,8 @@ Scope: Hermes primary agent, Hermes delegates, Claude Code on the development Ma
 - Hermes配下モデルとしてCodex GPT-5.6 Lunaを使う。
 - Claude Code、特にClaude Fable 5の文章力、高い抽象度、曖昧性をユーザーに近い視点で扱う能力を活用する。
 - Fable 5をPDAの「ユーザーの代行」に強く作用させる。
+- Fableの視点代行はPDA-local Claude Code accountの利用可能なusage creditsで検証・運用する。
+- 開発PCのClaude Codeは別用途として扱い、視点代行の実行先やfallback先にしない。
 
 ### 2.2 Verified current facts
 
@@ -45,17 +47,21 @@ Scope: Hermes primary agent, Hermes delegates, Claude Code on the development Ma
 - Hermes `delegate_task`のchild executionはprocess-localであり、実行中にowner processが消えた場合は再開されない。child完了後の未配信resultは`state.db`へ保存されrestart後に配信され得るが、これは実行durabilityではない。子はユーザーへ質問できず、返す内容は自己申告summaryである。
 - Hermes v0.20.2は`delegation.provider`と`delegation.model`で子のprovider/modelを固定できる。
 - GPT-5.6 Lunaはインストール済みHermes sourceでCodex OAuth対応modelとして登録されている。D0設定後の実review runではHermesのcontrol-owned delegation manifestが`model: gpt-5.6-luna`、`provider: openai-codex`、`status: completed`を記録した。
-- PDAホスト上のClaude Codeはv2.1.205で、`CLAUDE_CODE_OAUTH_TOKEN`による個人subscription認証である。
+- PDAホスト上のClaude Codeはv2.1.205である。通常のnon-interactive launch pathでは`CLAUDE_CODE_OAUTH_TOKEN`が存在し、`claude auth status --json`は`loggedIn=true`、`authMethod=oauth_token`、`apiProvider=firstParty`を返した。tokenを外すとstored interactive loginは存在しない。
 - Claude Code v2.1.205は`claude-fable-5`を認識し、`--bg`、Agent View、structured `-p`を持つ。
 - 開発MacのTeam seatへPDA側から直接入る`ssh main`経路は、現在のPDAホストでは名前解決できない。PDA側にreverse SSH listenerも確認できなかった。
 - 開発MacからPDAへ入る既存の方向はセットアップ記録上確認済みである。従ってdurable workerはMacからPDA上のboardをpullする構成が、現在の接続事実と合う。
 - Claude Code公式文書ではFable 5のfull model IDは`claude-fable-5`。非対話`-p`でusage credits対象になった場合、同意promptなしで課金され得る。
+- AnthropicのFable 5 product pageは、safety monitoringのため30日data retentionを必須とし、zero data retentionでは利用できないと明記している。従ってPDA-local accountでもpersonal context minimizationは省略しない。
+- 2026-08-18のPDA-local read-only probeはprocess exit 1、`is_error=true`、API 429、`Fable 5 requires usage credits`、`modelUsage={}`、CLI-reported cost 0で終了し、model inferenceには到達しなかった。local stateのsafe read-backは`cachedExtraUsageDisabledReason=org_level_disabled`を示した。従って、現在のlaunch principalからusage creditsへアクセスできず、PerspectiveResultの実品質検証は未完了である。
 
-このため、PDAホスト上の個人Claude tokenを、開発MacのTeam Fable laneの代用として自動利用してはならない。account principalと課金経路が違う。
+ユーザーはPDA-local accountに既に存在する残creditの消費を明示的に許可した。この指示は新規credit購入、uncapped billingの有効化、organization policy変更までは許可せず、開発MacのTeam accountを代替経路にも指定しない。視点代行と開発executorはaccount、host、purposeを分離する。
 
 ### 2.3 Proposal sources
 
 `origin/claude/fable-system-design-d3c203`のruntime-neutral TaskSpec / RunResult、capability registry、principal separationは有用なProposalである。ただし憲章追加前の未統合branchであり、現在のauthorityやlive stateではない。本設計はその考えを現在の狭い運用課題へ再構成したものである。
+
+このbranch上の`pda.delegation-task/v1`と`pda.delegation-result/v1`も未deployのpre-adoption contractである。今回のaccount/host変更はadoption前のowner correctionとしてv1 draftを修正する。v1をruntimeや外部consumerへ公開した後は同じIDをin-place変更せず、versionを上げる。
 
 ## 3. Core invariants
 
@@ -153,26 +159,21 @@ Default mode is read-only advisor. Fableが返すのは`PerspectiveResult`であ
 
 Fableへ「ユーザー本人として決定せよ」とは指示しない。代わりに「確認済みの選好から最も整合する推奨を出し、推測を明示せよ」と依頼する。Fableの高い一致度は、推定精度を上げるがauthorityを上げない。
 
-Control surfaceはtask lifetimeで分ける。
+初期control surfaceはPDA-localのbounded/read-only advisorだけに限定する。fixed wrapperは`claude -p --model claude-fable-5 --output-format json --json-schema ... --tools "" --permission-mode dontAsk --max-turns 1 --no-session-persistence`相当を一度だけ起動し、10分以内、concurrency 1、retry 0とする。
 
-- 現turnで必要なbounded/read-only perspective: verified reverse-SSH path上のfixed wrapperからstructured `claude -p`を一度だけ実行する。
-- 長時間、再開、人間介入、repository作業: durable boardからClaude Code background sessionへ渡す。
+wrapperはOS exitだけでなくterminal resultの`is_error`、`api_error_status`、`terminal_reason`、`modelUsage`を検証する。`subtype=success`でも`is_error=true`ならblocked/failedであり、成功へ昇格させない。`modelUsage`にexact Fable 5 evidenceがなくても成功にしない。
 
-Direct pathがofflineでも、PDAホスト上の個人Claude accountへsilent fallbackしない。durabilityが必要ならboardへ残し、即時性が必要ならSolが継続する。
+PDA-local principal内でもraw conversation、全memory、全PKBを渡さず、task固有のminimized context capsuleだけを送る。初期段階ではdurableなFable perspective missionを作らない。credit gate、timeout、scope超過時はSolがreframeまたは保留し、開発Macへfallbackしない。
 
-### 4.4 `claude-code`: durable development executor
+### 4.4 `claude-code`: separate durable development executor
 
 Use when:
 
-- repository、toolchain、credential、Agent View / CLI session historyがある開発Macで実行すべきである。
+- repository、toolchain、credential、Agent View / CLI session historyがある開発Macで実行すべき開発作業である。
 - 長時間作業、再開、人間の途中介入、session履歴が必要である。
 - task単位のworktreeとGit artifactを作れる。
 
-Model routing inside this lane:
-
-- Fable 5: ambiguity、architecture、root-cause、large-scope workが主な難所。
-- Sonnet/Opus/default: 要件が確定した日常的なcoding。Fableのusageを単純実装へ消費しない。
-- Exact modelが要件ならfull IDを指定し、actual modelをruntime resultから検証する。
+このlaneはowner-perspective delegateではなく、会社PC・Team principal上の開発executorである。使用modelはdevelopment taskのpolicyとaccount条件から別に決める。将来Fableをcoding modelとして使う場合も、PDA-local perspective laneの検証やfallbackとは数えず、exact modelとbillingをそのtask内で検証する。
 
 ### 4.5 `deterministic`: tools and scripts
 
@@ -231,13 +232,16 @@ Machine-readable contractは`schemas/delegation-task-v1.schema.json`を正とす
   - `assumptions`: 検証されていない仮定。
 - `route`: lane、requested model、execution host、durability。
 - `permissions`: read/write/networkとowner gate。
-- `egress`: 送信先account class、`not_required|granted`のauthorization status、control-owned authorization reference、選択済みcontext reference。Personal→Team Fableは`granted`と両referenceが揃わなければschemaで拒否する。
+- `egress`: 送信先account class、`not_required|granted`のauthorization status、control-owned authorization reference、選択済みcontext reference。`claude-fable`はPDA-local Claude principalとminimized context selectionへ固定する。Personal→Teamの明示許可は開発Mac executorにだけ適用する。
+- `billing_policy`: billing mode、既存credit限定、purchase / auto-reload / unlimited spend / settings mutationの可否、control-owned balance evidenceとfinite spend-cap evidence。Fable perspectiveでは既存credit以外を全てfalseに固定する。
 - `budget`: iterations、wall time、concurrency、retry。
 - `result_contract`: 必須artifactとverification。
 
 Raw conversation全体、memory全文、secret、無関係なPKBを渡さない。子はこのconversationを知らないため、必要情報を省略して「親と同じように理解している」と仮定もしない。
 
-`docs/design/examples/`のauthorization URIはcontract shapeを示すexampleであり、実taskのowner approvalとして再利用できない。実行時はcontrol plane上のtask固有approvalへ解決する。
+`permissions.network`はdelegateへ公開するnetwork toolとtask-level external accessを表す。Claude provider endpointへのfixed control transportはaccount routeの一部であり、`network=deny`でもCLI inference transportまで遮断する意味ではない。
+
+`docs/design/examples/`のauthorization、credit balance、spend cap、runtime evidence URIはcontract shapeを示すexampleであり、実taskのapprovalやbilling evidenceとして再利用できない。実行時はcontrol plane上のtask固有recordへ解決する。
 
 ## 8. Result contract
 
@@ -248,6 +252,7 @@ Machine-readable contractは`schemas/delegation-result-v1.schema.json`を正と�
 - task/run IDとstatus。
 - requested/effective route and model。
 - execution hostと、trusted wrapper/runtime initが生成したtyped `principal_attestation`。account class、auth method、host、attestation source、evidence URI、verified stateを含む。
+- typed `runtime_outcome`: process exit、terminal result受領、result subtype、`is_error`、API error status、terminal reason、`models_used`、raw evidence URI。
 - concise summary。
 - artifact handles。
 - 実際に行ったverificationとevidence。
@@ -256,9 +261,9 @@ Machine-readable contractは`schemas/delegation-result-v1.schema.json`を正と�
 - wall time、model iteration等、取得できたusage。取得不能値を推測しない。
 - failure category and retryability。
 
-`authorization_ref`はmodelが生成した文字列では合格しない。Control planeが保持するowner approvalへ解決でき、taskの送信先account classとcontext selectionに一致する必要がある。`principal_attestation`もmodelの自己申告ではなく、PDA runtimeまたはMac trusted wrapperが取得したmodel metadataと`claude auth status`相当のevidenceへ解決し、親がread-backして初めて成功受理される。Schemaは構造を拘束し、reference解決と署名・所有者確認はworker/control-plane policy validatorがfail closedで行う。
+`authorization_ref`はmodelが生成した文字列では合格しない。Control planeが保持するowner approvalへ解決でき、taskの送信先account classとcontext selectionに一致する必要がある。`principal_attestation`もmodelの自己申告ではなく、PDA-local wrapperまたはMac trusted wrapperが取得したmodel metadataと`claude auth status`相当のevidenceへ解決し、親がread-backして初めて成功受理される。Schemaは構造を拘束し、reference解決と署名・所有者確認はworker/control-plane policy validatorがfail closedで行う。
 
-`status=succeeded`では全verification outcomeを`passed`に固定する。`failed`、`blocked`、`cancelled`、`partial`だけが`failed|not_run`を含められる。
+`lane=claude-fable`ではstatusに関係なくhost/principalをPDA-localへ固定する。`status=succeeded`では、runtime outcomeもexit 0、result受領、`is_error=false`、API errorなし、non-empty exact Fable model evidenceへ固定し、全verification outcomeを`passed`にする。`failed`、`blocked`、`cancelled`、`partial`だけが`failed|not_run`を含められる。
 
 親はeffective model、artifact、verificationをread-backする。result contractが不正なら「成功した文章」があってもfailed contractとして扱う。
 
@@ -275,6 +280,7 @@ Input:
 5. 既に棄却された選択肢と理由。
 6. authority boundaryと、Fableが決めてはいけない事項。
 7. 必要な情報だけを含むdata classification済みcontext。
+8. 既存credit balanceとfinite spend capへ解決できるcontrol-owned evidence。wrapperによるbilling settings mutationは禁止。
 
 Output:
 
@@ -310,9 +316,9 @@ Rules:
 - Parent does not spawn a child merely to confirm a trivial conclusion it can deterministically verify.
 - Independent review is useful cognitive diversity but not a security boundary.
 
-## 11. Durable flow: PDA Kanban → development Mac → Claude Code
+## 11. Separate durable flow: PDA Kanban → development Mac → Claude Code
 
-The detailed integration contract is [`development-mac-claude-kanban-integration.md`](development-mac-claude-kanban-integration.md). This section fixes only the routing-level invariants.
+The detailed integration contract is [`development-mac-claude-kanban-integration.md`](development-mac-claude-kanban-integration.md). This section fixes only the routing-level invariants for development execution. It is not the Fable perspective path and cannot receive one as a fallback.
 
 ```text
 PDA / Sol
@@ -332,7 +338,7 @@ PDA / Sol
 
 The queue is the control plane; Git and bridge-owned outbox are the deliverable plane; Claude's saved conversation is the execution-history plane. SQLite board files are never mounted or synchronized across hosts.
 
-Use the existing Mac → PDA SSH direction for normal queue operation. A reverse SSH tunnel is optional for direct inspection, rescue, or a bounded synchronous advisor call and is not a dependency of task retention.
+Use the existing Mac → PDA SSH direction for normal queue operation. A reverse SSH tunnel is optional for direct inspection or rescue and is not a dependency of task retention.
 
 `main-claude` is deliberately not a Hermes profile. The current Hermes v0.20.2 dispatcher classifies a ready card assigned to a non-profile lane as `skipped_nonspawnable`; the Mac terminal claims it explicitly. This behavior, external claim, guarded completion, and stale-run rejection were verified on an isolated board on 2026-08-18. Re-run that probe after Hermes upgrades.
 
@@ -348,33 +354,28 @@ Mac worker invariants:
 - Use the Kanban run ID as a fencing token on complete, block, request-review, and other terminal lifecycle writes.
 - Set claim TTL from the bounded task runtime plus grace. In v0.20.2, CLI `heartbeat` calls `heartbeat_worker()` and does not extend `claim_expires`; the distinct internal `heartbeat_claim()` is not the external CLI contract.
 - Reconcile a local outbox or existing Claude session before re-running a claimed task after SSH loss.
-- Mac offline means the task remains queued; it does not fall back silently to the personal Claude token on PDA.
+- Mac offline means a development task remains queued; it does not fall back to PDA-local Fable. Conversely, a local perspective task never moves to the Mac.
 
-The Mac has two distinct launch contracts rather than one ambiguous wrapper:
-
-1. `fable-advisor`: optional, bounded, read-only `claude -p --model claude-fable-5 --output-format json --json-schema ...`. This lane is non-interactive and is used only when its result is required in the current turn or when board/outbox durability is sufficient without a saved interactive history.
-2. `claude-executor`: official `claude --bg --name pda-<repo_key>-<kanban_task_id> ...` for repository work that needs a resumable, human-inspectable Claude Code conversation. Agent View, `claude attach`, `claude logs`, `claude respawn`, and the normal resume picker are the human control and history surfaces.
+The Mac has one launch contract in this design: `claude-executor`, using official `claude --bg --name pda-<repo_key>-<kanban_task_id> ...` for repository work that needs a resumable, human-inspectable Claude Code conversation. Agent View, `claude attach`, `claude logs`, `claude respawn`, and the normal resume picker are the human control and history surfaces. The PDA-local `fable-advisor` wrapper is outside this worker and board contract.
 
 For the durable development lane, `claude -p` is not a substitute for `--bg`: print/Agent SDK sessions do not satisfy the normal session-picker requirement. The background session writes a model-authored executor payload into its documented Claude job scratch area; the bridge copies it to its own outbox, independently verifies its claims, and wraps it with control-owned principal/run evidence before producing the final delegation result. Agent View's `done` label and model prose are audit material, not the machine result protocol.
 
-Exact model routing remains fail-closed. `--model claude-fable-5` is a request, not proof of the effective model, and the documented `claude agents --json` contract does not currently expose effective model. Until the Mac pilot establishes a supported attestation path, Fable-specific background work requires an Agent View / `/status` check and control-owned evidence; general Claude Code work may use the verified Team default.
+Exact model routing remains fail-closed whenever a development task requests a model. The documented `claude agents --json` contract does not currently expose effective model, so the worker must obtain control-owned evidence or block exact-model acceptance. No Mac result counts as evidence that the PDA-local Fable perspective lane works.
 
 The fixed local wrapper reads and validates a task file, resolves authorization and context references, renders a bounded instruction, and passes it as one subprocess argv item. It never pastes untrusted task text into a remote shell command. The PDA SSH key is restricted to one board, one lane, and a narrow structured wrapper rather than arbitrary shell access.
 
 ## 12. Information and account boundaries
 
-The development Mac's Team account is a distinct principal from the PDA host's personal Claude account and the Codex OAuth account.
+The PDA-local Claude account, the development Mac's Team account, and the Codex OAuth account are distinct principals with distinct purposes.
 
-| Class | Luna on PDA | Personal Claude on PDA | Team Fable on Mac |
+| Class | Luna on PDA | PDA-local Fable perspective | Development-Mac Claude executor |
 |---|---|---|---|
-| public | allowed | allowed | allowed |
-| personal | allowed under current PDA policy | allowed under current PDA policy | deny by default; per-task explicit allowance required |
+| public | allowed | allowed with minimized capsule | only when relevant to an authorized development task |
+| personal | allowed under current PDA policy | allowed under current PDA policy with minimized capsule | denied for perspective delegation; separate explicit policy required for any other transfer |
 | work | only under separate work policy | deny by default | only organization-authorized workspace/context |
 | secret | never put in model capsule | never put in model capsule | never put in model capsule |
 
-The user has expressed a desire to use Fable as an owner-perspective delegate. That direction authorizes designing and piloting the lane; it does not by itself define a blanket transfer policy for all personal memory into a company-administered Team organization.
-
-Initial Fable pilot therefore uses public or explicitly selected, minimized context. Expanding to broader personal context is an owner decision with a documented consequence: transcripts and administration follow the Team organization's policy.
+The user has explicitly chosen the PDA-local account for Fable perspective work and reserved the development PC for a separate use. This authorizes a bounded pilot using already-accessible local credits, while context minimization remains mandatory because Fable 5 carries a 30-day retention requirement. It does not authorize copying the whole memory store, purchasing credits, or changing organization billing policy.
 
 ## 13. Initial quota guardrail profile
 
@@ -476,14 +477,17 @@ Exit: new sessions cannot create unbounded Sol child fan-out by default.
 
 Exit: Luna lane is useful and bounded, not merely cheaper in theory.
 
-### D2 — Fable perspective pilot on the Mac
+### D2 — Fable perspective pilot on the PDA-local account
 
-- Establish or verify the Mac worker launch path under the Team user.
-- Verify exact Fable 5 availability and billing/usage-credit behavior before the first real task.
-- Run one public/minimized, read-only perspective task.
-- Compare Fable recommendation with Sol integration and owner response.
+- Use the existing first-party `CLAUDE_CODE_OAUTH_TOKEN` launch path without forwarding an API key or changing account principal.
+- Verify that existing usage credits are accessible before sending a real context capsule.
+- Run one minimized, read-only, no-tools perspective task with structured output and no session persistence.
+- Require typed runtime success, exact Fable `runtime_outcome.models_used`, schema-valid PerspectiveResult, control-owned principal evidence, and resolvable balance/spend-cap evidence.
+- Compare the Fable recommendation with Sol integration and owner response.
 
-Exit: account, model, context boundary, and result handoff are proven.
+Current state: the initial credit-access probe failed closed with API 429 and `org_level_disabled` before model inference. The CLI reported zero model tokens and cost 0, and no PerspectiveResult was produced; provider billing ledger or balance was not read back, so no stronger credit-consumption claim is made. The control-owned record is [`pda-local-fable-perspective-pilot.md`](pda-local-fable-perspective-pilot.md).
+
+Exit: local account, exact model, credit path, minimized context boundary, and result handoff are proven. This exit is not yet met.
 
 ### D3 — durable board worker
 
@@ -510,31 +514,26 @@ Exit: route changes are evidence-based and reversible.
 5. A trivial deterministic task completes without any child model.
 6. A child completion claim is not accepted until artifact/test evidence is independently read.
 7. Two editing tasks receive distinct worktrees and cannot modify the same checkout.
-8. A Fable-required task fails closed if effective model is not `claude-fable-5`.
-9. A Fable-required task fails closed if it runs under the PDA personal Claude principal instead of the intended Mac Team principal.
-10. A personal-class task cannot enter the Team Fable lane without explicit per-task allowance.
-11. Mac offline leaves the task queued and does not trigger a wrong-principal fallback.
-12. SSH loss after local completion preserves the result in the outbox and later delivers it without model re-execution.
-13. Invalid result schema is classified as contract failure even if prose says success.
-14. Parent final response contains one integrated result and one explicit owner ask at most.
+8. A Fable-required task fails closed if effective model evidence is not exactly `claude-fable-5`.
+9. Every Fable result status requires the PDA-local Claude principal; a blocked/failed result claiming the development-Mac Team principal is schema-invalid.
+10. A result with `subtype=success` but `is_error=true`, API 429, empty `models_used`, or non-zero process exit is blocked/failed, never succeeded.
+11. A Fable task without resolvable existing-balance and finite-spend-cap evidence is rejected before model launch.
+12. Purchase, auto-reload, unlimited spend, billing/settings mutation, and development-Mac fallback are all rejected for the perspective lane.
+13. A local perspective task carries only its explicit minimized context selection, not raw conversation or full memory.
+14. Mac offline leaves a development task queued and does not trigger a wrong-principal fallback.
+15. SSH loss after Mac-local completion preserves the development result in the outbox and later delivers it without model re-execution.
+16. Invalid result schema is classified as contract failure even if prose says success.
+17. Parent final response contains one integrated result and one explicit owner ask at most.
 
 ## 17. Open decisions
 
-### OD-1: broader personal context in the Team Fable lane
+### OD-1: PDA-local usage-credit access
 
-Question: 会社Team accountのFable 5へ、public/minimized contextを越えてPDAのpersonal contextを送ってよいか。
+Question: PDA-local accountでcurrently disabledなusage creditsを有効化するか、included Fable allowanceまたはpolicy resetを待つか。
 
-Recommendation: 最初は許可しない。公開または明示選択した最小contextでpilotし、Team organizationのretention/admin policyと価値を確認してから拡張する。
+Recommendation: 現在の指示どおり既存creditだけを使う。`org_level_disabled`の間はD2をblockedに保ち、worker/wrapperはSettings、organization policy、billing、purchase、auto-reloadを変更しない。ownerが別経路で既存balanceとfinite spend capを確認し、control-owned evidenceを発行できた後だけD2を再実行する。追加購入やpolicy変更が必要なら別の明示承認を求める。
 
-This does not block D0/D1 or a public-context D2 pilot.
-
-### OD-2: Fable usage credits
-
-Question: Team seatのincluded limit外でFable 5がusage creditsを消費する場合、自動実行を許すか。
-
-Recommendation: billing behaviorを実機で一度確認するまで自動実行しない。初回はread-only pilotを明示的に起動し、以後の上限を決める。
-
-This does not block design or Luna routing.
+This blocks only the live Fable quality pilot. D0/D1, schema/design work, and the separate development-Mac lane remain unblocked.
 
 ## 18. References
 
@@ -547,5 +546,8 @@ This does not block design or Luna routing.
 - Hermes Kanban: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
 - Claude models: https://platform.claude.com/docs/en/about-claude/models/overview
 - Claude Code model configuration: https://code.claude.com/docs/en/model-config
+- Fable 5 plan behavior: https://support.claude.com/en/articles/15424964-claude-fable-5-on-your-plan
+- Usage-credit management: https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans
+- Fable 5 retention: https://www.anthropic.com/claude/fable
 - Claude Code CLI: https://code.claude.com/docs/en/cli-reference
 - Claude Code Agent View: https://code.claude.com/docs/en/agent-view

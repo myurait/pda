@@ -10,7 +10,7 @@
   ],
   "non_goals": [
     "Do not impersonate the owner.",
-    "Do not approve personal-context egress.",
+    "Do not expand beyond the selected minimized context.",
     "Do not modify files or run external side effects."
   ],
   "task_class": "perspective",
@@ -43,43 +43,57 @@
     ],
     "assumptions": [
       {
-        "text": "This contract example assumes a task-specific owner grant for exactly the selected minimized context; the example URI is not executable authorization.",
-        "source": "example-only contract assumption"
+        "text": "Control-owned evidence resolves an existing positive credit balance and finite spend cap without any worker-side billing mutation.",
+        "source": "unverified precondition; the first live probe was blocked before this evidence existed"
       }
     ]
   },
   "route": {
     "lane": "claude-fable",
     "requested_model": "claude-fable-5",
-    "execution_host": "dev-mac",
-    "durable": true
+    "execution_host": "pda",
+    "durable": false
   },
   "permissions": {
     "mode": "read-only",
     "write_scope": [],
     "network": "deny",
-    "owner_gate": "before_personal_context_egress"
+    "owner_gate": "none"
   },
   "egress": {
-    "target_account_class": "dev-mac-team-claude",
-    "authorization_status": "granted",
-    "authorization_ref": "owner-approval://example/fable-pilot-001",
-    "context_selection_ref": "context-selection://example/fable-pilot-minimized-v1"
+    "target_account_class": "pda-local-claude",
+    "authorization_status": "not_required",
+    "authorization_ref": null,
+    "context_selection_ref": "context-selection://example/pda-local-fable-minimized-v1"
+  },
+  "billing_policy": {
+    "mode": "usage_credits",
+    "existing_credits_only": true,
+    "purchase_allowed": false,
+    "auto_reload_allowed": false,
+    "unlimited_spend_allowed": false,
+    "settings_mutation_allowed": false,
+    "credit_balance_evidence_uri": "runtime-evidence://example/pda-local-fable/credit-balance",
+    "spend_cap_evidence_uri": "runtime-evidence://example/pda-local-fable/finite-spend-cap"
   },
   "budget": {
-    "max_model_iterations": 20,
-    "max_wall_seconds": 3600,
+    "max_model_iterations": 1,
+    "max_wall_seconds": 600,
     "max_concurrency": 1,
     "retry_limit": 0
   },
   "result_contract": {
     "required_artifacts": [
       "PerspectiveResult",
-      "effective account and model evidence"
+      "effective account and model evidence",
+      "typed runtime outcome evidence",
+      "existing-credit balance and finite-spend-cap evidence"
     ],
     "verification": [
       "Primary verifies the effective model is claude-fable-5.",
-      "Primary verifies the run used the intended development Mac Team principal.",
+      "Primary verifies the run used the intended PDA-local Claude principal.",
+      "Primary resolves the existing-credit balance and finite-spend-cap evidence before launch.",
+      "Primary verifies typed runtime outcome fields rather than trusting result prose or subtype alone.",
       "Primary checks that confirmed and inferred preferences remain distinct."
     ],
     "effective_model_required": true

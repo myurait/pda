@@ -17,6 +17,7 @@
     "route",
     "permissions",
     "egress",
+    "billing_policy",
     "budget",
     "result_contract"
   ],
@@ -121,7 +122,7 @@
           "enum": [
             "none",
             "pda-codex",
-            "pda-personal-claude",
+            "pda-local-claude",
             "dev-mac-team-claude",
             "other"
           ]
@@ -129,6 +130,30 @@
         "authorization_status": {"enum": ["not_required", "granted"]},
         "authorization_ref": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048},
         "context_selection_ref": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "billing_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "existing_credits_only",
+        "purchase_allowed",
+        "auto_reload_allowed",
+        "unlimited_spend_allowed",
+        "settings_mutation_allowed",
+        "credit_balance_evidence_uri",
+        "spend_cap_evidence_uri"
+      ],
+      "properties": {
+        "mode": {"enum": ["not_applicable", "included_quota", "usage_credits"]},
+        "existing_credits_only": {"type": "boolean"},
+        "purchase_allowed": {"type": "boolean"},
+        "auto_reload_allowed": {"type": "boolean"},
+        "unlimited_spend_allowed": {"type": "boolean"},
+        "settings_mutation_allowed": {"type": "boolean"},
+        "credit_balance_evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096},
+        "spend_cap_evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096}
       }
     },
     "budget": {
@@ -197,6 +222,18 @@
               "context_selection_ref": {"const": null}
             }
           },
+          "billing_policy": {
+            "properties": {
+              "mode": {"const": "not_applicable"},
+              "existing_credits_only": {"const": false},
+              "purchase_allowed": {"const": false},
+              "auto_reload_allowed": {"const": false},
+              "unlimited_spend_allowed": {"const": false},
+              "settings_mutation_allowed": {"const": false},
+              "credit_balance_evidence_uri": {"const": null},
+              "spend_cap_evidence_uri": {"const": null}
+            }
+          },
           "budget": {
             "properties": {
               "max_model_iterations": {"maximum": 32},
@@ -221,28 +258,46 @@
       "then": {
         "properties": {
           "task_class": {"const": "perspective"},
+          "information_class": {"enum": ["public", "personal"]},
           "route": {
             "properties": {
               "requested_model": {"const": "claude-fable-5"},
-              "execution_host": {"const": "dev-mac"}
+              "execution_host": {"const": "pda"},
+              "durable": {"const": false}
             }
           },
           "permissions": {
             "properties": {
               "mode": {"const": "read-only"},
               "write_scope": {"maxItems": 0},
-              "network": {"const": "deny"}
+              "network": {"const": "deny"},
+              "owner_gate": {"const": "none"}
             }
           },
           "egress": {
             "properties": {
-              "target_account_class": {"const": "dev-mac-team-claude"}
+              "target_account_class": {"const": "pda-local-claude"},
+              "authorization_status": {"const": "not_required"},
+              "authorization_ref": {"const": null},
+              "context_selection_ref": {"type": "string", "minLength": 1}
+            }
+          },
+          "billing_policy": {
+            "properties": {
+              "mode": {"const": "usage_credits"},
+              "existing_credits_only": {"const": true},
+              "purchase_allowed": {"const": false},
+              "auto_reload_allowed": {"const": false},
+              "unlimited_spend_allowed": {"const": false},
+              "settings_mutation_allowed": {"const": false},
+              "credit_balance_evidence_uri": {"type": "string", "minLength": 1},
+              "spend_cap_evidence_uri": {"type": "string", "minLength": 1}
             }
           },
           "budget": {
             "properties": {
-              "max_model_iterations": {"maximum": 20},
-              "max_wall_seconds": {"maximum": 3600},
+              "max_model_iterations": {"const": 1},
+              "max_wall_seconds": {"maximum": 600},
               "max_concurrency": {"const": 1},
               "retry_limit": {"const": 0}
             }
@@ -300,39 +355,23 @@
           },
           "budget": {
             "properties": {"max_model_iterations": {"const": 0}}
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "information_class": {"const": "personal"},
-          "route": {
-            "properties": {"lane": {"const": "claude-fable"}},
-            "required": ["lane"]
-          }
-        },
-        "required": ["information_class", "route"]
-      },
-      "then": {
-        "properties": {
-          "permissions": {
-            "properties": {
-              "owner_gate": {"const": "before_personal_context_egress"}
-            }
           },
-          "egress": {
+          "billing_policy": {
             "properties": {
-              "target_account_class": {"const": "dev-mac-team-claude"},
-              "authorization_status": {"const": "granted"},
-              "authorization_ref": {"type": "string", "minLength": 1},
-              "context_selection_ref": {"type": "string", "minLength": 1}
+              "mode": {"const": "not_applicable"},
+              "existing_credits_only": {"const": false},
+              "purchase_allowed": {"const": false},
+              "auto_reload_allowed": {"const": false},
+              "unlimited_spend_allowed": {"const": false},
+              "settings_mutation_allowed": {"const": false},
+              "credit_balance_evidence_uri": {"const": null},
+              "spend_cap_evidence_uri": {"const": null}
             }
           }
         }
       }
     },
+
     {
       "if": {
         "properties": {

@@ -1,7 +1,7 @@
 ---
 name: pda-delegation-routing
 description: "Use when decomposing PDA work across Sol, Luna, or Fable."
-version: 0.1.0
+version: 0.2.0
 author: PDA
 license: MIT
 metadata:
@@ -43,10 +43,13 @@ Before delegation, write:
 - lane, model, host, and durability;
 - read/write/network permissions and owner gate;
 - target account class, authorization status, control-owned authorization reference, and selected-context reference;
+- billing mode, existing-credit-only flag, purchase/auto-reload/unlimited/settings-mutation denials, and control-owned balance/spend-cap evidence;
 - iteration/time/concurrency/retry budget;
 - expected artifacts and verification.
 
 Use `schemas/delegation-task-v1.schema.json` for nontrivial handoffs.
+
+`permissions.network` governs tools and task-level external access, not the fixed provider transport required to call the selected model.
 
 Do not split tasks that write the same artifact. Do not parallelize a task when a later subtask cannot be defined until an earlier result exists.
 
@@ -86,13 +89,15 @@ Require the typed `perspective_result` in `schemas/delegation-result-v1.schema.j
 
 Fable is an advisor, not the owner. It cannot amend the charter, fabricate approval, impersonate the user externally, or turn inferred preferences into confirmed ones.
 
-Run the intended Team Fable lane on the development Mac under the intended account. Use a verified fixed-wrapper `claude -p` call for bounded read-only perspective needed in the current turn, and a durable board/background session for long or resumable work. Do not silently substitute the PDA host's personal Claude token. Verify the effective model and account route.
+Run the perspective lane on the PDA host with the PDA-local Claude Code account. Use one verified fixed-wrapper `claude -p` call with no tools, structured output, no session persistence, and bounded turns/time. The development Mac is a separate durable development lane and must not receive or silently inherit a perspective task.
 
-For personal context, the task must resolve a control-owned per-task authorization reference and an exact minimized-context selection. A model-generated approval string is not authorization.
+Use an exact minimized-context selection even though personal context remains within the PDA-local principal. Do not send the raw parent transcript, full memory, or full PKB. Verify process exit, `is_error`, API status, terminal reason, exact `modelUsage`, and account route; a result object with `subtype=success` is not success when `is_error=true`.
+
+If Fable requires inaccessible usage credits, fail closed and return a blocked result. The owner's instruction authorizes consuming already-available PDA-local credits for validation; it does not authorize purchasing credits, enabling uncapped billing, or falling back to the development-PC account.
 
 ## Durable Claude Code lane
 
-Use a durable board card and task-ID-specific worktree. The Mac worker must:
+This lane is separate from Fable perspective delegation. Use a durable board card and task-ID-specific worktree. The Mac worker must:
 
 - pull/claim tasks deterministically;
 - run beside the checkout as the correct macOS user;
@@ -110,6 +115,8 @@ Verify:
 
 - requested versus effective model;
 - expected account class versus typed `principal_attestation`, including read-back of the referenced auth/model evidence;
+- typed runtime outcome: process exit, terminal result, `is_error`, API status, terminal reason, exact models used, and raw evidence URI;
+- billing policy and resolvable existing-balance/finite-spend-cap evidence;
 - actual artifact handle and contents;
 - Git diff/worktree ownership;
 - tests/checks actually run;
@@ -123,9 +130,11 @@ The primary resolves contradictions and sends one owner-level result. Do not dum
 ## Hard boundaries
 
 - No secret text in model capsules.
-- Team Fable gets public/minimized context by default; personal context needs explicit per-task allowance.
+- PDA-local Fable gets only the selected minimized context; never the whole conversation or memory store.
+- A Fable perspective task never falls back to the development-PC account.
 - No overlapping write scope across concurrent runs.
 - No nested subagent swarms.
 - No child success claim without parent read-back.
 - No model polling of an empty durable queue.
-- No automatic Fable usage-credit spending until the account behavior has been verified and authorized.
+- While `org_level_disabled` or billing evidence is unresolved, keep Fable blocked; never mutate Settings or organization billing from the worker.
+- No Fable retry, new credit purchase, auto-reload, unlimited spend, or billing-policy change after a credit gate without owner authorization.

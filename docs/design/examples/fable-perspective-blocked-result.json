@@ -1,0 +1,72 @@
+{
+  "schema": "pda.delegation-result/v1",
+  "task_id": "pda-task-fable-credit-probe-20260818",
+  "run_id": "local-probe-20260818-01",
+  "status": "blocked",
+  "lane": "claude-fable",
+  "requested_model": "claude-fable-5",
+  "effective_model": null,
+  "execution_host": "pda",
+  "principal_attestation": {
+    "account_class": "pda-local-claude",
+    "auth_method": "oauth-token",
+    "host_id": "pda",
+    "attestation_source": "trusted-wrapper",
+    "evidence_uri": "repo://docs/design/pda-local-fable-perspective-pilot.md",
+    "verified": true
+  },
+  "runtime_outcome": {
+    "process_exit_code": 1,
+    "result_received": true,
+    "result_subtype": "success",
+    "is_error": true,
+    "api_error_status": 429,
+    "terminal_reason": "completed",
+    "models_used": [],
+    "evidence_uri": "repo://docs/design/pda-local-fable-perspective-pilot.md"
+  },
+  "summary": "The PDA-local Fable request was blocked before inference because the current account path could not access required usage credits.",
+  "perspective_result": null,
+  "artifacts": [
+    {
+      "kind": "pilot-record",
+      "uri": "repo://docs/design/pda-local-fable-perspective-pilot.md",
+      "digest": null
+    }
+  ],
+  "verification": [
+    {
+      "check": "Verify the intended PDA-local first-party OAuth-token launch path.",
+      "outcome": "passed",
+      "evidence": "claude auth status reported loggedIn=true, authMethod=oauth_token, apiProvider=firstParty"
+    },
+    {
+      "check": "Obtain a successful exact-model Fable terminal result.",
+      "outcome": "failed",
+      "evidence": "process exit 1; is_error=true; API 429; modelUsage empty; reported cost 0"
+    },
+    {
+      "check": "Validate a real PerspectiveResult from Fable 5.",
+      "outcome": "not_run",
+      "evidence": "The request stopped at the usage-credit gate before inference."
+    }
+  ],
+  "uncertainties": [
+    "The local balance was not observable from the CLI; the probe proves only that credits were inaccessible through the tested principal."
+  ],
+  "owner_decision": {
+    "needed": true,
+    "question": "Enable access to already-existing PDA-local usage credits, or wait for an included Fable allowance?",
+    "recommendation": "Keep the worker blocked until an account-authorized path provides evidence of an existing balance and finite spend cap; do not let the worker mutate settings, purchase credits, or enable auto-reload/unlimited billing."
+  },
+  "usage": {
+    "wall_seconds": 0.792,
+    "model_iterations": 0,
+    "reported_cost_usd": 0
+  },
+  "failure": {
+    "category": "vendor",
+    "message": "Fable 5 requires usage credits; local state reported org_level_disabled.",
+    "retryable": false
+  }
+}

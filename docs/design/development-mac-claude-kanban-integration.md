@@ -5,6 +5,8 @@ Decision date: 2026-08-18 JST
 Checked against: Hermes Agent v0.20.2 (2026.8.16), current Claude Code official documentation
 Parent design: [`operational-delegation-routing.md`](operational-delegation-routing.md)
 
+Boundary: this document covers the development-PC executor only. The owner's Fable perspective delegate runs through the PDA-local Claude Code account and never falls back to this Mac/Team principal.
+
 ## 1. Decision
 
 開発PC上のClaude CodeをPDAから同期的に遠隔操作する方式は、中核経路にしない。
@@ -60,7 +62,7 @@ background sessionは次の公式surfaceに残る。
 - `claude agents --json --all --cwd <repo>`: bridgeが状態、job ID、session UUID、待機理由を取得する。
 - `claude --resume` / `/resume`: background sessionを`bg`表示付きで再開する。
 
-Claude Codeはbackground sessionも通常のproject session pickerへ含める一方、Agent SDK由来のsessionはpickerへ表示しない。[4] 従って、履歴要件を満たすdurable executorは`--bg`とし、`-p`は必要なら別のbounded advisor laneだけに限定する。
+Claude Codeはbackground sessionも通常のproject session pickerへ含める一方、Agent SDK由来のsessionはpickerへ表示しない。[4] 従って、履歴要件を満たすdurable executorは`--bg`とする。PDA-localのbounded Fable advisorは別account・別host・別contractであり、このMac workerには含めない。
 
 ### 2.3 Desktop is not part of the contract
 
@@ -263,6 +265,16 @@ Kanban bodyは会話文ではなく、versioned execution envelopeとする。ge
       "authorization_ref": null,
       "context_selection_ref": null
     },
+    "billing_policy": {
+      "mode": "included_quota",
+      "existing_credits_only": false,
+      "purchase_allowed": false,
+      "auto_reload_allowed": false,
+      "unlimited_spend_allowed": false,
+      "settings_mutation_allowed": false,
+      "credit_balance_evidence_uri": null,
+      "spend_cap_evidence_uri": null
+    },
     "budget": {
       "max_model_iterations": 100,
       "max_wall_seconds": 7200,
@@ -302,6 +314,7 @@ Card creation invariants:
 - `idempotency_key`を必須にし、Hermes retryでduplicate cardを作らない。
 - write scopeが重なるcardを同時実行しない。
 - personal contextをTeam accountへ送るtaskはtask固有authorization referenceを持つ。
+- billing modeとmutation policyをcard作成時に固定し、workerはaccount settings、purchase、auto-reloadを変更しない。
 - secretはbody、comment、attachmentへ置かない。
 - external side effectは実装taskと分け、owner gateを持つ。
 - large contextは最初のpilotでは送らない。将来attachment取得を実装する場合も、restricted bridge APIを通す。
@@ -455,13 +468,11 @@ ANTHROPIC_BASE_URL
 
 wrong account、unknown account、API key、personal OAuthを検出した場合、cardをblockし、PDAホストのpersonal Claudeへfallbackしない。
 
-### 8.4 Model and usage-credit posture
+### 8.4 Model and billing posture
 
-Fable必須taskでは`claude-fable-5`をrequestするが、request文字列だけをeffective model証明にしない。organization allowlist等によりstartup時にmodel substitutionが起こり得る。[9]
+このworkerはdevelopment taskごとにTeam organizationが許可したmodelを使う。PDA-local Fable perspective laneのmodel choice、credit access、品質検証はこの文書のscope外であり、Mac executionをその代替evidenceにしない。
 
-またFable 5はplan / seatによってusage creditsを使う場合がある。interactive sessionではconsent promptが出るが、`-p` / Agent SDKではpromptなしで課金される。[9] `--bg`はfull interactive sessionなので本設計に適するが、background時の実際のconsent挙動はMac pilotで確認する。
-
-現行`claude agents --json`のdocumented fieldにはeffective modelがない。[3] 従って、D3でsupportされたmachine-readable attestationを確立するまで、Fable-specific taskの完全自動acceptanceは行わない。最初のpilotはAgent View / `/status`で人がmodelとbilling stateを確認し、control-owned evidenceを残す。
+requested modelがある場合、request文字列だけをeffective model証明にしない。organization allowlist等によりstartup時にmodel substitutionが起こり得る。[9] 現行`claude agents --json`のdocumented fieldにはeffective modelがないため、supportされたmachine-readable attestationを確立できないexact-model taskはblockする。将来MacでFableをdevelopment modelとして使う場合は、そのtaskのwork policyとbilling gateを別に満たす。
 
 ## 9. Session state synchronization
 
@@ -528,7 +539,7 @@ $CLAUDE_JOB_DIR/tmp/pda-result.json
 - owner decision request
 - reported failure category
 
-Claudeに`principal_attestation`、effective account、verified state、commit / PR handle、最終`status=succeeded`を自己申告させない。bridgeがexecutor payloadを検証し、Git / test / auth evidenceをread-backし、許可されたGit actionを実行した後、control-owned fieldsを加えて`../../schemas/delegation-result-v1.schema.json`に適合するfinal handoffを組み立てる。`pda.executor-result/v1`自身のschemaもD3実装前にversion controlへ追加する。
+Claudeに`principal_attestation`、typed `runtime_outcome`、effective account、verified state、commit / PR handle、最終`status=succeeded`を自己申告させない。bridgeがexecutor payloadを検証し、Git / test / auth / runtime evidenceをread-backし、許可されたGit actionを実行した後、control-owned fieldsを加えて`../../schemas/delegation-result-v1.schema.json`に適合するfinal handoffを組み立てる。`pda.executor-result/v1`自身のschemaもD3実装前にversion controlへ追加する。
 
 bridgeはClaude job directoryからexecutor payloadを検出したら、Claude session削除より先にbridge-owned storageへatomic copyする。cardがその時点でblockedなどcurrent runを持たない場合は、まず`intake/<job_id>/<digest>.json`へunbound payloadとして保存し、同じsession mappingを確認してunblock / claimした後にだけrun-specific outboxへbindingする。
 
@@ -639,7 +650,7 @@ Exit: architecture、authority、risk、pilot gateが明示されている。
 - Team organization / login method / higher-priority credential不在を確認する。
 - 会社PC / Team seatで対象task classを実行してよいことをorganization policy上確認する。
 - default modelでsubscription usage attributionを確認する。
-- Fable 5のavailability、effective model、usage-credit consentを別のread-only taskで確認する。
+- requested development modelがある場合、そのavailability、effective model、billing attributionを別のharmless taskで確認する。
 
 Exit: session history、principal、billing behaviorが実機で確認済み。
 
@@ -676,7 +687,7 @@ Exit: disconnect、human input、history、artifact safetyを含むE2Eが通る�
 
 - retention、cleanup、observability、quota policyを確定する。
 - real repositoryの一つだけをallowlistへ追加する。
-- personal context / Fable policyは別owner decisionとして扱う。
+- personal context / premium-model policyは別owner decisionとして扱い、PDA-local perspective policyから継承しない。
 - Hermes / Claude upgrade regression probesを定例化する。
 
 Exit: limited production laneとして利用可能。
@@ -712,11 +723,11 @@ Question: public / minimized contextを越えて、PDAのpersonal contextを会�
 
 Recommendation: pilotでは許可しない。organization policyと実価値を確認してからtask classごとに決める。
 
-### OD-M2: Fable usage credits
+### OD-M2: Premium-model billing for development tasks
 
-Question: Team seatのincluded limit外でFable 5がusage creditsを使う場合、自動継続を許すか。
+Question: Team seatのincluded limit外でdevelopment taskがusage creditsを使う場合、自動継続を許すか。
 
-Recommendation: 初回のinteractive consentとusage表示を確認するまで自動継続しない。以後も月額上限をcontrol-owned policyにする。
+Recommendation: 初回のinteractive consentとusage表示を確認するまで自動継続しない。PDA-local Fableへの既存credit利用許可をこのlaneへ流用せず、以後も月額上限をcontrol-owned policyにする。
 
 ### OD-M3: Transcript retention
 
@@ -738,7 +749,7 @@ Recommendation: v1はAgent Viewでhuman reply。E2Eが安定した後だけChann
 - Hermes v0.20.2のisolated temporary boardで、non-profile assigneeのdispatcher skip、external claim、guarded heartbeat、guarded complete、stale run rejectionを実行確認した。CLI heartbeatが`claim_expires`を更新しない点はsource read-backで確認し、実時間のTTL-expiry probeはM2に残した。
 - PDAホスト上のClaude Code v2.1.205で、explicit `--name`がAgent View JSONのname / job ID / session UUIDへread-backされることをharmless idle sessionで確認し、probe sessionは削除した。
 - 開発MacへのPDA側reverse SSH listenerは未確認であるが、通常設計はMac → PDA方向だけを使うためblockerではない。
-- Mac上のTeam-authenticated Claude Code、Agent View表示、subscription attribution、Fable consentの実機E2Eは未実施であり、M1 gateとして残る。
+- Mac上のTeam-authenticated Claude Code、Agent View表示、development-model subscription attributionの実機E2Eは未実施であり、M1 gateとして残る。PDA-local Fable perspective pilotとは独立している。
 - この文書はimplementation完了を主張しない。
 
 ## Sources

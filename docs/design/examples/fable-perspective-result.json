@@ -6,21 +6,31 @@
   "lane": "claude-fable",
   "requested_model": "claude-fable-5",
   "effective_model": "claude-fable-5",
-  "execution_host": "dev-mac",
+  "execution_host": "pda",
   "principal_attestation": {
-    "account_class": "dev-mac-team-claude",
-    "auth_method": "team-oauth",
-    "host_id": "dev-mac",
+    "account_class": "pda-local-claude",
+    "auth_method": "oauth-token",
+    "host_id": "pda",
     "attestation_source": "trusted-wrapper",
     "evidence_uri": "runtime-evidence://example/fable-run/auth-and-model",
     "verified": true
+  },
+  "runtime_outcome": {
+    "process_exit_code": 0,
+    "result_received": true,
+    "result_subtype": "success",
+    "is_error": false,
+    "api_error_status": null,
+    "terminal_reason": "completed",
+    "models_used": ["claude-fable-5"],
+    "evidence_uri": "runtime-evidence://example/fable-run/terminal-result"
   },
   "summary": "Fable should serve as a bounded perspective specialist for high-ambiguity work, while Sol retains authority and integration.",
   "perspective_result": {
     "owner_view_interpretation": "The valuable property is not generic model strength but Fable's ability to preserve the owner's abstraction level and unstated tensions while forming a recommendation.",
     "recommended_direction": "Use Fable for perspective synthesis and architecture framing, not routine implementation, and require Sol to integrate its proposal.",
     "tensions": [
-      "More owner context can improve alignment but increases personal-data exposure to the Team account."
+      "More owner context can improve alignment but increases context size and usage-credit pressure."
     ],
     "uncertainties": [
       "The benefit has not yet been measured against owner correction rate on real tasks."
@@ -29,7 +39,7 @@
     "owner_decision_question": null,
     "owner_decision_recommendation": null,
     "do_not_infer": [
-      "Do not infer blanket permission to send all personal memory to the Team account.",
+      "Do not infer that the whole PDA memory or conversation should be sent instead of a minimized capsule.",
       "Do not treat Fable's recommendation as owner approval."
     ],
     "handoff": "Pilot Fable on one minimized, read-only ambiguity task; compare correction and clarification against the Sol-only baseline."
@@ -39,11 +49,31 @@
       "kind": "perspective-result",
       "uri": "task://pda-task-fable-perspective-001/result",
       "digest": null
+    },
+    {
+      "kind": "principal-evidence",
+      "uri": "runtime-evidence://example/fable-run/auth-and-model",
+      "digest": null
+    },
+    {
+      "kind": "runtime-outcome-evidence",
+      "uri": "runtime-evidence://example/fable-run/terminal-result",
+      "digest": null
+    },
+    {
+      "kind": "billing-evidence",
+      "uri": "runtime-evidence://example/pda-local-fable/credit-balance",
+      "digest": null
+    },
+    {
+      "kind": "billing-evidence",
+      "uri": "runtime-evidence://example/pda-local-fable/finite-spend-cap",
+      "digest": null
     }
   ],
   "verification": [
     {
-      "check": "Trusted Mac wrapper verified Team OAuth and effective model metadata.",
+      "check": "Trusted PDA-local wrapper verified the OAuth-token launch path and effective model metadata.",
       "outcome": "passed",
       "evidence": "runtime-evidence://example/fable-run/auth-and-model"
     },
@@ -51,10 +81,15 @@
       "check": "Primary confirmed that inferred preferences were not promoted to owner decisions.",
       "outcome": "passed",
       "evidence": "task://pda-task-fable-perspective-001/integration-review"
+    },
+    {
+      "check": "Control plane resolved an existing credit balance and finite spend cap without billing mutation.",
+      "outcome": "passed",
+      "evidence": "runtime-evidence://example/pda-local-fable/credit-balance"
     }
   ],
   "uncertainties": [
-    "This is a contract example and not evidence that the development Mac lane has been deployed."
+    "This is a success-contract example; the first PDA-local live probe was blocked before inference because usage credits were inaccessible."
   ],
   "owner_decision": {
     "needed": false,
