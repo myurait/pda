@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pda:schema:delegation-result:v1",
+  "title": "PDA Delegation Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "task_id",
+    "run_id",
+    "status",
+    "lane",
+    "requested_model",
+    "effective_model",
+    "execution_host",
+    "principal_attestation",
+    "summary",
+    "perspective_result",
+    "artifacts",
+    "verification",
+    "uncertainties",
+    "owner_decision",
+    "usage",
+    "failure"
+  ],
+  "properties": {
+    "schema": {"const": "pda.delegation-result/v1"},
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "run_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "status": {"enum": ["succeeded", "failed", "blocked", "cancelled", "partial"]},
+    "lane": {
+      "enum": [
+        "deterministic",
+        "codex-luna",
+        "claude-fable",
+        "claude-code",
+        "primary-sol"
+      ]
+    },
+    "requested_model": {"type": ["string", "null"], "maxLength": 256},
+    "effective_model": {"type": ["string", "null"], "maxLength": 256},
+    "execution_host": {"enum": ["pda", "dev-mac", "other", "unknown"]},
+    "principal_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "account_class",
+        "auth_method",
+        "host_id",
+        "attestation_source",
+        "evidence_uri",
+        "verified"
+      ],
+      "properties": {
+        "account_class": {
+          "enum": [
+            "none",
+            "pda-codex",
+            "pda-personal-claude",
+            "dev-mac-team-claude",
+            "other",
+            "unknown"
+          ]
+        },
+        "auth_method": {
+          "enum": ["none", "codex-oauth", "team-oauth", "personal-oauth", "api-key", "unknown"]
+        },
+        "host_id": {"type": "string", "minLength": 1, "maxLength": 256},
+        "attestation_source": {
+          "enum": ["trusted-wrapper", "runtime-init", "deterministic-tool", "unverified"]
+        },
+        "evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096},
+        "verified": {"type": "boolean"}
+      }
+    },
+    "summary": {"type": "string", "minLength": 1, "maxLength": 12000},
+    "perspective_result": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "owner_view_interpretation",
+        "recommended_direction",
+        "tensions",
+        "uncertainties",
+        "owner_decision_needed",
+        "owner_decision_question",
+        "owner_decision_recommendation",
+        "do_not_infer",
+        "handoff"
+      ],
+      "properties": {
+        "owner_view_interpretation": {"type": "string", "minLength": 1, "maxLength": 8000},
+        "recommended_direction": {"type": "string", "minLength": 1, "maxLength": 8000},
+        "tensions": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 4000}
+        },
+        "uncertainties": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 4000}
+        },
+        "owner_decision_needed": {"type": "boolean"},
+        "owner_decision_question": {"type": ["string", "null"], "maxLength": 4000},
+        "owner_decision_recommendation": {"type": ["string", "null"], "maxLength": 4000},
+        "do_not_infer": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 4000}
+        },
+        "handoff": {"type": "string", "minLength": 1, "maxLength": 8000}
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"owner_decision_needed": {"const": true}},
+            "required": ["owner_decision_needed"]
+          },
+          "then": {
+            "properties": {
+              "owner_decision_question": {"type": "string", "minLength": 1},
+              "owner_decision_recommendation": {"type": "string", "minLength": 1}
+            }
+          },
+          "else": {
+            "properties": {
+              "owner_decision_question": {"const": null},
+              "owner_decision_recommendation": {"const": null}
+            }
+          }
+        }
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "uri", "digest"],
+        "properties": {
+          "kind": {"type": "string", "minLength": 1, "maxLength": 128},
+          "uri": {"type": "string", "minLength": 1, "maxLength": 4096},
+          "digest": {"type": ["string", "null"], "maxLength": 256}
+        }
+      }
+    },
+    "verification": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check", "outcome", "evidence"],
+        "properties": {
+          "check": {"type": "string", "minLength": 1, "maxLength": 2000},
+          "outcome": {"enum": ["passed", "failed", "not_run"]},
+          "evidence": {"type": "string", "maxLength": 4096}
+        }
+      }
+    },
+    "uncertainties": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+    },
+    "owner_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["needed", "question", "recommendation"],
+      "properties": {
+        "needed": {"type": "boolean"},
+        "question": {"type": ["string", "null"], "maxLength": 4000},
+        "recommendation": {"type": ["string", "null"], "maxLength": 4000}
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wall_seconds", "model_iterations", "reported_cost_usd"],
+      "properties": {
+        "wall_seconds": {"type": ["number", "null"], "minimum": 0},
+        "model_iterations": {"type": ["integer", "null"], "minimum": 0},
+        "reported_cost_usd": {"type": ["number", "null"], "minimum": 0}
+      }
+    },
+    "failure": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["category", "message", "retryable"],
+      "properties": {
+        "category": {
+          "enum": [
+            "spawn",
+            "timeout",
+            "contract",
+            "permission",
+            "model_mismatch",
+            "account_mismatch",
+            "vendor",
+            "verification",
+            "unknown"
+          ]
+        },
+        "message": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "retryable": {"type": "boolean"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "succeeded"},
+          "lane": {"const": "codex-luna"}
+        },
+        "required": ["status", "lane"]
+      },
+      "then": {
+        "properties": {
+          "effective_model": {"const": "gpt-5.6-luna"},
+          "execution_host": {"const": "pda"},
+          "principal_attestation": {
+            "properties": {
+              "account_class": {"const": "pda-codex"},
+              "auth_method": {"const": "codex-oauth"},
+              "attestation_source": {"const": "runtime-init"},
+              "evidence_uri": {"type": "string", "minLength": 1},
+              "verified": {"const": true}
+            }
+          },
+          "perspective_result": {"const": null}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "succeeded"},
+          "lane": {"const": "claude-fable"}
+        },
+        "required": ["status", "lane"]
+      },
+      "then": {
+        "properties": {
+          "effective_model": {"const": "claude-fable-5"},
+          "execution_host": {"const": "dev-mac"},
+          "principal_attestation": {
+            "properties": {
+              "account_class": {"const": "dev-mac-team-claude"},
+              "auth_method": {"const": "team-oauth"},
+              "attestation_source": {"const": "trusted-wrapper"},
+              "evidence_uri": {"type": "string", "minLength": 1},
+              "verified": {"const": true}
+            }
+          },
+          "perspective_result": {"type": "object"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {"const": "succeeded"},
+          "lane": {"const": "claude-code"}
+        },
+        "required": ["status", "lane"]
+      },
+      "then": {
+        "properties": {
+          "execution_host": {"const": "dev-mac"},
+          "principal_attestation": {
+            "properties": {
+              "account_class": {"const": "dev-mac-team-claude"},
+              "auth_method": {"const": "team-oauth"},
+              "attestation_source": {"const": "trusted-wrapper"},
+              "evidence_uri": {"type": "string", "minLength": 1},
+              "verified": {"const": true}
+            }
+          },
+          "perspective_result": {"const": null}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "lane": {"not": {"const": "claude-fable"}}
+        },
+        "required": ["lane"]
+      },
+      "then": {
+        "properties": {"perspective_result": {"const": null}}
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "owner_decision": {
+            "properties": {"needed": {"const": true}},
+            "required": ["needed"]
+          }
+        },
+        "required": ["owner_decision"]
+      },
+      "then": {
+        "properties": {
+          "owner_decision": {
+            "properties": {
+              "question": {"type": "string", "minLength": 1},
+              "recommendation": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "owner_decision": {
+            "properties": {
+              "question": {"const": null},
+              "recommendation": {"const": null}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "succeeded"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "failure": {"const": null},
+          "verification": {
+            "items": {
+              "properties": {"outcome": {"const": "passed"}}
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {"failure": {"type": "object"}}
+      }
+    }
+  ]
+}
