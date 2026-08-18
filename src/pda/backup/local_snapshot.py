@@ -59,6 +59,7 @@ class SourceConfig:
     path: Path | None
     sqlite: str
     allowed_special_files: tuple[tuple[str, str], ...] = ()
+    opaque_sqlite: tuple[str, ...] = ()
     container: str | None = None
     container_path: str | None = None
 
@@ -404,6 +405,9 @@ class BackupEngine:
             allowed_special_files = _parse_allowed_special_files(
                 item.get("allowed_special_files", [])
             )
+            opaque_sqlite = _parse_opaque_sqlite_patterns(
+                item.get("opaque_sqlite", [])
+            )
             if kind == "tree":
                 sources.append(
                     SourceConfig(
@@ -412,9 +416,14 @@ class BackupEngine:
                         path=_resolve_path(item.get("path"), config_path.parent),
                         sqlite=sqlite_policy,
                         allowed_special_files=allowed_special_files,
+                        opaque_sqlite=opaque_sqlite,
                     )
                 )
             elif kind == "docker-container":
+                if opaque_sqlite:
+                    raise BackupError(
+                        "opaque_sqlite is allowed only for filesystem tree sources"
+                    )
                 container = item.get("container")
                 container_path = item.get("path")
                 if not isinstance(container, str) or not container:
@@ -561,6 +570,7 @@ class BackupEngine:
         payload = stage / "payload"
         payload.mkdir(mode=0o700)
         sqlite_paths: list[str] = []
+        opaque_sqlite_paths: list[str] = []
         excluded_special_entries: dict[str, str] = {}
         try:
             data_root = payload / "data"
@@ -588,6 +598,13 @@ class BackupEngine:
                         relative = snapshot_database.relative_to(destination)
                         database = source.path / relative
                         source_mode = snapshot_database.lstat().st_mode & 0o7777
+                        if _matches_opaque_sqlite(relative, source.opaque_sqlite):
+                            _require_opaque_sqlite_bundle(database)
+                            _require_opaque_sqlite_bundle(snapshot_database)
+                            opaque_sqlite_paths.append(
+                                (Path("data") / source.name / relative).as_posix()
+                            )
+                            continue
                         _remove_copied_sqlite(snapshot_database)
                         _backup_sqlite(database, snapshot_database, mode=source_mode)
                         sqlite_paths.append(
@@ -654,6 +671,7 @@ class BackupEngine:
                 "config_sha256": self.config_sha256,
                 "sources": [_source_manifest(source) for source in self.config.sources],
                 "sqlite_databases": sorted(sqlite_paths),
+                "opaque_sqlite_databases": sorted(opaque_sqlite_paths),
                 "excluded_special_files": [
                     {"path": path, "kind": excluded_special_entries[path]}
                     for path in sorted(excluded_special_entries)
@@ -712,6 +730,7 @@ def _source_manifest(source: SourceConfig) -> dict[str, Any]:
         "name": source.name,
         "kind": source.kind,
         "sqlite": source.sqlite,
+        "opaque_sqlite": list(source.opaque_sqlite),
         "allowed_special_files": [
             {"path": path, "kind": kind}
             for path, kind in source.allowed_special_files
@@ -869,7 +888,11 @@ def verify_snapshot(snapshot_path: Path) -> dict[str, Any]:
         "excluded_special_files",
         "files",
     }
-    if set(manifest) != expected_manifest_keys or manifest.get("schema_version") != 1:
+    allowed_manifest_keys = (
+        expected_manifest_keys,
+        expected_manifest_keys | {"opaque_sqlite_databases"},
+    )
+    if set(manifest) not in allowed_manifest_keys or manifest.get("schema_version") != 1:
         raise BackupError("snapshot manifest schema is invalid")
     generation_sequence = manifest.get("generation_sequence")
     if (
@@ -1000,6 +1023,33 @@ def verify_snapshot(snapshot_path: Path) -> dict[str, Any]:
             raise BackupError(f"invalid excluded special-file path: {special_path}")
         seen_excluded.add(normalized)
 
+    opaque_entries = manifest.get("opaque_sqlite_databases", [])
+    if not isinstance(opaque_entries, list):
+        raise BackupError("snapshot manifest has an invalid opaque SQLite inventory")
+    seen_opaque_sqlite: set[str] = set()
+    for value in opaque_entries:
+        if not isinstance(value, str):
+            raise BackupError("snapshot manifest has an invalid opaque SQLite path")
+        relative = _manifest_data_path(value, label="opaque SQLite")
+        normalized = relative.as_posix()
+        entry = inventory.get(normalized)
+        if normalized in seen_opaque_sqlite:
+            raise BackupError(f"duplicate snapshot opaque SQLite path: {value}")
+        seen_opaque_sqlite.add(normalized)
+        if entry is None or entry.get("kind") != "file":
+            raise BackupError(
+                f"snapshot opaque SQLite path is not a regular inventory file: {value}"
+            )
+        path = snapshot.joinpath(*relative.parts)
+        _require_real_parent_directories(snapshot, relative)
+        _require_opaque_sqlite_bundle(path)
+        try:
+            header = path.open("rb").read(16)
+        except OSError as error:
+            raise BackupError(f"could not read opaque SQLite path: {value}") from error
+        if header != b"SQLite format 3\x00":
+            raise BackupError(f"opaque SQLite path is not a SQLite database: {value}")
+
     sqlite_entries = manifest.get("sqlite_databases")
     if not isinstance(sqlite_entries, list):
         raise BackupError("snapshot manifest has an invalid SQLite path inventory")
@@ -1010,7 +1060,7 @@ def verify_snapshot(snapshot_path: Path) -> dict[str, Any]:
         relative = _manifest_data_path(value, label="SQLite")
         normalized = relative.as_posix()
         entry = inventory.get(normalized)
-        if normalized in seen_sqlite:
+        if normalized in seen_sqlite or normalized in seen_opaque_sqlite:
             raise BackupError(f"duplicate snapshot SQLite path: {value}")
         seen_sqlite.add(normalized)
         if entry is None:
@@ -1032,7 +1082,7 @@ def verify_snapshot(snapshot_path: Path) -> dict[str, Any]:
     actual_sqlite = {
         path.relative_to(snapshot).as_posix() for path in _discover_sqlite(data_root)
     }
-    if actual_sqlite != seen_sqlite:
+    if actual_sqlite != seen_sqlite | seen_opaque_sqlite:
         raise BackupError("snapshot SQLite classification mismatch")
     return {
         "ok": True,
@@ -1392,6 +1442,40 @@ def _parse_allowed_special_files(value: Any) -> tuple[tuple[str, str], ...]:
             raise BackupError(f"invalid allowed special-file kind: {kind!r}")
         allowed[path_value] = kind
     return tuple(sorted(allowed.items()))
+
+
+def _parse_opaque_sqlite_patterns(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        raise BackupError("opaque_sqlite must be an array")
+    patterns: set[str] = set()
+    for pattern in value:
+        if (
+            not isinstance(pattern, str)
+            or not pattern
+            or pattern in patterns
+            or re.fullmatch(r"[A-Za-z0-9._*/-]+", pattern) is None
+            or re.search(r"[A-Za-z0-9]", pattern) is None
+        ):
+            raise BackupError(f"unsafe or duplicate opaque SQLite pattern: {pattern!r}")
+        relative = PurePosixPath(pattern)
+        if relative.is_absolute() or ".." in relative.parts or relative.as_posix() != pattern:
+            raise BackupError(f"unsafe or duplicate opaque SQLite pattern: {pattern!r}")
+        patterns.add(pattern)
+    return tuple(sorted(patterns))
+
+
+def _matches_opaque_sqlite(relative: Path, patterns: tuple[str, ...]) -> bool:
+    value = PurePosixPath(relative.as_posix())
+    return any(value.match(pattern) for pattern in patterns)
+
+
+def _require_opaque_sqlite_bundle(database: Path) -> None:
+    if not _is_regular_file(database):
+        raise BackupError(f"opaque SQLite path is not a regular file: {database}")
+    for suffix in ("-wal", "-shm", "-journal"):
+        sidecar = Path(str(database) + suffix)
+        if _path_exists(sidecar) and not _is_regular_file(sidecar):
+            raise BackupError(f"opaque SQLite sidecar is not a regular file: {sidecar}")
 
 
 def _resolve_lexical_path(value: Any, base: Path) -> Path:

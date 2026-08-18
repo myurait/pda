@@ -19,7 +19,11 @@
       "name": "hermes-home",
       "kind": "tree",
       "path": "~/.hermes",
-      "sqlite": "discover"
+      "sqlite": "discover",
+      "opaque_sqlite": [
+        "state-snapshots/*/state.db",
+        "state.db.malformed-backup-*"
+      ]
     },
     {
       "name": "pda-repository",

@@ -132,6 +132,15 @@ def test_service_bounds_the_complete_backup_run() -> None:
     assert "TimeoutStartSec=18h" in service
 
 
+def test_service_uses_hermes_runtime_python_for_sqlite_compatibility() -> None:
+    service = (REPO_ROOT / "infra/systemd/pda-local-backup.service").read_text(
+        encoding="utf-8"
+    )
+
+    assert "%h/.hermes/hermes-agent/venv/bin/python" in service
+    assert "/usr/bin/python3 %h/projects/pda/operations/backup/pda_backup.py" not in service
+
+
 def test_service_can_refresh_docker_group_without_automatic_post_commit_retry() -> None:
     service = (REPO_ROOT / "infra/systemd/pda-local-backup.service").read_text(
         encoding="utf-8"
