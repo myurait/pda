@@ -43,7 +43,7 @@ Before delegation, write:
 - lane, model, host, and durability;
 - read/write/network permissions and owner gate;
 - target account class, authorization status, control-owned authorization reference, and selected-context reference;
-- billing mode, existing-credit-only flag, purchase/auto-reload/unlimited/settings-mutation denials, and control-owned balance/spend-cap evidence;
+- billing mode, existing-credit-only flag, purchase/auto-reload/unlimited/settings-mutation denials, a finite per-task USD cap, and control-owned balance/account-cap evidence;
 - iteration/time/concurrency/retry budget;
 - expected artifacts and verification.
 
@@ -116,7 +116,7 @@ Verify:
 - requested versus effective model;
 - expected account class versus typed `principal_attestation`, including read-back of the referenced auth/model evidence;
 - typed runtime outcome: process exit, terminal result, `is_error`, API status, terminal reason, exact models used, and raw evidence URI;
-- billing policy and resolvable existing-balance/finite-spend-cap evidence;
+- billing policy, finite per-task USD budget, and resolvable existing-balance/account-cap evidence;
 - actual artifact handle and contents;
 - Git diff/worktree ownership;
 - tests/checks actually run;

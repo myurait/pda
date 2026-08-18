@@ -142,6 +142,7 @@
         "auto_reload_allowed",
         "unlimited_spend_allowed",
         "settings_mutation_allowed",
+        "max_task_cost_usd",
         "credit_balance_evidence_uri",
         "spend_cap_evidence_uri"
       ],
@@ -152,6 +153,7 @@
         "auto_reload_allowed": {"type": "boolean"},
         "unlimited_spend_allowed": {"type": "boolean"},
         "settings_mutation_allowed": {"type": "boolean"},
+        "max_task_cost_usd": {"type": ["number", "null"], "minimum": 0},
         "credit_balance_evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096},
         "spend_cap_evidence_uri": {"type": ["string", "null"], "minLength": 1, "maxLength": 4096}
       }
@@ -230,6 +232,7 @@
               "auto_reload_allowed": {"const": false},
               "unlimited_spend_allowed": {"const": false},
               "settings_mutation_allowed": {"const": false},
+              "max_task_cost_usd": {"const": null},
               "credit_balance_evidence_uri": {"const": null},
               "spend_cap_evidence_uri": {"const": null}
             }
@@ -290,6 +293,7 @@
               "auto_reload_allowed": {"const": false},
               "unlimited_spend_allowed": {"const": false},
               "settings_mutation_allowed": {"const": false},
+              "max_task_cost_usd": {"type": "number", "exclusiveMinimum": 0},
               "credit_balance_evidence_uri": {"type": "string", "minLength": 1},
               "spend_cap_evidence_uri": {"type": "string", "minLength": 1}
             }
@@ -364,6 +368,7 @@
               "auto_reload_allowed": {"const": false},
               "unlimited_spend_allowed": {"const": false},
               "settings_mutation_allowed": {"const": false},
+              "max_task_cost_usd": {"const": null},
               "credit_balance_evidence_uri": {"const": null},
               "spend_cap_evidence_uri": {"const": null}
             }

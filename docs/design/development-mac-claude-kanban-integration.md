@@ -272,6 +272,7 @@ Kanban bodyは会話文ではなく、versioned execution envelopeとする。ge
       "auto_reload_allowed": false,
       "unlimited_spend_allowed": false,
       "settings_mutation_allowed": false,
+      "max_task_cost_usd": null,
       "credit_balance_evidence_uri": null,
       "spend_cap_evidence_uri": null
     },

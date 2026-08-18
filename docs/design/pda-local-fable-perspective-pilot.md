@@ -57,7 +57,7 @@ The result also establishes a validator requirement: `subtype=success` is not su
 
 Before retrying, the owner must make existing usage credits accessible through an account-authorized path, or wait until the account has an included Fable allowance.[2][3] While local state reports `org_level_disabled`, the PDA worker and wrapper remain blocked and must not mutate Settings, organization policy, billing, purchase, auto-reload, or spend caps.
 
-A retry is executable only after control-owned evidence resolves both an existing positive credit balance and a finite spend cap. New credit purchase, unlimited billing, auto-reload, or organization-policy changes require separate authorization.
+A retry is executable only after control-owned evidence resolves both an existing positive credit balance and a finite account spend cap, and the task carries a finite per-run USD budget. New credit purchase, unlimited billing, auto-reload, or organization-policy changes require separate authorization.
 
 After access is restored, rerun one minimized, read-only, no-tools perspective task and verify:
 

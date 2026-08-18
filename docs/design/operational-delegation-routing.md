@@ -159,7 +159,7 @@ Default mode is read-only advisor. Fableが返すのは`PerspectiveResult`であ
 
 Fableへ「ユーザー本人として決定せよ」とは指示しない。代わりに「確認済みの選好から最も整合する推奨を出し、推測を明示せよ」と依頼する。Fableの高い一致度は、推定精度を上げるがauthorityを上げない。
 
-初期control surfaceはPDA-localのbounded/read-only advisorだけに限定する。fixed wrapperは`claude -p --model claude-fable-5 --output-format json --json-schema ... --tools "" --permission-mode dontAsk --max-turns 1 --no-session-persistence`相当を一度だけ起動し、10分以内、concurrency 1、retry 0とする。
+初期control surfaceはPDA-localのbounded/read-only advisorだけに限定する。fixed wrapperは`claude -p --model claude-fable-5 --output-format json --json-schema ... --tools "" --permission-mode dontAsk --max-turns 1 --max-budget-usd <task cap> --no-session-persistence`相当を一度だけ起動し、10分以内、concurrency 1、retry 0とする。
 
 wrapperはOS exitだけでなくterminal resultの`is_error`、`api_error_status`、`terminal_reason`、`modelUsage`を検証する。`subtype=success`でも`is_error=true`ならblocked/failedであり、成功へ昇格させない。`modelUsage`にexact Fable 5 evidenceがなくても成功にしない。
 
@@ -233,7 +233,7 @@ Machine-readable contractは`schemas/delegation-task-v1.schema.json`を正とす
 - `route`: lane、requested model、execution host、durability。
 - `permissions`: read/write/networkとowner gate。
 - `egress`: 送信先account class、`not_required|granted`のauthorization status、control-owned authorization reference、選択済みcontext reference。`claude-fable`はPDA-local Claude principalとminimized context selectionへ固定する。Personal→Teamの明示許可は開発Mac executorにだけ適用する。
-- `billing_policy`: billing mode、既存credit限定、purchase / auto-reload / unlimited spend / settings mutationの可否、control-owned balance evidenceとfinite spend-cap evidence。Fable perspectiveでは既存credit以外を全てfalseに固定する。
+- `billing_policy`: billing mode、既存credit限定、purchase / auto-reload / unlimited spend / settings mutationの可否、finite per-task USD cap、control-owned balance evidenceとaccount spend-cap evidence。Fable perspectiveでは既存credit以外を全てfalseに固定する。
 - `budget`: iterations、wall time、concurrency、retry。
 - `result_contract`: 必須artifactとverification。
 
@@ -517,7 +517,7 @@ Exit: route changes are evidence-based and reversible.
 8. A Fable-required task fails closed if effective model evidence is not exactly `claude-fable-5`.
 9. Every Fable result status requires the PDA-local Claude principal; a blocked/failed result claiming the development-Mac Team principal is schema-invalid.
 10. A result with `subtype=success` but `is_error=true`, API 429, empty `models_used`, or non-zero process exit is blocked/failed, never succeeded.
-11. A Fable task without resolvable existing-balance and finite-spend-cap evidence is rejected before model launch.
+11. A Fable task without resolvable existing-balance/account-cap evidence or a finite per-task USD budget is rejected before model launch.
 12. Purchase, auto-reload, unlimited spend, billing/settings mutation, and development-Mac fallback are all rejected for the perspective lane.
 13. A local perspective task carries only its explicit minimized context selection, not raw conversation or full memory.
 14. Mac offline leaves a development task queued and does not trigger a wrong-principal fallback.
