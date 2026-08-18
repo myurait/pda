@@ -149,10 +149,12 @@
       "properties": {
         "required_artifacts": {
           "type": "array",
+          "minItems": 1,
           "items": {"type": "string", "minLength": 1, "maxLength": 512}
         },
         "verification": {
           "type": "array",
+          "minItems": 1,
           "items": {"type": "string", "minLength": 1, "maxLength": 2000}
         },
         "effective_model_required": {"type": "boolean"}
@@ -239,8 +241,10 @@
           },
           "budget": {
             "properties": {
-              "max_concurrency": {"maximum": 1},
-              "retry_limit": {"maximum": 1}
+              "max_model_iterations": {"maximum": 20},
+              "max_wall_seconds": {"maximum": 3600},
+              "max_concurrency": {"const": 1},
+              "retry_limit": {"const": 0}
             }
           }
         }
@@ -288,8 +292,14 @@
           },
           "egress": {
             "properties": {
-              "target_account_class": {"const": "none"}
+              "target_account_class": {"const": "none"},
+              "authorization_status": {"const": "not_required"},
+              "authorization_ref": {"const": null},
+              "context_selection_ref": {"const": null}
             }
+          },
+          "budget": {
+            "properties": {"max_model_iterations": {"const": 0}}
           }
         }
       }

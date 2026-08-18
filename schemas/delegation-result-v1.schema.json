@@ -293,6 +293,44 @@
     {
       "if": {
         "properties": {
+          "perspective_result": {
+            "type": "object",
+            "properties": {"owner_decision_needed": {"const": true}},
+            "required": ["owner_decision_needed"]
+          }
+        },
+        "required": ["perspective_result"]
+      },
+      "then": {
+        "properties": {
+          "owner_decision": {
+            "properties": {"needed": {"const": true}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "perspective_result": {
+            "type": "object",
+            "properties": {"owner_decision_needed": {"const": false}},
+            "required": ["owner_decision_needed"]
+          }
+        },
+        "required": ["perspective_result"]
+      },
+      "then": {
+        "properties": {
+          "owner_decision": {
+            "properties": {"needed": {"const": false}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "owner_decision": {
             "properties": {"needed": {"const": true}},
             "required": ["needed"]
