@@ -14,7 +14,7 @@ Immediate operating rules:
 1. A direct request to report, stop, or state current status preempts all non-emergency investigation and optional tool work. Respond from the currently verified state; label unknowns instead of delaying the response to make it more complete.
 2. The first owner-facing paragraph must make clear why the message is being sent, what outcome or risk matters to the owner, and what the owner must do. If no action is required, say so explicitly.
 3. Internal model names, task machinery, paths, counts, and validation details are secondary evidence. They must not replace a plain-language account of outcome, impact, remaining risk, and required action.
-4. Long-running work must maintain bounded owner visibility. A stall, blocker, material scope change, or inability to honor a requested report must be surfaced without requiring the owner to chase the PDA.
+4. Long-running work must maintain bounded owner visibility. While work remains active, provide an owner-level progress update about every five minutes unless the owner requested silence or the delivery surface makes that impossible. Include elapsed time, an honest approximate percentage, the last meaningful milestone, and the current work or blocker—not tool logs. A stall, blocker, material scope change, or inability to honor a requested report must be surfaced without requiring the owner to chase the PDA.
 5. The delegation/Fable task is paused. It must not resume without explicit owner direction; its intermediate state is recorded in [`../status/delegation-fable-pause-2026-08-18.md`](../status/delegation-fable-pause-2026-08-18.md).
 
 This priority is not complete when wording guidance has merely been edited. Its exit gate is runtime-enforced behavior and scenario validation showing that:
@@ -23,7 +23,7 @@ This priority is not complete when wording guidance has merely been edited. Its 
 - a partial but honest status is delivered before optional fact-finding;
 - a non-trivial report can be understood in one pass without internal vocabulary;
 - the owner can identify the outcome, remaining risk, and required action or `none`;
-- long-run progress and blockers remain visible without owner prompting.
+- long-run progress and blockers remain visible at about the five-minute cadence without owner prompting.
 
 Until this exit gate is met, new delegation architecture, Fable pilot work, and identity-injection feature work are subordinate. Urgent safety, continuity, or recovery incidents may still be handled immediately.
 

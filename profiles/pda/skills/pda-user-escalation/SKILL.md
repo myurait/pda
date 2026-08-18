@@ -42,7 +42,7 @@ When such a request arrives:
 4. Distinguish clearly between work that is complete, paused, blocked, still running, or never started.
 5. Continue investigation only after the initial status has been delivered and only when it remains authorized.
 
-For long-running work, use the available progress channel to keep owner visibility bounded. Surface a stall, blocker, material scope change, or inability to honor a requested report before the owner must chase the PDA. A progress update is not a console transcript: it still states owner-level outcome, risk, and required action.
+For long-running work, use the available progress channel to keep owner visibility bounded. While work remains active, report about every five minutes unless the owner requested silence or the delivery surface makes that impossible. Include elapsed time, an honest approximate percentage, the last meaningful milestone, and the current work or blocker. Surface a stall, blocker, material scope change, or inability to honor a requested report before the owner must chase the PDA. A progress update is not a console transcript: it still states owner-level outcome, risk, and required action rather than tool logs.
 
 This timing rule is part of communication integrity. A late, polished report does not repair an earlier failure to answer.
 
