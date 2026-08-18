@@ -284,7 +284,7 @@ Kanban bodyは会話文ではなく、versioned execution envelopeとする。ge
 }
 ```
 
-ここで`task.task_id`はPDAがcard作成前に発行するstable request IDであり、Kanban createの`idempotency_key`にも同じ値を使う。Kanban自身が返す`id`は別のboard identityで、bridgeはlist / claim responseから取得し、run fencing、branch、worktree、session name、outbox keyに使う。生成後のKanban IDを作成前のbodyへ埋め込めるとは仮定しない。
+ここで`task.task_id`はPDAがcard作成前に発行するstable request identityであり、以後`request_id`と呼ぶ。Kanban createの`idempotency_key`にも同じ値を使う。Kanban自身が返す`id`は別のboard identityで、以後`kanban_task_id`と呼ぶ。bridgeは`kanban_task_id`をlist / claim responseから取得し、run fencing、branch、worktree、session name、outbox keyに使う。生成後の`kanban_task_id`を作成前のbodyへ埋め込めるとは仮定しない。
 
 D3実装前に、このenvelopeをJSON Schemaとしてversion controlへ追加する。実装が先行して暗黙のfieldを増やしてはならない。
 
@@ -306,9 +306,9 @@ network、process、machine failureがあるため、transport全体をexactly-o
 
 代わりに次を組み合わせる。
 
-- envelope `task_id` / Kanban `idempotency_key`: duplicate submissionを防ぐrequest identity
-- Kanban task ID: claim後のboard / execution identity
-- Kanban run ID: attempt fencing token
+- `request_id` (`task.task_id`) / Kanban `idempotency_key`: duplicate submissionを防ぐrequest identity
+- `kanban_task_id` (Kanban row `id`): claim後のboard / execution identity
+- `run_id` (Kanban current run ID): attempt fencing token
 - Claude job ID / session UUID: execution identity
 - Git branch / worktree: durable code identity
 - local journal: launch identity
@@ -320,16 +320,16 @@ bridgeは次の順序を守る。
 
 1. `ready + assignee=main-claude`をJSONでlistする。
 2. local policyで一件選ぶ。
-3. exact task IDをatomic claimする。
+3. exact `kanban_task_id`をatomic claimする。
 4. claim直後にcurrent running run IDを取得する。
-5. `(task_id, run_id)`をlocal journalへfsync相当で保存する。
+5. `(request_id, kanban_task_id, run_id)`をlocal journalへfsync相当で保存する。
 6. 既存Claude mapping / outboxをreconcileする。
 7. launch直前にtaskが同じrun IDでrunningであることをread-backする。
 8. 新規実行が必要でclaimが有効な場合だけworktreeとClaude sessionを作る。
 
-現行CLIの`hermes kanban claim --ttl`はdefault 900秒である。2026-08-18のsource確認では、`hermes kanban heartbeat`はlivenessを記録するが`claim_expires`を延長しない。またCLIをSSHごとに起動するとclaimer PIDが変わるため、別processから内部`heartbeat_claim`を所有者として呼ぶ設計にもできない。
+現行CLIの`hermes kanban claim --ttl`はdefault 900秒である。2026-08-18のv0.20.2 source確認では、CLI action `hermes kanban heartbeat`は`heartbeat_worker()`へ入りlivenessを記録するが、`claim_expires`を延長しない。別のinternal API `heartbeat_claim()`はleaseを延長するがCLI heartbeatからは呼ばれず、さらにCLIをSSHごとに起動するとclaimer PIDが変わるため、外部workerが別processから所有者として安全に使える契約ではない。isolated temporary boardでも60秒TTLのclaimにCLI heartbeatを発行し、`last_heartbeat_at`だけが記録され`claim_expires`が同値のままであることを実測した。
 
-従ってv1 bridgeは、claim時にcardの`max_runtime_seconds + bounded grace`をTTLとして指定し、CLI heartbeatだけでlease延長できると仮定しない。人間入力待ちで長時間停止する前にはcardを`blocked/needs_input`へ移し、そのrunを閉じる。
+従ってv1 bridgeは、claim時に`task.budget.max_wall_seconds + execution.bridge_claim_grace_seconds`をTTLとして指定し、CLI heartbeatだけでlease延長できると仮定しない。人間入力待ちで長時間停止する前にはcardを`blocked/needs_input`へ移し、そのrunを閉じる。将来Hermesがstable external claim tokenを公開した場合にだけrenewal方式を再評価する。
 
 ### 6.3 Run fencing
 
@@ -338,9 +338,11 @@ bridgeは次の順序を守る。
 restricted PDA wrapperは次をremote environmentへ設定してからHermes CLIを呼ぶ。
 
 ```text
-HERMES_KANBAN_TASK=<task-id>
-HERMES_KANBAN_RUN_ID=<run-id>
+HERMES_KANBAN_TASK=<kanban_task_id>
+HERMES_KANBAN_RUN_ID=<run_id>
 ```
+
+`run_id`はClaudeへ渡すtask contractにもmodel-authored executor payloadにも含めない。これはbridge / PDAだけが所有するattempt identityである。Claude sessionが`needs_input`を跨いで同じ`request_id`の作業を継続しても、bridgeはunblock後に得たcurrent `run_id`へexecutor payloadをbindingし、control-owned final resultを生成する。modelはKanban lifecycle commandを直接実行せず、古いrun identityを持ち越すこともない。
 
 これにより、lease切れ後の古いMac processが、新しいrunを誤ってcomplete / block / request-reviewすることを拒否できる。
 
@@ -366,18 +368,18 @@ closed
 
 ## 7. Git isolation
 
-bridgeがtask IDからdeterministic branchとworktreeを先に作り、そのworktree内で`claude --bg`を起動する。
+bridgeが`kanban_task_id`からdeterministic branchとworktreeを先に作り、そのworktree内で`claude --bg`を起動する。
 
 ```text
-branch:   pda/<task-id>
-worktree: <repo>/.worktrees/pda/<task-id>
+branch:   pda/<kanban_task_id>
+worktree: <repo>/.worktrees/pda/<kanban_task_id>
 ```
 
-Claude Codeはbackground sessionを通常、edit前に`.claude/worktrees/`へ移すが、既にlinked worktree内で起動したsessionは追加worktreeを作らない。[3]
+Claude Codeはbackground sessionを通常、edit前に`.claude/worktrees/`へ移すが、既にlinked worktree内で起動したsessionは追加worktreeを作らない。[3] 同じ公式文書は、Claude自身が作っていないcheckoutではcommitやbranch switchの前に確認を求め得ることも示す。[3] v1ではこの差をunattended promptで解消せず、Git lifecycleをbridge側へ固定する。
 
 bridge-created worktreeを使う理由:
 
-- task IDからpathとbranchを再構成できる。
+- `kanban_task_id`からpathとbranchを再構成できる。
 - Agent View session削除とworktree削除を結合しない。
 - 既存dirty checkoutへ書かない。
 - 並行中の別threadをstash / reset / stageしない。
@@ -387,10 +389,12 @@ Rules:
 
 - base refをfetch後のcommitへpinする。
 - 既存branch/pathがある場合は、journalと一致しなければfail closedする。
-- local task branchへのcommitは許可できるが、push / PR作成はcardの明示permissionがある場合だけ行う。project instructionにも同じ制約を置く。
+- v1ではClaudeにbranch switch、commit、push、PR作成、mergeを許可しない。Claudeは既に選ばれたworktreeでedit / testし、executor payloadを返す。
+- bridgeがdiffとacceptance evidenceを独立検証した後、cardが許可する場合だけdeterministic local commitを作る。push / PR作成は別の明示permission / owner gateを要求する。
 - `main` / `master`へ直接commit、force push、mergeしない。
-- sessionを削除する前にcommit、push、または明示的artifact退避を確認する。
+- sessionを削除する前にlocal commit、push、または明示的artifact退避を確認する。
 - unknown dirty stateをcleanup目的で変更しない。
+- M1/M4でpre-created linked worktree内のedit / testが追加のcommit・branch promptなしで完了し、禁止したGit操作へClaudeが進まないことを実機確認する。
 
 ## 8. Claude launch contract
 
@@ -401,12 +405,12 @@ bridgeはshell stringではなくargv arrayで公式CLIを起動する。
 ```text
 claude
   --bg
-  --name pda-<repo-key>-<task-id>
-  --model <requested-model>
+  --name pda-<repo_key>-<kanban_task_id>
+  [--model <requested_model>]
   <fixed instruction pointing to a validated local task file>
 ```
 
-`--bg`のpromptはpositional argumentであり、`-p`を付けない。[3]
+`--bg`のpromptはpositional argumentであり、`-p`を付けない。[3] `task.route.requested_model`が`null`なら`--model` flag自体を省略し、verified Team defaultを使う。non-nullの場合だけflagを渡す。どちらの場合もrequested valueと、取得可能なcontrol-owned effective-model evidenceを別に記録する。
 
 Untrusted card bodyをremote shell commandへ展開しない。bridgeはJSONをvalidationし、Mac上のtask fileへ保存し、Claudeにはそのpathと固定instructionだけを渡す。
 
@@ -414,7 +418,7 @@ Untrusted card bodyをremote shell commandへ展開しない。bridgeはJSONをv
 
 pilotでは`--dangerously-skip-permissions`を使用しない。
 
-- project settingsで既知のread/test/git commandだけを許可する。
+- project settingsでknown read/edit/test commandとread-only Git (`status`, `diff`, `log`)だけを許可し、`commit`, `checkout`, `switch`, `push`, `gh pr`等のGit mutationをdenyする。
 - unknown network、credential access、external side effectはAgent Viewでhuman inputにする。
 - permission promptを「自動化の失敗」ではなく、明示的な`needs_input` stateとして扱う。
 
@@ -459,7 +463,16 @@ bridgeは次をpollする。
 claude agents --json --all --cwd <allowed-repo-path>
 ```
 
-job IDとsession UUIDをjournalへ保存し、task IDをsession nameに含めてcrash reconciliationを可能にする。
+job IDとsession UUIDをjournalへ保存し、`kanban_task_id`をsession nameに含めてcrash reconciliationを可能にする。
+
+Launch commit protocol:
+
+1. `claude --bg --name ...`のstdoutからshort job IDを取得する。
+2. `claude agents --json --all --cwd <repo>`から同じjob IDのsession UUIDとnameをread-backする。
+3. `(request_id, kanban_task_id, run_id, job_id, session_uuid, name)`を一つのatomic journal recordとして保存して初めて`claude_running`とする。
+4. bridgeがlaunch後・journal前にcrashした場合、restart時にexact deterministic nameでinventoryを検索する。unique matchならadoptし、0件または複数件ならduplicateを起動せずblockしてmanual reconciliationへ回す。
+
+PDAホスト上のClaude Code v2.1.205では、explicit `--name pda-recovery-probe`で起動したidle background sessionが`claude agents --json --all`に同じ`name`、job ID、session UUIDを返すことを2026-08-18に確認した。Mac M1でも同じ契約を再確認し、name fieldが得られないversionではこのrecovery pathを有効化しない。
 
 Mapping:
 
@@ -498,30 +511,34 @@ $CLAUDE_JOB_DIR/tmp/pda-result.json
 
 このfileはmodel-authored `pda.executor-result/v1`であり、未検証の主張として扱う。最低限次を含む。
 
-- task identity
+- task identity (`request_id`)
 - concise summary
-- branch / commit / PR handles
-- changed paths
+- worktree / branch reference and changed paths
+- suggested commit message when useful
 - tests and reported outcomes
 - unresolved uncertainty
 - owner decision request
 - reported failure category
 
-Claudeに`principal_attestation`、effective account、verified state、最終`status=succeeded`を自己申告させない。bridgeがexecutor payloadを検証し、Git / test / auth evidenceをread-backした後、control-owned fieldsを加えて`../../schemas/delegation-result-v1.schema.json`に適合するfinal handoffを組み立てる。`pda.executor-result/v1`自身のschemaもD3実装前にversion controlへ追加する。
+Claudeに`principal_attestation`、effective account、verified state、commit / PR handle、最終`status=succeeded`を自己申告させない。bridgeがexecutor payloadを検証し、Git / test / auth evidenceをread-backし、許可されたGit actionを実行した後、control-owned fieldsを加えて`../../schemas/delegation-result-v1.schema.json`に適合するfinal handoffを組み立てる。`pda.executor-result/v1`自身のschemaもD3実装前にversion controlへ追加する。
 
-bridgeはClaude job directoryからexecutor payloadを検出したら、Claude session削除より先にbridge-owned outboxへatomic copyする。
+bridgeはClaude job directoryからexecutor payloadを検出したら、Claude session削除より先にbridge-owned storageへatomic copyする。cardがその時点でblockedなどcurrent runを持たない場合は、まず`intake/<job_id>/<digest>.json`へunbound payloadとして保存し、同じsession mappingを確認してunblock / claimした後にだけrun-specific outboxへbindingする。
 
 ```text
-~/Library/Application Support/pda-claude-bridge/outbox/<task-id>/<run-id>.json
+~/Library/Application Support/pda-claude-bridge/outbox/intake/<job_id>/<digest>.json
+~/Library/Application Support/pda-claude-bridge/outbox/<kanban_task_id>/<run_id>.json
 ```
 
 delivery rules:
 
+- journalでcurrent `kanban_task_id`へmappingされたjob directoryだけからpayloadを読む。
+- executor payloadの`request_id`がcard contractと一致し、payload digestが未配信であることを確認する。
 - result payloadをschema validationする。
 - branch、commit、test evidenceをMac上で独立read-backする。
+- final handoff作成直前にcardがcurrent `run_id`でrunningであることをread-backする。
 - outboxを書いてからSSH deliveryする。
 - delivery acknowledgementを得てから`result_delivered`へ進める。
-- SSH切断時はresultだけ再送し、modelを再実行しない。
+- SSH切断時は同じdigestのresultだけ再送し、modelを再実行しない。
 - stale run IDのresultはPDA側で拒否する。
 - raw transcriptや巨大logはboardへ貼らず、session ID / artifact referenceだけを置く。
 
@@ -546,7 +563,7 @@ wrapper allowlist:
 - guarded resume: unblock + claim for an already-mapped session
 - no archive, arbitrary assign, board switch, profile management, shell, file read
 
-Inputはstructured JSON over stdinとし、task ID、run ID、field size、state transitionをvalidateする。任意の`hermes kanban ...`文字列をSSH commandとして受け入れない。
+Inputはstructured JSON over stdinとし、`request_id`、`kanban_task_id`、`run_id`、field size、state transitionをvalidateする。任意の`hermes kanban ...`文字列をSSH commandとして受け入れない。
 
 ## 12. Failure semantics
 
@@ -555,7 +572,7 @@ Inputはstructured JSON over stdinとし、task ID、run ID、field size、state
 | Mac offline before claim | card remains ready |
 | PDA / SSH offline | Mac does not invent work; retries with backoff |
 | SSH drops after claim, before launch | journaled claim is reconciled; no blind duplicate |
-| bridge crashes after `claude --bg`, before mapping write | recover by deterministic session name + Agent View inventory |
+| bridge crashes after `claude --bg`, before mapping write | exact deterministic nameでinventoryを検索し、unique matchだけをadoptする; 0/複数ならduplicate launchせずblock |
 | Claude completes, SSH is down | local outbox persists; deliver later without rerun |
 | claim expires | old run is fenced; existing Claude session is reconciled before new launch |
 | Claude needs input | board blocks; owner attaches through Agent View |
@@ -608,6 +625,8 @@ Exit: architecture、authority、risk、pilot gateが明示されている。
 
 - Claude Codeをcurrent supported versionへupdateする。
 - `claude --bg`、`claude agents --json --all`、`attach`、`respawn`をharmless taskで確認する。
+- explicit `--name`がAgent View JSONへ返り、launch後・journal前crashからunique adoptionできることをinjection testする。
+- bridge-created throwaway linked worktree内でedit / testを実行し、Claudeがcommit / branch switchへ進まず追加promptなしでexecutor payloadまで到達することを確認する。
 - background sessionがAgent Viewと`--resume` pickerへ残ることを確認する。
 - Team organization / login method / higher-priority credential不在を確認する。
 - 会社PC / Team seatで対象task classを実行してよいことをorganization policy上確認する。
@@ -622,6 +641,7 @@ Exit: session history、principal、billing behaviorが実機で確認済み。
 - `main-claude` external laneを作る。
 - dedicated SSH keyとforced wrapperを導入する。
 - idempotent create、list、claim、run-fenced lifecycle writeをtestする。
+- short TTLでclaimし、CLI heartbeat後もexpiry時刻が延長されずsafe reclaimされることを実時間probeする。
 
 Exit: Mac keyは許可board / lane以外を操作できない。
 
@@ -640,7 +660,7 @@ Exit: empty queueはmodelを使わず、card一件が一sessionだけを作る�
 - create → claim → worktree → `--bg` → result → verification → doneを通す。
 - SSH lossをClaude完了後・result delivery前に発生させる。
 - bridge再起動後、model再実行なしでresultだけ届くことを確認する。
-- `needs_input`を一度発生させ、Agent View回答後に同じsessionが再開することを確認する。
+- `needs_input`を一度発生させ、Agent View回答後に同じsessionが再開することを確認する。payloadがnew run claimより先に完成するcaseも注入し、unbound intakeからcurrent runへ一度だけbindingされることを確認する。
 
 Exit: disconnect、human input、history、artifact safetyを含むE2Eが通る。
 
@@ -660,13 +680,13 @@ Exit: limited production laneとして利用可能。
 3. Mac bridgeだけがready cardをclaimできる。
 4. claim後のrun IDがjournalへ保存される。
 5. reclaim後の古いrunからcomplete / block / request-reviewできない。
-6. 一cardにつきClaude sessionは一つだけ作られる。
+6. 一cardにつきClaude sessionは一つだけ作られ、launch後・journal前crashでもexact nameのunique sessionをadoptしてduplicateを作らない。
 7. `claude --bg` sessionがAgent View、`claude agents --json --all`、session pickerに現れる。
-8. sessionは正しいrepo worktreeで実行され、既存dirty checkoutを変更しない。
+8. sessionは正しいbridge-created worktreeでedit / testし、既存dirty checkoutを変更せず、Git mutationはbridgeだけが行う。
 9. active credentialがMac Team OAuthであり、API key / personal OAuth / gatewayへ逸れていない。
 10. empty pollはClaude model requestを発生させない。
 11. permission / input waitがKanban `needs_input`へ反映される。
-12. owner回答後、新sessionではなく同じsessionが継続する。
+12. owner回答後、新sessionではなく同じsessionが継続する。payloadがreacquireより先に完成してもunbound intakeへ保全され、bridge-built final resultだけがcurrent `run_id`へ一度だけbindingされる。
 13. Claudeの`done`だけではcardをcompleteできず、valid executor payloadとbridge-built final resultが必要である。
 14. SSH loss後、outboxからresultだけが再送され、Claudeは再実行されない。
 15. Mac shutdown後、保存sessionをrespawnして継続できる。
@@ -706,8 +726,9 @@ Recommendation: v1はAgent Viewでhuman reply。E2Eが安定した後だけChann
 
 2026-08-18時点:
 
-- PDA repositoryのmain working treeには別threadの未commit変更があるため、本設計はisolated `design/delegation-routing` worktreeで作成した。
-- Hermes v0.20.2のisolated temporary boardで、non-profile assigneeのdispatcher skip、external claim、guarded heartbeat、guarded complete、stale run rejectionを実行確認した。
+- 作成開始時のPDA repository main working treeには別threadの未commit変更があったため、本設計はisolated `design/delegation-routing` worktreeで作成した。
+- Hermes v0.20.2のisolated temporary boardで、non-profile assigneeのdispatcher skip、external claim、guarded heartbeat、guarded complete、stale run rejectionを実行確認した。CLI heartbeatが`claim_expires`を更新しない点はsource read-backで確認し、実時間のTTL-expiry probeはM2に残した。
+- PDAホスト上のClaude Code v2.1.205で、explicit `--name`がAgent View JSONのname / job ID / session UUIDへread-backされることをharmless idle sessionで確認し、probe sessionは削除した。
 - 開発MacへのPDA側reverse SSH listenerは未確認であるが、通常設計はMac → PDA方向だけを使うためblockerではない。
 - Mac上のTeam-authenticated Claude Code、Agent View表示、subscription attribution、Fable consentの実機E2Eは未実施であり、M1 gateとして残る。
 - この文書はimplementation完了を主張しない。

@@ -341,18 +341,19 @@ Mac worker invariants:
 - Run as the same macOS user and config identity as the Team-authenticated interactive Claude Code.
 - Resolve a logical `repo_key` through a local allowlist; never interpret the PDA board's workspace path as a Mac path.
 - Start inside a bridge-created task-specific linked worktree so existing dirty checkouts and concurrent threads remain untouched.
+- In v1 Claude edits and tests only; the bridge owns branch mutation, commit, push, and PR actions after independent verification and the relevant gate.
 - Do not forward the PDA host's environment, OAuth token, API key, or arbitrary path.
 - Remove higher-priority provider/API credential variables and verify the Team login path before enabling the lane.
-- Use a PDA-issued request ID as the card-creation idempotency key, then use the returned Kanban task ID for local journal, branch, worktree, Claude session name, and outbox delivery.
+- Use a PDA-issued `request_id` as the card-creation idempotency key, then use the returned `kanban_task_id` for local journal, branch, worktree, Claude session name, and outbox delivery.
 - Use the Kanban run ID as a fencing token on complete, block, request-review, and other terminal lifecycle writes.
-- Set claim TTL from the bounded task runtime plus grace. In v0.20.2, CLI `heartbeat` records liveness but does not extend `claim_expires`; do not assume otherwise.
+- Set claim TTL from the bounded task runtime plus grace. In v0.20.2, CLI `heartbeat` calls `heartbeat_worker()` and does not extend `claim_expires`; the distinct internal `heartbeat_claim()` is not the external CLI contract.
 - Reconcile a local outbox or existing Claude session before re-running a claimed task after SSH loss.
 - Mac offline means the task remains queued; it does not fall back silently to the personal Claude token on PDA.
 
 The Mac has two distinct launch contracts rather than one ambiguous wrapper:
 
 1. `fable-advisor`: optional, bounded, read-only `claude -p --model claude-fable-5 --output-format json --json-schema ...`. This lane is non-interactive and is used only when its result is required in the current turn or when board/outbox durability is sufficient without a saved interactive history.
-2. `claude-executor`: official `claude --bg --name pda-<repo>-<task-id> ...` for repository work that needs a resumable, human-inspectable Claude Code conversation. Agent View, `claude attach`, `claude logs`, `claude respawn`, and the normal resume picker are the human control and history surfaces.
+2. `claude-executor`: official `claude --bg --name pda-<repo_key>-<kanban_task_id> ...` for repository work that needs a resumable, human-inspectable Claude Code conversation. Agent View, `claude attach`, `claude logs`, `claude respawn`, and the normal resume picker are the human control and history surfaces.
 
 For the durable development lane, `claude -p` is not a substitute for `--bg`: print/Agent SDK sessions do not satisfy the normal session-picker requirement. The background session writes a model-authored executor payload into its documented Claude job scratch area; the bridge copies it to its own outbox, independently verifies its claims, and wraps it with control-owned principal/run evidence before producing the final delegation result. Agent View's `done` label and model prose are audit material, not the machine result protocol.
 
