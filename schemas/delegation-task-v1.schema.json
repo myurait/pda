@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pda:schema:delegation-task:v1",
+  "title": "PDA Delegation Task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "task_id",
+    "objective",
+    "acceptance_criteria",
+    "non_goals",
+    "task_class",
+    "ambiguity",
+    "information_class",
+    "context_capsule",
+    "route",
+    "permissions",
+    "egress",
+    "budget",
+    "result_contract"
+  ],
+  "properties": {
+    "schema": {"const": "pda.delegation-task/v1"},
+    "task_id": {"type": "string", "minLength": 1, "maxLength": 128},
+    "objective": {"type": "string", "minLength": 1, "maxLength": 4000},
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+    },
+    "non_goals": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+    },
+    "task_class": {
+      "enum": [
+        "deterministic",
+        "bounded_reasoning",
+        "perspective",
+        "durable_execution",
+        "integration"
+      ]
+    },
+    "ambiguity": {"enum": ["low", "medium", "high"]},
+    "information_class": {"enum": ["public", "personal", "work", "secret"]},
+    "context_capsule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["facts", "decisions", "preferences", "assumptions"],
+      "properties": {
+        "facts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourcedStatement"}
+        },
+        "decisions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourcedStatement"}
+        },
+        "preferences": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/preferenceStatement"}
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/sourcedStatement"}
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lane", "requested_model", "execution_host", "durable"],
+      "properties": {
+        "lane": {
+          "enum": [
+            "deterministic",
+            "codex-luna",
+            "claude-fable",
+            "claude-code",
+            "primary-sol"
+          ]
+        },
+        "requested_model": {"type": ["string", "null"], "maxLength": 256},
+        "execution_host": {"enum": ["pda", "dev-mac", "any"]},
+        "durable": {"type": "boolean"}
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "write_scope", "network", "owner_gate"],
+      "properties": {
+        "mode": {"enum": ["read-only", "workspace-write", "external-side-effect"]},
+        "write_scope": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 2048}
+        },
+        "network": {"enum": ["deny", "allowlisted", "full"]},
+        "owner_gate": {
+          "enum": [
+            "none",
+            "before_execution",
+            "before_external_side_effect",
+            "before_personal_context_egress"
+          ]
+        }
+      }
+    },
+    "egress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_account_class",
+        "authorization_status",
+        "authorization_ref",
+        "context_selection_ref"
+      ],
+      "properties": {
+        "target_account_class": {
+          "enum": [
+            "none",
+            "pda-codex",
+            "pda-personal-claude",
+            "dev-mac-team-claude",
+            "other"
+          ]
+        },
+        "authorization_status": {"enum": ["not_required", "granted"]},
+        "authorization_ref": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048},
+        "context_selection_ref": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_model_iterations", "max_wall_seconds", "max_concurrency", "retry_limit"],
+      "properties": {
+        "max_model_iterations": {"type": "integer", "minimum": 0, "maximum": 500},
+        "max_wall_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
+        "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 10},
+        "retry_limit": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    },
+    "result_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_artifacts", "verification", "effective_model_required"],
+      "properties": {
+        "required_artifacts": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 512}
+        },
+        "verification": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1, "maxLength": 2000}
+        },
+        "effective_model_required": {"type": "boolean"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "properties": {"lane": {"const": "codex-luna"}},
+            "required": ["lane"]
+          }
+        },
+        "required": ["route"]
+      },
+      "then": {
+        "properties": {
+          "task_class": {"const": "bounded_reasoning"},
+          "route": {
+            "properties": {
+              "requested_model": {"const": "gpt-5.6-luna"},
+              "execution_host": {"const": "pda"},
+              "durable": {"const": false}
+            }
+          },
+          "permissions": {
+            "properties": {
+              "mode": {"enum": ["read-only", "workspace-write"]},
+              "network": {"enum": ["deny", "allowlisted"]},
+              "owner_gate": {"const": "none"}
+            }
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "pda-codex"},
+              "authorization_status": {"const": "not_required"},
+              "authorization_ref": {"const": null},
+              "context_selection_ref": {"const": null}
+            }
+          },
+          "budget": {
+            "properties": {
+              "max_model_iterations": {"maximum": 32},
+              "max_wall_seconds": {"maximum": 1200},
+              "max_concurrency": {"maximum": 2},
+              "retry_limit": {"maximum": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "properties": {"lane": {"const": "claude-fable"}},
+            "required": ["lane"]
+          }
+        },
+        "required": ["route"]
+      },
+      "then": {
+        "properties": {
+          "task_class": {"const": "perspective"},
+          "route": {
+            "properties": {
+              "requested_model": {"const": "claude-fable-5"},
+              "execution_host": {"const": "dev-mac"}
+            }
+          },
+          "permissions": {
+            "properties": {
+              "mode": {"const": "read-only"},
+              "write_scope": {"maxItems": 0},
+              "network": {"const": "deny"}
+            }
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "dev-mac-team-claude"}
+            }
+          },
+          "budget": {
+            "properties": {
+              "max_concurrency": {"maximum": 1},
+              "retry_limit": {"maximum": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "route": {
+            "properties": {"lane": {"const": "claude-code"}},
+            "required": ["lane"]
+          }
+        },
+        "required": ["route"]
+      },
+      "then": {
+        "properties": {
+          "task_class": {"const": "durable_execution"},
+          "route": {
+            "properties": {
+              "execution_host": {"const": "dev-mac"},
+              "durable": {"const": true}
+            }
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "dev-mac-team-claude"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"task_class": {"const": "deterministic"}},
+        "required": ["task_class"]
+      },
+      "then": {
+        "properties": {
+          "route": {
+            "properties": {
+              "lane": {"const": "deterministic"},
+              "requested_model": {"const": null}
+            }
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "none"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "information_class": {"const": "personal"},
+          "route": {
+            "properties": {"lane": {"const": "claude-fable"}},
+            "required": ["lane"]
+          }
+        },
+        "required": ["information_class", "route"]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "owner_gate": {"const": "before_personal_context_egress"}
+            }
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "dev-mac-team-claude"},
+              "authorization_status": {"const": "granted"},
+              "authorization_ref": {"type": "string", "minLength": 1},
+              "context_selection_ref": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "information_class": {"const": "personal"},
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "dev-mac-team-claude"}
+            },
+            "required": ["target_account_class"]
+          }
+        },
+        "required": ["information_class", "egress"]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "owner_gate": {"const": "before_personal_context_egress"}
+            }
+          },
+          "egress": {
+            "properties": {
+              "authorization_status": {"const": "granted"},
+              "authorization_ref": {"type": "string", "minLength": 1},
+              "context_selection_ref": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "information_class": {"const": "work"},
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "dev-mac-team-claude"}
+            },
+            "required": ["target_account_class"]
+          }
+        },
+        "required": ["information_class", "egress"]
+      },
+      "then": {
+        "properties": {
+          "egress": {
+            "properties": {
+              "authorization_status": {"const": "granted"},
+              "authorization_ref": {"type": "string", "minLength": 1},
+              "context_selection_ref": {"type": "string", "minLength": 1}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"information_class": {"const": "secret"}},
+        "required": ["information_class"]
+      },
+      "then": {
+        "properties": {
+          "route": {
+            "properties": {
+              "lane": {"const": "deterministic"},
+              "requested_model": {"const": null}
+            }
+          },
+          "permissions": {
+            "properties": {"network": {"const": "deny"}}
+          },
+          "egress": {
+            "properties": {
+              "target_account_class": {"const": "none"},
+              "authorization_status": {"const": "not_required"},
+              "authorization_ref": {"const": null},
+              "context_selection_ref": {"const": null}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "permissions": {
+            "properties": {"mode": {"const": "read-only"}},
+            "required": ["mode"]
+          }
+        },
+        "required": ["permissions"]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {"write_scope": {"maxItems": 0}}
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "permissions": {
+            "properties": {"mode": {"const": "external-side-effect"}},
+            "required": ["mode"]
+          }
+        },
+        "required": ["permissions"]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "owner_gate": {"const": "before_external_side_effect"}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sourcedStatement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "source"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "source": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    },
+    "preferenceStatement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "status", "source"],
+      "properties": {
+        "text": {"type": "string", "minLength": 1, "maxLength": 4000},
+        "status": {"enum": ["confirmed", "inferred"]},
+        "source": {"type": "string", "minLength": 1, "maxLength": 2048}
+      }
+    }
+  }
+}

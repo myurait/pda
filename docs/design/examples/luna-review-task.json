@@ -1,0 +1,76 @@
+{
+  "schema": "pda.delegation-task/v1",
+  "task_id": "pda-task-routing-review-001",
+  "objective": "Review the delegation-routing design for contradictions that would increase primary Codex usage or allow unverified child results to be accepted.",
+  "acceptance_criteria": [
+    "Report only concrete contradictions or missing enforceable gates.",
+    "For each finding, cite the relevant repository path and propose the smallest repair.",
+    "Return no file changes."
+  ],
+  "non_goals": [
+    "Do not redesign the whole PDA architecture.",
+    "Do not modify configuration or repository files."
+  ],
+  "task_class": "bounded_reasoning",
+  "ambiguity": "medium",
+  "information_class": "public",
+  "context_capsule": {
+    "facts": [
+      {
+        "text": "The primary runtime uses gpt-5.6-sol and previously delegated to the inherited primary model.",
+        "source": "live Hermes config checked 2026-08-18"
+      },
+      {
+        "text": "Hermes delegate_task results are self-reported summaries and are not durable across parent process exit.",
+        "source": "Hermes v0.20.2 delegate tool contract"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "The primary PDA retains final integration and owner communication.",
+        "source": "docs/design/operational-delegation-routing.md"
+      }
+    ],
+    "preferences": [
+      {
+        "text": "Use Luna for bounded subordinate work to reduce pressure on primary Codex usage.",
+        "status": "confirmed",
+        "source": "owner instruction 2026-08-18"
+      }
+    ],
+    "assumptions": []
+  },
+  "route": {
+    "lane": "codex-luna",
+    "requested_model": "gpt-5.6-luna",
+    "execution_host": "pda",
+    "durable": false
+  },
+  "permissions": {
+    "mode": "read-only",
+    "write_scope": [],
+    "network": "deny",
+    "owner_gate": "none"
+  },
+  "egress": {
+    "target_account_class": "pda-codex",
+    "authorization_status": "not_required",
+    "authorization_ref": null,
+    "context_selection_ref": null
+  },
+  "budget": {
+    "max_model_iterations": 16,
+    "max_wall_seconds": 900,
+    "max_concurrency": 1,
+    "retry_limit": 0
+  },
+  "result_contract": {
+    "required_artifacts": [
+      "structured review summary"
+    ],
+    "verification": [
+      "Parent checks each cited path and confirms whether the contradiction exists."
+    ],
+    "effective_model_required": true
+  }
+}

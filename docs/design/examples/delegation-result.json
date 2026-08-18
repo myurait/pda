@@ -1,0 +1,48 @@
+{
+  "schema": "pda.delegation-result/v1",
+  "task_id": "pda-task-routing-review-001",
+  "run_id": "run-example-001",
+  "status": "succeeded",
+  "lane": "codex-luna",
+  "requested_model": "gpt-5.6-luna",
+  "effective_model": "gpt-5.6-luna",
+  "execution_host": "pda",
+  "principal_attestation": {
+    "account_class": "pda-codex",
+    "auth_method": "codex-oauth",
+    "host_id": "pda",
+    "attestation_source": "runtime-init",
+    "evidence_uri": "runtime-evidence://example/delegation-run/runtime-init",
+    "verified": true
+  },
+  "summary": "No blocking contradiction found in the bounded review scope.",
+  "perspective_result": null,
+  "artifacts": [
+    {
+      "kind": "report",
+      "uri": "task://pda-task-routing-review-001/result",
+      "digest": null
+    }
+  ],
+  "verification": [
+    {
+      "check": "Reviewed routing invariants against the quota guardrail profile.",
+      "outcome": "passed",
+      "evidence": "docs/design/operational-delegation-routing.md"
+    }
+  ],
+  "uncertainties": [
+    "The effective model must be confirmed from runtime metadata in a real run; this file is only a schema example."
+  ],
+  "owner_decision": {
+    "needed": false,
+    "question": null,
+    "recommendation": null
+  },
+  "usage": {
+    "wall_seconds": null,
+    "model_iterations": null,
+    "reported_cost_usd": null
+  },
+  "failure": null
+}

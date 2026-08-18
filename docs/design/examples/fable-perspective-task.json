@@ -1,0 +1,87 @@
+{
+  "schema": "pda.delegation-task/v1",
+  "task_id": "pda-task-fable-perspective-001",
+  "objective": "Interpret how Fable 5 should contribute to the PDA as an owner-perspective specialist without becoming an authority or a general-purpose expensive executor.",
+  "acceptance_criteria": [
+    "Distinguish confirmed owner intent from inferred preferences.",
+    "Recommend a bounded role for Fable 5 and explain the central tradeoff.",
+    "Identify at most one owner-only decision that blocks broader use.",
+    "Return a concise handoff that the primary PDA can integrate."
+  ],
+  "non_goals": [
+    "Do not impersonate the owner.",
+    "Do not approve personal-context egress.",
+    "Do not modify files or run external side effects."
+  ],
+  "task_class": "perspective",
+  "ambiguity": "high",
+  "information_class": "personal",
+  "context_capsule": {
+    "facts": [
+      {
+        "text": "Fable 5 is available in Claude Code by the full model ID claude-fable-5, subject to account availability and usage-credit policy.",
+        "source": "https://code.claude.com/docs/en/model-config checked 2026-08-18"
+      }
+    ],
+    "decisions": [
+      {
+        "text": "The PDA charter and the owner's current instructions remain above every model output.",
+        "source": "pda_charter.md"
+      }
+    ],
+    "preferences": [
+      {
+        "text": "The owner considers Fable 5 the model most aligned with their perspective for prose, abstraction, and ambiguity.",
+        "status": "confirmed",
+        "source": "owner instruction 2026-08-18"
+      },
+      {
+        "text": "The owner may value Fable most as a perspective synthesizer rather than a routine code executor.",
+        "status": "inferred",
+        "source": "interpretation of owner instruction; not yet confirmed"
+      }
+    ],
+    "assumptions": [
+      {
+        "text": "This contract example assumes a task-specific owner grant for exactly the selected minimized context; the example URI is not executable authorization.",
+        "source": "example-only contract assumption"
+      }
+    ]
+  },
+  "route": {
+    "lane": "claude-fable",
+    "requested_model": "claude-fable-5",
+    "execution_host": "dev-mac",
+    "durable": true
+  },
+  "permissions": {
+    "mode": "read-only",
+    "write_scope": [],
+    "network": "deny",
+    "owner_gate": "before_personal_context_egress"
+  },
+  "egress": {
+    "target_account_class": "dev-mac-team-claude",
+    "authorization_status": "granted",
+    "authorization_ref": "owner-approval://example/fable-pilot-001",
+    "context_selection_ref": "context-selection://example/fable-pilot-minimized-v1"
+  },
+  "budget": {
+    "max_model_iterations": 20,
+    "max_wall_seconds": 3600,
+    "max_concurrency": 1,
+    "retry_limit": 0
+  },
+  "result_contract": {
+    "required_artifacts": [
+      "PerspectiveResult",
+      "effective account and model evidence"
+    ],
+    "verification": [
+      "Primary verifies the effective model is claude-fable-5.",
+      "Primary verifies the run used the intended development Mac Team principal.",
+      "Primary checks that confirmed and inferred preferences remain distinct."
+    ],
+    "effective_model_required": true
+  }
+}
