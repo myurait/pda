@@ -8,13 +8,17 @@ prints them.  It is idempotent and refuses to overwrite an unrelated Function.
 from __future__ import annotations
 
 import asyncio
+import ipaddress
 import json
 import os
+import re
 import stat
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 import aiohttp
 
@@ -26,10 +30,81 @@ FUNCTION_ID = "hermes_progress_pipe"
 FUNCTION_NAME = "Hermes Agent (Progress)"
 OPENWEBUI_URL = "http://127.0.0.1:9120"
 OWNERSHIP_MARKER = "openwebui-hermes-progress/2.1-local"
+INSTALL_NONCE_KEY = "pda_install_nonce"
 
 
 class InstallError(RuntimeError):
     pass
+
+
+def validate_ntfy_topic(value: str) -> str:
+    topic = str(value or "").strip()
+    if not re.fullmatch(r"[-_A-Za-z0-9]{1,64}", topic):
+        raise InstallError("PDA_NTFY_TOPIC must match [-_A-Za-z0-9]{1,64}")
+    return topic
+
+
+def validate_https_url(
+    value: str, label: str, *, allow_loopback_http: bool = False
+) -> str:
+    supplied = str(value or "")
+    if supplied != supplied.strip():
+        raise InstallError(f"{label} must not contain surrounding whitespace")
+    url = supplied.rstrip("/")
+    if (
+        not url
+        or "\\" in url
+        or "%" in url
+        or any(
+            char.isspace() or ord(char) < 33 or ord(char) == 127
+            for char in url
+        )
+    ):
+        raise InstallError(f"{label} is malformed")
+    try:
+        parsed = urlsplit(url)
+        hostname = parsed.hostname
+        valid_port = parsed.port is None or 1 <= parsed.port <= 65535
+    except (TypeError, ValueError):
+        parsed = None
+        hostname = None
+        valid_port = False
+    if parsed is None or not hostname:
+        raise InstallError(f"{label} must be a credential-free notification URL")
+    try:
+        ipaddress.ip_address(hostname)
+        valid_hostname = True
+    except ValueError:
+        try:
+            ascii_hostname = hostname.rstrip(".").encode("idna").decode("ascii")
+        except UnicodeError as exc:
+            raise InstallError(f"{label} has an invalid hostname") from exc
+        labels = ascii_hostname.split(".")
+        valid_hostname = (
+            0 < len(ascii_hostname) <= 253
+            and all(
+                re.fullmatch(
+                    r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?",
+                    item,
+                )
+                for item in labels
+            )
+        )
+    loopback = hostname in {"127.0.0.1", "localhost", "::1"}
+    valid_scheme = parsed.scheme == "https" or (
+        allow_loopback_http and parsed.scheme == "http" and loopback
+    )
+    if (
+        not valid_scheme
+        or not valid_hostname
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+        or not valid_port
+    ):
+        raise InstallError(f"{label} must be a credential-free notification URL")
+    return url
 
 
 def load_env(path: Path) -> dict[str, str]:
@@ -105,23 +180,139 @@ class OpenWebUIClient:
             return response.status, data
 
 
+async def remove_created_function_if_owned(
+    client: OpenWebUIClient, expected_source: str, install_nonce: str
+) -> bool:
+    """Delete a failed new install only while it is still this transaction's copy."""
+    status, current = await client.request(
+        "GET",
+        f"/api/v1/functions/id/{FUNCTION_ID}",
+        expected={200, 401},
+    )
+    if status != 200:
+        return True
+    if not isinstance(current, dict):
+        return False
+    meta = current.get("meta")
+    manifest = meta.get("manifest") if isinstance(meta, dict) else None
+    if (
+        current.get("content") != expected_source
+        or not isinstance(manifest, dict)
+        or manifest.get(INSTALL_NONCE_KEY) != install_nonce
+    ):
+        return False
+    await client.request(
+        "DELETE",
+        f"/api/v1/functions/id/{FUNCTION_ID}/delete",
+        expected={200},
+    )
+    return True
+
+
+async def restore_existing_function(
+    client: OpenWebUIClient,
+    existing: dict[str, Any],
+    existing_valves: dict[str, Any],
+) -> None:
+    """Restore source, metadata, Valves, and active state after a failed update."""
+    restore = {
+        "id": existing["id"],
+        "name": existing["name"],
+        "content": existing["content"],
+        "meta": existing.get("meta") or {},
+    }
+    await client.request(
+        "POST",
+        f"/api/v1/functions/id/{FUNCTION_ID}/update",
+        payload=restore,
+    )
+    await client.request(
+        "POST",
+        f"/api/v1/functions/id/{FUNCTION_ID}/valves/update",
+        payload=existing_valves,
+    )
+    _, current = await client.request(
+        "GET", f"/api/v1/functions/id/{FUNCTION_ID}"
+    )
+    if not isinstance(current, dict):
+        raise InstallError("Function rollback verification returned an invalid response")
+    if bool(current.get("is_active")) != bool(existing.get("is_active")):
+        await client.request(
+            "POST", f"/api/v1/functions/id/{FUNCTION_ID}/toggle"
+        )
+    _, verified = await client.request(
+        "GET", f"/api/v1/functions/id/{FUNCTION_ID}"
+    )
+    _, applied_valves = await client.request(
+        "GET", f"/api/v1/functions/id/{FUNCTION_ID}/valves"
+    )
+    if not isinstance(verified, dict) or not isinstance(applied_valves, dict):
+        raise InstallError("Function rollback verification returned an invalid response")
+    verify_restored_configuration(
+        verified,
+        existing,
+        applied_valves,
+        existing_valves,
+    )
+
+
+def verify_restored_configuration(
+    verified_function: dict[str, Any],
+    expected_function: dict[str, Any],
+    applied_valves: dict[str, Any],
+    expected_valves: dict[str, Any],
+) -> None:
+    for key in ("id", "name", "content", "meta"):
+        if verified_function.get(key) != expected_function.get(key):
+            raise InstallError(
+                f"Function rollback verification failed for field: {key}"
+            )
+    if bool(verified_function.get("is_active")) != bool(
+        expected_function.get("is_active")
+    ):
+        raise InstallError(
+            "Function rollback verification failed for field: is_active"
+        )
+    if applied_valves != expected_valves:
+        # Never include security-sensitive Valve keys or values in this error.
+        raise InstallError("Function rollback verification failed for Valves")
+
+
+def verify_applied_configuration(
+    verified_function: dict[str, Any],
+    expected_source: str,
+    expected_valves: dict[str, Any],
+    applied_valves: dict[str, Any],
+) -> None:
+    if not bool(verified_function.get("is_active")):
+        raise InstallError("Function exists but is not active after installation")
+    if str(verified_function.get("content") or "") != expected_source:
+        raise InstallError("Function source did not match after installation")
+    for key, expected in expected_valves.items():
+        if applied_valves.get(key) != expected:
+            # Never include security-sensitive Valve values in an error.
+            raise InstallError(f"Function Valve did not match after installation: {key}")
+
+
 async def main() -> None:
     token = read_secret(TOKEN_FILE)
     env = load_env(ENV_FILE)
     hermes_key = env.get("HERMES_API_KEY", "").strip()
     hermes_url = env.get("HERMES_API_BASE_URL", "").strip().rstrip("/")
-    ntfy_server = env.get("PDA_NTFY_SERVER_URL", "https://ntfy.sh").strip().rstrip("/")
-    ntfy_topic = env.get("PDA_NTFY_TOPIC", "").strip()
-    openwebui_public_url = env.get("PDA_OPENWEBUI_PUBLIC_URL", "").strip()
+    ntfy_server = validate_https_url(
+        env.get("PDA_NTFY_SERVER_URL", "https://ntfy.sh"),
+        "PDA_NTFY_SERVER_URL",
+        allow_loopback_http=True,
+    )
+    ntfy_topic = validate_ntfy_topic(env.get("PDA_NTFY_TOPIC", ""))
+    openwebui_public_url = validate_https_url(
+        env.get("PDA_OPENWEBUI_PUBLIC_URL", ""),
+        "PDA_OPENWEBUI_PUBLIC_URL",
+    )
     if not hermes_key:
         raise InstallError("HERMES_API_KEY is missing from Open WebUI .env")
     if not hermes_url.endswith("/v1"):
         raise InstallError("HERMES_API_BASE_URL must end with /v1")
-    if not ntfy_topic:
-        raise InstallError("PDA_NTFY_TOPIC is missing from Open WebUI .env")
-    if not openwebui_public_url.startswith("https://"):
-        raise InstallError("PDA_OPENWEBUI_PUBLIC_URL must be an HTTPS URL")
-
     source = FUNCTION_FILE.read_text(encoding="utf-8")
     if OWNERSHIP_MARKER not in source:
         raise InstallError("Function source is missing the local ownership marker")
@@ -130,8 +321,12 @@ async def main() -> None:
         _, identity = await client.request("GET", "/api/v1/auths/")
         if not isinstance(identity, dict) or identity.get("role") != "admin":
             raise InstallError("The supplied Open WebUI API key does not belong to an admin user")
+        allowed_user_id = str(identity.get("id") or "").strip()
+        if not allowed_user_id:
+            raise InstallError("The supplied Open WebUI API key has no user ID")
 
         existing = None
+        existing_valves: dict[str, Any] = {}
         status, data = await client.request(
             "GET",
             f"/api/v1/functions/id/{FUNCTION_ID}",
@@ -144,7 +339,14 @@ async def main() -> None:
                 raise InstallError(
                     f"Refusing to overwrite unrelated existing Function '{FUNCTION_ID}'"
                 )
+            _, loaded_valves = await client.request(
+                "GET", f"/api/v1/functions/id/{FUNCTION_ID}/valves"
+            )
+            if not isinstance(loaded_valves, dict):
+                raise InstallError("Existing Function Valves could not be snapshotted")
+            existing_valves = loaded_valves
 
+        install_nonce = uuid.uuid4().hex
         form = {
             "id": FUNCTION_ID,
             "name": FUNCTION_NAME,
@@ -152,19 +354,40 @@ async def main() -> None:
             "meta": {
                 "description": (
                     "Hermes Runs API adapter with model-invisible tool status, "
-                    "per-chat sessions, fail-safe approvals, and content-free "
-                    "Open WebUI completion push."
+                    "per-chat sessions, fail-safe approvals, and topic-titled "
+                    "Open WebUI completion previews."
                 ),
-                "manifest": {},
+                "manifest": {INSTALL_NONCE_KEY: install_nonce},
             },
         }
 
+        valves_payload = {
+            "HERMES_API_URL": hermes_url,
+            "HERMES_API_KEY": hermes_key,
+            "HERMES_MODEL": "hermes-agent",
+            # Hermes is routinely used for multi-hour agent work. Let user or
+            # client cancellation own run lifetime by default.
+            "RUN_TIMEOUT_SECONDS": 0,
+            # Hermes owns the canonical approval deadline (60s by default).
+            # Expire the UI first so its deny reaches an active session.
+            "APPROVAL_TIMEOUT_SECONDS": 55,
+            "SHOW_TOOL_PREVIEW": False,
+            "TOOL_PREVIEW_CHARS": 160,
+            "SHOW_REASONING_STATUS": True,
+            "NTFY_SERVER_URL": ntfy_server,
+            "NTFY_TOPIC": ntfy_topic,
+            "NTFY_ALLOWED_USER_ID": allowed_user_id,
+            "OPENWEBUI_PUBLIC_URL": openwebui_public_url,
+        }
+
         created_new = existing is None
+        created_by_this_run = False
         try:
             if created_new:
                 _, function = await client.request(
                     "POST", "/api/v1/functions/create", payload=form
                 )
+                created_by_this_run = True
             else:
                 _, function = await client.request(
                     "POST",
@@ -175,24 +398,7 @@ async def main() -> None:
             await client.request(
                 "POST",
                 f"/api/v1/functions/id/{FUNCTION_ID}/valves/update",
-                payload={
-                    "HERMES_API_URL": hermes_url,
-                    "HERMES_API_KEY": hermes_key,
-                    "HERMES_MODEL": "hermes-agent",
-                    # Hermes is routinely used for multi-hour agent work.  Let
-                    # user or client cancellation own run lifetime by default.
-                    "RUN_TIMEOUT_SECONDS": 0,
-                    # Hermes owns the canonical approval deadline (60s by
-                    # default). Expire the UI first so its deny reaches an
-                    # active session rather than racing it afterward.
-                    "APPROVAL_TIMEOUT_SECONDS": 55,
-                    "SHOW_TOOL_PREVIEW": False,
-                    "TOOL_PREVIEW_CHARS": 160,
-                    "SHOW_REASONING_STATUS": True,
-                    "NTFY_SERVER_URL": ntfy_server,
-                    "NTFY_TOPIC": ntfy_topic,
-                    "OPENWEBUI_PUBLIC_URL": openwebui_public_url,
-                },
+                payload=valves_payload,
             )
 
             active = bool((function or {}).get("is_active"))
@@ -204,8 +410,17 @@ async def main() -> None:
             _, verified = await client.request(
                 "GET", f"/api/v1/functions/id/{FUNCTION_ID}"
             )
-            if not bool((verified or {}).get("is_active")):
-                raise InstallError("Function exists but is not active after installation")
+            _, applied_valves = await client.request(
+                "GET", f"/api/v1/functions/id/{FUNCTION_ID}/valves"
+            )
+            if not isinstance(verified, dict) or not isinstance(applied_valves, dict):
+                raise InstallError("Function verification returned an invalid response")
+            verify_applied_configuration(
+                verified,
+                source,
+                valves_payload,
+                applied_valves,
+            )
 
             _, functions = await client.request("GET", "/api/v1/functions/list")
             found = any(
@@ -221,28 +436,22 @@ async def main() -> None:
             # Best-effort rollback.  A newly-created Function is removed.  An
             # existing local Function's source/metadata/active state is restored.
             try:
-                if created_new:
-                    await client.request(
-                        "DELETE",
-                        f"/api/v1/functions/id/{FUNCTION_ID}/delete",
-                        expected={200},
+                if created_new and created_by_this_run:
+                    removed = await remove_created_function_if_owned(
+                        client, source, install_nonce
                     )
-                elif isinstance(existing, dict):
-                    restore = {
-                        "id": existing["id"],
-                        "name": existing["name"],
-                        "content": existing["content"],
-                        "meta": existing.get("meta") or {},
-                    }
-                    _, restored = await client.request(
-                        "POST",
-                        f"/api/v1/functions/id/{FUNCTION_ID}/update",
-                        payload=restore,
-                    )
-                    if bool(restored.get("is_active")) != bool(existing.get("is_active")):
-                        await client.request(
-                            "POST", f"/api/v1/functions/id/{FUNCTION_ID}/toggle"
+                    if not removed:
+                        print(
+                            "WARNING: skipped new-Function rollback because the "
+                            "Function was changed by another operation",
+                            file=sys.stderr,
                         )
+                elif isinstance(existing, dict):
+                    await restore_existing_function(
+                        client,
+                        existing,
+                        existing_valves,
+                    )
             except Exception as rollback_error:
                 print(
                     f"WARNING: automatic rollback also failed: {rollback_error}",
@@ -259,7 +468,9 @@ async def main() -> None:
                 "created_new": created_new,
                 "tool_preview": False,
                 "completion_push": True,
-                "completion_push_content_free": True,
+                "completion_push_chat_title": True,
+                "completion_push_answer_preview": True,
+                "completion_push_owner_scoped": True,
                 "admin_token_file": str(TOKEN_FILE),
             },
             ensure_ascii=False,

@@ -3,7 +3,7 @@
 - 更新日: 2026-08-17
 - 対象プロジェクト: Personal Delegate Agent（PDA）
 - 対象機器: GMKtec M8（AMD Ryzen 5 PRO 6650H / 16GB LPDDR5 / 512GB SSD）
-- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化。主UIはOpen WebUI v0.11.0。Tailscale Serveによるtailnet限定HTTPS導線を追加し、Windows・開発PC・iPhoneからの利用を確認済み。Open WebUIユーザーチャットの最終応答完了だけを識別してiPhoneへ送るcontent-free ntfy pushのサーバー経路を構築・検証済み。Claude CodeとHermesの双方向連携まで完了し、Hermes中核推論エンジンはCodex据え置きの方針で確定。
+- 現在地点: Hermes・Firecrawl・Web Dashboard・Gatewayをすべて常時稼働化。主UIはOpen WebUI v0.11.0。Tailscale Serveによるtailnet限定HTTPS導線を追加し、Windows・開発PC・iPhoneからの利用を確認済み。Open WebUIユーザーチャットの最終応答完了だけを識別し、チャットタイトル・回答冒頭・対象チャット直リンクをiPhoneへ送るntfy push経路を構築・検証済み。Claude CodeとHermesの双方向連携まで完了し、Hermes中核推論エンジンはCodex据え置きの方針で確定。
 - 次工程: PKB取り込み系の整備
 
 ---
@@ -464,31 +464,45 @@ curl -fsS http://127.0.0.1:9120/health
 - Open WebUIの対話ターンはPipeが `owui_[0-9a-f]{32}` 形式のHermes session IDを生成する
 - 直接のRuns API、cron、CLI、バックグラウンド実行、live probeはこのsession ID形式を持たない
 - delegated subagentはHermes上で `platform=subagent` として動き、Open WebUIのPipe自体を通らない
-- push条件を「Pipe経由」「正規の `owui_` session ID」「`run.completed` 成功終了」の積にした。したがって親チャット内で非同期subagentが完了しても重複pushせず、ユーザーに返す親応答の完了時だけ1件送る
+- push条件を「Pipe経由」「正規の `owui_` session ID」「Open WebUIで保存済みassistant応答が `done=true`」の積にした。したがって親チャット内で非同期subagentが完了しても重複pushせず、ユーザーに返す親応答の完了時だけ1件送る
 
 **完了タイミングと通知内容**:
 
-- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.5
-- Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信をscheduleする
-- Open WebUIが `[DONE]` 受信時に内側のstreamを閉じる挙動を回帰テストで再現し、通知タスクをPipe instanceが完了まで強参照するようにした
-- 通知本文は固定の `Open WebUIでPDAの応答が完了しました。`。入力、応答本文、session ID、run ID、ツール名は外部ntfyへ送らない
-- 通知タップ先はtailnet限定URL `https://pda-web.tailaff53a.ts.net`。Funnelやインターネット公開は追加していない
-- failure、cancel、timeoutでは「成功応答完了」のpushを送らない
+- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.11
+- Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信をscheduleし、通知タスクをPipe instanceが完了まで強参照する
+- Pipe開始時のOpen WebUI host taskを保持し、そのtaskが正常終了してoutlet filterとbackground処理が完了してからDBを読む。host taskのcancel・失敗時は送信しない。Open WebUI v0.11.0がoutlet filterより先に `done=true` を保存する順序でも、フィルター適用前の回答を通知へ出さない
+- 通知前にOpen WebUI DB上の所有者スコープ付きassistant messageをpollし、`done=true` を確認する。通知タイトル・本文は保存済みchat/messageから取得し、Hermes terminal outputやユーザー入力で代用しない
+- 通知タイトルはOpen WebUIの保存済みチャットタイトル（最大100文字）。自動タイトルを最大約20秒待ち、未確定なら実際の `New Chat` を使う
+- 通知本文はOpen WebUIに保存された最終回答の冒頭（最大240文字）。reasoning/tool traceを除外し、制御文字と連続空白を正規化し、超過時は `…` で省略する。保存済み回答が空なら固定文へ差し替えず通知しない
+- 旧 `✅ PDA` 固定表示の原因だったntfy emoji tagは削除した
+- 通知タップ先は対象チャット直リンク `https://pda-web.tailaff53a.ts.net/c/<chat_id>`。Funnelやインターネット公開は追加していない
+- success、failure、cancel、timeoutを通知種別として区別せず、Open WebUIに保存されたユーザー向け完了応答が空でない場合はその表示内容を通知する
+- ストリーミングと非ストリーミングの両経路を対象とする
+- Open WebUI内部呼び出しと `title_generation`、`tags_generation`、`follow_up_generation` taskは通知対象外
+- 保存済みchat IDの所有者を認証user IDで照合し、installer実行管理者のuser IDに通知権限を限定する。chat未保存、所有者不一致、認証user ID欠落時は通知しない
+- Open WebUI frontend由来のsession ID・assistant message ID・event emitterを必須にし、既存chat IDだけを付けた直接API呼び出しを除外する。同一assistant message IDへの送信試行はFunction process内で最大1回に抑止する。これはadvisoryなat-most-once attemptであり、プロセス停止をまたぐdurable exactly-once配送ではない
 
 **設定と秘密管理**:
 
 - `PDA_NTFY_SERVER_URL`、`PDA_NTFY_TOPIC`、`PDA_OPENWEBUI_PUBLIC_URL` をmode 0600の `~/openwebui/.env` に保存
 - ntfy topicはtopic名自体がpasswordとなるため、192-bit乱数の52文字topicを生成した。実値はGitと本記録へ保存しない
-- Open WebUI Function Valvesへinstaller経由で反映し、Function source v2.1.0-local.5・active・topic設定済みであることをAPIから再読込して確認した
-- ホスト版ntfyが保持する内容は固定の完了文、タイトル、絵文字tag、tailnet URLのみ。会話内容は保持しない
+- installerは更新前のsource・metadata・active state・Valvesを退避し、失敗時は全項目を復元する。新規作成rollbackではinstall transaction固有nonceとsourceが一致するFunctionだけを削除し、競合処理のFunctionを巻き込まない。成功時はFunction source v2.1.0-local.11・active・全ValvesをAPIから再読込して一致を確認する。rollback時も復元後のsource・metadata・active state・全Valvesを再読込し、不一致を成功扱いにしない
+- ユーザー要望により、ホスト版ntfy.shへチャットタイトルと回答冒頭を送る。これらはntfy.sh側のmessage cacheとiPhone通知履歴へ残り得る。機密会話で使わないこと。外部保持を避ける場合は `NTFY_TOPIC` を空にするか、将来ntfyをtailnet内へself-hostする
 
 **検証結果（2026-08-17）**:
 
-- 単体・ローカル統合テスト: 12件すべて成功
-- 実Open WebUI API → Progress Pipe → Hermes Runs API: `OWUI_PUSH_OK` の最終応答後、content-free pushが1件だけ発生
+- 単体・ローカル統合テスト: 51件すべて成功
+- 実Open WebUI API → Progress Pipe → Hermes Runs API: 最終応答 `OWUI_PUSH_PREVIEW_OK` 後、チャットタイトル、回答冒頭、対象チャット直リンクを持ちemoji tagを持たないpushが1件だけ発生。期待通知の検出後も2秒間pollし、余分な通知0件を確認
+- 上記E2Eで詳細progressを3件保存し、開始statusと完了statusの双方を確認
+- 通知先のテストチャットがOpen WebUI上に存在し、タイトルと回答本文を保持していること、ローカルの `/c/<chat_id>` がHTTP 200を返すことを確認
 - 実Hermes直接Runs API: `ASYNC_NO_PUSH_OK` で正常完了し、新規pushは0件
-- ntfy publishはHTTP 200、message cacheから同一通知とクリックURLを再取得できた
+- 実稼働Function source、デプロイファイル、Git保存版のSHA-256が一致
 - 再現可能なFunction、installer、単体テスト、live probeを `integrations/openwebui-hermes-progress/` に保存した
+
+**モデル経路**:
+
+- Open WebUIのglobal `DEFAULT_MODELS` と管理者の `ui.models` を `hermes_progress_pipe` に統一した。新規チャットは詳細status対応の `Hermes Agent (Progress)` を既定で使う
+- 既存33チャットもtop-level `models` を `hermes_progress_pipe` へ統一した。旧 `hermes-agent` 直結経路では詳細statusが保存されず、汎用の `progress` 表示だけになるため。変更前の全chat exportはmode 0600でローカルバックアップ済み
 
 iPhone側では公式ntfyアプリをインストールし、通知を許可してprivate topicを購読する。topicは秘密値であるため、本記録や公開Gitには記載しない。
 
@@ -501,12 +515,12 @@ iPhone側では公式ntfyアプリをインストールし、通知を許可し�
 PDAへのアクセス経路として、以下を併用する。それぞれ利用する仕組みが異なる。
 
 - スマホ・ブラウザからのアクセス: Tailscale接続後、`https://pda-web.tailaff53a.ts.net` のOpen WebUIを主UIとして利用する。Funnelとポート開放は使わない
-- ntfy: Open WebUIユーザーチャットの成功応答完了をiPhoneへ送る専用pushチャネル。会話本文は送らず、非同期エージェントは対象外
+- ntfy: Open WebUIユーザーチャットの保存済み応答完了を、チャットタイトル・回答冒頭・直リンク付きでiPhoneへ送る専用pushチャネル。非同期エージェントは対象外
 - Telegram: 将来の汎用通知・双方向メッセージングチャネル候補。現時点のチャット完了通知には使用しない
 - macOS CLI: 現行のSSH経由でミニPC上の `hermes chat` を叩く経路を継続利用する
 - Claude Code MCP: 直接HTTP接続はできない（`hermes mcp serve` はstdio専用）ため、`claude mcp add --scope user hermes -- ssh agent-node <hermes絶対パス> mcp serve` の形でSSHをstdioラッパーとして用いる構成を採用した。認証はSSH鍵で、暗号化もSSHが担う
 
-現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Open WebUI（Tailscale Serve経由でWindows・開発PC・iPhoneから利用）、ntfy（Open WebUI成功応答完了のcontent-free push）、Hermes Dashboard（監視用途）、Claude Code MCP（双方向：Claude Code → Hermes はSSH stdio、Hermes → Claude Code はミニPC上のclaude CLIをバンドルスキルで呼び出し）。
+現時点で動作している経路: macOS CLI（SSH越しの `hermes` 直接実行）、Open WebUI（Tailscale Serve経由でWindows・開発PC・iPhoneから利用）、ntfy（Open WebUI保存済み応答完了時のタイトル・回答冒頭・直リンク付きpush）、Hermes Dashboard（監視用途）、Claude Code MCP（双方向：Claude Code → Hermes はSSH stdio、Hermes → Claude Code はミニPC上のclaude CLIをバンドルスキルで呼び出し）。
 
 ### 6.2 コンテキスト圧縮エンジンについて
 

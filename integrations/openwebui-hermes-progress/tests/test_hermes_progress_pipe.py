@@ -3,6 +3,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
@@ -143,6 +144,8 @@ def configured_pipe(base_url):
     pipe.valves.HERMES_API_URL = base_url
     pipe.valves.HERMES_API_KEY = "x" * 32
     pipe.valves.SHOW_TOOL_PREVIEW = True
+    pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+    pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
     return pipe
 
 
@@ -462,11 +465,240 @@ async def test_explicit_run_timeout_is_a_neutral_stop_not_a_failure():
 
 
 @pytest.mark.asyncio
-async def test_completed_openwebui_chat_publishes_one_content_free_ntfy_notification():
+async def test_notification_completion_lookup_is_scoped_to_authenticated_owner(monkeypatch):
+    requested = []
+
+    class FakeChats:
+        @staticmethod
+        async def get_chat_by_id_and_user_id(chat_id, user_id):
+            requested.append(("chat", chat_id, user_id))
+            if user_id == "owner-user":
+                return SimpleNamespace(title="所有者だけのタイトル")
+            return None
+
+        @staticmethod
+        async def get_message_by_id_and_message_id(chat_id, message_id):
+            requested.append(("message", chat_id, message_id))
+            return {
+                "role": "assistant",
+                "done": True,
+                "content": "所有者の保存済み回答",
+            }
+
+    monkeypatch.setattr(
+        module.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(Chats=FakeChats),
+    )
+
+    pipe = Pipe()
+    assert await pipe._load_openwebui_completion(
+        "saved-chat", "assistant-message", "owner-user"
+    ) == ("所有者だけのタイトル", True, "所有者の保存済み回答")
+    assert await pipe._load_openwebui_completion(
+        "saved-chat", "assistant-message", "other-user"
+    ) is None
+    assert requested == [
+        ("chat", "saved-chat", "owner-user"),
+        ("message", "saved-chat", "assistant-message"),
+        ("chat", "saved-chat", "other-user"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unowned_chat_has_no_exportable_persisted_completion(monkeypatch):
+    class FakeChats:
+        @staticmethod
+        async def get_chat_by_id_and_user_id(_chat_id, _user_id):
+            return None
+
+    monkeypatch.setattr(
+        module.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(Chats=FakeChats),
+    )
+    pipe = Pipe()
+    assert await pipe._await_openwebui_completion(
+        "other-users-chat", "assistant-message", "authenticated-user"
+    ) is None
+
+
+@pytest.mark.asyncio
+async def test_completion_notification_is_limited_to_configured_user():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "所有者のチャット", "回答"
+
+        pipe._await_openwebui_completion = persisted
+        common = {
+            "session_id": "owui_0123456789abcdef0123456789abcdef",
+            "chat_id": "2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            "message_id": "assistant-message-owner-check",
+        }
+
+        await pipe._publish_completion_notification(
+            **common,
+            user_id="other-user",
+        )
+        await pipe._publish_completion_notification(
+            **common,
+            user_id="owner-user",
+        )
+
+        assert len(ntfy.messages) == 1
+        assert ntfy.messages[0]["headers"]["Title"] == "所有者のチャット"
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_completion_notification_waits_for_openwebui_host_task_before_export():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+        persisted_answer = {"value": "フィルター適用前の回答"}
+
+        async def finish_openwebui_postprocessing():
+            await asyncio.sleep(0)
+            persisted_answer["value"] = "フィルター適用後の回答"
+
+        host_task = asyncio.create_task(finish_openwebui_postprocessing())
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            assert host_task.done()
+            return "保存後のタイトル", persisted_answer["value"]
+
+        pipe._await_openwebui_completion = persisted
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-post-outlet",
+            host_task=host_task,
+        )
+
+        assert len(ntfy.messages) == 1
+        assert ntfy.messages[0]["body"] == "フィルター適用後の回答"
+        assert "フィルター適用前" not in json.dumps(
+            ntfy.messages[0], ensure_ascii=False
+        )
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_cancelled_openwebui_host_task_never_exports_persisted_answer():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+        persisted_called = False
+
+        async def cancelled_host():
+            raise asyncio.CancelledError
+
+        host_task = asyncio.create_task(cancelled_host())
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            nonlocal persisted_called
+            persisted_called = True
+            return "送信禁止", "キャンセル後の回答"
+
+        pipe._await_openwebui_completion = persisted
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-cancelled-host",
+            host_task=host_task,
+        )
+
+        assert persisted_called is False
+        assert ntfy.messages == []
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_completion_notification_requires_valid_chat_link():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = ""
+
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-link-check",
+        )
+
+        assert ntfy.messages == []
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_notification_waits_for_generated_openwebui_topic(monkeypatch):
+    pipe = Pipe()
+    loaded_titles = iter(["New Chat", "新しいチャット", "  PDA通知の改善  "])
+    requested = []
+
+    class FakeChats:
+        @staticmethod
+        async def get_chat_by_id_and_user_id(chat_id, user_id):
+            requested.append(("chat", chat_id, user_id))
+            return SimpleNamespace(title=next(loaded_titles))
+
+        @staticmethod
+        async def get_message_by_id_and_message_id(chat_id, message_id):
+            requested.append(("message", chat_id, message_id))
+            return {"role": "assistant", "done": True, "content": "回答"}
+
+    async def no_delay(_seconds):
+        return None
+
+    monkeypatch.setattr(
+        module.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(Chats=FakeChats),
+    )
+    monkeypatch.setattr(module.asyncio, "sleep", no_delay)
+
+    result = await pipe._await_openwebui_completion(
+        "2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+        "assistant-message-title",
+        "owner-user",
+    )
+
+    assert result == ("PDA通知の改善", "回答")
+    assert len(requested) == 6
+
+
+@pytest.mark.asyncio
+async def test_completed_openwebui_chat_publishes_chat_title_and_answer_preview():
+    answer = "結論です。\n\n次はPKB取り込み経路を整備します。"
     hermes = await FakeHermes(
         [
-            {"event": "message.delta", "delta": "sensitive response"},
-            {"event": "run.completed", "output": "sensitive response"},
+            {"event": "message.delta", "delta": answer},
+            {"event": "run.completed", "output": answer},
         ]
     ).start()
     ntfy = await FakeNtfy().start()
@@ -476,30 +708,270 @@ async def test_completed_openwebui_chat_publishes_one_content_free_ntfy_notifica
         pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
         pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
 
+        async def persisted(chat_id, message_id, user_id):
+            assert chat_id == "2b7e1516-28ae-4d2a-abf7-158809cf4f3c"
+            assert message_id == "assistant-message-stream"
+            assert user_id == "owner-user"
+            return "PDAの次工程", answer
+
+        pipe._await_openwebui_completion = persisted
+
         chunks = [
             chunk
             async for chunk in pipe._stream_response(
-                message="sensitive user message",
+                message="次の作業を相談する",
+                history=[],
+                instructions=None,
+                session_id="owui_0123456789abcdef0123456789abcdef",
+                session_key="openwebui:test",
+                event_emitter=lambda event: None,
+                event_call=None,
+                chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+                user_id="owner-user",
+                message_id="assistant-message-stream",
+                ui_context=True,
+            )
+        ]
+
+        assert visible_content(chunks) == answer
+        assert chunks[-1] == "data: [DONE]\n\n"
+        assert await wait_for_message_count(ntfy, 1) == 1
+        notification = ntfy.messages[0]
+        assert notification["topic"] == "pda-chat-0123456789abcdef"
+        assert notification["body"] == "結論です。 次はPKB取り込み経路を整備します。"
+        assert notification["headers"]["Title"] == "PDAの次工程"
+        assert notification["headers"]["Priority"] == "default"
+        assert "Tags" not in notification["headers"]
+        assert notification["headers"]["Click"] == (
+            "https://pda-web.example.ts.net/c/2b7e1516-28ae-4d2a-abf7-158809cf4f3c"
+        )
+        assert "Open WebUIでPDAの応答が完了しました" not in notification["body"]
+    finally:
+        await ntfy.close()
+        await hermes.close()
+
+
+@pytest.mark.asyncio
+async def test_completed_non_streaming_openwebui_chat_also_publishes_preview():
+    answer = "非ストリーミングでも回答の冒頭を通知します。"
+    hermes = await FakeHermes(
+        [{"event": "run.completed", "output": answer}]
+    ).start()
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = configured_pipe(hermes.base_url)
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+
+        async def persisted(_chat_id, message_id, _user_id):
+            assert message_id == "assistant-message-blocking"
+            return "非ストリーミングの話題", answer
+
+        pipe._await_openwebui_completion = persisted
+
+        response = await pipe._blocking_response(
+            message="非ストリーミングで応答して",
+            history=[],
+            instructions=None,
+            session_id="owui_0123456789abcdef0123456789abcdef",
+            session_key="openwebui:test",
+            event_emitter=None,
+            event_call=None,
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-blocking",
+            ui_context=True,
+        )
+
+        assert response["choices"][0]["message"]["content"] == answer
+        assert await wait_for_message_count(ntfy, 1) == 1
+        assert ntfy.messages[0]["headers"]["Title"] == "非ストリーミングの話題"
+        assert ntfy.messages[0]["body"] == answer
+    finally:
+        await ntfy.close()
+        await hermes.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("terminal_event", "saved_answer"),
+    [
+        ({"event": "run.failed", "error": "provider failed"}, "Hermesエラー: provider failed"),
+        ({"event": "run.cancelled"}, "Hermesの実行はキャンセルされました。"),
+        ({"event": "adapter.timeout", "timeout_seconds": 60}, "Hermesの実行時間の上限に達したため停止しました。"),
+    ],
+)
+async def test_user_visible_terminal_outcomes_publish_persisted_completion_preview(
+    terminal_event, saved_answer
+):
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def run_events(**_kwargs):
+            yield terminal_event
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "完了結果", saved_answer
+
+        pipe._run_events = run_events
+        pipe._await_openwebui_completion = persisted
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="ユーザーチャット",
                 history=[],
                 instructions=None,
                 session_id="owui_0123456789abcdef0123456789abcdef",
                 session_key="openwebui:test",
                 event_emitter=None,
                 event_call=None,
+                chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+                user_id="owner-user",
+                message_id=f"assistant-message-{terminal_event['event'].replace('.', '-')}",
+                ui_context=True,
             )
         ]
 
-        assert visible_content(chunks) == "sensitive response"
         assert chunks[-1] == "data: [DONE]\n\n"
         assert await wait_for_message_count(ntfy, 1) == 1
-        notification = ntfy.messages[0]
-        assert notification["topic"] == "pda-chat-0123456789abcdef"
-        assert notification["body"] == "Open WebUIでPDAの応答が完了しました。"
-        assert notification["headers"]["Title"] == "PDA"
-        assert notification["headers"]["Priority"] == "default"
-        assert notification["headers"]["Tags"] == "white_check_mark,robot_face"
-        assert notification["headers"]["Click"] == "https://pda-web.example.ts.net"
-        assert "sensitive" not in json.dumps(notification, ensure_ascii=False)
+        assert ntfy.messages[0]["body"] == saved_answer
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_non_streaming_failed_user_chat_publishes_persisted_completion_preview():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def run_events(**_kwargs):
+            yield {"event": "run.failed", "error": "provider failed"}
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "失敗結果", "Hermesエラー: provider failed"
+
+        pipe._run_events = run_events
+        pipe._await_openwebui_completion = persisted
+        response = await pipe._blocking_response(
+            message="ユーザーチャット",
+            history=[],
+            instructions=None,
+            session_id="owui_0123456789abcdef0123456789abcdef",
+            session_key="openwebui:test",
+            event_emitter=None,
+            event_call=None,
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-blocking-failure",
+            ui_context=True,
+        )
+
+        assert response["choices"][0]["message"]["content"] == "Hermesエラー: provider failed"
+        assert await wait_for_message_count(ntfy, 1) == 1
+        assert ntfy.messages[0]["body"] == "Hermesエラー: provider failed"
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_non_streaming_title_tag_and_follow_up_tasks_do_not_add_pushes():
+    hermes = await FakeHermes(
+        [{"event": "run.completed", "output": "task result"}]
+    ).start()
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = configured_pipe(hermes.base_url)
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        chat_id = "2b7e1516-28ae-4d2a-abf7-158809cf4f3c"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "対話チャット", "task result"
+
+        async def emitter(_event):
+            return None
+
+        pipe._await_openwebui_completion = persisted
+        host_task = asyncio.create_task(asyncio.sleep(0))
+        await host_task
+        pipe._current_openwebui_host_task = lambda: host_task
+
+        await pipe.pipe(
+            {
+                "messages": [{"role": "user", "content": "interactive turn"}],
+                "stream": False,
+            },
+            __user__={"id": "owner-user"},
+            __chat_id__=chat_id,
+            __session_id__="browser-session",
+            __message_id__="interactive-assistant-message",
+            __event_emitter__=emitter,
+            __metadata__={
+                "chat_id": chat_id,
+                "internal": False,
+                "task_id": "openwebui-host-task",
+            },
+        )
+        assert await wait_for_message_count(ntfy, 1) == 1
+
+        for task in ("title_generation", "tags_generation", "follow_up_generation"):
+            await pipe.pipe(
+                {
+                    "messages": [{"role": "user", "content": f"run {task}"}],
+                    "stream": False,
+                },
+                __user__={"id": "owner-user"},
+                __chat_id__=chat_id,
+                __metadata__={
+                    "chat_id": chat_id,
+                    "internal": False,
+                    "task": task,
+                },
+            )
+
+        await wait_for_message_count(ntfy, 4, timeout=0.4)
+        assert len(ntfy.messages) == 1
+    finally:
+        await ntfy.close()
+        await hermes.close()
+
+
+@pytest.mark.asyncio
+async def test_openwebui_internal_invocation_does_not_publish_completion_notification():
+    hermes = await FakeHermes(
+        [{"event": "run.completed", "output": "internal result"}]
+    ).start()
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = configured_pipe(hermes.base_url)
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+
+        response = await pipe.pipe(
+            {
+                "messages": [{"role": "user", "content": "internal work"}],
+                "stream": False,
+            },
+            __user__={"id": "owner-user"},
+            __chat_id__="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            __metadata__={
+                "chat_id": "2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+                "internal": True,
+            },
+        )
+
+        assert response["choices"][0]["message"]["content"] == "internal result"
+        assert await wait_for_message_count(ntfy, 1, timeout=0.2) == 0
     finally:
         await ntfy.close()
         await hermes.close()
@@ -547,6 +1019,11 @@ async def test_done_terminating_consumer_still_gets_completion_notification():
         pipe.valves.NTFY_SERVER_URL = ntfy.base_url
         pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
 
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "通知保持テスト", "done"
+
+        pipe._await_openwebui_completion = persisted
+
         stream = pipe._stream_response(
             message="interactive chat",
             history=[],
@@ -555,6 +1032,10 @@ async def test_done_terminating_consumer_still_gets_completion_notification():
             session_key="openwebui:test",
             event_emitter=None,
             event_call=None,
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-close",
+            ui_context=True,
         )
         async for chunk in stream:
             if chunk == "data: [DONE]\n\n":
@@ -562,6 +1043,320 @@ async def test_done_terminating_consumer_still_gets_completion_notification():
         await stream.aclose()
 
         assert await wait_for_message_count(ntfy, 1) == 1
+    finally:
+        await ntfy.close()
+        await hermes.close()
+
+
+@pytest.mark.asyncio
+async def test_direct_api_call_without_ui_message_context_does_not_publish():
+    hermes = await FakeHermes(
+        [{"event": "run.completed", "output": "direct result"}]
+    ).start()
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = configured_pipe(hermes.base_url)
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+
+        await pipe.pipe(
+            {
+                "messages": [{"role": "user", "content": "direct API"}],
+                "stream": False,
+            },
+            __user__={"id": "owner-user"},
+            __chat_id__="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            # A direct API caller may supply a real owned chat ID, but does not
+            # have the frontend's session/message/event-emitter context.
+            __metadata__={"chat_id": "2b7e1516-28ae-4d2a-abf7-158809cf4f3c"},
+        )
+
+        await wait_for_message_count(ntfy, 1, timeout=0.2)
+        assert ntfy.messages == []
+    finally:
+        await ntfy.close()
+        await hermes.close()
+
+
+@pytest.mark.asyncio
+async def test_duplicate_completion_for_same_ui_message_publishes_once():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "重複抑止", "一度だけ送る"
+
+        pipe._await_openwebui_completion = persisted
+        kwargs = {
+            "session_id": "owui_0123456789abcdef0123456789abcdef",
+            "chat_id": "2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            "user_id": "owner-user",
+            "message_id": "assistant-message-1",
+            "ui_context": True,
+        }
+        pipe._schedule_completion_notification(**kwargs)
+        pipe._schedule_completion_notification(**kwargs)
+
+        assert await wait_for_message_count(ntfy, 2, timeout=0.5) == 1
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_untitled_owned_chat_never_exports_prompt_as_notification_title(monkeypatch):
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "New Chat", "回答"
+
+        pipe._await_openwebui_completion = persisted
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-untitled",
+        )
+
+        assert len(ntfy.messages) == 1
+        assert ntfy.messages[0]["headers"]["Title"] == "New Chat"
+        assert "ユーザー入力" not in json.dumps(ntfy.messages[0], ensure_ascii=False)
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_empty_persisted_answer_does_not_publish_placeholder_preview():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "空回答", " \n\t "
+
+        pipe._await_openwebui_completion = persisted
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+            message_id="assistant-message-empty-answer",
+        )
+
+        assert ntfy.messages == []
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_external_plain_http_ntfy_destination_is_rejected(monkeypatch):
+    pipe = Pipe()
+    pipe.valves.NTFY_SERVER_URL = "http://notify.example.com"
+    pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+    pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+    pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+    opened = []
+
+    class ForbiddenSession:
+        def __init__(self, *args, **kwargs):
+            opened.append((args, kwargs))
+            raise AssertionError("plain HTTP destination must be rejected before network I/O")
+
+    monkeypatch.setattr(module.aiohttp, "ClientSession", ForbiddenSession)
+
+    await pipe._publish_completion_notification(
+        "owui_0123456789abcdef0123456789abcdef",
+        chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+        user_id="owner-user",
+        message_id="assistant-message-http",
+    )
+    assert opened == []
+
+
+@pytest.mark.asyncio
+async def test_malformed_runtime_notification_urls_fail_closed_without_raising():
+    pipe = Pipe()
+    pipe.valves.NTFY_SERVER_URL = "https://ntfy.sh"
+    pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+    pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+    pipe.valves.OPENWEBUI_PUBLIC_URL = "https://[broken"
+
+    await pipe._publish_completion_notification(
+        "owui_0123456789abcdef0123456789abcdef",
+        chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+        user_id="owner-user",
+        message_id="assistant-message-malformed-url",
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "https://exa mple.com",
+        "https://example.com\x7f",
+        "https://example.com\\evil",
+        "https://%65xample.com",
+        "https://-bad.example",
+        "https://bad-.example",
+        "https://exa_mple.com",
+        "https://example.com:99999",
+    ],
+)
+def test_runtime_notification_url_validator_rejects_malformed_hosts(value):
+    assert Pipe._validated_notification_url(value) is None
+
+
+@pytest.mark.asyncio
+async def test_notification_sink_requires_persisted_assistant_message_id():
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = Pipe()
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+        pipe.valves.NTFY_ALLOWED_USER_ID = "owner-user"
+        pipe.valves.OPENWEBUI_PUBLIC_URL = "https://pda-web.example.ts.net"
+
+        await pipe._publish_completion_notification(
+            "owui_0123456789abcdef0123456789abcdef",
+            chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+            user_id="owner-user",
+        )
+
+        await wait_for_message_count(ntfy, 1, timeout=0.2)
+        assert ntfy.messages == []
+    finally:
+        await ntfy.close()
+
+
+@pytest.mark.asyncio
+async def test_notification_waits_for_persisted_owned_assistant_answer(monkeypatch):
+    pipe = Pipe()
+    calls = []
+    messages = iter(
+        [
+            {
+                "role": "assistant",
+                "done": False,
+                "content": "",
+                "output": [],
+            },
+            {
+                "role": "assistant",
+                "done": True,
+                "content": "",
+                "output": [
+                    {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "DBへ保存された最終回答",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+    )
+
+    class FakeChats:
+        @staticmethod
+        async def get_chat_by_id_and_user_id(chat_id, user_id):
+            calls.append(("chat", chat_id, user_id))
+            return SimpleNamespace(title="保存済みトピック")
+
+        @staticmethod
+        async def get_message_by_id_and_message_id(chat_id, message_id):
+            calls.append(("message", chat_id, message_id))
+            return next(messages)
+
+    async def no_delay(_seconds):
+        return None
+
+    monkeypatch.setattr(
+        module.importlib,
+        "import_module",
+        lambda name: SimpleNamespace(Chats=FakeChats),
+    )
+    monkeypatch.setattr(module.asyncio, "sleep", no_delay)
+
+    result = await pipe._await_openwebui_completion(
+        "2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+        "assistant-message-1",
+        "owner-user",
+    )
+
+    assert result == ("保存済みトピック", "DBへ保存された最終回答")
+    assert calls == [
+        ("chat", "2b7e1516-28ae-4d2a-abf7-158809cf4f3c", "owner-user"),
+        ("message", "2b7e1516-28ae-4d2a-abf7-158809cf4f3c", "assistant-message-1"),
+        ("chat", "2b7e1516-28ae-4d2a-abf7-158809cf4f3c", "owner-user"),
+        ("message", "2b7e1516-28ae-4d2a-abf7-158809cf4f3c", "assistant-message-1"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_stream_notification_uses_persisted_answer_when_terminal_output_differs():
+    answer_streamed = "画面に保存される回答"
+    answer_terminal = "異なるterminal output"
+    answer_persisted = "画面に保存された回答"
+    hermes = await FakeHermes(
+        [
+            {"event": "message.delta", "delta": answer_streamed},
+            {"event": "run.completed", "output": answer_terminal},
+        ]
+    ).start()
+    ntfy = await FakeNtfy().start()
+    try:
+        pipe = configured_pipe(hermes.base_url)
+        pipe.valves.NTFY_SERVER_URL = ntfy.base_url
+        pipe.valves.NTFY_TOPIC = "pda-chat-0123456789abcdef"
+
+        async def persisted(_chat_id, _message_id, _user_id):
+            return "保存済みタイトル", answer_persisted
+
+        async def emitter(_event):
+            return None
+
+        pipe._await_openwebui_completion = persisted
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="質問",
+                history=[],
+                instructions=None,
+                session_id="owui_0123456789abcdef0123456789abcdef",
+                session_key="openwebui:test",
+                event_emitter=emitter,
+                event_call=None,
+                chat_id="2b7e1516-28ae-4d2a-abf7-158809cf4f3c",
+                user_id="owner-user",
+                message_id="assistant-message-1",
+                ui_context=True,
+            )
+        ]
+
+        assert visible_content(chunks) == answer_streamed
+        assert await wait_for_message_count(ntfy, 1) == 1
+        assert ntfy.messages[0]["headers"]["Title"] == "保存済みタイトル"
+        assert ntfy.messages[0]["body"] == answer_persisted
+        serialized = json.dumps(ntfy.messages[0], ensure_ascii=False)
+        assert answer_terminal not in serialized
+        assert "外へ出さない質問" not in serialized
     finally:
         await ntfy.close()
         await hermes.close()
