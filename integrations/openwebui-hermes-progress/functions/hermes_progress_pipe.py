@@ -1,7 +1,7 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.11
+version: 2.1.0-local.12
 required_open_webui_version: 0.10.2
 description: Hermes Runs API adapter with model-invisible tool status, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
@@ -61,6 +61,39 @@ _SAFE_ROLE = frozenset({"user", "assistant"})
 _UNTITLED_CHAT_NAMES = frozenset({"", "New Chat", "新しいチャット"})
 _NOTIFICATION_TITLE_CHARS = 100
 _NOTIFICATION_PREVIEW_CHARS = 240
+_SAFE_PROGRESS_TOOL_NAMES = frozenset(
+    {
+        "browser_back",
+        "browser_click",
+        "browser_console",
+        "browser_get_images",
+        "browser_navigate",
+        "browser_press",
+        "browser_scroll",
+        "browser_snapshot",
+        "browser_type",
+        "browser_vision",
+        "cronjob",
+        "delegate_task",
+        "execute_code",
+        "image_generate",
+        "memory",
+        "patch",
+        "process",
+        "read_file",
+        "search_files",
+        "session_search",
+        "skill_manage",
+        "skill_view",
+        "skills_list",
+        "terminal",
+        "todo",
+        "vision_analyze",
+        "web_extract",
+        "web_search",
+        "write_file",
+    }
+)
 
 
 class Pipe:
@@ -82,6 +115,15 @@ class Pipe:
             ge=0,
             le=604800,
             description="Maximum total time for one Hermes run in seconds; 0 disables the deadline.",
+        )
+        PROGRESS_HEARTBEAT_SECONDS: int = Field(
+            default=900,
+            ge=0,
+            le=86400,
+            description=(
+                "Interval for model-invisible long-run progress status in seconds; "
+                "0 disables periodic updates."
+            ),
         )
         APPROVAL_TIMEOUT_SECONDS: int = Field(
             default=55,
@@ -161,6 +203,7 @@ class Pipe:
         __message_id__: Optional[str] = None,
         __metadata__: Optional[dict] = None,
         __task__: Optional[str] = None,
+        __request__: Any = None,
     ) -> Any:
         messages = body.get("messages") or []
         if not messages:
@@ -169,6 +212,34 @@ class Pipe:
         authenticated_user_id = str((__user__ or {}).get("id") or "").strip()
         user_id = authenticated_user_id or "unknown-user"
         metadata = __metadata__ or {}
+        request_path = ""
+        try:
+            request_path = str(getattr(getattr(__request__, "url", None), "path", "") or "")
+            if not request_path:
+                request_scope = getattr(__request__, "scope", None)
+                if isinstance(request_scope, dict):
+                    request_path = str(request_scope.get("path") or "")
+        except Exception:
+            logger.debug("Unable to inspect Open WebUI request path", exc_info=True)
+        nested_user_message = metadata.get("user_message")
+        nested_user_meta = (
+            nested_user_message.get("meta")
+            if isinstance(nested_user_message, dict)
+            else None
+        )
+        is_internal = bool(
+            metadata.get("internal") is True
+            or (
+                isinstance(nested_user_meta, dict)
+                and nested_user_meta.get("internal") is True
+            )
+            or request_path
+            in {
+                "/api/v1/automations/internal",
+                "/api/v1/timers/internal",
+                "/api/v1/subagents/internal",
+            }
+        )
         scope = self._scope_key(
             user_id=user_id,
             chat_id=__chat_id__,
@@ -184,6 +255,8 @@ class Pipe:
 
         history, instructions = self._build_context(messages[:-1])
         stream = bool(body.get("stream", True))
+        task_name = str(__task__ or metadata.get("task") or "").strip()
+        user_visible_turn = not is_internal and not task_name
 
         common = dict(
             message=message,
@@ -191,14 +264,14 @@ class Pipe:
             instructions=instructions,
             session_id=hermes_session_id,
             session_key=hermes_session_key,
-            event_emitter=__event_emitter__,
-            event_call=__event_call__,
+            event_emitter=(__event_emitter__ if user_visible_turn else None),
+            event_call=(__event_call__ if user_visible_turn else None),
             chat_id=str(
                 __chat_id__ or metadata.get("chat_id") or ""
             ),
             user_id=authenticated_user_id,
-            is_internal=metadata.get("internal") is True,
-            task=str(__task__ or metadata.get("task") or "").strip(),
+            is_internal=is_internal,
+            task=task_name,
             message_id=str(__message_id__ or "").strip(),
             host_task=self._current_openwebui_host_task(),
             require_host_task=True,
@@ -400,8 +473,12 @@ class Pipe:
             # UI status transport must never fail the model run.
             logger.debug("Open WebUI status emission failed", exc_info=True)
 
+    def _safe_progress_tool_name(self, value: Any) -> str:
+        name = self._clean_text(value, 120)
+        return name if name in _SAFE_PROGRESS_TOOL_NAMES else "ツール"
+
     def _tool_description(self, event: dict, *, completed: bool) -> str:
-        name = self._clean_text(event.get("tool") or "tool", 120)
+        name = self._safe_progress_tool_name(event.get("tool"))
         if completed:
             duration = event.get("duration")
             try:
@@ -420,6 +497,127 @@ class Pipe:
             if preview:
                 description += f" — {preview}"
         return description
+
+    @staticmethod
+    def _initial_progress_state() -> dict[str, Any]:
+        return {
+            "active_tools": {},
+            "completed_tools": 0,
+            "last_activity": "処理を開始",
+        }
+
+    def _track_progress_event(self, progress: dict[str, Any], event: dict) -> None:
+        event_type = str(event.get("event") or "")
+        if event_type == "tool.started":
+            name = self._safe_progress_tool_name(event.get("tool"))
+            active_tools = progress.setdefault("active_tools", {})
+            active_tools[name] = int(active_tools.get(name, 0)) + 1
+            progress["last_activity"] = f"{name}を開始"
+        elif event_type == "tool.completed":
+            name = self._safe_progress_tool_name(event.get("tool"))
+            active_tools = progress.setdefault("active_tools", {})
+            remaining = max(0, int(active_tools.get(name, 0)) - 1)
+            if remaining:
+                active_tools[name] = remaining
+            else:
+                active_tools.pop(name, None)
+            progress["completed_tools"] = int(progress.get("completed_tools", 0)) + 1
+            progress["last_activity"] = (
+                f"{name}が失敗" if bool(event.get("error")) else f"{name}が完了"
+            )
+        elif event_type == "reasoning.available":
+            progress["last_activity"] = "Hermesが考えています"
+        elif event_type == "message.delta":
+            progress["last_activity"] = "回答を生成中"
+        elif event_type == "approval.request":
+            progress["last_activity"] = "ユーザーの承認待ち"
+
+    @staticmethod
+    def _format_elapsed(elapsed_seconds: float) -> str:
+        total_seconds = max(1, int(elapsed_seconds))
+        if total_seconds < 60:
+            return f"{total_seconds}秒"
+        total_minutes = total_seconds // 60
+        hours, minutes = divmod(total_minutes, 60)
+        if hours and minutes:
+            return f"{hours}時間{minutes}分"
+        if hours:
+            return f"{hours}時間"
+        return f"{minutes}分"
+
+    def _heartbeat_description(
+        self,
+        *,
+        elapsed_seconds: float,
+        progress: dict[str, Any],
+    ) -> str:
+        elapsed = self._format_elapsed(elapsed_seconds)
+        active_tools = progress.get("active_tools") or {}
+        active_names = sorted(str(name) for name, count in active_tools.items() if count)
+        if active_names:
+            current = f"現在: {active_names[0]}を実行中。"
+        else:
+            current = "処理を継続中。"
+            last_activity = self._clean_text(progress.get("last_activity"), 160)
+            if last_activity:
+                current += f"直近: {last_activity}。"
+        completed_tools = int(progress.get("completed_tools", 0))
+        if completed_tools:
+            current += f"完了したツール: {completed_tools}件。"
+        return f"⏳ 開始から{elapsed}。{current}"
+
+    async def _progress_heartbeat(
+        self,
+        *,
+        emitter: Optional[Callable[[dict], Awaitable[Any]]],
+        run_id: str,
+        started_at: float,
+        interval_seconds: float,
+        progress: dict[str, Any],
+        stop_event: asyncio.Event,
+    ) -> None:
+        if emitter is None or interval_seconds <= 0:
+            return
+        loop = asyncio.get_running_loop()
+        while not stop_event.is_set():
+            try:
+                await asyncio.wait_for(
+                    stop_event.wait(),
+                    timeout=interval_seconds,
+                )
+                return
+            except asyncio.TimeoutError:
+                pass
+            if stop_event.is_set():
+                return
+            elapsed_seconds = max(0.0, loop.time() - started_at)
+            await self._emit_status(
+                emitter,
+                self._heartbeat_description(
+                    elapsed_seconds=elapsed_seconds,
+                    progress=progress,
+                ),
+                done=False,
+                heartbeat=True,
+                elapsed_seconds=int(elapsed_seconds),
+                completed_tools=int(progress.get("completed_tools", 0)),
+                run_id=run_id,
+            )
+
+    @staticmethod
+    async def _stop_progress_heartbeat(
+        task: Optional[asyncio.Task], stop_event: asyncio.Event
+    ) -> None:
+        stop_event.set()
+        if task is None:
+            return
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            logger.debug("Progress heartbeat task failed during shutdown", exc_info=True)
 
     def _approval_message(self, event: dict) -> str:
         description = self._clean_text(
@@ -749,18 +947,24 @@ class Pipe:
             try:
                 await asyncio.shield(host_task)
             except asyncio.CancelledError:
-                # A cancelled Open WebUI request must never export a completion.
-                # Preserve cancellation if this advisory child task was itself
-                # cancelled while the host request is still healthy.
-                if host_task.cancelled():
-                    return
-                raise
+                # The host request may finish by cancellation after Open WebUI
+                # has already persisted a non-empty done response.  In that case
+                # the database record, not the task outcome, is authoritative.
+                # Preserve cancellation only when this notification task itself
+                # was cancelled while the host task remains active.
+                if not host_task.cancelled():
+                    raise
+                logger.debug(
+                    "Open WebUI host task was cancelled; checking persisted completion"
+                )
             except Exception:
+                # A failed outlet/host task can still leave the user-visible
+                # assistant response persisted as done.  Check that record and
+                # send only its sanitized content if present.
                 logger.warning(
-                    "Skipping completion push because the Open WebUI host task failed",
+                    "Open WebUI host task failed; checking persisted completion",
                     exc_info=True,
                 )
-                return
         persisted = await self._await_openwebui_completion(
             chat_id_text,
             message_id_text,
@@ -863,6 +1067,19 @@ class Pipe:
         run_id: Optional[str] = None
         terminal = False
         final_status = "完了"
+        progress = self._initial_progress_state()
+        heartbeat_stop = asyncio.Event()
+        heartbeat_task: Optional[asyncio.Task] = None
+        status_emitter = event_emitter
+        if event_emitter is not None:
+            raw_status_emitter = event_emitter
+            status_emitter_lock = asyncio.Lock()
+
+            async def emit_status_serially(event: dict) -> Any:
+                async with status_emitter_lock:
+                    return await raw_status_emitter(event)
+
+            status_emitter = emit_status_serially
 
         try:
             base = self._api_base()
@@ -896,12 +1113,26 @@ class Pipe:
                     except (json.JSONDecodeError, KeyError, TypeError) as exc:
                         raise RuntimeError("Hermes returned an invalid run response") from exc
 
+                heartbeat_started_at = asyncio.get_running_loop().time()
                 await self._emit_status(
-                    event_emitter,
+                    status_emitter,
                     "Hermesが処理を開始しました…",
                     done=False,
                     run_id=run_id,
                 )
+                heartbeat_interval = int(self.valves.PROGRESS_HEARTBEAT_SECONDS)
+                if status_emitter is not None and heartbeat_interval > 0:
+                    heartbeat_task = asyncio.create_task(
+                        self._progress_heartbeat(
+                            emitter=status_emitter,
+                            run_id=run_id,
+                            started_at=heartbeat_started_at,
+                            interval_seconds=heartbeat_interval,
+                            progress=progress,
+                            stop_event=heartbeat_stop,
+                        ),
+                        name=f"hermes-progress-heartbeat-{run_id}",
+                    )
 
                 event_headers = dict(headers)
                 event_headers["Accept"] = "text/event-stream"
@@ -918,21 +1149,22 @@ class Pipe:
 
                     async for event in self._iter_sse(response):
                         event_type = str(event.get("event") or "")
+                        self._track_progress_event(progress, event)
 
                         if event_type == "tool.started":
                             await self._emit_status(
-                                event_emitter,
+                                status_emitter,
                                 self._tool_description(event, completed=False),
                                 done=False,
-                                tool=self._clean_text(event.get("tool"), 120),
+                                tool=self._safe_progress_tool_name(event.get("tool")),
                                 run_id=run_id,
                             )
                         elif event_type == "tool.completed":
                             await self._emit_status(
-                                event_emitter,
+                                status_emitter,
                                 self._tool_description(event, completed=True),
                                 done=True,
-                                tool=self._clean_text(event.get("tool"), 120),
+                                tool=self._safe_progress_tool_name(event.get("tool")),
                                 run_id=run_id,
                                 error=bool(event.get("error")),
                             )
@@ -942,7 +1174,7 @@ class Pipe:
                         ):
                             # Deliberately do not display or persist reasoning text.
                             await self._emit_status(
-                                event_emitter,
+                                status_emitter,
                                 "Hermesが考えています…",
                                 done=False,
                                 run_id=run_id,
@@ -954,7 +1186,7 @@ class Pipe:
                                 headers=headers,
                                 run_id=run_id,
                                 event=event,
-                                event_emitter=event_emitter,
+                                event_emitter=status_emitter,
                                 event_call=event_call,
                             )
                         elif event_type == "run.failed":
@@ -967,13 +1199,21 @@ class Pipe:
                             final_status = "完了"
                             terminal = True
 
-                        yield event
                         if event_type in TERMINAL_EVENTS:
+                            await self._stop_progress_heartbeat(
+                                heartbeat_task, heartbeat_stop
+                            )
+                            heartbeat_task = None
+                            yield event
                             return
+                        yield event
 
                 raise RuntimeError("Hermes event stream closed without a terminal event")
 
         except asyncio.CancelledError:
+            final_status = "キャンセル済み"
+            raise
+        except GeneratorExit:
             final_status = "キャンセル済み"
             raise
         except asyncio.TimeoutError:
@@ -995,6 +1235,7 @@ class Pipe:
                 "error": self._clean_text(exc, 1000),
             }
         finally:
+            await self._stop_progress_heartbeat(heartbeat_task, heartbeat_stop)
             if run_id and not terminal:
                 try:
                     base = self._api_base()
@@ -1003,7 +1244,7 @@ class Pipe:
                 except Exception:
                     logger.debug("Unable to prepare best-effort run stop", exc_info=True)
             await self._emit_status(
-                event_emitter,
+                status_emitter,
                 final_status,
                 done=True,
                 run_id=run_id,
@@ -1049,25 +1290,48 @@ class Pipe:
 
         yield self._completion_chunk(completion_id, {"role": "assistant"})
 
-        async for event in self._run_events(**run_args):
-            event_type = str(event.get("event") or "")
-            if event_type == "message.delta":
-                delta = str(event.get("delta") or "")
-                if delta:
-                    accumulated += delta
-                    yield self._completion_chunk(
-                        completion_id, {"content": delta}
+        event_stream = self._run_events(**run_args)
+        event_stream_finished = False
+        try:
+            async for event in event_stream:
+                event_type = str(event.get("event") or "")
+                if event_type == "message.delta":
+                    delta = str(event.get("delta") or "")
+                    if delta:
+                        accumulated += delta
+                        yield self._completion_chunk(
+                            completion_id, {"content": delta}
+                        )
+                elif event_type == "run.completed":
+                    terminal_output = str(event.get("output") or "")
+                elif event_type in {"run.failed", "adapter.error"}:
+                    terminal_error = self._clean_text(
+                        event.get("error") or "Hermes run failed", 1000
                     )
-            elif event_type == "run.completed":
-                terminal_output = str(event.get("output") or "")
-            elif event_type in {"run.failed", "adapter.error"}:
-                terminal_error = self._clean_text(
-                    event.get("error") or "Hermes run failed", 1000
-                )
-            elif event_type == "run.cancelled":
-                cancelled = True
-            elif event_type == "adapter.timeout":
-                timed_out = True
+                elif event_type == "run.cancelled":
+                    cancelled = True
+                elif event_type == "adapter.timeout":
+                    timed_out = True
+            event_stream_finished = True
+        finally:
+            if not event_stream_finished:
+                try:
+                    await event_stream.aclose()
+                finally:
+                    # Open WebUI can persist a partial response before closing
+                    # the stream. Arrange the same DB-backed completion check as
+                    # terminal outcomes without leaving the run heartbeat alive.
+                    self._schedule_completion_notification(
+                        run_args.get("session_id"),
+                        chat_id=chat_id,
+                        user_id=user_id,
+                        is_internal=is_internal,
+                        task=task,
+                        message_id=message_id,
+                        host_task=host_task,
+                        require_host_task=require_host_task,
+                        ui_context=ui_context,
+                    )
 
         if terminal_output:
             if not accumulated:

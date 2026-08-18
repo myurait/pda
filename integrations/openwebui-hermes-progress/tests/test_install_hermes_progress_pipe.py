@@ -66,6 +66,20 @@ def test_ntfy_server_validation_matches_runtime_loopback_policy():
         )
 
 
+def test_default_install_valves_enable_fifteen_minute_progress_heartbeat():
+    valves = installer.build_valves_payload(
+        hermes_url="http://host.docker.internal:8642/v1",
+        hermes_key="test-key",
+        ntfy_server="https://ntfy.sh",
+        ntfy_topic="test-topic",
+        allowed_user_id="owner-user",
+        openwebui_public_url="https://pda-web.example.ts.net",
+    )
+
+    assert valves["PROGRESS_HEARTBEAT_SECONDS"] == 900
+    assert valves["RUN_TIMEOUT_SECONDS"] == 0
+
+
 @pytest.mark.asyncio
 async def test_new_function_rollback_deletes_only_its_own_install_transaction():
     source = f"# {installer.OWNERSHIP_MARKER}\n# current source\n"

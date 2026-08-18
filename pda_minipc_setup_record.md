@@ -468,9 +468,9 @@ curl -fsS http://127.0.0.1:9120/health
 
 **完了タイミングと通知内容**:
 
-- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.11
+- 実装バージョン: `hermes_progress_pipe` v2.1.0-local.12
 - Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信をscheduleし、通知タスクをPipe instanceが完了まで強参照する
-- Pipe開始時のOpen WebUI host taskを保持し、そのtaskが正常終了してoutlet filterとbackground処理が完了してからDBを読む。host taskのcancel・失敗時は送信しない。Open WebUI v0.11.0がoutlet filterより先に `done=true` を保存する順序でも、フィルター適用前の回答を通知へ出さない
+- Pipe開始時のOpen WebUI host taskの終了を待ってからDBを読み、host taskのsuccess・failure・cancelではなく、所有者本人の保存済みassistant messageが `done=true` かつ本文が非空かを通知条件にする。outlet filterによるredactionを前提にする場合は、filter失敗時の保存内容も通知され得るため外部pushを無効化する
 - 通知前にOpen WebUI DB上の所有者スコープ付きassistant messageをpollし、`done=true` を確認する。通知タイトル・本文は保存済みchat/messageから取得し、Hermes terminal outputやユーザー入力で代用しない
 - 通知タイトルはOpen WebUIの保存済みチャットタイトル（最大100文字）。自動タイトルを最大約20秒待ち、未確定なら実際の `New Chat` を使う
 - 通知本文はOpen WebUIに保存された最終回答の冒頭（最大240文字）。reasoning/tool traceを除外し、制御文字と連続空白を正規化し、超過時は `…` で省略する。保存済み回答が空なら固定文へ差し替えず通知しない
@@ -486,12 +486,14 @@ curl -fsS http://127.0.0.1:9120/health
 
 - `PDA_NTFY_SERVER_URL`、`PDA_NTFY_TOPIC`、`PDA_OPENWEBUI_PUBLIC_URL` をmode 0600の `~/openwebui/.env` に保存
 - ntfy topicはtopic名自体がpasswordとなるため、192-bit乱数の52文字topicを生成した。実値はGitと本記録へ保存しない
-- installerは更新前のsource・metadata・active state・Valvesを退避し、失敗時は全項目を復元する。新規作成rollbackではinstall transaction固有nonceとsourceが一致するFunctionだけを削除し、競合処理のFunctionを巻き込まない。成功時はFunction source v2.1.0-local.11・active・全ValvesをAPIから再読込して一致を確認する。rollback時も復元後のsource・metadata・active state・全Valvesを再読込し、不一致を成功扱いにしない
+- installerは更新前のsource・metadata・active state・Valvesを退避し、失敗時は全項目を復元する。新規作成rollbackではinstall transaction固有nonceとsourceが一致するFunctionだけを削除し、競合処理が作成・更新したFunctionを巻き込まない。成功時はFunction source v2.1.0-local.12・active・全ValvesをAPIから再読込して一致を確認する。rollback時も復元後のsource・metadata・active state・全Valvesを再読込し、不一致を成功扱いにしない
 - ユーザー要望により、ホスト版ntfy.shへチャットタイトルと回答冒頭を送る。これらはntfy.sh側のmessage cacheとiPhone通知履歴へ残り得る。機密会話で使わないこと。外部保持を避ける場合は `NTFY_TOPIC` を空にするか、将来ntfyをtailnet内へself-hostする
 
 **検証結果（2026-08-17）**:
 
-- 単体・ローカル統合テスト: 51件すべて成功
+- 単体・ローカル統合テスト: 71件すべて成功
+- 長時間runでは `PROGRESS_HEARTBEAT_SECONDS=900` を既定とし、15分ごとに経過時間・安全な実行中ツール名・完了件数・一般化した直近活動をOpen WebUI `statusHistory`へ保存する。`0`で無効化できる
+- heartbeatはrun単位で状態と送信lockを分離し、内部taskでは無効化する。terminal・例外・取消・stream close時に同期停止し、推論本文、tool引数・preview・結果、ユーザー入力、未知tool名を保存しない
 - 実Open WebUI API → Progress Pipe → Hermes Runs API: 最終応答 `OWUI_PUSH_PREVIEW_OK` 後、チャットタイトル、回答冒頭、対象チャット直リンクを持ちemoji tagを持たないpushが1件だけ発生。期待通知の検出後も2秒間pollし、余分な通知0件を確認
 - 上記E2Eで詳細progressを3件保存し、開始statusと完了statusの双方を確認
 - 通知先のテストチャットがOpen WebUI上に存在し、タイトルと回答本文を保持していること、ローカルの `/c/<chat_id>` がHTTP 200を返すことを確認

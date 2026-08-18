@@ -294,6 +294,38 @@ def verify_applied_configuration(
             raise InstallError(f"Function Valve did not match after installation: {key}")
 
 
+def build_valves_payload(
+    *,
+    hermes_url: str,
+    hermes_key: str,
+    ntfy_server: str,
+    ntfy_topic: str,
+    allowed_user_id: str,
+    openwebui_public_url: str,
+) -> dict[str, Any]:
+    return {
+        "HERMES_API_URL": hermes_url,
+        "HERMES_API_KEY": hermes_key,
+        "HERMES_MODEL": "hermes-agent",
+        # Hermes is routinely used for multi-hour agent work. Let user or
+        # client cancellation own run lifetime by default.
+        "RUN_TIMEOUT_SECONDS": 0,
+        # Emit a model-invisible Open WebUI status while a long run remains
+        # active. Set this Valve to 0 to disable periodic heartbeat statuses.
+        "PROGRESS_HEARTBEAT_SECONDS": 900,
+        # Hermes owns the canonical approval deadline (60s by default).
+        # Expire the UI first so its deny reaches an active session.
+        "APPROVAL_TIMEOUT_SECONDS": 55,
+        "SHOW_TOOL_PREVIEW": False,
+        "TOOL_PREVIEW_CHARS": 160,
+        "SHOW_REASONING_STATUS": True,
+        "NTFY_SERVER_URL": ntfy_server,
+        "NTFY_TOPIC": ntfy_topic,
+        "NTFY_ALLOWED_USER_ID": allowed_user_id,
+        "OPENWEBUI_PUBLIC_URL": openwebui_public_url,
+    }
+
+
 async def main() -> None:
     token = read_secret(TOKEN_FILE)
     env = load_env(ENV_FILE)
@@ -361,24 +393,14 @@ async def main() -> None:
             },
         }
 
-        valves_payload = {
-            "HERMES_API_URL": hermes_url,
-            "HERMES_API_KEY": hermes_key,
-            "HERMES_MODEL": "hermes-agent",
-            # Hermes is routinely used for multi-hour agent work. Let user or
-            # client cancellation own run lifetime by default.
-            "RUN_TIMEOUT_SECONDS": 0,
-            # Hermes owns the canonical approval deadline (60s by default).
-            # Expire the UI first so its deny reaches an active session.
-            "APPROVAL_TIMEOUT_SECONDS": 55,
-            "SHOW_TOOL_PREVIEW": False,
-            "TOOL_PREVIEW_CHARS": 160,
-            "SHOW_REASONING_STATUS": True,
-            "NTFY_SERVER_URL": ntfy_server,
-            "NTFY_TOPIC": ntfy_topic,
-            "NTFY_ALLOWED_USER_ID": allowed_user_id,
-            "OPENWEBUI_PUBLIC_URL": openwebui_public_url,
-        }
+        valves_payload = build_valves_payload(
+            hermes_url=hermes_url,
+            hermes_key=hermes_key,
+            ntfy_server=ntfy_server,
+            ntfy_topic=ntfy_topic,
+            allowed_user_id=allowed_user_id,
+            openwebui_public_url=openwebui_public_url,
+        )
 
         created_new = existing is None
         created_by_this_run = False
