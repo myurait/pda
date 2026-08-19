@@ -1,0 +1,139 @@
+From 9a9f72812d27108ae7d4e3b0b23010096c6d929b Mon Sep 17 00:00:00 2001
+From: myurait <myurait@gmail.com>
+Date: Wed, 19 Aug 2026 16:31:54 +0900
+Subject: [PATCH] fix(errors): retry 400s that reject prompt-cache hints
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The chatgpt.com Codex backend transiently rejected requests with
+"prompt_cache_retention is not supported on this model" (2026-08-19,
+param=prompt_cache_retention, code=invalid_parameter) even though the
+client gates that field to Bedrock Mantle and never sends it on Codex
+routes — the backend upstream-retry proxy attached it. The generic 400
+path classified this as a non-retryable format_error and killed the
+owning turn. Prompt-cache hints are optimization-only, so a 400 naming
+one is upstream-injected and transient: classify it as a retryable
+server_error instead.
+---
+ agent/error_classifier.py            | 38 +++++++++++++++++++++
+ tests/agent/test_error_classifier.py | 50 ++++++++++++++++++++++++++++
+ 2 files changed, 88 insertions(+)
+
+diff --git a/agent/error_classifier.py b/agent/error_classifier.py
+index 9f112c22..1ee226d1 100644
+--- a/agent/error_classifier.py
++++ b/agent/error_classifier.py
+@@ -459,6 +459,22 @@ _REQUEST_VALIDATION_PATTERNS = [
+     "unsupported_parameter",
+ ]
+ 
++# Prompt-cache routing hints are optimization-only request fields — they
++# never change the semantic result of a request, so a 400 naming one is
++# never worth aborting the turn for. Observed 2026-08-19 on the
++# chatgpt.com Codex backend: requests failed with
++# "prompt_cache_retention is not supported on this model"
++# (param=prompt_cache_retention, code=invalid_parameter) even though the
++# client gates that field to Bedrock Mantle hosts and never sends it on
++# Codex routes (agent/transports/codex.py) — the backend's own
++# upstream-retry proxy layer attached it. The rejection was
++# instance-local and cleared on re-route, so the unchanged request
++# succeeds on retry.
++_PROMPT_CACHE_HINT_PARAMS = (
++    "prompt_cache_key",
++    "prompt_cache_retention",
++)
++
+ # OpenRouter aggregator policy-block patterns.
+ #
+ # When a user's OpenRouter account privacy setting (or a per-request
+@@ -1473,6 +1489,28 @@ def _classify_400(
+             should_fallback=False,
+         )
+ 
++    # Server-side rejection of a prompt-cache hint. Checked BEFORE the
++    # request-validation branch below so a future rewording to
++    # "Unsupported parameter: 'prompt_cache_retention' ..." still lands
++    # here: cache hints are optimization-only, and on Codex routes the
++    # client never sends them (agent/transports/codex.py gates them to
++    # Bedrock Mantle), so a 400 naming one is upstream-injected and
++    # transient — retry instead of aborting as a deterministic
++    # format_error.
++    _rejected_param = ""
++    if isinstance(body, dict):
++        _body_error = body.get("error")
++        if isinstance(_body_error, dict):
++            _rejected_param = str(_body_error.get("param") or "").lower()
++    if _rejected_param in _PROMPT_CACHE_HINT_PARAMS or any(
++        f"{_hint} is not supported" in error_msg
++        for _hint in _PROMPT_CACHE_HINT_PARAMS
++    ):
++        return result_fn(
++            FailoverReason.server_error,
++            retryable=True,
++        )
++
+     # Request-validation errors (unsupported / unknown parameter) MUST be
+     # checked BEFORE context_overflow.  A GPT-5 model rejecting max_tokens
+     # returns:
+diff --git a/tests/agent/test_error_classifier.py b/tests/agent/test_error_classifier.py
+index 6f42ba0b..308a7bc8 100644
+--- a/tests/agent/test_error_classifier.py
++++ b/tests/agent/test_error_classifier.py
+@@ -1292,3 +1292,53 @@ class TestExpandedOverflowPatterns:
+         assert result.reason == FailoverReason.context_overflow
+ 
+ 
++
++
++# ── Prompt-cache hint rejection (upstream-injected 400) ────────────────
++
++class TestPromptCacheHintRejection:
++    """400s naming a prompt-cache hint are upstream-injected and transient.
++
++    2026-08-19: the chatgpt.com Codex backend rejected requests with
++    "prompt_cache_retention is not supported on this model" even though
++    the client never sends that field on Codex routes (it is gated to
++    Bedrock Mantle in agent/transports/codex.py). Classifying the 400 as
++    a non-retryable format_error killed the owning turn.
++    """
++
++    def test_prompt_cache_retention_param_rejection_is_retryable(self):
++        e = MockAPIError(
++            "Error code: 400 - {'error': {'message': 'prompt_cache_retention "
++            "is not supported on this model', 'type': 'invalid_request_error', "
++            "'param': 'prompt_cache_retention', 'code': 'invalid_parameter'}}",
++            status_code=400,
++            body={"error": {
++                "message": "prompt_cache_retention is not supported on this model",
++                "type": "invalid_request_error",
++                "param": "prompt_cache_retention",
++                "code": "invalid_parameter",
++            }},
++        )
++        result = classify_api_error(e, provider="openai-codex", model="gpt-5.6-sol")
++        assert result.reason == FailoverReason.server_error
++        assert result.retryable is True
++
++    def test_prompt_cache_key_message_rejection_is_retryable(self):
++        e = MockAPIError(
++            "prompt_cache_key is not supported on this model",
++            status_code=400,
++        )
++        result = classify_api_error(e)
++        assert result.reason == FailoverReason.server_error
++        assert result.retryable is True
++
++    def test_unrelated_unsupported_parameter_stays_non_retryable(self):
++        e = MockAPIError(
++            "Unsupported parameter: 'max_tokens' is not supported with this "
++            "model. Use 'max_completion_tokens' instead.",
++            status_code=400,
++            body={"error": {"param": "max_tokens", "code": "unsupported_parameter"}},
++        )
++        result = classify_api_error(e)
++        assert result.reason == FailoverReason.format_error
++        assert result.retryable is False
+-- 
+2.43.0
+

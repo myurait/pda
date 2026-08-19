@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "purpose": "Retryable classification for HTTP 400 responses that reject a prompt-cache hint (prompt_cache_key / prompt_cache_retention), so a transient Codex backend fault does not abort the owning turn",
+  "upstream_url": "https://github.com/NousResearch/hermes-agent.git",
+  "base_commit": "0778d86c310f9e4607029a5dc222f16bb0fc2d44",
+  "source_commits": [
+    "9a9f72812d27108ae7d4e3b0b23010096c6d929b"
+  ],
+  "source_commit": "9a9f72812d27108ae7d4e3b0b23010096c6d929b",
+  "source_tree": "2653073b0dc95636c5f8da464d168bcda47ab2d0",
+  "patches": [
+    {
+      "file": "0001-fix-errors-retry-400s-that-reject-prompt-cache-hints.patch",
+      "sha256": "f70f80927b6260d7f6d6aaa0d7ae63be4c6834b858788649b1d209a265153e4d"
+    }
+  ],
+  "contains_secrets": false
+}
