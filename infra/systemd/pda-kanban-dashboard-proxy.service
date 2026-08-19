@@ -6,7 +6,7 @@ Wants=network-online.target hermes-dashboard.service
 [Service]
 Type=simple
 UMask=0077
-ExecStart=%h/.hermes/hermes-agent/venv/bin/python %h/.local/libexec/pda/dashboard_prefix_proxy.py --listen-host 127.0.0.1 --listen-port 9121 --upstream http://127.0.0.1:9119 --mount-prefix /hermes
+ExecStart=%h/.hermes/hermes-agent/venv/bin/python %h/.local/libexec/pda/dashboard_prefix_proxy.py --listen-host 127.0.0.1 --listen-port 9121 --upstream http://localhost.:9119 --mount-prefix /hermes
 Restart=on-failure
 RestartSec=3s
 NoNewPrivileges=true

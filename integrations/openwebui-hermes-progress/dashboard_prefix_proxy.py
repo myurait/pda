@@ -46,7 +46,7 @@ def validate_upstream_origin(origin: str) -> str:
         raise ValueError("invalid upstream origin") from exc
     if (
         parsed.scheme != "http"
-        or parsed.hostname != "127.0.0.1"
+        or parsed.hostname != "localhost."
         or port is None
         or parsed.username is not None
         or parsed.password is not None
@@ -55,7 +55,7 @@ def validate_upstream_origin(origin: str) -> str:
         or parsed.fragment
     ):
         raise ValueError("upstream must be credential-free loopback HTTP with an explicit port")
-    return f"http://127.0.0.1:{port}"
+    return f"http://localhost.:{port}"
 
 
 def strip_mount_prefix(path: str, prefix: str) -> str:
@@ -294,7 +294,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--upstream",
         type=validate_upstream_origin,
-        default="http://127.0.0.1:9119",
+        default="http://localhost.:9119",
     )
     parser.add_argument("--mount-prefix", type=_mount_prefix, default="/hermes")
     return parser.parse_args(argv)

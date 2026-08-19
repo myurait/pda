@@ -53,7 +53,7 @@ async def test_http_proxy_strips_mount_and_sets_forwarded_prefix():
 
     upstream_app = web.Application()
     upstream_app.router.add_route("*", "/{path:.*}", upstream_handler)
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     upstream_origin = str(upstream_server.make_url("/")).rstrip("/")
@@ -98,7 +98,7 @@ async def test_http_proxy_preserves_upstream_gzip_bytes_and_content_encoding():
 
     upstream_app = web.Application()
     upstream_app.router.add_get("/asset.js", upstream_handler)
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     proxy_app = proxy.create_app(
@@ -140,7 +140,7 @@ async def test_proxy_drops_set_cookie_headers_outside_the_mount_path():
 
     upstream_app = web.Application()
     upstream_app.router.add_get("/login", upstream_handler)
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     proxy_app = proxy.create_app(
@@ -181,7 +181,7 @@ async def test_dashboard_asset_rewrites_only_exact_unencoded_logout_target():
 
     upstream_app = web.Application()
     upstream_app.router.add_get("/{path:.*}", upstream_handler)
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     proxy_app = proxy.create_app(
@@ -231,7 +231,7 @@ async def test_login_page_keeps_password_auth_and_next_navigation_under_mount():
 
     upstream_app = web.Application()
     upstream_app.router.add_get("/login", upstream_login)
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     proxy_app = proxy.create_app(
@@ -277,7 +277,7 @@ async def test_websocket_proxy_keeps_live_kanban_updates_bidirectional():
     upstream_app.router.add_get(
         "/api/plugins/kanban/events", upstream_websocket
     )
-    upstream_server = TestServer(upstream_app)
+    upstream_server = TestServer(upstream_app, host="localhost.")
     await upstream_server.start_server()
 
     proxy_app = proxy.create_app(
@@ -309,19 +309,20 @@ def test_proxy_rejects_non_loopback_or_ambiguous_network_configuration():
     proxy = load_proxy_module()
 
     assert (
-        proxy.validate_upstream_origin("http://127.0.0.1:9119")
-        == "http://127.0.0.1:9119"
+        proxy.validate_upstream_origin("http://localhost.:9119")
+        == "http://localhost.:9119"
     )
     assert proxy.validate_listen_host("127.0.0.1") == "127.0.0.1"
 
     for origin in (
-        "https://127.0.0.1:9119",
+        "http://127.0.0.1:9119",
+        "https://localhost.:9119",
         "http://localhost:9119",
         "http://0.0.0.0:9119",
         "http://192.168.0.59:9119",
-        "http://127.0.0.1:9119/path",
-        "http://user:pass@127.0.0.1:9119",
-        "http://127.0.0.1:9119?token=x",
+        "http://localhost.:9119/path",
+        "http://user:pass@localhost.:9119",
+        "http://localhost.:9119?token=x",
     ):
         with pytest.raises(ValueError):
             proxy.validate_upstream_origin(origin)
@@ -338,7 +339,7 @@ def test_cli_defaults_pin_the_expected_loopback_topology():
 
     assert args.listen_host == "127.0.0.1"
     assert args.listen_port == 9121
-    assert args.upstream == "http://127.0.0.1:9119"
+    assert args.upstream == "http://localhost.:9119"
     assert args.mount_prefix == "/hermes"
 
 
@@ -354,7 +355,7 @@ def test_systemd_unit_runs_managed_proxy_with_hardened_loopback_contract():
     assert "After=network-online.target hermes-dashboard.service" in unit
     assert "--listen-host 127.0.0.1" in unit
     assert "--listen-port 9121" in unit
-    assert "--upstream http://127.0.0.1:9119" in unit
+    assert "--upstream http://localhost.:9119" in unit
     assert "--mount-prefix /hermes" in unit
     assert "%h/.local/libexec/pda/dashboard_prefix_proxy.py" in unit
     assert "%h/projects/" not in unit
@@ -382,6 +383,7 @@ def test_dashboard_systemd_dropin_closes_kanban_api_to_loopback():
     dropin = dropin_path.read_text(encoding="utf-8")
     assert "ExecStart=\n" in dropin
     assert "%h/.hermes/hermes-agent/venv/bin/hermes dashboard" in dropin
-    assert "--host 127.0.0.1" in dropin
+    assert "--host localhost." in dropin
     assert "--port 9119" in dropin
+    assert "--host 127.0.0.1" not in dropin
     assert "--host 0.0.0.0" not in dropin
