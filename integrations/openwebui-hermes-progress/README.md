@@ -19,7 +19,7 @@ PDA改善タスクの正本はHermes標準の`~/.hermes/kanban.db`とし、初�
 
 - Hermes Dashboardは`infra/systemd/hermes-dashboard.service.d/10-pda-loopback.conf`でFQDN形式の`localhost.:9119`へbindする。OS上はIPv4/IPv6 loopbackだけにlistenし、Hermes v0.20.2の非loopback文字列判定ではpassword認証ゲートを有効化する。`127.0.0.1`へ戻すと認証ゲートが無効になるため使用しない。Kanban APIをLANへ直接公開しない。
 - prefix proxyも`127.0.0.1:9121`限定で、上流はcredentialを含まない`http://localhost.:9119`だけを許可する。上流`Host`はこのoriginへ固定し、公開host名は`X-Forwarded-Host`だけで伝える。
-- 外部導線はTailscale Serveのみとし、Funnelは使わない。Hermes Dashboard自身のusername/password認証も維持する。
+- 外部導線はTailscale Serveのみとし、Funnelは使わない。Serveはmount pathを上流requestから除去するため、`--set-path /hermes`のtargetを`http://127.0.0.1:9121/hermes`としてproxy入口のprefixを復元する。Hermes Dashboard自身のusername/password認証も維持する。
 - Hermes v0.20.2には2つの既存prefix不整合がある。password login HTMLの`/auth/password-login`とログイン後遷移は`/login`レスポンスに限って補正し、配布済みSPA bundleのlogout先`window.location.assign("/login")`は未圧縮の直下`/assets/*.js`内の完全一致だけを`/hermes/login`へ補正する。それ以外のSPA、API、WebSocket本文は書き換えない。
 - upstreamの`Set-Cookie`は、単一のwell-formed cookieかつ`Path=/hermes`のときだけraw値を転送する。Pathなし・root scope・malformed cookieはfail-closedで破棄し、Hermes sessionをOpen WebUI rootへ送らない。
 - upstreamの圧縮responseはaiohttpで自動展開せず、encoded bodyと`Content-Encoding`を対でそのまま転送する。圧縮済みassetには本文補正を適用しない。
@@ -53,14 +53,14 @@ systemctl --user enable --now pda-kanban-dashboard-proxy.service
 
 TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 "$TAILSCALE_BIN" --socket="$HOME/.local/share/tailscale-pda/tailscaled.sock" \
-  serve --bg --yes --set-path /hermes http://127.0.0.1:9121
+  serve --bg --yes --set-path /hermes http://127.0.0.1:9121/hermes
 ```
 
 検証条件:
 
 - tracked `dashboard_prefix_proxy.py`と`~/.local/libexec/pda/dashboard_prefix_proxy.py`がbyte一致する。
 - `ss`で9119がIPv4/IPv6 loopbackだけ、9120と9121が`127.0.0.1`だけにlistenする。
-- Tailscale Serve statusが`/ -> 127.0.0.1:9120`と`/hermes -> 127.0.0.1:9121`を同時に保持する。
+- Tailscale Serve statusが`/ -> 127.0.0.1:9120`と`/hermes -> 127.0.0.1:9121/hermes`を同時に保持する。
 - `/hermes/kanban`が`/hermes/login`へ遷移し、認証CookieのPathが`/hermes`、認証後Kanban APIが200を返す。
 - Open WebUIの`/api/v1/configs/banners`に`pda-kanban-link`が1件だけあり、本文リンク先が`/hermes/kanban`である。
 - `pda-improvement`の初期未完了カードが9件あり、依存関係が6本ある。Kanban化カード完了後は、その子カードだけがTodoからReadyへ昇格する。

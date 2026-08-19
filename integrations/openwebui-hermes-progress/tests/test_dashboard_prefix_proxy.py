@@ -370,6 +370,7 @@ def test_runbook_installs_tracked_proxy_to_the_unit_runtime_path():
     assert "integrations/openwebui-hermes-progress/dashboard_prefix_proxy.py" in readme
     assert '"$HOME/.local/libexec/pda/dashboard_prefix_proxy.py"' in readme
     assert "cmp -s" in readme
+    assert "serve --bg --yes --set-path /hermes http://127.0.0.1:9121/hermes" in readme
 
 
 def test_dashboard_systemd_dropin_closes_kanban_api_to_loopback():
