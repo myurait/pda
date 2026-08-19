@@ -18,7 +18,7 @@ PDA改善タスクの正本はHermes標準の`~/.hermes/kanban.db`とし、初�
 安全境界:
 
 - Hermes Dashboardは`infra/systemd/hermes-dashboard.service.d/10-pda-loopback.conf`で`127.0.0.1:9119`へ限定する。Kanban APIをLANへ直接公開しない。
-- prefix proxyも`127.0.0.1:9121`限定で、上流にはcredentialを含まないloopback HTTPだけを許可する。
+- prefix proxyも`127.0.0.1:9121`限定で、上流にはcredentialを含まないloopback HTTPだけを許可する。上流`Host`はloopback originへ固定し、公開host名は`X-Forwarded-Host`だけで伝える。
 - 外部導線はTailscale Serveのみとし、Funnelは使わない。Hermes Dashboard自身のusername/password認証も維持する。
 - Hermes v0.20.2には2つの既存prefix不整合がある。password login HTMLの`/auth/password-login`とログイン後遷移は`/login`レスポンスに限って補正し、配布済みSPA bundleのlogout先`window.location.assign("/login")`は未圧縮の直下`/assets/*.js`内の完全一致だけを`/hermes/login`へ補正する。それ以外のSPA、API、WebSocket本文は書き換えない。
 - upstreamの`Set-Cookie`は、単一のwell-formed cookieかつ`Path=/hermes`のときだけraw値を転送する。Pathなし・root scope・malformed cookieはfail-closedで破棄し、Hermes sessionをOpen WebUI rootへ送らない。

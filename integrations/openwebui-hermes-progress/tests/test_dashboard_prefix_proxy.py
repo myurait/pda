@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import importlib.util
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import aiohttp
 import pytest
@@ -55,8 +56,9 @@ async def test_http_proxy_strips_mount_and_sets_forwarded_prefix():
     upstream_server = TestServer(upstream_app)
     await upstream_server.start_server()
 
+    upstream_origin = str(upstream_server.make_url("/")).rstrip("/")
     proxy_app = proxy.create_app(
-        upstream_origin=str(upstream_server.make_url("/")).rstrip("/"),
+        upstream_origin=upstream_origin,
         mount_prefix="/hermes",
         public_scheme="https",
     )
@@ -75,7 +77,7 @@ async def test_http_proxy_strips_mount_and_sets_forwarded_prefix():
             "prefix": "/hermes",
             "proto": "https",
             "forwarded_host": "pda-web.example.ts.net",
-            "host": "pda-web.example.ts.net",
+            "host": urlsplit(upstream_origin).netloc,
         }
     finally:
         await client.close()

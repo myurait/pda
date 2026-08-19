@@ -136,6 +136,7 @@ def create_app(
 ) -> web.Application:
     """Create an HTTP reverse proxy that teaches Hermes its public prefix."""
     origin = validate_upstream_origin(upstream_origin)
+    upstream_host = urlsplit(origin).netloc
     prefix = "/" + mount_prefix.strip("/")
     app = web.Application()
 
@@ -164,8 +165,8 @@ def create_app(
             if name.lower() not in _HOP_BY_HOP_HEADERS and name.lower() != "content-length"
         }
         public_host = request.headers.get("Host", "")
+        headers["Host"] = upstream_host
         if public_host:
-            headers["Host"] = public_host
             headers["X-Forwarded-Host"] = public_host
         headers["X-Forwarded-Prefix"] = prefix
         headers["X-Forwarded-Proto"] = public_scheme
