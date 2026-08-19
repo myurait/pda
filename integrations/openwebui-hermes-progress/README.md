@@ -2,6 +2,72 @@
 
 PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終応答完了時だけiPhoneへntfy pushを送るローカル統合。
 
+## PDA Kanbanの可視化導線
+
+PDA改善タスクの正本はHermes標準の`~/.hermes/kanban.db`とし、初期移行タスクにはtenant `pda-improvement`を付ける。独自のタスクDBやOpen WebUI内の複製台帳は作らない。
+
+オーナー向けURLは`https://pda-web.tailaff53a.ts.net/hermes/kanban`。同一tailnet限定ホストで、次の経路を使う。
+
+```text
+/           -> Open WebUI                    127.0.0.1:9120
+/hermes/*   -> dashboard_prefix_proxy.py     127.0.0.1:9121
+             -> Hermes Dashboard             127.0.0.1:9119
+             -> Kanban                       ~/.hermes/kanban.db
+```
+
+安全境界:
+
+- Hermes Dashboardは`infra/systemd/hermes-dashboard.service.d/10-pda-loopback.conf`で`127.0.0.1:9119`へ限定する。Kanban APIをLANへ直接公開しない。
+- prefix proxyも`127.0.0.1:9121`限定で、上流にはcredentialを含まないloopback HTTPだけを許可する。
+- 外部導線はTailscale Serveのみとし、Funnelは使わない。Hermes Dashboard自身のusername/password認証も維持する。
+- Hermes v0.20.2には2つの既存prefix不整合がある。password login HTMLの`/auth/password-login`とログイン後遷移は`/login`レスポンスに限って補正し、配布済みSPA bundleのlogout先`window.location.assign("/login")`は未圧縮の直下`/assets/*.js`内の完全一致だけを`/hermes/login`へ補正する。それ以外のSPA、API、WebSocket本文は書き換えない。
+- upstreamの`Set-Cookie`は、単一のwell-formed cookieかつ`Path=/hermes`のときだけraw値を転送する。Pathなし・root scope・malformed cookieはfail-closedで破棄し、Hermes sessionをOpen WebUI rootへ送らない。
+- upstreamの圧縮responseはaiohttpで自動展開せず、encoded bodyと`Content-Encoding`を対でそのまま転送する。圧縮済みassetには本文補正を適用しない。
+- 初期移行時は`kanban.auto_decompose=false`、全カード未割当とする。ボードを可視化しただけでworkerを自動起動しない。
+- Open WebUI v0.11.0の標準banner `pda-kanban-link`へMarkdown相対リンク`/hermes/kanban`を置く。既存bannerは保持し、このIDだけをidempotentに更新する。独自Actionやfrontend forkは使わない。
+
+管理対象:
+
+- `dashboard_prefix_proxy.py`
+- `infra/systemd/pda-kanban-dashboard-proxy.service`
+- `infra/systemd/hermes-dashboard.service.d/10-pda-loopback.conf`
+- `tests/test_dashboard_prefix_proxy.py`
+
+導入手順:
+
+```bash
+install -D -m 0644 \
+  integrations/openwebui-hermes-progress/dashboard_prefix_proxy.py \
+  "$HOME/.local/libexec/pda/dashboard_prefix_proxy.py"
+cmp -s \
+  integrations/openwebui-hermes-progress/dashboard_prefix_proxy.py \
+  "$HOME/.local/libexec/pda/dashboard_prefix_proxy.py"
+
+install -D -m 0644 infra/systemd/pda-kanban-dashboard-proxy.service \
+  "$HOME/.config/systemd/user/pda-kanban-dashboard-proxy.service"
+install -D -m 0644 infra/systemd/hermes-dashboard.service.d/10-pda-loopback.conf \
+  "$HOME/.config/systemd/user/hermes-dashboard.service.d/10-pda-loopback.conf"
+systemctl --user daemon-reload
+systemctl --user restart hermes-dashboard.service
+systemctl --user enable --now pda-kanban-dashboard-proxy.service
+
+TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
+"$TAILSCALE_BIN" --socket="$HOME/.local/share/tailscale-pda/tailscaled.sock" \
+  serve --bg --yes --set-path /hermes http://127.0.0.1:9121
+```
+
+検証条件:
+
+- tracked `dashboard_prefix_proxy.py`と`~/.local/libexec/pda/dashboard_prefix_proxy.py`がbyte一致する。
+- `ss`で9119、9120、9121がすべて`127.0.0.1`にだけlistenする。
+- Tailscale Serve statusが`/ -> 127.0.0.1:9120`と`/hermes -> 127.0.0.1:9121`を同時に保持する。
+- `/hermes/kanban`が`/hermes/login`へ遷移し、認証CookieのPathが`/hermes`、認証後Kanban APIが200を返す。
+- Open WebUIの`/api/v1/configs/banners`に`pda-kanban-link`が1件だけあり、本文リンク先が`/hermes/kanban`である。
+- `pda-improvement`の初期未完了カードが9件あり、依存関係が6本ある。Kanban化カード完了後は、その子カードだけがTodoからReadyへ昇格する。
+- 再起動後も両systemd serviceとTailscale Serve導線が維持される。
+
+ロールバック時は、変更前statusを`~/.local/state/pda/rollback/tailscale-serve-before-kanban.json`で確認する。現行のlegacy Serve設定は`serve get-config --all`から完全復元できないため、`tailscale serve reset`後に`serve --bg --yes http://127.0.0.1:9120`でOpen WebUIのroot導線だけを再登録する。次にproxy serviceを停止・disableし、`~/.local/libexec/pda/dashboard_prefix_proxy.py`の配備コピーを削除する。loopback drop-inを外して`systemctl --user daemon-reload`後にHermes Dashboardを再起動する。Open WebUI bannerは`~/.local/state/pda/rollback/openwebui-banners-before-kanban.json`の一覧へ戻す。Kanban DBのカードは表示導線と独立しているため、ロールバックで削除しない。
+
 ## ツール実行前の即時中間メッセージ
 
 - Hermes Runs APIの`message.interim`をOpenAI互換content chunkへ直ちに変換する。モデルが「短い計画」を出した時点でOpen WebUI本文へ表示し、同じrunを閉じずにtool実行と最終回答を続ける。

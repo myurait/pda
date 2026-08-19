@@ -1,0 +1,28 @@
+[Unit]
+Description=PDA tailnet Kanban dashboard prefix proxy
+After=network-online.target hermes-dashboard.service
+Wants=network-online.target hermes-dashboard.service
+
+[Service]
+Type=simple
+UMask=0077
+ExecStart=%h/.hermes/hermes-agent/venv/bin/python %h/.local/libexec/pda/dashboard_prefix_proxy.py --listen-host 127.0.0.1 --listen-port 9121 --upstream http://127.0.0.1:9119 --mount-prefix /hermes
+Restart=on-failure
+RestartSec=3s
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictRealtime=true
+RestrictAddressFamilies=AF_INET AF_UNIX
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=default.target
