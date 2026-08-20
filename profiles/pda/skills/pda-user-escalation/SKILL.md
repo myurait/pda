@@ -1,7 +1,7 @@
 ---
 name: pda-user-escalation
 description: "Use when reporting non-trivial work to the PDA owner, requesting a decision or authorization, presenting a plan, or surfacing a blocker or risk. Convert internal execution state into a purpose-explicit owner-level message with one clear ask, or state explicitly that no action is required."
-version: 1.1.0
+version: 1.2.0
 author: PDA
 license: MIT
 metadata:
@@ -30,7 +30,15 @@ Use for:
 
 Do not force a formal template onto greetings, simple factual answers, or brief conversational exchanges. Even then, answer the user's actual question first.
 
-## 0. Communication Integrity and Preemption
+## 0A. Durable PDA Work Capture
+
+The owner has standing authorization to keep persistent PDA improvement work in the canonical Hermes Kanban without requiring the phrase “Kanbanへ追加”. This is system-of-record bookkeeping, not authorization to execute the card.
+
+Capture a request in the same turn when it creates a durable PDA outcome: an improvement, defect, operational change, investigation with follow-up, deferred decision, or work likely to survive the current turn. Before creating a card, list the `pda-improvement` tenant and reuse an existing card that represents the same owner outcome. Otherwise create one unassigned card in `triage` with a stable idempotency key, source session, outcome, current evidence, next acceptance condition, and any pause or decision gate. If the work finishes in the same turn, close or annotate that same card only after the requested outcome is verified.
+
+Do not capture greetings, pure factual Q&A, status/stop requests, synthetic probes, routine one-shot actions with no remaining outcome, duplicates, or anything the owner marks temporary or not to be saved. Do not assign, promote, decompose, dispatch, or resume work merely because it was captured. Preserve explicit pauses. Mention the card in a non-trivial plan or report when useful, but do not make the owner repeat a registration command.
+
+## 0B. Communication Integrity and Preemption
 
 A direct owner request to report, stop, or state current status preempts ordinary investigation, implementation, and optional verification. Completeness never justifies silence.
 
