@@ -3,13 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
+import re
+import secrets
 import sqlite3
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
@@ -21,6 +25,19 @@ PLUGIN_NAME = "pda-approvals"
 WORKER_PROFILE = "default"
 WORKER_SKILL = "pda-autonomous-improvement"
 APPROVAL_SCHEMA = "PDA_OWNER_APPROVAL_V1"
+_ALLOWED_RISK_CLASSES = {
+    "local-reversible",
+    "service-restart",
+    "external-visible",
+    "security-sensitive",
+}
+_ALLOWED_FINALIZATION_KINDS = {
+    "merge-only",
+    "merge-and-restart",
+    "apply-artifacts",
+    "no-runtime-change",
+}
+_SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
 
 
 @dataclass(frozen=True)
@@ -225,33 +242,152 @@ def install_managed_files(
     }
 
 
+def _configured_basic_owner() -> str:
+    env_owner = os.environ.get("HERMES_DASHBOARD_BASIC_AUTH_USERNAME", "").strip()
+    if env_owner:
+        return env_owner
+    try:
+        from hermes_cli.config import cfg_get, load_config
+
+        section = cfg_get(load_config(), "dashboard", "basic_auth", default=None)
+    except Exception:
+        return ""
+    if not isinstance(section, dict):
+        return ""
+    return str(section.get("username") or "").strip()
+
+
+def _nonempty_string(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _string_list(value: Any, *, allow_empty: bool = True) -> bool:
+    return (
+        isinstance(value, list)
+        and (allow_empty or bool(value))
+        and all(_nonempty_string(item) for item in value)
+    )
+
+
+def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
+    errors: list[str] = []
+    if not isinstance(value, dict):
+        return ["pda_approval metadata is missing"]
+    if value.get("schema_version") != 1:
+        errors.append("schema_version must be 1")
+    if value.get("task_id") != task_id:
+        errors.append("task_id does not match the review card")
+    expected_branch = f"pda-auto/{task_id}"
+    if value.get("branch_name") != expected_branch:
+        errors.append(f"branch_name must be {expected_branch}")
+    for key in ("workspace_path", "git_common_dir", "git_dir"):
+        path_value = value.get(key)
+        if (
+            not _nonempty_string(path_value)
+            or not Path(str(path_value)).expanduser().is_absolute()
+        ):
+            errors.append(f"{key} must be an absolute path")
+    if value.get("git_common_dir") == value.get("git_dir"):
+        errors.append("git_dir must identify a linked worktree")
+    for key in ("owner_outcome", "impact"):
+        if not _nonempty_string(value.get(key)):
+            errors.append(f"{key} is required")
+    for key in ("base_sha", "head_sha"):
+        sha = value.get(key)
+        if not isinstance(sha, str) or _SHA_RE.fullmatch(sha) is None:
+            errors.append(f"{key} must be a full hexadecimal Git SHA")
+    changed_files = value.get("changed_files")
+    if not isinstance(changed_files, list) or not _string_list(changed_files):
+        errors.append("changed_files must be a string list")
+    elif len(set(changed_files)) != len(changed_files):
+        errors.append("changed_files must not contain duplicates")
+    else:
+        for changed in changed_files:
+            path = Path(changed)
+            if path.is_absolute() or ".." in path.parts or any(
+                ord(char) < 32 for char in changed
+            ):
+                errors.append("changed_files contains an unsafe path")
+                break
+    if not _string_list(value.get("residual_risks")):
+        errors.append("residual_risks must be a string list")
+    if value.get("risk_class") not in _ALLOWED_RISK_CLASSES:
+        errors.append("risk_class is invalid")
+    verification = value.get("verification")
+    if not isinstance(verification, list) or not verification:
+        errors.append("verification must contain at least one check")
+    else:
+        for index, check in enumerate(verification):
+            if not isinstance(check, dict):
+                errors.append(f"verification[{index}] must be an object")
+                continue
+            if not _nonempty_string(check.get("command")):
+                errors.append(f"verification[{index}].command is required")
+            if check.get("outcome") != "passed":
+                errors.append(f"verification[{index}] must have outcome=passed")
+    finalization = value.get("finalization")
+    if not isinstance(finalization, dict):
+        errors.append("finalization is required")
+    else:
+        if finalization.get("kind") not in _ALLOWED_FINALIZATION_KINDS:
+            errors.append("finalization.kind is invalid")
+        for key in ("targets", "steps", "rollback"):
+            if not _string_list(finalization.get(key), allow_empty=False):
+                errors.append(f"finalization.{key} must be a non-empty string list")
+    return errors
+
+
 def verify_owner_approval(
     conn,
     *,
     task_id: str,
     approval_id: str,
     digest: str,
+    activation_nonce: str | None = None,
 ) -> dict[str, Any]:
     task = kanban_db.get_task(conn, task_id)
     if task is None or task.tenant != "pda-improvement":
         raise ValueError("task is not a PDA improvement card")
     try:
         row = conn.execute(
-            "SELECT approval_id, task_id, digest, head_sha, review_run_id, approved_at "
+            "SELECT approval_id, task_id, digest, base_sha, head_sha, workspace_path, "
+            "branch_name, git_common_dir, git_dir, review_run_id, approved_at, "
+            "approved_by_provider, approved_by_user_id, activation_nonce, consumed_at "
             "FROM pda_owner_approvals WHERE approval_id = ? AND task_id = ? "
-            "AND digest = ? AND revoked_at IS NULL",
+            "AND digest = ? AND revoked_at IS NULL AND consumed_at IS NULL",
             (approval_id, task_id, digest),
         ).fetchone()
     except sqlite3.OperationalError as exc:
         raise ValueError("owner approval ledger is not installed") from exc
     if row is None:
         raise ValueError("no matching owner approval was found in the control ledger")
+    configured_owner = _configured_basic_owner()
+    if not configured_owner:
+        raise ValueError("configured owner identity is unavailable")
+    if (
+        row["approved_by_provider"] != "basic"
+        or not secrets.compare_digest(
+            str(row["approved_by_user_id"] or ""),
+            configured_owner,
+        )
+    ):
+        raise ValueError("owner approval ledger entry does not match the configured owner")
+    row_nonce = str(row["activation_nonce"] or "")
+    if activation_nonce is None and row_nonce:
+        raise ValueError("owner approval activation is already in progress")
+    if activation_nonce is not None and not secrets.compare_digest(row_nonce, activation_nonce):
+        raise ValueError("owner approval activation claim does not match")
     return {
         "schema": APPROVAL_SCHEMA,
         "approval_id": row["approval_id"],
         "task_id": row["task_id"],
         "digest": row["digest"],
+        "base_sha": row["base_sha"],
         "head_sha": row["head_sha"],
+        "workspace_path": row["workspace_path"],
+        "branch_name": row["branch_name"],
+        "git_common_dir": row["git_common_dir"],
+        "git_dir": row["git_dir"],
         "review_run_id": int(row["review_run_id"]),
         "approved_at": int(row["approved_at"]),
     }
@@ -291,6 +427,9 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     approval = metadata.get("pda_approval") if isinstance(metadata, dict) else None
     if not isinstance(approval, dict):
         raise ValueError("approved task has no pda_approval metadata")
+    contract_errors = _validate_approval_contract(task_id, approval)
+    if contract_errors:
+        raise ValueError("approved approval contract is invalid: " + "; ".join(contract_errors))
     actual_digest = hashlib.sha256(
         json.dumps(
             approval,
@@ -305,14 +444,91 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
         raise ValueError("approved review run has drifted")
     if approval.get("head_sha") != marker.get("head_sha"):
         raise ValueError("approved review head has drifted")
+    for key in (
+        "base_sha",
+        "workspace_path",
+        "branch_name",
+        "git_common_dir",
+        "git_dir",
+    ):
+        if approval.get(key) != marker.get(key):
+            raise ValueError(f"approved review {key} has drifted")
     if not task.workspace_path:
         raise ValueError("approved task has no workspace")
     workspace = Path(task.workspace_path).expanduser()
+    declared_workspace = Path(str(approval.get("workspace_path") or "")).expanduser()
+    lexical_workspace = Path(os.path.abspath(workspace))
+    real_workspace = Path(os.path.realpath(workspace))
+    if lexical_workspace != real_workspace:
+        raise ValueError("approved workspace path contains a symlink")
+    if (
+        not declared_workspace.is_absolute()
+        or lexical_workspace != Path(os.path.abspath(declared_workspace))
+    ):
+        raise ValueError("approved workspace path has drifted")
+    expected_branch = f"pda-auto/{task_id}"
+    if approval.get("branch_name") != expected_branch or task.branch_name != expected_branch:
+        raise ValueError("approved task branch has drifted")
+    top = Path(
+        _run(["git", "-C", str(workspace), "rev-parse", "--show-toplevel"], timeout=30)
+    ).resolve()
+    if top != workspace.resolve():
+        raise ValueError("approved workspace is not the worktree root")
+    git_dir = Path(
+        _run(["git", "-C", str(workspace), "rev-parse", "--git-dir"], timeout=30)
+    )
+    common_dir = Path(
+        _run(["git", "-C", str(workspace), "rev-parse", "--git-common-dir"], timeout=30)
+    )
+    resolved_git_dir = (
+        git_dir if git_dir.is_absolute() else workspace / git_dir
+    ).resolve()
+    resolved_common_dir = (
+        common_dir if common_dir.is_absolute() else workspace / common_dir
+    ).resolve()
+    if resolved_git_dir == resolved_common_dir:
+        raise ValueError("approved workspace is not a linked worktree")
+    if str(resolved_git_dir) != approval.get("git_dir"):
+        raise ValueError("approved workspace git_dir has drifted")
+    if str(resolved_common_dir) != approval.get("git_common_dir"):
+        raise ValueError("approved workspace git_common_dir has drifted")
+    actual_branch = _run(
+        ["git", "-C", str(workspace), "branch", "--show-current"], timeout=30
+    )
+    if actual_branch != expected_branch:
+        raise ValueError("approved workspace branch has drifted")
     head = _run(["git", "-C", str(workspace), "rev-parse", "HEAD"], timeout=30)
     if head != marker.get("head_sha"):
         raise ValueError("approved workspace HEAD has drifted")
     if _run(["git", "-C", str(workspace), "status", "--porcelain"], timeout=30):
         raise ValueError("approved workspace is dirty")
+    base = str(approval["base_sha"])
+    ancestry = subprocess.run(
+        ["git", "-C", str(workspace), "merge-base", "--is-ancestor", base, head],
+        check=False,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        timeout=30,
+    )
+    if ancestry.returncode != 0:
+        raise ValueError("approved base_sha is not an ancestor of head_sha")
+    diff = subprocess.run(
+        ["git", "-C", str(workspace), "diff", "--name-only", "-z", base, head],
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+    )
+    if diff.returncode != 0:
+        raise ValueError("approved Git changed-file verification failed")
+    try:
+        actual_files = sorted(
+            item.decode("utf-8") for item in diff.stdout.split(b"\0") if item
+        )
+    except UnicodeDecodeError as exc:
+        raise ValueError("approved Git diff contains a non-UTF-8 path") from exc
+    if actual_files != sorted(approval["changed_files"]):
+        raise ValueError("approved changed_files do not match the Git diff")
 
 
 def _run(
@@ -495,6 +711,21 @@ def rollback_runtime(
     return result
 
 
+@contextlib.contextmanager
+def _control_board(paths: RuntimePaths):
+    old_home = os.environ.get("HERMES_HOME")
+    os.environ["HERMES_HOME"] = str(paths.hermes_home)
+    try:
+        kanban_db.init_db()
+        with kanban_db.connect_closing() as conn:
+            yield conn
+    finally:
+        if old_home is None:
+            os.environ.pop("HERMES_HOME", None)
+        else:
+            os.environ["HERMES_HOME"] = old_home
+
+
 def check_approval_runtime(
     paths: RuntimePaths,
     *,
@@ -502,12 +733,27 @@ def check_approval_runtime(
     approval_id: str,
     digest: str,
 ) -> dict[str, Any]:
-    # Always use the shared control home rather than any ambient profile path.
-    old_home = os.environ.get("HERMES_HOME")
-    os.environ["HERMES_HOME"] = str(paths.hermes_home)
-    try:
-        kanban_db.init_db()
-        with kanban_db.connect_closing() as conn:
+    with _control_board(paths) as conn:
+        marker = verify_owner_approval(
+            conn,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+        )
+        _verify_approved_artifact(conn, task_id, marker)
+    return {"ok": True, "mode": "checked", "approval": marker}
+
+
+def _claim_approval_activation(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+) -> str:
+    nonce = "act_" + secrets.token_hex(16)
+    with _control_board(paths) as conn:
+        with kanban_db.write_txn(conn):
             marker = verify_owner_approval(
                 conn,
                 task_id=task_id,
@@ -515,12 +761,90 @@ def check_approval_runtime(
                 digest=digest,
             )
             _verify_approved_artifact(conn, task_id, marker)
-    finally:
-        if old_home is None:
-            os.environ.pop("HERMES_HOME", None)
-        else:
-            os.environ["HERMES_HOME"] = old_home
-    return {"ok": True, "mode": "checked", "approval": marker}
+            updated = conn.execute(
+                "UPDATE pda_owner_approvals SET activation_nonce = ?, "
+                "activation_started_at = ? WHERE approval_id = ? AND task_id = ? "
+                "AND digest = ? AND revoked_at IS NULL AND consumed_at IS NULL "
+                "AND activation_nonce IS NULL",
+                (nonce, int(time.time()), approval_id, task_id, digest),
+            )
+            if updated.rowcount != 1:
+                raise ValueError("owner approval activation claim raced or was consumed")
+    return nonce
+
+
+def _recheck_activation_claim(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+    activation_nonce: str,
+) -> dict[str, Any]:
+    with _control_board(paths) as conn:
+        marker = verify_owner_approval(
+            conn,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+            activation_nonce=activation_nonce,
+        )
+        _verify_approved_artifact(conn, task_id, marker)
+    return marker
+
+
+def _finish_activation_claim(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+    activation_nonce: str,
+) -> None:
+    with _control_board(paths) as conn:
+        with kanban_db.write_txn(conn):
+            marker = verify_owner_approval(
+                conn,
+                task_id=task_id,
+                approval_id=approval_id,
+                digest=digest,
+                activation_nonce=activation_nonce,
+            )
+            _verify_approved_artifact(conn, task_id, marker)
+            updated = conn.execute(
+                "UPDATE pda_owner_approvals SET consumed_at = ?, activation_nonce = NULL "
+                "WHERE approval_id = ? AND task_id = ? AND digest = ? "
+                "AND activation_nonce = ? AND revoked_at IS NULL AND consumed_at IS NULL",
+                (
+                    int(time.time()),
+                    approval_id,
+                    task_id,
+                    digest,
+                    activation_nonce,
+                ),
+            )
+            if updated.rowcount != 1:
+                raise ValueError("owner approval activation completion lost its claim")
+
+
+def _release_activation_claim(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+    activation_nonce: str,
+) -> None:
+    with _control_board(paths) as conn:
+        with kanban_db.write_txn(conn):
+            updated = conn.execute(
+                "UPDATE pda_owner_approvals SET activation_nonce = NULL, "
+                "activation_started_at = NULL WHERE approval_id = ? AND task_id = ? "
+                "AND digest = ? AND activation_nonce = ? AND consumed_at IS NULL",
+                (approval_id, task_id, digest, activation_nonce),
+            )
+            if updated.rowcount != 1:
+                raise ValueError("owner approval activation rollback lost its claim")
 
 
 def activate_runtime(
@@ -544,10 +868,25 @@ def activate_runtime(
     desired_cron = _desired_daily_reconciler_state(repo_root)
     cron_attempted = False
     active_files_written = False
+    activation_nonce: str | None = None
+    activation_finished = False
     try:
         # The staged timer is stopped while policy and runtime state cross the
         # approval boundary, so no tick can observe a half-applied activation.
         _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+        rechecked = check_approval_runtime(
+            paths,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+        )
+        marker = rechecked["approval"]
+        activation_nonce = _claim_approval_activation(
+            paths,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+        )
         cron_attempted = True
         _apply_daily_reconciler_state(desired_cron, paths, hermes_bin)
         result = install_managed_files(
@@ -560,6 +899,13 @@ def activate_runtime(
         _enable_dashboard_plugin(paths, hermes_bin)
         _set_human_review(paths, hermes_bin)
         _run(["systemctl", "--user", "daemon-reload"])
+        marker = _recheck_activation_claim(
+            paths,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+            activation_nonce=activation_nonce,
+        )
         _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
         _run(["systemctl", "--user", "start", "pda-improvement-cycle.service"])
         service_result = _run(
@@ -575,6 +921,21 @@ def activate_runtime(
         )
         if service_result != "success":
             raise RuntimeError(f"improvement-cycle service result is {service_result!r}")
+        marker = _recheck_activation_claim(
+            paths,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+            activation_nonce=activation_nonce,
+        )
+        _finish_activation_claim(
+            paths,
+            task_id=task_id,
+            approval_id=approval_id,
+            digest=digest,
+            activation_nonce=activation_nonce,
+        )
+        activation_finished = True
     except Exception as exc:
         rollback_errors: list[str] = []
         if active_files_written:
@@ -587,10 +948,33 @@ def activate_runtime(
                 _apply_daily_reconciler_state(prior_cron, paths, hermes_bin)
             except Exception as rollback_exc:
                 rollback_errors.append(f"cron rollback failed: {rollback_exc}")
-        try:
-            _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
-        except Exception as rollback_exc:
-            rollback_errors.append(f"timer recovery failed: {rollback_exc}")
+        if rollback_errors:
+            try:
+                _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+            except Exception as rollback_exc:
+                rollback_errors.append(f"timer stop after rollback conflict failed: {rollback_exc}")
+        else:
+            try:
+                _run(
+                    ["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"]
+                )
+            except Exception as rollback_exc:
+                rollback_errors.append(f"timer recovery failed: {rollback_exc}")
+        if (
+            activation_nonce is not None
+            and not activation_finished
+            and not rollback_errors
+        ):
+            try:
+                _release_activation_claim(
+                    paths,
+                    task_id=task_id,
+                    approval_id=approval_id,
+                    digest=digest,
+                    activation_nonce=activation_nonce,
+                )
+            except Exception as rollback_exc:
+                rollback_errors.append(f"approval-claim rollback failed: {rollback_exc}")
         if rollback_errors:
             raise RuntimeError(f"activation failed: {exc}; " + "; ".join(rollback_errors)) from exc
         raise

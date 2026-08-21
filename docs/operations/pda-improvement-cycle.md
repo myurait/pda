@@ -55,13 +55,13 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 - 30分周期の決定論的routerが、WIP上限2件で優先度順に1件ずつ選ぶ。空queueの確認にmodel turnを使わない。
 - task ID固有の`pda-auto/<task_id>` branchと専用worktreeを作り、`default` profileのfresh Kanban workerへ割り当てる。
 - workerはforced skill `pda-autonomous-improvement`に従い、当該worktree内の実装、focused test、local commit、承認handoffを行う。
-- `pda_approval`にはbase/head SHA、変更ファイル、実際に通った検証、影響、残存リスク、反映対象・手順・rollbackを含める。検証失敗やdirty worktreeは承認可能にしない。
+- `pda_approval`にはbase/head SHA、exact non-symlink linked-worktree path、canonical Git common-dir/worktree git-dir identity、`pda-auto/<task_id>` branch、変更ファイル、実際に通った検証、影響、残存リスク、反映対象・手順・rollbackを含める。検証失敗やdirty worktreeは承認可能にしない。
 
 ### Phase 2: 最終承認後だけ実行する
 
 - Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
-- APIは最新review handoffのcanonical SHA-256 digest、task ID、cleanな実Git HEADを照合する。不一致ならfail closedでカードを動かさない。
-- 承認時は同じKanban DB内のplugin専用ledgerへtask/run/digest/headを記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。workerはledgerと一致するmarkerと承認済みheadがある場合だけ、表示済みfinalization contractを実行する。
+- APIは現在のbasic-auth owner sessionだけに承認・差戻しを許し、最新review handoffのcanonical SHA-256 digest、task ID、full approval contract、exact non-symlink linked-worktree path、canonical Git common/worktree identity、`pda-auto/<task_id>` branch、base/diff、cleanな実Git HEADをtransaction内でも再照合する。不一致ならfail closedでカードを動かさない。
+- 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。activationはledger rowをnonceで排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。
 - 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 
 ### 承認があっても暗黙には拡大しない

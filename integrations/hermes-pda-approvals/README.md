@@ -5,8 +5,8 @@ This integration turns the `pda-improvement` Hermes Kanban tenant into a two-pha
 1. a deterministic 30-minute router assigns Ready cards to a fresh task-scoped worker of the `default` profile in task-specific Git worktrees;
 2. the forced `pda-autonomous-improvement` skill limits the worker to implementation, focused tests, and a local task-branch commit;
 3. the worker requests review with a structured `pda_approval` handoff;
-4. the Dashboard `承認` tab verifies the handoff digest and the clean real Git HEAD;
-5. only owner approval reopens the card for the displayed finalization contract.
+4. the Dashboard `承認` tab verifies the handoff digest, exact non-symlink linked-worktree path, canonical Git common/worktree identities, exact `pda-auto/<task-id>` branch, base/diff, and clean real Git HEAD;
+5. only the configured basic-auth owner session can approve or request changes and reopen the card for the displayed finalization contract.
 
 The approval queue and its control-owned approval ledger are stored in the same Hermes Kanban DB. It does not create a second task database. Human-readable comments are notifications only and cannot authorize activation by themselves.
 
@@ -51,7 +51,7 @@ python operations/improvement/install.py --activate \
   --digest <64-lowercase-hex>
 ```
 
-The installer re-reads the shared Kanban DB and refuses activation unless task, author, schema, approval ID, digest, latest review run, forced skill, and clean Git HEAD all match. It stops the staged timer, captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot, applies the new Cron and enabled runtime atomically, and runs one deterministic routing tick. A failed activation restores disabled runtime state and the prior Cron before restarting the no-op timer.
+The installer re-reads the shared Kanban DB and refuses activation unless configured owner identity, task/schema, approval ID, digest, latest review run, full approval contract, forced skill, canonical worktree/Git identity, base/diff, and clean Git HEAD all match. After stopping the staged timer it rechecks, claims the approval with an exclusive activation nonce, rechecks before enabling the timer and after the first service tick, and consumes that approval exactly once. While claimed, revocation and duplicate activation fail closed. It captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot and applies the new Cron/runtime transactionally. A failed activation restores disabled runtime state and the prior Cron; it releases the claim only after a complete rollback, leaving a conflicted partial rollback locked for operator recovery.
 
 The approved rollback is executable and does not require reconstructing the old Cron by hand:
 
@@ -66,7 +66,7 @@ python operations/improvement/install.py --rollback-activation --repo /home/user
 - WIP is capped at two; only one new assignment occurs per tick.
 - Assignment is the last routing write, after the exact worktree, branch, skill, and audit comment are durable.
 - Existing non-matching worktree paths or branches fail closed; they are never reset, removed, or adopted heuristically.
-- Approval requires valid structured metadata, all verification outcomes passed, a clean worktree, matching full Git HEAD, and base ancestry.
+- Approval requires the configured basic-auth owner identity (env-wins, config fallback), valid structured metadata, all verification outcomes passed, a clean non-symlink linked worktree, exact task-bound path, canonical Git common/worktree identities and `pda-auto/<task-id>` branch, matching full Git HEAD, base ancestry, and exact changed-files diff.
 - Approval does not authorize any step or target absent from the displayed finalization contract.
 - Drift requires a new commit, digest, and approval.
 - Profile `SOUL.md` is not modified; policy is force-loaded per task.

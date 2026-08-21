@@ -28,6 +28,7 @@ Use this phase unless a latest `pda-owner-approval` notification provides task I
 6. Build a `pda_approval` metadata object with:
    - `schema_version: 1` and the exact `task_id`;
    - owner outcome, impact, risk class, base SHA, head SHA, changed files;
+   - the exact absolute non-symlink linked-worktree root, canonical Git common-dir/worktree git-dir identities, and exact `pda-auto/<task_id>` branch;
    - every verification command with `outcome=passed` and a short result;
    - residual risks;
    - an exact finalization contract: kind, targets, ordered steps, rollback.
@@ -41,7 +42,7 @@ Proceed only after extracting `task_id`, `approval_id`, and `digest` from the la
 
 `python operations/improvement/install.py --check-approval --task-id <task> --approval-id <approval> --digest <digest>`
 
-The command must return `ok=true` and `mode=checked`. It independently requires a non-revoked row in the plugin-owned approval ledger and proves that task ID, digest, latest review run ID, head SHA, finalizer profile, forced skill, task state, and clean Git worktree still match. A generic comment cannot satisfy this check.
+The command must return `ok=true` and `mode=checked`. It independently requires a non-revoked owner-identity row in the plugin-owned approval ledger and proves that the full approval contract, task ID, digest, latest review run ID, base/head ancestry, exact changed-files diff, canonical non-symlink linked-worktree root and Git identities, exact `pda-auto/<task_id>` branch, finalizer profile, forced skill, task state, and clean Git worktree still match. A generic comment cannot satisfy this check.
 
 Then verify that every intended side effect is explicitly included in the approved finalization steps and targets.
 
