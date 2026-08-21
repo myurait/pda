@@ -2,9 +2,9 @@
 
 ## 目的
 
-PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本として継続的に整理する。オーナーは「Kanbanへ追加」と毎回明記する必要がない。
+PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本として捕捉し、隔離worktreeで実装・検証し、最終反映だけをオーナー承認へ送る。オーナーは「Kanbanへ追加」や「このカードへ着手」と毎回明記する必要がない。
 
-この仕組みは、依頼の記録・具体化・優先候補の可視化を自動化する。カードを作った事実だけでは、実装、worker割当、デプロイ、再起動、外部送信の許可にはならない。
+カード登録だけではmain統合、push、デプロイ、再起動、外部送信の許可にはならない。一方、停止条件のない具体的なReadyカードは、専用workerが隔離branch内で実装・テスト・local commitまで自動実行する。承認リストでdigest-boundな最終承認が記録されて初めて、表示済みの反映手順だけを実行できる。
 
 ## 正本と既定値
 
@@ -41,46 +41,50 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 1. 直近のowner request-bearing sessionと`pda-improvement`のopen cardを読む。
 2. 即時捕捉から漏れた持続的な依頼を、未割当`triage`として追加する。
 3. 重複候補は削除せず、正本候補と差分をコメントに残す。
-4. 最大3件の`triage`について、目的、受入条件、次の一手、判断ゲートを日次具体化コメントとして補う。
-5. `running`の停滞、繰り返し失敗、owner input待ち、優先順位衝突を抽出する。推測で状態を閉じたり再開したりしない。
-6. その日の変更、未解決リスク、次に進める候補を監査カードへJST日付付きで1コメントだけ残す。
+4. 最大3件の`triage`をHermes specifierで具体化し、目的、受入条件、非目標、検証方法、最終反映対象が十分で停止・価値判断ゲートがなければ`ready`へ進める。
+5. `running`の停滞、繰り返し失敗、`review`の承認待ち、branch衝突を抽出する。明示的な停止中カードは再開しない。
+6. その日の変更、実行中、承認待ち、未解決リスク、次候補を監査カードへJST日付付きで1コメントだけ残す。
 
 同一日の再実行は既存の日次コメントを読み、カードとコメントを重複させない。
 
-## 自動改善の段階
+## 二段階実行契約
 
-### 段階A: 自動実行する
+### Phase 1: 承認前に自動実行する
 
-- 依頼の捕捉と重複抑止
-- 状態・依存・停止ゲートの整合確認
-- Triageの具体化と受入条件の補足
-- 次に進める1候補の提示
-- 日次監査記録
+- 依頼捕捉、重複抑止、Triage具体化、依存・停止ゲート整合、Ready化、日次監査。
+- 30分周期の決定論的routerが、WIP上限2件で優先度順に1件ずつ選ぶ。空queueの確認にmodel turnを使わない。
+- task ID固有の`pda-auto/<task_id>` branchと専用worktreeを作り、`default` profileのfresh Kanban workerへ割り当てる。
+- workerはforced skill `pda-autonomous-improvement`に従い、当該worktree内の実装、focused test、local commit、承認handoffを行う。
+- `pda_approval`にはbase/head SHA、変更ファイル、実際に通った検証、影響、残存リスク、反映対象・手順・rollbackを含める。検証失敗やdirty worktreeは承認可能にしない。
 
-### 段階B: 明示的な実行許可または割当後に実行する
+### Phase 2: 最終承認後だけ実行する
 
-- コード、設定、スキル、運用文書の変更
-- workerの割当、`ready`への昇格、自動分解
-- サービス再起動、cutover、外部公開、通知経路変更
+- Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
+- APIは最新review handoffのcanonical SHA-256 digest、task ID、cleanな実Git HEADを照合する。不一致ならfail closedでカードを動かさない。
+- 承認時はauthor `pda-owner-approval`のcontrol-owned markerを残して同じカードをReadyへ戻す。workerはmarkerと承認済みheadが一致する場合だけ、表示済みfinalization contractを実行する。
+- 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 
-### 自動実行しない
+### 承認があっても暗黙には拡大しない
 
-- 認証・秘密情報・課金・外部送信の変更
-- データ削除、履歴破壊、不可逆操作
-- 他の進行中worktreeの変更、merge、reset、stash
-- 明示的に停止中のカードの再開
+- 承認payloadにない認証・秘密・課金・外部送信、データ削除、履歴破壊、不可逆操作。
+- 他の進行中worktreeの変更、reset、stash、無関係なmerge・repair・audit。
+- 明示的に停止中のカードの再開。
+- 承認後に必要と判明した追加変更。これは新しいhead/digestで再承認する。
 
 ## WIPと失敗時の扱い
 
-- 自動具体化は1日3件まで、推奨する次カードは1件までとする。
+- 自動具体化は1日3件まで、実装WIPは2件、1回のrouter tickで新規割当は1件までとする。
 - 同一操作を2回失敗したら戦略を変え、反復しない。
 - 日次処理が完遂できない場合も、確認できた事実と障害だけを監査カードへ残す。
-- 日次処理の失敗は既存カードの状態を自動変更する根拠にしない。
+- 日次処理の失敗は既存カードを完了・削除する根拠にしない。routerの衝突・profile欠落は未割当のままfail closedにする。
 
 ## 検証条件
 
 - 通常会話の継続ルールに即時捕捉基準が存在する。
 - 日次Cronがenabledで、次回実行時刻が06:00 JSTとして計算される。
 - 手動試験で、同じ日付の再実行がカードまたは日次コメントを重複生成しない。
-- 新規捕捉カードが未割当で、登録だけではworkerが起動しない。
+- 新規捕捉カードは未割当triageで、具体化されReadyになるまでworkerが起動しない。
 - 毎日の結果がKanban監査カードから追跡できる。
+- 承認前workerが他worktree、main、runtimeへ書かないことを回帰試験で証明する。
+- digestまたはGit HEADが変わった承認要求が拒否され、正しい承認だけが専用workerへ再割当される。
+- stage導入ではruntime configが`enabled=false`で、承認後activationだけが`enabled=true`にする。

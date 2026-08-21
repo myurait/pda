@@ -41,6 +41,40 @@
         "protects_against_host_or_disk_loss": false,
         "off_host_export": "deferred"
       }
+    },
+    {
+      "id": "autonomous-pda-improvement",
+      "status": "managed-desired-state",
+      "desired_status": "active-after-owner-approval",
+      "class": "self-improvement",
+      "owner_intent": "PDA改善カードを隔離実装・検証し、最終反映だけを承認リストへ送る。",
+      "policy_source": "continuity/autonomous-improvement.json",
+      "runtime_units": [
+        "pda-improvement-cycle.service",
+        "pda-improvement-cycle.timer"
+      ],
+      "schedule": {
+        "router_interval_minutes": 30,
+        "daily_reconciliation_local_time": "06:00:00",
+        "timezone": "Asia/Tokyo"
+      },
+      "safety": {
+        "implementation_wip": 2,
+        "isolated_worktree_required": true,
+        "finalization_requires_digest_bound_owner_approval": true,
+        "stopped_cards_are_ineligible": true
+      },
+      "observed_status": {
+        "source": "dashboard approval E2E + systemd timer + real Kanban worker cycle",
+        "stored_in_git": false,
+        "activation_requires": [
+          "approval-plugin-live",
+          "human-review-dispatch-disabled",
+          "staged-config-disabled-before-approval",
+          "owner-approved-activation",
+          "real-card-reaches-review-without-main-or-runtime-mutation"
+        ]
+      }
     }
   ]
 }

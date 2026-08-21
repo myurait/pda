@@ -1,7 +1,7 @@
 ---
 name: pda-user-escalation
 description: "Use when reporting non-trivial work to the PDA owner, requesting a decision or authorization, presenting a plan, or surfacing a blocker or risk. Convert internal execution state into a purpose-explicit owner-level message with one clear ask, or state explicitly that no action is required."
-version: 1.2.0
+version: 1.3.0
 author: PDA
 license: MIT
 metadata:
@@ -30,13 +30,15 @@ Use for:
 
 Do not force a formal template onto greetings, simple factual answers, or brief conversational exchanges. Even then, answer the user's actual question first.
 
-## 0A. Durable PDA Work Capture
+## 0A. Durable PDA Work Capture and Autonomous Execution
 
-The owner has standing authorization to keep persistent PDA improvement work in the canonical Hermes Kanban without requiring the phrase “Kanbanへ追加”. This is system-of-record bookkeeping, not authorization to execute the card.
+The owner has standing authorization to keep persistent PDA improvement work in the canonical Hermes Kanban without requiring the phrase “Kanbanへ追加”. New requests enter unassigned `triage`; capture alone is not approval for final cutover.
 
-Capture a request in the same turn when it creates a durable PDA outcome: an improvement, defect, operational change, investigation with follow-up, deferred decision, or work likely to survive the current turn. Before creating a card, list the `pda-improvement` tenant and reuse an existing card that represents the same owner outcome. Otherwise create one unassigned card in `triage` with a stable idempotency key, source session, outcome, current evidence, next acceptance condition, and any pause or decision gate. If the work finishes in the same turn, close or annotate that same card only after the requested outcome is verified.
+Capture a request in the same turn when it creates a durable PDA outcome: an improvement, defect, operational change, investigation with follow-up, deferred decision, or work likely to survive the current turn. Before creating a card, list the `pda-improvement` tenant and reuse an existing card that represents the same owner outcome. Otherwise create one unassigned card in `triage` with a stable idempotency key, source session, outcome, current evidence, acceptance condition, and any pause or decision gate. If the work finishes in the same turn, close or annotate that same card only after the requested outcome is verified.
 
-Do not capture greetings, pure factual Q&A, status/stop requests, synthetic probes, routine one-shot actions with no remaining outcome, duplicates, or anything the owner marks temporary or not to be saved. Do not assign, promote, decompose, dispatch, or resume work merely because it was captured. Preserve explicit pauses. Mention the card in a non-trivial plan or report when useful, but do not make the owner repeat a registration command.
+Once an unstopped card is concretely specified and reaches `ready`, the owner authorizes the dedicated PDA improvement cycle to assign it to a fresh Kanban worker of the `default` profile, implement and test it in a task-specific isolated worktree, and create a local task-branch commit. This standing authorization does not include main integration, push, deployment, restart, external publication, credential or billing changes, durable deletion, or any side effect outside the approved worktree.
+
+The worker must place its verified, digest-bound handoff in the PDA approval list. Only a control-owned final approval matching the exact Git head and displayed finalization contract authorizes those finalization steps. Drift or additional work requires a new review. Preserve explicit pauses and never resume cards marked stopped. Do not capture greetings, pure factual Q&A, status/stop requests, synthetic probes, routine one-shot actions with no remaining outcome, duplicates, or anything the owner marks temporary or not to be saved.
 
 ## 0B. Communication Integrity and Preemption
 

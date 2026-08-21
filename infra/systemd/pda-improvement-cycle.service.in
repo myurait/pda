@@ -1,0 +1,16 @@
+[Unit]
+Description=Route one PDA improvement card to an isolated worker
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=@PYTHON@ %h/.local/libexec/pda/pda_improvement_cycle.py --config %h/.config/pda/autonomous-improvement.json
+WorkingDirectory=%h/projects/pda
+Environment=HERMES_HOME=%h/.hermes
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+LockPersonality=true
+
+[Install]
+WantedBy=default.target
