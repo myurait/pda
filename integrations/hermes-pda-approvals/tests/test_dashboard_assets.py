@@ -8,6 +8,8 @@ ROOT = Path(__file__).parents[1]
 
 
 def test_manifest_registers_approval_tab_and_authenticated_backend():
+    agent_manifest = (ROOT / "plugin.yaml").read_text(encoding="utf-8")
+    assert "name: pda-approvals" in agent_manifest
     manifest = json.loads((ROOT / "dashboard" / "manifest.json").read_text(encoding="utf-8"))
 
     assert manifest["name"] == "pda-approvals"

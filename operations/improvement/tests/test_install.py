@@ -12,6 +12,7 @@ from hermes_cli import kanban_db
 
 from operations.improvement.install import (
     RuntimePaths,
+    _resolve_python_executable,
     _verify_approved_artifact,
     install_managed_files,
     verify_owner_approval,
@@ -43,6 +44,17 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def test_default_systemd_python_is_the_hermes_venv(tmp_path):
+    hermes_home = tmp_path / ".hermes"
+    python_path = hermes_home / "hermes-agent" / "venv" / "bin" / "python"
+    python_path.parent.mkdir(parents=True)
+    python_path.symlink_to(Path(sys.executable))
+
+    assert _resolve_python_executable(hermes_home, None) == python_path.absolute()
+    with pytest.raises(ValueError, match="Hermes Python executable is missing"):
+        _resolve_python_executable(tmp_path / "missing", None)
+
+
 def test_stage_install_is_idempotent_and_keeps_executor_disabled(tmp_path):
     paths = _paths(tmp_path)
 
@@ -54,6 +66,8 @@ def test_stage_install_is_idempotent_and_keeps_executor_disabled(tmp_path):
     runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
     assert runtime["enabled"] is False
     assert runtime["max_wip"] == 2
+    assert (paths.plugin_root / "plugin.yaml").is_file()
+    assert (paths.plugin_root / "__init__.py").is_file()
     assert (paths.plugin_root / "dashboard" / "manifest.json").is_file()
     assert (paths.plugin_root / "dashboard" / "plugin_api.py").is_file()
     assert (paths.hermes_home / "skills" / "pda-autonomous-improvement" / "SKILL.md").is_file()

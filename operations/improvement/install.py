@@ -76,6 +76,7 @@ def _read_bytes(path: Path) -> bytes:
 def _managed_payloads(repo_root: Path, paths: RuntimePaths, activate: bool) -> list[_Payload]:
     repo_root = repo_root.resolve()
     dashboard = repo_root / "integrations" / "hermes-pda-approvals" / "dashboard"
+    integration = dashboard.parent
     skill = repo_root / "profiles" / "pda" / "skills" / WORKER_SKILL / "SKILL.md"
     escalation_skill = (
         repo_root / "profiles" / "pda" / "skills" / "pda-user-escalation" / "SKILL.md"
@@ -91,6 +92,16 @@ def _managed_payloads(repo_root: Path, paths: RuntimePaths, activate: bool) -> l
     service = service_template.replace("@PYTHON@", str(paths.python_executable))
 
     files: list[tuple[Path, Path, int]] = [
+        (
+            integration / "plugin.yaml",
+            paths.plugin_root / "plugin.yaml",
+            0o644,
+        ),
+        (
+            integration / "__init__.py",
+            paths.plugin_root / "__init__.py",
+            0o644,
+        ),
         (
             repo_root / "operations" / "improvement" / "pda_improvement_cycle.py",
             paths.libexec / "pda_improvement_cycle.py",
@@ -121,13 +132,11 @@ def _managed_payloads(repo_root: Path, paths: RuntimePaths, activate: bool) -> l
             paths.hermes_home / "skills" / WORKER_SKILL / "SKILL.md",
             0o644,
         ),
-
         (
             escalation_skill,
             paths.hermes_home / "skills" / "pda-user-escalation" / "SKILL.md",
             0o644,
         ),
-
         (
             repo_root / "infra" / "systemd" / "pda-improvement-cycle.timer",
             paths.systemd_user / "pda-improvement-cycle.timer",
@@ -329,6 +338,13 @@ def _default_env(paths: RuntimePaths) -> dict[str, str]:
     return env
 
 
+def _enable_dashboard_plugin(paths: RuntimePaths, hermes_bin: str) -> None:
+    _run(
+        [hermes_bin, "plugins", "enable", PLUGIN_NAME, "--no-allow-tool-override"],
+        env=_default_env(paths),
+    )
+
+
 def _set_human_review(paths: RuntimePaths, hermes_bin: str) -> None:
     _run(
         [hermes_bin, "config", "set", "kanban.review_dispatch", "false"],
@@ -375,6 +391,7 @@ def stage_runtime(
     hermes_bin: str = "hermes",
 ) -> dict[str, Any]:
     result = install_managed_files(repo_root, paths, activate=False)
+    _enable_dashboard_plugin(paths, hermes_bin)
     _set_human_review(paths, hermes_bin)
     _run(["systemctl", "--user", "daemon-reload"])
     _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
@@ -426,6 +443,7 @@ def activate_runtime(
         activate=True,
         approval_marker=marker,
     )
+    _enable_dashboard_plugin(paths, hermes_bin)
     _set_human_review(paths, hermes_bin)
     _update_daily_reconciler(repo_root, paths, hermes_bin)
     _run(["systemctl", "--user", "daemon-reload"])
@@ -446,6 +464,21 @@ def activate_runtime(
     return result
 
 
+def _resolve_python_executable(
+    hermes_home: Path,
+    override: str | None,
+) -> Path:
+    candidate = (
+        Path(override).expanduser()
+        if override
+        else hermes_home / "hermes-agent" / "venv" / "bin" / "python"
+    )
+    candidate = Path(os.path.abspath(candidate))
+    if not candidate.is_file():
+        raise ValueError(f"Hermes Python executable is missing: {candidate}")
+    return candidate
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
@@ -454,7 +487,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", default=str(Path(__file__).parents[2]))
     parser.add_argument("--home", default=str(Path.home()))
     parser.add_argument("--hermes-home", default=None)
-    parser.add_argument("--python", default=sys.executable)
+    parser.add_argument("--python", default=None)
     parser.add_argument("--hermes-bin", default="hermes")
     parser.add_argument("--task-id")
     parser.add_argument("--approval-id")
@@ -470,7 +503,7 @@ def main(argv: list[str] | None = None) -> int:
     paths = RuntimePaths(
         home=home,
         hermes_home=hermes_home,
-        python_executable=Path(args.python).expanduser().resolve(),
+        python_executable=_resolve_python_executable(hermes_home, args.python),
     )
     repo_root = Path(args.repo).expanduser().resolve()
     try:
