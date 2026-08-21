@@ -61,7 +61,7 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 - Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
 - APIは現在のbasic-auth owner sessionだけに承認・差戻しを許し、最新review handoffのcanonical SHA-256 digest、task ID、full approval contract、exact non-symlink linked-worktree path、canonical Git common/worktree identity、`pda-auto/<task_id>` branch、base/diff、cleanな実Git HEADをtransaction内でも再照合する。不一致ならfail closedでカードを動かさない。
-- 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。activationはledger rowをnonceで排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。
+- 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。activationは事前生成nonceでledger rowを排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。rollbackまたはclaim解放の競合時はtimerを再停止してclaimを保持し、15分経過後の明示recoveryだけを許す。
 - 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 
 ### 承認があっても暗黙には拡大しない

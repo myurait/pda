@@ -49,7 +49,7 @@ Then verify that every intended side effect is explicitly included in the approv
 Then:
 
 1. Execute only the approved finalization contract. Do not add an extra cleanup, repair, audit, dependency upgrade, or unrelated deployment. The ledger check above must occur before the first merge, deployment, restart, external call, or write outside the task worktree.
-2. If the approved artifact has drifted, a new change becomes necessary, or any target differs, stop finalization and return to review with a new digest. Never stretch the old approval.
+2. If the approved artifact has drifted, a new change becomes necessary, any target differs, or claim recovery is required, stop finalization. Never stretch or silently clear the old approval. A stale claim is operator-recoverable only after runtime is disabled and the 15-minute recovery threshold has passed.
 3. Verify the real target after finalization, including service health or UI behavior when included in the approved scope.
 4. Call `kanban_complete` with outcome, applied commit/artifact, checks actually run, rollback, and residual risk.
 

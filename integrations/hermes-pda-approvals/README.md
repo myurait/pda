@@ -51,12 +51,21 @@ python operations/improvement/install.py --activate \
   --digest <64-lowercase-hex>
 ```
 
-The installer re-reads the shared Kanban DB and refuses activation unless configured owner identity, task/schema, approval ID, digest, latest review run, full approval contract, forced skill, canonical worktree/Git identity, base/diff, and clean Git HEAD all match. After stopping the staged timer it rechecks, claims the approval with an exclusive activation nonce, rechecks before enabling the timer and after the first service tick, and consumes that approval exactly once. While claimed, revocation and duplicate activation fail closed. It captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot and applies the new Cron/runtime transactionally. A failed activation restores disabled runtime state and the prior Cron; it releases the claim only after a complete rollback, leaving a conflicted partial rollback locked for operator recovery.
+The installer re-reads the shared Kanban DB and refuses activation unless configured owner identity, task/schema, approval ID, digest, latest review run, full approval contract, forced skill, canonical worktree/Git identity, base/diff, and clean Git HEAD all match. After stopping the staged timer it rechecks, preassigns and claims the approval with an exclusive activation nonce, rechecks before enabling the timer and after the first service tick, and consumes that approval exactly once. While claimed, revocation and duplicate activation fail closed. It captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot and applies the new Cron/runtime transactionally. A failed activation releases the claim before timer recovery only after a complete rollback; any rollback or release conflict re-stops the timer and leaves the claim held for operator recovery.
 
 The approved rollback is executable and does not require reconstructing the old Cron by hand:
 
 ```text
 python operations/improvement/install.py --rollback-activation --repo /home/user/projects/pda
+```
+
+If a process crash leaves an activation claim in progress, first confirm runtime `enabled=false`. After the claim is at least 15 minutes old, recover it explicitly; the command stops the timer before validation and restores the enabled no-op timer only on success:
+
+```text
+python operations/improvement/install.py --recover-activation-claim \
+  --task-id t_xxxxxxxx \
+  --approval-id pa_xxxxxxxxxxxxxxxx \
+  --digest <64-lowercase-hex>
 ```
 
 ## Safety invariants

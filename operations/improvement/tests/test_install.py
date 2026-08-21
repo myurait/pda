@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -462,10 +463,49 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             approval_id=marker["approval_id"],
             digest=marker["digest"],
         )["mode"] == "checked"
+        stale_nonce = install_module._claim_approval_activation(
+            paths,
+            task_id=task_id,
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )
+        recover = getattr(install_module, "_recover_stale_activation_claim", None)
+        assert callable(recover)
+        with pytest.raises(ValueError, match="not old enough"):
+            recover(
+                paths,
+                task_id=task_id,
+                approval_id=marker["approval_id"],
+                digest=marker["digest"],
+            )
+        conn.execute(
+            "UPDATE pda_owner_approvals SET activation_started_at = ? "
+            "WHERE approval_id = ?",
+            (1, marker["approval_id"]),
+        )
+        conn.commit()
+        assert recover(
+            paths,
+            task_id=task_id,
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+            min_age_seconds=0,
+        ) == stale_nonce
+        assert check_approval_runtime(
+            paths,
+            task_id=task_id,
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )["mode"] == "checked"
         kanban_db.set_branch_name(conn, task_id, f"pda-auto/{task_id}-drift")
         with pytest.raises(ValueError, match="branch"):
             _verify_approved_artifact(conn, task_id, marker)
         kanban_db.set_branch_name(conn, task_id, branch)
+        relative_workspace = os.path.relpath(workspace, Path.cwd())
+        kanban_db.set_workspace_path(conn, task_id, relative_workspace)
+        with pytest.raises(ValueError, match="absolute"):
+            _verify_approved_artifact(conn, task_id, marker)
+        kanban_db.set_workspace_path(conn, task_id, workspace)
 
         forged_approval = dict(approval)
         forged_approval["changed_files"] = []
@@ -802,6 +842,130 @@ def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, m
     assert lease_calls == ["claim", "recheck", "release"]
     assert commands[-1][:4] == ["systemctl", "--user", "enable", "--now"]
     assert commands[-1][-1] == "pda-improvement-cycle.timer"
+
+
+def test_claim_post_commit_exception_releases_preassigned_nonce(tmp_path, monkeypatch):
+    paths = _paths(tmp_path)
+    marker = {
+        "schema": "PDA_OWNER_APPROVAL_V1",
+        "approval_id": "pa_post_commit",
+        "digest": "a" * 64,
+    }
+    prior = {
+        "schema_version": 1,
+        "job_id": "64b615bad09c",
+        "prompt": "prior",
+        "skills": [],
+        "workdir": None,
+        "continuity": True,
+    }
+    claimed: list[str] = []
+    released: list[str] = []
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        install_module,
+        "check_approval_runtime",
+        lambda *args, **kwargs: {"ok": True, "mode": "checked", "approval": marker},
+    )
+    monkeypatch.setattr(install_module, "_snapshot_daily_reconciler", lambda *args: prior)
+    monkeypatch.setattr(
+        install_module,
+        "_desired_daily_reconciler_state",
+        lambda *args: dict(prior, prompt="desired"),
+    )
+
+    def claim(*args, **kwargs):
+        claimed.append(kwargs["activation_nonce"])
+        raise RuntimeError("post-commit invariant failed")
+
+    monkeypatch.setattr(install_module, "_claim_approval_activation", claim)
+    monkeypatch.setattr(
+        install_module,
+        "_release_activation_claim",
+        lambda *args, **kwargs: released.append(kwargs["activation_nonce"]),
+    )
+    monkeypatch.setattr(
+        install_module,
+        "_run",
+        lambda args, **kwargs: commands.append(list(args)) or "",
+    )
+
+    with pytest.raises(RuntimeError, match="post-commit"):
+        install_module.activate_runtime(
+            REPO,
+            paths,
+            task_id="t_test",
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )
+
+    assert len(claimed) == 1
+    assert released == claimed
+
+
+def test_claim_release_failure_re_stops_timer(tmp_path, monkeypatch):
+    paths = _paths(tmp_path)
+    marker = {
+        "schema": "PDA_OWNER_APPROVAL_V1",
+        "approval_id": "pa_release_failure",
+        "digest": "9" * 64,
+    }
+    prior = {
+        "schema_version": 1,
+        "job_id": "64b615bad09c",
+        "prompt": "prior",
+        "skills": [],
+        "workdir": None,
+        "continuity": True,
+    }
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        install_module,
+        "check_approval_runtime",
+        lambda *args, **kwargs: {"ok": True, "mode": "checked", "approval": marker},
+    )
+    monkeypatch.setattr(install_module, "_snapshot_daily_reconciler", lambda *args: prior)
+    monkeypatch.setattr(
+        install_module,
+        "_desired_daily_reconciler_state",
+        lambda *args: dict(prior, prompt="desired"),
+    )
+    monkeypatch.setattr(install_module, "_apply_daily_reconciler_state", lambda *args: None)
+    monkeypatch.setattr(
+        install_module,
+        "_claim_approval_activation",
+        lambda *args, **kwargs: kwargs["activation_nonce"],
+    )
+    monkeypatch.setattr(
+        install_module,
+        "_recheck_activation_claim",
+        lambda *args, **kwargs: marker,
+    )
+    monkeypatch.setattr(
+        install_module,
+        "_release_activation_claim",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("release failed")),
+    )
+
+    def run(args, **kwargs):
+        commands.append(list(args))
+        if args[:4] == ["systemctl", "--user", "start", "pda-improvement-cycle.service"]:
+            raise RuntimeError("service failed")
+        return ""
+
+    monkeypatch.setattr(install_module, "_run", run)
+
+    with pytest.raises(RuntimeError, match="approval-claim rollback failed"):
+        install_module.activate_runtime(
+            REPO,
+            paths,
+            task_id="t_test",
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )
+
+    timer_commands = [args for args in commands if "pda-improvement-cycle.timer" in args]
+    assert timer_commands[-1][:3] == ["systemctl", "--user", "stop"]
 
 
 def test_rollback_failure_keeps_timer_stopped_and_approval_claimed(

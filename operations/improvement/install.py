@@ -38,6 +38,7 @@ _ALLOWED_FINALIZATION_KINDS = {
     "no-runtime-change",
 }
 _SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
+ACTIVATION_CLAIM_STALE_SECONDS = 15 * 60
 
 
 @dataclass(frozen=True)
@@ -456,6 +457,8 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     if not task.workspace_path:
         raise ValueError("approved task has no workspace")
     workspace = Path(task.workspace_path).expanduser()
+    if not workspace.is_absolute():
+        raise ValueError("approved task workspace path must be absolute")
     declared_workspace = Path(str(approval.get("workspace_path") or "")).expanduser()
     lexical_workspace = Path(os.path.abspath(workspace))
     real_workspace = Path(os.path.realpath(workspace))
@@ -750,8 +753,9 @@ def _claim_approval_activation(
     task_id: str,
     approval_id: str,
     digest: str,
+    activation_nonce: str | None = None,
 ) -> str:
-    nonce = "act_" + secrets.token_hex(16)
+    nonce = activation_nonce or ("act_" + secrets.token_hex(16))
     with _control_board(paths) as conn:
         with kanban_db.write_txn(conn):
             marker = verify_owner_approval(
@@ -847,6 +851,79 @@ def _release_activation_claim(
                 raise ValueError("owner approval activation rollback lost its claim")
 
 
+def _recover_stale_activation_claim(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+    min_age_seconds: int = ACTIVATION_CLAIM_STALE_SECONDS,
+) -> str:
+    min_age_seconds = max(0, int(min_age_seconds))
+    with _control_board(paths) as conn:
+        with kanban_db.write_txn(conn):
+            row = conn.execute(
+                "SELECT activation_nonce, activation_started_at "
+                "FROM pda_owner_approvals WHERE approval_id = ? AND task_id = ? "
+                "AND digest = ? AND revoked_at IS NULL AND consumed_at IS NULL "
+                "AND activation_nonce IS NOT NULL",
+                (approval_id, task_id, digest),
+            ).fetchone()
+            if row is None:
+                raise ValueError("no in-progress owner approval activation claim was found")
+            nonce = str(row["activation_nonce"] or "")
+            started_at = int(row["activation_started_at"] or 0)
+            if not nonce or started_at <= 0:
+                raise ValueError("activation claim has no valid nonce or start time")
+            if int(time.time()) - started_at < min_age_seconds:
+                raise ValueError("activation claim is not old enough for recovery")
+            marker = verify_owner_approval(
+                conn,
+                task_id=task_id,
+                approval_id=approval_id,
+                digest=digest,
+                activation_nonce=nonce,
+            )
+            _verify_approved_artifact(conn, task_id, marker)
+            updated = conn.execute(
+                "UPDATE pda_owner_approvals SET activation_nonce = NULL, "
+                "activation_started_at = NULL WHERE approval_id = ? AND task_id = ? "
+                "AND digest = ? AND activation_nonce = ? AND consumed_at IS NULL",
+                (approval_id, task_id, digest, nonce),
+            )
+            if updated.rowcount != 1:
+                raise ValueError("stale activation claim recovery lost its CAS")
+    return nonce
+
+
+def recover_activation_claim_runtime(
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+) -> dict[str, Any]:
+    runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
+    if not isinstance(runtime, dict) or runtime.get("enabled") is not False:
+        raise ValueError("runtime must be explicitly disabled before claim recovery")
+    _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+    nonce = _recover_stale_activation_claim(
+        paths,
+        task_id=task_id,
+        approval_id=approval_id,
+        digest=digest,
+    )
+    _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
+    return {
+        "ok": True,
+        "mode": "claim-recovered",
+        "task_id": task_id,
+        "approval_id": approval_id,
+        "released_nonce": nonce,
+        "timer_mode": "enabled-noop",
+    }
+
+
 def activate_runtime(
     repo_root: Path,
     paths: RuntimePaths,
@@ -881,11 +958,13 @@ def activate_runtime(
             digest=digest,
         )
         marker = rechecked["approval"]
-        activation_nonce = _claim_approval_activation(
+        activation_nonce = "act_" + secrets.token_hex(16)
+        _claim_approval_activation(
             paths,
             task_id=task_id,
             approval_id=approval_id,
             digest=digest,
+            activation_nonce=activation_nonce,
         )
         cron_attempted = True
         _apply_daily_reconciler_state(desired_cron, paths, hermes_bin)
@@ -948,18 +1027,6 @@ def activate_runtime(
                 _apply_daily_reconciler_state(prior_cron, paths, hermes_bin)
             except Exception as rollback_exc:
                 rollback_errors.append(f"cron rollback failed: {rollback_exc}")
-        if rollback_errors:
-            try:
-                _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
-            except Exception as rollback_exc:
-                rollback_errors.append(f"timer stop after rollback conflict failed: {rollback_exc}")
-        else:
-            try:
-                _run(
-                    ["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"]
-                )
-            except Exception as rollback_exc:
-                rollback_errors.append(f"timer recovery failed: {rollback_exc}")
         if (
             activation_nonce is not None
             and not activation_finished
@@ -975,6 +1042,18 @@ def activate_runtime(
                 )
             except Exception as rollback_exc:
                 rollback_errors.append(f"approval-claim rollback failed: {rollback_exc}")
+        if rollback_errors:
+            try:
+                _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+            except Exception as rollback_exc:
+                rollback_errors.append(f"timer stop after rollback conflict failed: {rollback_exc}")
+        else:
+            try:
+                _run(
+                    ["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"]
+                )
+            except Exception as rollback_exc:
+                rollback_errors.append(f"timer recovery failed: {rollback_exc}")
         if rollback_errors:
             raise RuntimeError(f"activation failed: {exc}; " + "; ".join(rollback_errors)) from exc
         raise
@@ -1011,6 +1090,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--activate", action="store_true")
     mode.add_argument("--check-approval", action="store_true")
     mode.add_argument("--rollback-activation", action="store_true")
+    mode.add_argument("--recover-activation-claim", action="store_true")
     parser.add_argument("--repo", default=str(Path(__file__).parents[2]))
     parser.add_argument("--home", default=str(Path.home()))
     parser.add_argument("--hermes-home", default=None)
@@ -1038,6 +1118,18 @@ def main(argv: list[str] | None = None) -> int:
             result = stage_runtime(repo_root, paths, hermes_bin=args.hermes_bin)
         elif args.rollback_activation:
             result = rollback_runtime(repo_root, paths, hermes_bin=args.hermes_bin)
+        elif args.recover_activation_claim:
+            if not all((args.task_id, args.approval_id, args.digest)):
+                parser.error(
+                    "--recover-activation-claim requires --task-id, "
+                    "--approval-id, and --digest"
+                )
+            result = recover_activation_claim_runtime(
+                paths,
+                task_id=args.task_id,
+                approval_id=args.approval_id,
+                digest=args.digest,
+            )
         else:
             if not all((args.task_id, args.approval_id, args.digest)):
                 parser.error(
@@ -1072,6 +1164,8 @@ def main(argv: list[str] | None = None) -> int:
                         if args.stage
                         else "rollback"
                         if args.rollback_activation
+                        else "claim-recovery"
+                        if args.recover_activation_claim
                         else "check"
                         if args.check_approval
                         else "activate"
