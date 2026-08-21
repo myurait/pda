@@ -53,6 +53,12 @@ python operations/improvement/install.py --activate \
 
 The installer re-reads the shared Kanban DB and refuses activation unless task, author, schema, approval ID, digest, latest review run, forced skill, and clean Git HEAD all match. It stops the staged timer, captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot, applies the new Cron and enabled runtime atomically, and runs one deterministic routing tick. A failed activation restores disabled runtime state and the prior Cron before restarting the no-op timer.
 
+The approved rollback is executable and does not require reconstructing the old Cron by hand:
+
+```text
+python operations/improvement/install.py --rollback-activation --repo /home/user/projects/pda
+```
+
 ## Safety invariants
 
 - Unassigned Triage capture never launches a worker.

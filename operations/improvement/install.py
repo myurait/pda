@@ -466,6 +466,35 @@ def stage_runtime(
     return result
 
 
+def rollback_runtime(
+    repo_root: Path,
+    paths: RuntimePaths,
+    *,
+    hermes_bin: str = "hermes",
+) -> dict[str, Any]:
+    if not paths.cron_rollback.is_file():
+        raise ValueError("cron rollback snapshot is missing")
+    prior_cron = json.loads(paths.cron_rollback.read_text(encoding="utf-8"))
+    expected_job = _daily_reconciler_job_id(repo_root)
+    if not isinstance(prior_cron, dict) or prior_cron.get("job_id") != expected_job:
+        raise ValueError("cron rollback snapshot does not match this installation")
+    _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+    result = install_managed_files(repo_root, paths, activate=False)
+    _apply_daily_reconciler_state(prior_cron, paths, hermes_bin)
+    _enable_dashboard_plugin(paths, hermes_bin)
+    _set_human_review(paths, hermes_bin)
+    _run(["systemctl", "--user", "daemon-reload"])
+    _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
+    result.update(
+        {
+            "mode": "rolled-back",
+            "cron_restored_from": str(paths.cron_rollback),
+            "timer_mode": "enabled-noop",
+        }
+    )
+    return result
+
+
 def check_approval_runtime(
     paths: RuntimePaths,
     *,
@@ -597,6 +626,7 @@ def main(argv: list[str] | None = None) -> int:
     mode.add_argument("--stage", action="store_true")
     mode.add_argument("--activate", action="store_true")
     mode.add_argument("--check-approval", action="store_true")
+    mode.add_argument("--rollback-activation", action="store_true")
     parser.add_argument("--repo", default=str(Path(__file__).parents[2]))
     parser.add_argument("--home", default=str(Path.home()))
     parser.add_argument("--hermes-home", default=None)
@@ -622,6 +652,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.stage:
             result = stage_runtime(repo_root, paths, hermes_bin=args.hermes_bin)
+        elif args.rollback_activation:
+            result = rollback_runtime(repo_root, paths, hermes_bin=args.hermes_bin)
         else:
             if not all((args.task_id, args.approval_id, args.digest)):
                 parser.error(
@@ -652,7 +684,13 @@ def main(argv: list[str] | None = None) -> int:
                     "ok": False,
                     "error": str(exc),
                     "mode": (
-                        "stage" if args.stage else "check" if args.check_approval else "activate"
+                        "stage"
+                        if args.stage
+                        else "rollback"
+                        if args.rollback_activation
+                        else "check"
+                        if args.check_approval
+                        else "activate"
                     ),
                 },
                 ensure_ascii=False,

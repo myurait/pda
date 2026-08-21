@@ -397,6 +397,41 @@ def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, m
     assert commands[-1][-1] == "pda-improvement-cycle.timer"
 
 
+def test_explicit_rollback_restores_snapshot_and_noop_timer(tmp_path, monkeypatch):
+    paths = _paths(tmp_path)
+    prior = {
+        "schema_version": 1,
+        "job_id": "64b615bad09c",
+        "prompt": "prior",
+        "skills": ["old"],
+        "workdir": None,
+        "continuity": True,
+    }
+    paths.cron_rollback.parent.mkdir(parents=True, exist_ok=True)
+    paths.cron_rollback.write_text(json.dumps(prior), encoding="utf-8")
+    applied: list[dict] = []
+    commands: list[list[str]] = []
+    monkeypatch.setattr(
+        install_module,
+        "_apply_daily_reconciler_state",
+        lambda state, *args: applied.append(state),
+    )
+    monkeypatch.setattr(
+        install_module,
+        "_run",
+        lambda args, **kwargs: commands.append(list(args)) or "",
+    )
+
+    result = install_module.rollback_runtime(REPO, paths)
+
+    runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
+    assert result["mode"] == "rolled-back"
+    assert runtime["enabled"] is False
+    assert applied == [prior]
+    assert commands[0][:4] == ["systemctl", "--user", "stop", "pda-improvement-cycle.timer"]
+    assert commands[-1][:4] == ["systemctl", "--user", "enable", "--now"]
+
+
 def test_activate_writes_enabled_runtime_only_after_verification_boundary(tmp_path):
     paths = _paths(tmp_path)
     with pytest.raises(ValueError, match="verified owner approval"):
