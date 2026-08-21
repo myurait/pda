@@ -8,7 +8,7 @@ This integration turns the `pda-improvement` Hermes Kanban tenant into a two-pha
 4. the Dashboard `承認` tab verifies the handoff digest and the clean real Git HEAD;
 5. only owner approval reopens the card for the displayed finalization contract.
 
-The approval queue is derived from Hermes Kanban `review` cards. It does not create a second task database.
+The approval queue and its control-owned approval ledger are stored in the same Hermes Kanban DB. It does not create a second task database. Human-readable comments are notifications only and cannot authorize activation by themselves.
 
 ## Managed assets
 
@@ -22,7 +22,7 @@ The approval queue is derived from Hermes Kanban `review` cards. It does not cre
 
 ## Staged bootstrap
 
-The bootstrap installs the approval UI and forced skills into the existing default profile, enables a no-op timer, sets `kanban.review_dispatch=false`, and restarts only the Dashboard. It deliberately writes the runtime cycle config with `enabled=false`. It does not create or modify another persona or `SOUL.md`.
+The bootstrap installs the approval UI and forced skills into the existing default profile, enables a no-op timer, sets `kanban.review_dispatch=false`, and restarts only the Dashboard. It deliberately writes the runtime cycle config with `enabled=false` and leaves the existing daily reconciler unchanged until approval. It does not create or modify another persona or `SOUL.md`.
 
 ```text
 python operations/improvement/install.py --stage --repo /home/user/projects/pda-autonomous-improvement
@@ -32,7 +32,16 @@ A staged install is not activation. The router cannot assign a card while disabl
 
 ## Approval-gated activation
 
-Activation requires the exact control-owned marker produced by the Dashboard approval API:
+The worker must first run the no-side-effect ledger check; a comment alone cannot authorize any finalization:
+
+```text
+python operations/improvement/install.py --check-approval \
+  --task-id t_xxxxxxxx \
+  --approval-id pa_xxxxxxxxxxxxxxxx \
+  --digest <64-lowercase-hex>
+```
+
+Activation requires the same exact control-ledger record produced by the Dashboard approval API:
 
 ```text
 python operations/improvement/install.py --activate \

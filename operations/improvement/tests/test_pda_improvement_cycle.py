@@ -8,7 +8,8 @@ import pytest
 
 from hermes_cli import kanban_db
 
-from operations.improvement.pda_improvement_cycle import run_cycle
+import operations.improvement.pda_improvement_cycle as cycle_module
+from operations.improvement.pda_improvement_cycle import CycleError, _route_task, run_cycle
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -150,6 +151,41 @@ def test_pending_review_consumes_wip_and_prevents_new_assignment(tmp_path, monke
     with kanban_db.connect() as conn:
         assert kanban_db.get_task(conn, pending).status == "review"
         assert kanban_db.get_task(conn, candidate).assignee is None
+
+
+def test_atomic_route_never_overwrites_a_concurrent_assignment(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        task_id = _task(conn, "race", priority=100)
+        stale = kanban_db.get_task(conn, task_id)
+        assert stale is not None
+        assert kanban_db.assign_task(conn, task_id, "other-worker")
+        monkeypatch.setattr(cycle_module.kanban_db, "get_task", lambda conn, task_id: stale)
+
+        with pytest.raises(CycleError) as raised:
+            _route_task(
+                conn,
+                stale,
+                tmp_path / "isolated",
+                f"pda-auto/{task_id}",
+                "default",
+            )
+        assert raised.value.kind == "claim-race"
+
+        row = conn.execute(
+            "SELECT assignee, workspace_path, branch_name, skills FROM tasks WHERE id = ?",
+            (task_id,),
+        ).fetchone()
+        comment_count = conn.execute(
+            "SELECT COUNT(*) FROM task_comments WHERE task_id = ? AND author = ?",
+            (task_id, "pda-improvement-cycle"),
+        ).fetchone()[0]
+        assert row["assignee"] == "other-worker"
+        assert row["workspace_path"] == "/placeholder"
+        assert row["branch_name"] is None
+        assert row["skills"] is None
+        assert comment_count == 0
 
 
 def test_cycle_adopts_exact_existing_branch_but_rejects_path_collision(tmp_path, monkeypatch):

@@ -161,31 +161,45 @@ def _route_task(conn, task, path: Path, branch: str, assignee: str) -> None:
     current = kanban_db.get_task(conn, task.id)
     if current is None or current.status != "ready" or current.assignee is not None:
         raise CycleError("claim-race", "task changed before routing")
-    kanban_db.set_workspace_path(conn, task.id, path)
-    kanban_db.set_branch_name(conn, task.id, branch)
     forced_skills = list(current.skills or [])
     if "pda-autonomous-improvement" not in forced_skills:
         forced_skills.append("pda-autonomous-improvement")
-        with kanban_db.write_txn(conn):
-            updated = conn.execute(
-                "UPDATE tasks SET skills = ? WHERE id = ? AND status = 'ready' AND assignee IS NULL",
-                (json.dumps(forced_skills, ensure_ascii=False), task.id),
-            )
-            if updated.rowcount != 1:
-                raise CycleError("claim-race", "task changed while forcing worker policy")
-    kanban_db.add_comment(
-        conn,
-        task.id,
-        "pda-improvement-cycle",
+    comment = (
         "自動改善サイクルがこのカードを隔離worktreeへ割り当てました。"
         "承認前はこのbranch内の実装・検証・ローカルcommitだけを行い、"
         "検証済み成果を最終承認リストへ送ってください。"
-        "main統合、push、デプロイ、サービス変更、外部送信は最終承認後だけ実行できます。",
+        "main統合、push、デプロイ、サービス変更、外部送信は最終承認後だけ実行できます。"
     )
-    # Assignment is deliberately last: an unassigned Ready card cannot be
-    # claimed by the gateway while the workspace metadata is half-written.
-    if not kanban_db.assign_task(conn, task.id, assignee):
-        raise CycleError("claim-race", "task assignment failed")
+    with kanban_db.write_txn(conn):
+        # The comment helper composes through a savepoint. Nothing becomes
+        # visible unless the assignment CAS below succeeds and the outer
+        # transaction commits.
+        kanban_db.add_comment(
+            conn,
+            task.id,
+            "pda-improvement-cycle",
+            comment,
+        )
+        updated = conn.execute(
+            "UPDATE tasks SET workspace_path = ?, branch_name = ?, skills = ?, "
+            "assignee = ?, consecutive_failures = 0, last_failure_error = NULL "
+            "WHERE id = ? AND status = 'ready' AND assignee IS NULL",
+            (
+                str(path),
+                branch,
+                json.dumps(forced_skills, ensure_ascii=False),
+                assignee,
+                task.id,
+            ),
+        )
+        if updated.rowcount != 1:
+            raise CycleError("claim-race", "task changed during atomic routing")
+        kanban_db._append_event(conn, task.id, "assigned", {"assignee": assignee})
+    kanban_db.notify_task_updated(
+        conn,
+        task.id,
+        ("workspace_path", "branch_name", "skills", "assignee"),
+    )
 
 
 def run_cycle(config_path: str | Path) -> dict[str, Any]:

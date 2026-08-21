@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,6 @@ from hermes_cli import kanban_db
 PLUGIN_NAME = "pda-approvals"
 WORKER_PROFILE = "default"
 WORKER_SKILL = "pda-autonomous-improvement"
-OWNER_APPROVAL_AUTHOR = "pda-owner-approval"
 APPROVAL_SCHEMA = "PDA_OWNER_APPROVAL_V1"
 
 
@@ -90,10 +90,16 @@ def _managed_payloads(repo_root: Path, paths: RuntimePaths, activate: bool) -> l
     )
     desired["enabled"] = bool(activate)
     runtime_config = (json.dumps(desired, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    repo_workdir = Path(str(desired.get("repo_root") or "")).expanduser()
+    if not repo_workdir.is_absolute():
+        raise ValueError("autonomous improvement repo_root must be absolute")
     service_template = (
         repo_root / "infra" / "systemd" / "pda-improvement-cycle.service.in"
     ).read_text(encoding="utf-8")
-    service = service_template.replace("@PYTHON@", str(paths.python_executable))
+    service = (
+        service_template.replace("@PYTHON@", str(paths.python_executable))
+        .replace("@WORKDIR@", str(repo_workdir))
+    )
 
     files: list[tuple[Path, Path, int]] = [
         (
@@ -219,16 +225,6 @@ def install_managed_files(
     }
 
 
-def _decode_marker(body: str) -> dict[str, Any] | None:
-    if "\n" not in body:
-        return None
-    try:
-        value = json.loads(body.split("\n", 1)[1])
-    except (json.JSONDecodeError, TypeError):
-        return None
-    return value if isinstance(value, dict) else None
-
-
 def verify_owner_approval(
     conn,
     *,
@@ -239,21 +235,26 @@ def verify_owner_approval(
     task = kanban_db.get_task(conn, task_id)
     if task is None or task.tenant != "pda-improvement":
         raise ValueError("task is not a PDA improvement card")
-    comments = kanban_db.list_comments(conn, task_id)
-    for comment in reversed(comments):
-        if comment.author != OWNER_APPROVAL_AUTHOR:
-            continue
-        marker = _decode_marker(comment.body)
-        if not marker:
-            continue
-        if (
-            marker.get("schema") == APPROVAL_SCHEMA
-            and marker.get("task_id") == task_id
-            and marker.get("approval_id") == approval_id
-            and marker.get("digest") == digest
-        ):
-            return marker
-    raise ValueError("no matching owner approval was found")
+    try:
+        row = conn.execute(
+            "SELECT approval_id, task_id, digest, head_sha, review_run_id, approved_at "
+            "FROM pda_owner_approvals WHERE approval_id = ? AND task_id = ? "
+            "AND digest = ? AND revoked_at IS NULL",
+            (approval_id, task_id, digest),
+        ).fetchone()
+    except sqlite3.OperationalError as exc:
+        raise ValueError("owner approval ledger is not installed") from exc
+    if row is None:
+        raise ValueError("no matching owner approval was found in the control ledger")
+    return {
+        "schema": APPROVAL_SCHEMA,
+        "approval_id": row["approval_id"],
+        "task_id": row["task_id"],
+        "digest": row["digest"],
+        "head_sha": row["head_sha"],
+        "review_run_id": int(row["review_run_id"]),
+        "approved_at": int(row["approved_at"]),
+    }
 
 
 def _decode_json(value: Any) -> Any:
@@ -465,14 +466,12 @@ def stage_runtime(
     return result
 
 
-def activate_runtime(
-    repo_root: Path,
+def check_approval_runtime(
     paths: RuntimePaths,
     *,
     task_id: str,
     approval_id: str,
     digest: str,
-    hermes_bin: str = "hermes",
 ) -> dict[str, Any]:
     # Always use the shared control home rather than any ambient profile path.
     old_home = os.environ.get("HERMES_HOME")
@@ -492,6 +491,25 @@ def activate_runtime(
             os.environ.pop("HERMES_HOME", None)
         else:
             os.environ["HERMES_HOME"] = old_home
+    return {"ok": True, "mode": "checked", "approval": marker}
+
+
+def activate_runtime(
+    repo_root: Path,
+    paths: RuntimePaths,
+    *,
+    task_id: str,
+    approval_id: str,
+    digest: str,
+    hermes_bin: str = "hermes",
+) -> dict[str, Any]:
+    checked = check_approval_runtime(
+        paths,
+        task_id=task_id,
+        approval_id=approval_id,
+        digest=digest,
+    )
+    marker = checked["approval"]
 
     prior_cron = _snapshot_daily_reconciler(repo_root, paths)
     desired_cron = _desired_daily_reconciler_state(repo_root)
@@ -578,6 +596,7 @@ def main(argv: list[str] | None = None) -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--stage", action="store_true")
     mode.add_argument("--activate", action="store_true")
+    mode.add_argument("--check-approval", action="store_true")
     parser.add_argument("--repo", default=str(Path(__file__).parents[2]))
     parser.add_argument("--home", default=str(Path.home()))
     parser.add_argument("--hermes-home", default=None)
@@ -605,21 +624,37 @@ def main(argv: list[str] | None = None) -> int:
             result = stage_runtime(repo_root, paths, hermes_bin=args.hermes_bin)
         else:
             if not all((args.task_id, args.approval_id, args.digest)):
-                parser.error("--activate requires --task-id, --approval-id, and --digest")
-            result = activate_runtime(
-                repo_root,
-                paths,
-                task_id=args.task_id,
-                approval_id=args.approval_id,
-                digest=args.digest,
-                hermes_bin=args.hermes_bin,
-            )
+                parser.error(
+                    "--activate/--check-approval requires --task-id, --approval-id, and --digest"
+                )
+            if args.check_approval:
+                result = check_approval_runtime(
+                    paths,
+                    task_id=args.task_id,
+                    approval_id=args.approval_id,
+                    digest=args.digest,
+                )
+            else:
+                result = activate_runtime(
+                    repo_root,
+                    paths,
+                    task_id=args.task_id,
+                    approval_id=args.approval_id,
+                    digest=args.digest,
+                    hermes_bin=args.hermes_bin,
+                )
         print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return 0
     except Exception as exc:
         print(
             json.dumps(
-                {"ok": False, "error": str(exc), "mode": "stage" if args.stage else "activate"},
+                {
+                    "ok": False,
+                    "error": str(exc),
+                    "mode": (
+                        "stage" if args.stage else "check" if args.check_approval else "activate"
+                    ),
+                },
                 ensure_ascii=False,
                 sort_keys=True,
             ),

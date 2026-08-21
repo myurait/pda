@@ -45,6 +45,28 @@ _SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
+def _ensure_approval_schema(conn) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS pda_owner_approvals (
+            approval_id   TEXT PRIMARY KEY,
+            task_id       TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+            digest        TEXT NOT NULL,
+            head_sha      TEXT NOT NULL,
+            review_run_id INTEGER NOT NULL,
+            approved_at   INTEGER NOT NULL,
+            revoked_at    INTEGER,
+            UNIQUE(task_id, review_run_id, digest)
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_pda_owner_approvals_task "
+        "ON pda_owner_approvals(task_id, approved_at DESC)"
+    )
+    conn.commit()
+
+
 class ApproveBody(BaseModel):
     digest: str = Field(min_length=64, max_length=64)
 
@@ -248,19 +270,13 @@ def _task_or_404(conn, task_id: str) -> kanban_db.Task:
 
 
 def _existing_approval(conn, task_id: str, digest: str) -> Optional[dict[str, Any]]:
-    rows = conn.execute(
-        "SELECT body FROM task_comments WHERE task_id = ? AND author = ? "
-        "ORDER BY id DESC",
-        (task_id, OWNER_APPROVAL_AUTHOR),
-    ).fetchall()
-    for row in rows:
-        body = row["body"] or ""
-        if "\n" not in body:
-            continue
-        marker = _decode_json(body.split("\n", 1)[1])
-        if isinstance(marker, dict) and marker.get("digest") == digest:
-            return marker
-    return None
+    row = conn.execute(
+        "SELECT approval_id, task_id, digest, head_sha, review_run_id, approved_at "
+        "FROM pda_owner_approvals WHERE task_id = ? AND digest = ? "
+        "AND revoked_at IS NULL ORDER BY approved_at DESC LIMIT 1",
+        (task_id, digest),
+    ).fetchone()
+    return dict(row) if row is not None else None
 
 
 def _pending_item(conn, task: kanban_db.Task) -> dict[str, Any]:
@@ -293,6 +309,7 @@ def _pending_item(conn, task: kanban_db.Task) -> dict[str, Any]:
 def pending_approvals():
     kanban_db.init_db()
     with kanban_db.connect_closing() as conn:
+        _ensure_approval_schema(conn)
         tasks = kanban_db.list_tasks(
             conn,
             tenant=TENANT,
@@ -308,6 +325,7 @@ def approve_task(task_id: str, body: ApproveBody):
         raise HTTPException(status_code=422, detail="digest must be lowercase SHA-256")
     kanban_db.init_db()
     with kanban_db.connect_closing() as conn:
+        _ensure_approval_schema(conn)
         task = _task_or_404(conn, task_id)
         existing = _existing_approval(conn, task_id, body.digest)
         if existing is not None and task.status != "review":
@@ -365,17 +383,51 @@ def approve_task(task_id: str, body: ApproveBody):
             if not kanban_db.assign_task(conn, task_id, "default"):
                 raise HTTPException(status_code=409, detail="finalizer assignment failed")
 
-        approval_id = "pa_" + hashlib.sha256(
-            f"{task_id}:{actual_digest}:{time.time_ns()}".encode("utf-8")
-        ).hexdigest()[:16]
+        assert handoff is not None and handoff.get("run_id") is not None
+        review_run_id = int(handoff["run_id"])
+        current_existing = (
+            existing
+            if existing is not None
+            and existing.get("review_run_id") == review_run_id
+            and existing.get("head_sha") == approval["head_sha"]
+            else None
+        )
+        approved_at = int(time.time())
+        approval_id = (
+            str(current_existing["approval_id"])
+            if current_existing is not None
+            else "pa_"
+            + hashlib.sha256(
+                f"{task_id}:{actual_digest}:{time.time_ns()}".encode("utf-8")
+            ).hexdigest()[:16]
+        )
+        if current_existing is None:
+            with kanban_db.write_txn(conn):
+                conn.execute(
+                    "INSERT INTO pda_owner_approvals "
+                    "(approval_id, task_id, digest, head_sha, review_run_id, approved_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        approval_id,
+                        task_id,
+                        actual_digest,
+                        approval["head_sha"],
+                        review_run_id,
+                        approved_at,
+                    ),
+                )
         marker = {
             "schema": APPROVAL_SCHEMA,
             "approval_id": approval_id,
             "task_id": task_id,
             "digest": actual_digest,
             "head_sha": approval["head_sha"],
-            "review_run_id": handoff.get("run_id") if handoff else None,
-            "approved_at": int(time.time()),
+            "review_run_id": review_run_id,
+            "approved_at": (
+                int(current_existing["approved_at"])
+                if current_existing is not None
+                else approved_at
+            ),
         }
         kanban_db.add_comment(
             conn,
@@ -409,9 +461,18 @@ def request_changes(task_id: str, body: RequestChangesBody):
         raise HTTPException(status_code=422, detail="reason is required")
     kanban_db.init_db()
     with kanban_db.connect_closing() as conn:
+        _ensure_approval_schema(conn)
         task = _task_or_404(conn, task_id)
         if task.status != "review":
             raise HTTPException(status_code=409, detail="task is not awaiting approval")
+        handoff = _latest_review_handoff(conn, task_id)
+        if handoff is not None and handoff.get("run_id") is not None:
+            with kanban_db.write_txn(conn):
+                conn.execute(
+                    "UPDATE pda_owner_approvals SET revoked_at = ? "
+                    "WHERE task_id = ? AND review_run_id = ? AND revoked_at IS NULL",
+                    (int(time.time()), task_id, int(handoff["run_id"])),
+                )
         kanban_db.add_comment(
             conn,
             task_id,

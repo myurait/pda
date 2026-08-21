@@ -14,11 +14,11 @@ metadata:
 
 ## Contract
 
-A PDA improvement card is executed in two separate phases. The card, Git worktree, Kanban run history, and control-owned approval comment are the durable control plane. Never treat user intent to improve the PDA as blanket approval for final cutover.
+A PDA improvement card is executed in two separate phases. The card, Git worktree, Kanban run history, and the plugin-owned approval ledger in the shared Kanban DB are the durable control plane. Approval comments are worker notifications, not authority. Never treat user intent to improve the PDA as blanket approval for final cutover.
 
 ## Phase 1: implementation and verification
 
-Use this phase unless the current card contains a valid latest comment authored exactly `pda-owner-approval` whose JSON marker has `schema=PDA_OWNER_APPROVAL_V1` and matches the latest review handoff digest and the clean current Git HEAD.
+Use this phase unless a latest `pda-owner-approval` notification provides task ID, approval ID, and digest and the no-side-effect ledger check documented in Phase 2 succeeds. A comment or matching-looking JSON alone never changes phase.
 
 1. Call `kanban_show` first and operate only on the current card.
 2. Inspect the assigned worktree and preserve every other branch, worktree, and uncommitted change. Never reset, stash, or repair another thread.
@@ -37,17 +37,17 @@ Allowed risk classes are `local-reversible`, `service-restart`, `external-visibl
 
 ## Phase 2: approved finalization
 
-Proceed only when all of these are true:
+Proceed only after extracting `task_id`, `approval_id`, and `digest` from the latest approval notification and running this no-side-effect check from the task worktree:
 
-- the approval comment author is exactly `pda-owner-approval`;
-- its JSON marker schema is `PDA_OWNER_APPROVAL_V1`;
-- task ID, approval digest, review run ID, and head SHA match the latest review request;
-- the task worktree is clean and still at the approved head;
-- every intended side effect is explicitly included in the approved finalization steps and targets.
+`python operations/improvement/install.py --check-approval --task-id <task> --approval-id <approval> --digest <digest>`
+
+The command must return `ok=true` and `mode=checked`. It independently requires a non-revoked row in the plugin-owned approval ledger and proves that task ID, digest, latest review run ID, head SHA, finalizer profile, forced skill, task state, and clean Git worktree still match. A generic comment cannot satisfy this check.
+
+Then verify that every intended side effect is explicitly included in the approved finalization steps and targets.
 
 Then:
 
-1. Execute only the approved finalization contract. Do not add an extra cleanup, repair, audit, dependency upgrade, or unrelated deployment.
+1. Execute only the approved finalization contract. Do not add an extra cleanup, repair, audit, dependency upgrade, or unrelated deployment. The ledger check above must occur before the first merge, deployment, restart, external call, or write outside the task worktree.
 2. If the approved artifact has drifted, a new change becomes necessary, or any target differs, stop finalization and return to review with a new digest. Never stretch the old approval.
 3. Verify the real target after finalization, including service health or UI behavior when included in the approved scope.
 4. Call `kanban_complete` with outcome, applied commit/artifact, checks actually run, rollback, and residual risk.

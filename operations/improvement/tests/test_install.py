@@ -10,12 +10,14 @@ import pytest
 
 from hermes_cli import kanban_db
 
+import operations.improvement.install as install_module
 from operations.improvement.install import (
     RuntimePaths,
     _resolve_python_executable,
     _snapshot_daily_reconciler,
     _desired_daily_reconciler_state,
     _verify_approved_artifact,
+    check_approval_runtime,
     install_managed_files,
     verify_owner_approval,
 )
@@ -44,6 +46,24 @@ def _git(repo: Path, *args: str) -> str:
         stderr=subprocess.PIPE,
     )
     return result.stdout.strip()
+
+
+def _create_approval_ledger(conn) -> None:
+    conn.execute(
+        """
+        CREATE TABLE pda_owner_approvals (
+            approval_id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL,
+            digest TEXT NOT NULL,
+            head_sha TEXT NOT NULL,
+            review_run_id INTEGER NOT NULL,
+            approved_at INTEGER NOT NULL,
+            revoked_at INTEGER,
+            UNIQUE(task_id, review_run_id, digest)
+        )
+        """
+    )
+    conn.commit()
 
 
 def test_default_systemd_python_is_the_hermes_venv(tmp_path):
@@ -116,7 +136,30 @@ def test_stage_install_is_idempotent_and_keeps_executor_disabled(tmp_path):
     assert not any("SOUL.md" in installed for installed in first["installed"])
     service = (paths.systemd_user / "pda-improvement-cycle.service").read_text(encoding="utf-8")
     assert "@PYTHON@" not in service
+    assert "@WORKDIR@" not in service
     assert str(paths.python_executable) in service
+    assert "WorkingDirectory=/home/user/projects/pda" in service
+
+
+def test_stage_runtime_keeps_daily_cron_unchanged(tmp_path, monkeypatch):
+    paths = _paths(tmp_path)
+    commands: list[list[str]] = []
+
+    def fake_run(args, **kwargs):
+        commands.append(list(args))
+        if "is-active" in args:
+            return "active"
+        if "is-enabled" in args:
+            return "enabled"
+        return ""
+
+    monkeypatch.setattr(install_module, "_run", fake_run)
+    result = install_module.stage_runtime(REPO, paths, hermes_bin="hermes")
+
+    assert result["enabled"] is False
+    assert not any("cron" in command for args in commands for command in args)
+    assert any(args[:3] == ["hermes", "plugins", "enable"] for args in commands)
+    assert any("restart" in args and "hermes-dashboard.service" in args for args in commands)
 
 
 def test_activate_install_requires_control_owned_matching_approval(tmp_path, monkeypatch):
@@ -146,6 +189,28 @@ def test_activate_install_requires_control_owned_matching_approval(tmp_path, mon
             "pda-owner-approval",
             "approved\n" + json.dumps(marker),
         )
+        with pytest.raises(ValueError, match="ledger is not installed"):
+            verify_owner_approval(
+                conn,
+                task_id=task_id,
+                approval_id=marker["approval_id"],
+                digest=marker["digest"],
+            )
+        _create_approval_ledger(conn)
+        conn.execute(
+            "INSERT INTO pda_owner_approvals "
+            "(approval_id, task_id, digest, head_sha, review_run_id, approved_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                marker["approval_id"],
+                task_id,
+                marker["digest"],
+                marker["head_sha"],
+                marker["review_run_id"],
+                marker["approved_at"],
+            ),
+        )
+        conn.commit()
 
         assert verify_owner_approval(
             conn,
@@ -234,11 +299,102 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             "approved\n" + json.dumps(marker),
         )
         assert kanban_db.reopen_review_task(conn, task_id)
+        _create_approval_ledger(conn)
+        conn.execute(
+            "INSERT INTO pda_owner_approvals "
+            "(approval_id, task_id, digest, head_sha, review_run_id, approved_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                marker["approval_id"],
+                task_id,
+                marker["digest"],
+                marker["head_sha"],
+                marker["review_run_id"],
+                marker["approved_at"],
+            ),
+        )
+        conn.commit()
 
         _verify_approved_artifact(conn, task_id, marker)
+        checked = check_approval_runtime(
+            paths,
+            task_id=task_id,
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )
+        assert checked["mode"] == "checked"
         (repo / "drift.txt").write_text("drift\n", encoding="utf-8")
         with pytest.raises(ValueError, match="dirty"):
             _verify_approved_artifact(conn, task_id, marker)
+        (repo / "drift.txt").unlink()
+
+        newer_approval = dict(approval)
+        newer_approval["revision"] = 2
+        assert kanban_db.request_review(
+            conn,
+            task_id,
+            summary="new review",
+            metadata={"pda_approval": newer_approval},
+        )
+        assert kanban_db.reopen_review_task(conn, task_id)
+        with pytest.raises(ValueError, match="digest has drifted"):
+            _verify_approved_artifact(conn, task_id, marker)
+
+
+def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, monkeypatch):
+    paths = _paths(tmp_path)
+    marker = {
+        "schema": "PDA_OWNER_APPROVAL_V1",
+        "approval_id": "pa_transaction",
+        "digest": "f" * 64,
+    }
+    prior = {
+        "schema_version": 1,
+        "job_id": "64b615bad09c",
+        "prompt": "prior",
+        "skills": ["old"],
+        "workdir": None,
+        "continuity": True,
+    }
+    desired = dict(prior, prompt="desired", skills=["new"])
+    applied: list[dict] = []
+    commands: list[list[str]] = []
+
+    monkeypatch.setattr(
+        install_module,
+        "check_approval_runtime",
+        lambda *args, **kwargs: {"ok": True, "mode": "checked", "approval": marker},
+    )
+    monkeypatch.setattr(install_module, "_snapshot_daily_reconciler", lambda *args: prior)
+    monkeypatch.setattr(install_module, "_desired_daily_reconciler_state", lambda *args: desired)
+    monkeypatch.setattr(
+        install_module,
+        "_apply_daily_reconciler_state",
+        lambda state, *args: applied.append(state),
+    )
+
+    def fake_run(args, **kwargs):
+        commands.append(list(args))
+        if args[:4] == ["systemctl", "--user", "start", "pda-improvement-cycle.service"]:
+            raise RuntimeError("synthetic service failure")
+        return ""
+
+    monkeypatch.setattr(install_module, "_run", fake_run)
+
+    with pytest.raises(RuntimeError, match="synthetic service failure"):
+        install_module.activate_runtime(
+            REPO,
+            paths,
+            task_id="t_test",
+            approval_id=marker["approval_id"],
+            digest=marker["digest"],
+        )
+
+    runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
+    assert runtime["enabled"] is False
+    assert applied == [desired, prior]
+    assert commands[-1][:4] == ["systemctl", "--user", "enable", "--now"]
+    assert commands[-1][-1] == "pda-improvement-cycle.timer"
 
 
 def test_activate_writes_enabled_runtime_only_after_verification_boundary(tmp_path):

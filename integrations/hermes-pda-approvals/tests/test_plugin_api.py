@@ -193,6 +193,16 @@ def test_approve_records_control_owned_marker_then_reopens_for_finalization(tmp_
         assert task.status == "ready"
         assert task.assignee == "default"
         assert "pda-autonomous-improvement" in (task.skills or [])
+        ledger = conn.execute(
+            "SELECT approval_id, digest, head_sha, review_run_id, revoked_at "
+            "FROM pda_owner_approvals WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        assert ledger is not None
+        assert ledger["approval_id"] == body["approval_id"]
+        assert ledger["digest"] == digest
+        assert ledger["head_sha"] == payload["head_sha"]
+        assert ledger["revoked_at"] is None
         row = conn.execute(
             "SELECT body FROM task_comments WHERE task_id = ? AND author = ? ORDER BY id DESC LIMIT 1",
             (task_id, module.OWNER_APPROVAL_AUTHOR),
@@ -247,6 +257,29 @@ def test_non_finalizer_assignee_cannot_be_approved(tmp_path, monkeypatch):
         task = kanban_db.get_task(conn, task_id)
         assert task.status == "review"
         assert task.assignee == "legacy-worker"
+
+
+def test_failed_reopen_approval_is_revoked_on_request_changes(tmp_path, monkeypatch):
+    module, client, task_id, _repo_path, payload = _review_task(tmp_path, monkeypatch)
+    digest = module.approval_digest(payload)
+    original_reopen = module.kanban_db.reopen_review_task
+    monkeypatch.setattr(module.kanban_db, "reopen_review_task", lambda conn, task_id: False)
+
+    failed = client.post(f"/tasks/{task_id}/approve", json={"digest": digest})
+    monkeypatch.setattr(module.kanban_db, "reopen_review_task", original_reopen)
+    changed = client.post(
+        f"/tasks/{task_id}/request-changes",
+        json={"reason": "再検証してください"},
+    )
+
+    assert failed.status_code == 409
+    assert changed.status_code == 200
+    with kanban_db.connect() as conn:
+        row = conn.execute(
+            "SELECT revoked_at FROM pda_owner_approvals WHERE task_id = ?",
+            (task_id,),
+        ).fetchone()
+        assert row is not None and row["revoked_at"] is not None
 
 
 def test_request_changes_never_creates_an_approval_marker(tmp_path, monkeypatch):

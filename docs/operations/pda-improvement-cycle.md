@@ -61,7 +61,7 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 - Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
 - APIは最新review handoffのcanonical SHA-256 digest、task ID、cleanな実Git HEADを照合する。不一致ならfail closedでカードを動かさない。
-- 承認時はauthor `pda-owner-approval`のcontrol-owned markerを残して同じカードをReadyへ戻す。workerはmarkerと承認済みheadが一致する場合だけ、表示済みfinalization contractを実行する。
+- 承認時は同じKanban DB内のplugin専用ledgerへtask/run/digest/headを記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。workerはledgerと一致するmarkerと承認済みheadがある場合だけ、表示済みfinalization contractを実行する。
 - 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 
 ### 承認があっても暗黙には拡大しない
