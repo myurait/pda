@@ -34,6 +34,10 @@ class RuntimePaths:
         return self.home / ".config" / "pda" / "autonomous-improvement.json"
 
     @property
+    def cron_rollback(self) -> Path:
+        return self.home / ".config" / "pda" / "autonomous-improvement-cron-before.json"
+
+    @property
     def plugin_root(self) -> Path:
         return self.hermes_home / "plugins" / PLUGIN_NAME
 
@@ -352,36 +356,88 @@ def _set_human_review(paths: RuntimePaths, hermes_bin: str) -> None:
     )
 
 
-def _update_daily_reconciler(repo_root: Path, paths: RuntimePaths, hermes_bin: str) -> None:
+def _daily_reconciler_job_id(repo_root: Path) -> str:
     desired = json.loads(
         (repo_root / "continuity" / "autonomous-improvement.json").read_text(encoding="utf-8")
     )
-    job_id = str(desired["daily_reconciler_job_id"])
-    prompt = (
-        repo_root / "operations" / "improvement" / "daily_reconciler_prompt.txt"
-    ).read_text(encoding="utf-8")
-    _run(
-        [
-            hermes_bin,
-            "cron",
-            "edit",
-            job_id,
-            "--prompt",
-            prompt,
-            "--skill",
+    return str(desired["daily_reconciler_job_id"])
+
+
+def _read_daily_reconciler_state(paths: RuntimePaths, job_id: str) -> dict[str, Any]:
+    jobs_path = paths.hermes_home / "cron" / "jobs.json"
+    document = json.loads(jobs_path.read_text(encoding="utf-8"))
+    jobs = document.get("jobs") if isinstance(document, dict) else None
+    if not isinstance(jobs, list):
+        raise ValueError("cron jobs.json has no jobs list")
+    job = next((item for item in jobs if isinstance(item, dict) and item.get("id") == job_id), None)
+    if job is None:
+        raise ValueError(f"daily reconciler cron job is missing: {job_id}")
+    return {
+        "schema_version": 1,
+        "job_id": job_id,
+        "prompt": str(job.get("prompt") or ""),
+        "skills": [str(skill) for skill in (job.get("skills") or [])],
+        "workdir": job.get("workdir"),
+        "continuity": "self" in (job.get("context_from") or []),
+    }
+
+
+def _desired_daily_reconciler_state(repo_root: Path) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "job_id": _daily_reconciler_job_id(repo_root),
+        "prompt": (
+            repo_root / "operations" / "improvement" / "daily_reconciler_prompt.txt"
+        ).read_text(encoding="utf-8"),
+        "skills": [
             "workstream-reconciliation",
-            "--skill",
             "task-scope-control",
-            "--skill",
             "pda-user-escalation",
-            "--skill",
             WORKER_SKILL,
-            "--workdir",
-            str(repo_root),
-            "--continuity",
         ],
-        env=_default_env(paths),
+        "workdir": str(repo_root),
+        "continuity": True,
+    }
+
+
+def _apply_daily_reconciler_state(
+    state: dict[str, Any],
+    paths: RuntimePaths,
+    hermes_bin: str,
+) -> None:
+    command = [
+        hermes_bin,
+        "cron",
+        "edit",
+        str(state["job_id"]),
+        "--prompt",
+        str(state.get("prompt") or ""),
+    ]
+    skills = [str(skill) for skill in (state.get("skills") or [])]
+    if skills:
+        for skill in skills:
+            command.extend(["--skill", skill])
+    else:
+        command.append("--clear-skills")
+    command.extend(["--workdir", str(state.get("workdir") or "")])
+    command.append("--continuity" if state.get("continuity") else "--no-continuity")
+    _run(command, env=_default_env(paths))
+
+
+def _snapshot_daily_reconciler(repo_root: Path, paths: RuntimePaths) -> dict[str, Any]:
+    job_id = _daily_reconciler_job_id(repo_root)
+    if paths.cron_rollback.exists():
+        existing = json.loads(paths.cron_rollback.read_text(encoding="utf-8"))
+        if not isinstance(existing, dict) or existing.get("job_id") != job_id:
+            raise ValueError("existing cron rollback snapshot does not match this activation")
+        return existing
+    snapshot = _read_daily_reconciler_state(paths, job_id)
+    _atomic_write(
+        paths.cron_rollback,
+        (json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+        0o600,
     )
+    return snapshot
 
 
 def stage_runtime(
@@ -437,28 +493,66 @@ def activate_runtime(
         else:
             os.environ["HERMES_HOME"] = old_home
 
-    result = install_managed_files(
-        repo_root,
-        paths,
-        activate=True,
-        approval_marker=marker,
-    )
-    _enable_dashboard_plugin(paths, hermes_bin)
-    _set_human_review(paths, hermes_bin)
-    _update_daily_reconciler(repo_root, paths, hermes_bin)
-    _run(["systemctl", "--user", "daemon-reload"])
-    _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
-    _run(["systemctl", "--user", "start", "pda-improvement-cycle.service"])
-    service_result = _run(
-        ["systemctl", "--user", "show", "pda-improvement-cycle.service", "-p", "Result", "--value"]
-    )
-    if service_result != "success":
-        raise RuntimeError(f"improvement-cycle service result is {service_result!r}")
+    prior_cron = _snapshot_daily_reconciler(repo_root, paths)
+    desired_cron = _desired_daily_reconciler_state(repo_root)
+    cron_attempted = False
+    active_files_written = False
+    try:
+        # The staged timer is stopped while policy and runtime state cross the
+        # approval boundary, so no tick can observe a half-applied activation.
+        _run(["systemctl", "--user", "stop", "pda-improvement-cycle.timer"])
+        cron_attempted = True
+        _apply_daily_reconciler_state(desired_cron, paths, hermes_bin)
+        result = install_managed_files(
+            repo_root,
+            paths,
+            activate=True,
+            approval_marker=marker,
+        )
+        active_files_written = True
+        _enable_dashboard_plugin(paths, hermes_bin)
+        _set_human_review(paths, hermes_bin)
+        _run(["systemctl", "--user", "daemon-reload"])
+        _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
+        _run(["systemctl", "--user", "start", "pda-improvement-cycle.service"])
+        service_result = _run(
+            [
+                "systemctl",
+                "--user",
+                "show",
+                "pda-improvement-cycle.service",
+                "-p",
+                "Result",
+                "--value",
+            ]
+        )
+        if service_result != "success":
+            raise RuntimeError(f"improvement-cycle service result is {service_result!r}")
+    except Exception as exc:
+        rollback_errors: list[str] = []
+        if active_files_written:
+            try:
+                install_managed_files(repo_root, paths, activate=False)
+            except Exception as rollback_exc:
+                rollback_errors.append(f"runtime-disable rollback failed: {rollback_exc}")
+        if cron_attempted:
+            try:
+                _apply_daily_reconciler_state(prior_cron, paths, hermes_bin)
+            except Exception as rollback_exc:
+                rollback_errors.append(f"cron rollback failed: {rollback_exc}")
+        try:
+            _run(["systemctl", "--user", "enable", "--now", "pda-improvement-cycle.timer"])
+        except Exception as rollback_exc:
+            rollback_errors.append(f"timer recovery failed: {rollback_exc}")
+        if rollback_errors:
+            raise RuntimeError(f"activation failed: {exc}; " + "; ".join(rollback_errors)) from exc
+        raise
     result.update(
         {
             "mode": "active",
             "approval": marker,
             "cycle_service_result": service_result,
+            "cron_rollback": str(paths.cron_rollback),
         }
     )
     return result

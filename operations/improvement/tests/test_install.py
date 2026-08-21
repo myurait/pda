@@ -13,6 +13,8 @@ from hermes_cli import kanban_db
 from operations.improvement.install import (
     RuntimePaths,
     _resolve_python_executable,
+    _snapshot_daily_reconciler,
+    _desired_daily_reconciler_state,
     _verify_approved_artifact,
     install_managed_files,
     verify_owner_approval,
@@ -53,6 +55,44 @@ def test_default_systemd_python_is_the_hermes_venv(tmp_path):
     assert _resolve_python_executable(hermes_home, None) == python_path.absolute()
     with pytest.raises(ValueError, match="Hermes Python executable is missing"):
         _resolve_python_executable(tmp_path / "missing", None)
+
+
+def test_cron_snapshot_is_restricted_and_not_overwritten_on_retry(tmp_path):
+    paths = _paths(tmp_path)
+    jobs_path = paths.hermes_home / "cron" / "jobs.json"
+    jobs_path.parent.mkdir(parents=True)
+    jobs_path.write_text(
+        json.dumps(
+            {
+                "jobs": [
+                    {
+                        "id": "64b615bad09c",
+                        "prompt": "old prompt",
+                        "skills": ["old-skill"],
+                        "workdir": None,
+                        "context_from": ["self"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = _snapshot_daily_reconciler(REPO, paths)
+    jobs_path.write_text(
+        json.dumps({"jobs": [{"id": "64b615bad09c", "prompt": "newer"}]}),
+        encoding="utf-8",
+    )
+    retried = _snapshot_daily_reconciler(REPO, paths)
+    desired = _desired_daily_reconciler_state(REPO)
+
+    assert snapshot == retried
+    assert snapshot["prompt"] == "old prompt"
+    assert snapshot["continuity"] is True
+    assert paths.cron_rollback.stat().st_mode & 0o777 == 0o600
+    assert desired["job_id"] == "64b615bad09c"
+    assert "pda-autonomous-improvement" in desired["skills"]
+    assert desired["workdir"] == str(REPO)
 
 
 def test_stage_install_is_idempotent_and_keeps_executor_disabled(tmp_path):

@@ -42,7 +42,7 @@ python operations/improvement/install.py --activate \
   --digest <64-lowercase-hex>
 ```
 
-The installer re-reads the shared Kanban DB and refuses activation unless task, author, schema, approval ID, and digest match. It then writes `enabled=true`, updates the existing daily reconciler, and runs one deterministic routing tick.
+The installer re-reads the shared Kanban DB and refuses activation unless task, author, schema, approval ID, digest, latest review run, forced skill, and clean Git HEAD all match. It stops the staged timer, captures the prior daily-Cron prompt/skills/workdir in a mode-0600 rollback snapshot, applies the new Cron and enabled runtime atomically, and runs one deterministic routing tick. A failed activation restores disabled runtime state and the prior Cron before restarting the no-op timer.
 
 ## Safety invariants
 
