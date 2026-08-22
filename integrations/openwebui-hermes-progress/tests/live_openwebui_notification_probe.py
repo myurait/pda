@@ -243,7 +243,10 @@ async def main() -> None:
                 "saved_answer": content,
                 "saved_done": saved.get("done") is True,
                 "progress_status_count": len(statuses),
-                "progress_has_start": "Hermesが処理を開始しました…" in status_descriptions,
+                "progress_has_start": any(
+                    "開始処理中／最初の実行イベント待ち" in description
+                    for description in status_descriptions
+                ),
                 "progress_has_done": "完了" in status_descriptions,
                 "completion_push_count": len(all_new),
                 "completion_push_extra_count": len(all_new) - len(matching),

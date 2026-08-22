@@ -190,14 +190,18 @@ def test_run_timeout_defaults_to_unlimited():
 def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
     valves = Pipe.Valves()
     schema = valves.model_json_schema()["properties"]["PROGRESS_HEARTBEAT_SECONDS"]
+    stall_schema = valves.model_json_schema()["properties"]["PROGRESS_STALL_SECONDS"]
 
     assert valves.PROGRESS_HEARTBEAT_SECONDS == 300
+    assert valves.PROGRESS_STALL_SECONDS == 600
     assert valves.SHOW_TOOL_ACTIVITY is False
     assert valves.SHOW_REASONING_STATUS is False
     assert schema["minimum"] == 0
+    assert stall_schema["minimum"] == 0
 
-    disabled = Pipe.Valves(PROGRESS_HEARTBEAT_SECONDS=0)
+    disabled = Pipe.Valves(PROGRESS_HEARTBEAT_SECONDS=0, PROGRESS_STALL_SECONDS=0)
     assert disabled.PROGRESS_HEARTBEAT_SECONDS == 0
+    assert disabled.PROGRESS_STALL_SECONDS == 0
 
 
 def test_progress_heartbeat_reports_plan_milestone_and_current_work():
@@ -237,12 +241,337 @@ def test_progress_heartbeat_reports_plan_milestone_and_current_work():
         progress=progress,
     )
 
-    assert description == (
+    assert description.startswith(
         "[5分経過] 処理中 (50%) - "
         "完了: 設計の大枠を確定。"
         "現在: 外部システムとの疎通条件を追加調査中。"
     )
+    assert "\n段階: 外部システムとの疎通条件を追加調査中" in description
+    assert "\n変化: 進捗率 初回50%／段階 初回／表示文 初回" in description
+    assert "\n最終実進展:" in description
     assert "ツール" not in description
+
+
+def test_progress_without_plan_reports_event_based_current_work_and_result():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "tool.started",
+            "tool": "read_file",
+            "preview": "PRIVATE_PATH_MUST_NOT_APPEAR",
+        },
+    )
+    active = pipe._heartbeat_description(elapsed_seconds=30, progress=progress)
+
+    assert "作業計画が未登録" not in active
+    assert "現在: 対象ファイルの内容を確認中。" in active
+    assert "PRIVATE_PATH_MUST_NOT_APPEAR" not in active
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "tool.completed",
+            "tool": "read_file",
+            "error": False,
+            "result": "PRIVATE_RESULT_MUST_NOT_APPEAR",
+        },
+    )
+    completed = pipe._heartbeat_description(elapsed_seconds=45, progress=progress)
+
+    assert "作業計画が未登録" not in completed
+    assert "直近結果: 対象ファイルの確認を完了。" in completed
+    assert "PRIVATE_RESULT_MUST_NOT_APPEAR" not in completed
+
+
+@pytest.mark.parametrize(
+    ("tool", "current_work", "completed_result"),
+    [
+        ("search_files", "関連コード・記録を検索中", "関連コード・記録の検索を完了"),
+        ("terminal", "コマンドで実装・検証中", "コマンド実行を完了"),
+        ("patch", "実装・文書を更新中", "実装・文書の更新を完了"),
+        ("web_search", "公開情報を調査中", "公開情報の調査を完了"),
+        ("computer_use", "画面上の対象を操作・確認中", "画面上の操作・確認を完了"),
+        ("todo", "作業段階を更新中", "作業段階の更新を完了"),
+        ("delegate_task", "並行作業を実行中", "並行作業を完了"),
+        ("kanban_comment", "作業記録を更新中", "作業記録の更新を完了"),
+    ],
+)
+def test_event_based_progress_maps_tools_to_owner_readable_work(
+    tool, current_work, completed_result
+):
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+
+    pipe._track_progress_event(progress, {"event": "tool.started", "tool": tool})
+    active = pipe._progress_snapshot(progress)
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.completed", "tool": tool, "error": False},
+    )
+    completed = pipe._progress_snapshot(progress)
+
+    assert active["current"] == current_work
+    assert completed["recent_result"] == completed_result
+
+
+def test_completed_tool_result_does_not_fall_back_to_instruction_like_plan_as_current_work():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    instruction_like_stage = "依頼された画面改善を実施する"
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "implement",
+                    "content": instruction_like_stage,
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "search_files"},
+    )
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.completed", "tool": "search_files", "error": False},
+    )
+
+    snapshot = pipe._progress_snapshot(progress)
+
+    assert snapshot["stage"] == instruction_like_stage
+    assert snapshot["current"] == "次の処理を判断中"
+    assert snapshot["recent_result"] == "関連コード・記録の検索を完了"
+
+
+@pytest.mark.asyncio
+async def test_progress_status_preserves_full_multiline_description_without_ellipsis():
+    pipe = Pipe()
+    emitted = []
+    description = "現在: " + ("具体的な確認作業" * 200) + "\n直近結果: 検証を完了。"
+
+    async def emitter(event):
+        emitted.append(event)
+
+    await pipe._emit_status(emitter, description, done=False, heartbeat=True)
+
+    assert emitted[0]["data"]["description"] == description
+    assert "…" not in emitted[0]["data"]["description"]
+
+
+def test_progress_plan_preserves_full_multiline_text_beyond_old_display_limit():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    long_content = ("狭い画面でも省略せず読める具体的な作業内容。" * 40) + "\n第二段落も保持する。"
+
+    accepted = pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "long-current-work",
+                    "content": long_content,
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+    )
+
+    assert accepted is True
+    assert long_content in description
+    assert "…" not in description
+
+
+def test_progress_delta_and_stall_use_last_real_event_not_repeated_heartbeat():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1_000.0)
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "timestamp": 1_000.0,
+            "items": [
+                {
+                    "id": "verify",
+                    "content": "対象環境で表示を検証中",
+                    "status": "in_progress",
+                }
+            ],
+        },
+        observed_at=1_000.0,
+    )
+
+    first = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+        now=1_300.0,
+        stall_seconds=600,
+    )
+    unchanged_busy = pipe._heartbeat_description(
+        elapsed_seconds=599,
+        progress=progress,
+        now=1_599.0,
+        stall_seconds=600,
+    )
+    stalled = pipe._heartbeat_description(
+        elapsed_seconds=600,
+        progress=progress,
+        now=1_600.0,
+        stall_seconds=600,
+    )
+
+    assert "状態: 実行中" in first
+    assert "前回表示: 初回" in first
+    assert "実作業イベント +1" in first
+    assert "状態: 実行中" in unchanged_busy
+    assert "進捗率 ±0pt" in unchanged_busy
+    assert "段階 同一" in unchanged_busy
+    assert "表示文 同一" in unchanged_busy
+    assert "実作業イベント +0" in unchanged_busy
+    assert "状態: 停滞" in stalled
+    assert "最終実進展:" in stalled
+    assert "（10分前）" in stalled
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "timestamp": 1_700.0,
+            "items": [
+                {
+                    "id": "verify",
+                    "content": "対象環境で表示を検証中",
+                    "status": "completed",
+                }
+            ],
+        },
+        observed_at=1_700.0,
+    )
+    advanced = pipe._heartbeat_description(
+        elapsed_seconds=700,
+        progress=progress,
+        now=1_700.0,
+        stall_seconds=600,
+    )
+
+    assert "状態: 実行中" in advanced
+    assert "進捗率 +100pt" in advanced
+    assert "段階 変更" in advanced
+    assert "表示文 変更" in advanced
+    assert "実作業イベント +1" in advanced
+
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "terminal", "timestamp": 2_200.0},
+        observed_at=2_200.0,
+    )
+    pipe._heartbeat_description(
+        elapsed_seconds=1_200,
+        progress=progress,
+        now=2_200.0,
+        stall_seconds=600,
+    )
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "terminal", "timestamp": 2_700.0},
+        observed_at=2_700.0,
+    )
+    same_text_real_work = pipe._heartbeat_description(
+        elapsed_seconds=1_800,
+        progress=progress,
+        now=2_800.0,
+        stall_seconds=600,
+    )
+
+    assert "状態: 実行中" in same_text_real_work
+    assert "進捗率 ±0pt" in same_text_real_work
+    assert "段階 同一" in same_text_real_work
+    assert "表示文 同一" in same_text_real_work
+    assert "実作業イベント +1" in same_text_real_work
+
+
+def test_identical_plan_event_counts_as_real_work_and_clears_stall():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1_000.0)
+    event = {
+        "event": "plan.updated",
+        "timestamp": 1_000.0,
+        "items": [
+            {
+                "id": "verify",
+                "content": "同じ段階で検証を継続中",
+                "status": "in_progress",
+            }
+        ],
+    }
+    pipe._track_progress_event(progress, event, observed_at=1_000.0)
+    pipe._heartbeat_description(
+        elapsed_seconds=600,
+        progress=progress,
+        now=1_600.0,
+        stall_seconds=600,
+    )
+
+    repeated = pipe._track_progress_event(
+        progress,
+        event,
+        observed_at=1_700.0,
+    )
+    description = pipe._heartbeat_description(
+        elapsed_seconds=701,
+        progress=progress,
+        now=1_701.0,
+        stall_seconds=600,
+    )
+
+    assert repeated is True
+    assert "状態: 実行中" in description
+    assert "進捗率 ±0pt" in description
+    assert "段階 同一" in description
+    assert "表示文 同一" in description
+    assert "実作業イベント +1" in description
+
+
+def test_delayed_event_uses_observation_time_to_clear_stall():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1_000.0)
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "terminal", "timestamp": 1_000.0},
+        observed_at=1_000.0,
+    )
+    pipe._heartbeat_description(
+        elapsed_seconds=600,
+        progress=progress,
+        now=1_600.0,
+        stall_seconds=600,
+    )
+
+    pipe._track_progress_event(
+        progress,
+        {"event": "tool.started", "tool": "terminal", "timestamp": 1_000.0},
+        observed_at=2_000.0,
+    )
+    description = pipe._heartbeat_description(
+        elapsed_seconds=1_001,
+        progress=progress,
+        now=2_001.0,
+        stall_seconds=600,
+    )
+
+    assert "状態: 実行中" in description
+    assert "最終実進展: 1970-01-01T00:33:20Z（1秒前）" in description
 
 
 def test_malformed_plan_update_does_not_clear_last_valid_progress():
@@ -300,6 +629,48 @@ def test_malformed_plan_update_does_not_clear_last_valid_progress():
     assert progress["plan_items"] == []
 
 
+def test_mixed_valid_and_invalid_plan_update_fails_closed_without_progress():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1_000.0)
+    baseline = {
+        "event": "plan.updated",
+        "items": [
+            {
+                "id": "baseline",
+                "content": "既存の有効な段階",
+                "status": "in_progress",
+            }
+        ],
+    }
+    pipe._track_progress_event(progress, baseline, observed_at=1_000.0)
+    event_count = progress["real_event_count"]
+
+    accepted = pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "replacement",
+                    "content": "置換候補",
+                    "status": "in_progress",
+                },
+                {
+                    "id": "oversized",
+                    "content": "x" * 4_001,
+                    "status": "pending",
+                },
+            ],
+        },
+        observed_at=2_000.0,
+    )
+
+    assert accepted is False
+    assert progress["plan_items"] == baseline["items"]
+    assert progress["real_event_count"] == event_count
+    assert progress["last_real_progress_at"] == 1_000.0
+
+
 def test_all_cancelled_plan_does_not_invent_a_percentage():
     pipe = Pipe()
     progress = {
@@ -347,6 +718,43 @@ def test_plan_progress_redacts_credential_urls_at_the_pipe_boundary():
     assert "https://user:***@example.com/path?token=***" in description
 
 
+def test_plan_progress_redacts_secret_url_fragment_at_the_pipe_boundary():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state()
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {
+                    "id": "callback",
+                    "content": (
+                        "確認 https://example.com/callback#access%5Ftoken%3D"
+                        "ACCESS_FRAGMENT_MUST_NOT_APPEAR "
+                        "https://example.com/refresh#refresh%5Ftoken%3D"
+                        "REFRESH_FRAGMENT_MUST_NOT_APPEAR "
+                        "https://example.com/client?client%5Fsecret%3D"
+                        "CLIENT_SECRET_MUST_NOT_APPEAR"
+                    ),
+                    "status": "in_progress",
+                }
+            ],
+        },
+    )
+
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300,
+        progress=progress,
+    )
+
+    assert "ACCESS_FRAGMENT_MUST_NOT_APPEAR" not in description
+    assert "REFRESH_FRAGMENT_MUST_NOT_APPEAR" not in description
+    assert "CLIENT_SECRET_MUST_NOT_APPEAR" not in description
+    assert "https://example.com/callback#access%5Ftoken%3D***" in description
+    assert "https://example.com/refresh#refresh%5Ftoken%3D***" in description
+    assert "https://example.com/client?client%5Fsecret%3D***" in description
+
+
 def test_progress_heartbeat_does_not_treat_active_tool_as_user_progress():
     pipe = Pipe()
     progress = pipe._initial_progress_state()
@@ -391,6 +799,24 @@ def test_progress_heartbeat_uses_generic_label_for_untrusted_tool_name():
     assert "USER_INPUT_SECRET_7f9c" not in immediate
     assert "ANOTHER_SECRET" not in heartbeat
     assert "ANOTHER_SECRET" not in immediate
+
+
+def test_legacy_tool_preview_valve_never_exposes_preview_or_user_input():
+    pipe = Pipe()
+    pipe.valves.SHOW_TOOL_PREVIEW = True
+    pipe.valves.TOOL_PREVIEW_CHARS = 1000
+    description = pipe._tool_description(
+        {
+            "event": "tool.started",
+            "tool": "terminal",
+            "preview": "USER_INPUT_AND_TOKEN_MUST_NEVER_APPEAR token=secret-value",
+        },
+        completed=False,
+    )
+
+    assert description == "実行中: terminal"
+    assert "USER_INPUT" not in description
+    assert "secret-value" not in description
 
 
 def test_progress_heartbeat_does_not_report_tool_count_or_reasoning_activity():
@@ -537,6 +963,100 @@ async def test_tool_lifecycle_is_suppressed_from_status_and_content_by_default()
         assert fake.stops == []
         assert fake.run_payloads[0]["session_id"] == "owui_test"
         assert fake.headers[0]["X-Hermes-Session-Key"] == "openwebui:test"
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_events_emit_event_based_semantic_progress_without_raw_log_text():
+    fake = await FakeHermes(
+        [
+            {
+                "event": "tool.started",
+                "tool": "read_file",
+                "preview": "PRIVATE_PATH_MUST_NOT_APPEAR",
+            },
+            {
+                "event": "tool.completed",
+                "tool": "read_file",
+                "error": False,
+                "result": "PRIVATE_RESULT_MUST_NOT_APPEAR",
+            },
+            {"event": "run.completed", "output": "EVENT_PROGRESS_OK"},
+        ]
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="event progress",
+                history=[],
+                instructions=None,
+                session_id="owui_event_progress",
+                session_key="openwebui:event-progress",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        semantic = [
+            item for item in status_data(emitted) if item.get("progress_update")
+        ]
+        descriptions = [item["description"] for item in semantic]
+        assert visible_content(chunks) == "EVENT_PROGRESS_OK"
+        assert any("現在: 対象ファイルの内容を確認中" in text for text in descriptions)
+        assert any("直近結果: 対象ファイルの確認を完了" in text for text in descriptions)
+        assert all("変化:" in text for text in descriptions)
+        assert all("最終実進展:" in text for text in descriptions)
+        assert not any(text == "実行中: read_file" for text in descriptions)
+        assert "PRIVATE_PATH_MUST_NOT_APPEAR" not in "\n".join(descriptions)
+        assert "PRIVATE_RESULT_MUST_NOT_APPEAR" not in "\n".join(descriptions)
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_run_start_reports_waiting_for_first_observable_event():
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "START_STATUS_OK"}],
+        event_delay=0.05,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="start status",
+                history=[],
+                instructions=None,
+                session_id="owui_start_status",
+                session_key="openwebui:start-status",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        statuses = status_data(emitted)
+        assert visible_content(chunks) == "START_STATUS_OK"
+        assert statuses[0]["description"].startswith(
+            "[0秒経過] 処理中 (進捗率未算出) - "
+            "現在: 開始処理中／最初の実行イベント待ち。"
+        )
+        assert statuses[0]["progress_update"] is True
+        assert "前回表示: 初回" in statuses[0]["description"]
+        assert "作業計画が未登録" not in statuses[0]["description"]
+        assert "Hermesが処理を開始しました" not in statuses[0]["description"]
     finally:
         await fake.close()
 

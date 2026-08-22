@@ -103,12 +103,21 @@ async def main():
         ),
         "final_status_done": bool(statuses and statuses[-1].get("done") is True),
         "assistant_content_has_status_marker": any(
-            marker in content for marker in ("実行中:", "完了: terminal", "Hermesが処理を開始")
+            marker in content
+            for marker in (
+                "実行中:",
+                "完了: terminal",
+                "開始処理中／最初の実行イベント待ち",
+            )
         ),
         "transcript_http_status": transcript_status,
         "transcript_has_ui_status_marker": any(
             marker in transcript_text
-            for marker in ("実行中:", "完了: terminal", "Hermesが処理を開始しました")
+            for marker in (
+                "実行中:",
+                "完了: terminal",
+                "開始処理中／最初の実行イベント待ち",
+            )
         ),
         "session_id": session_id,
     }

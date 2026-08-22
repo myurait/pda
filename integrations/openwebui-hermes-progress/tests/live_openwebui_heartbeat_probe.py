@@ -131,6 +131,12 @@ async def main() -> None:
             heartbeat_text = "\n".join(
                 str(item.get("description") or "") for item in heartbeats
             )
+            event_updates = [
+                item
+                for item in statuses
+                if item.get("progress_update") is True
+                and item.get("heartbeat") is False
+            ]
             midflight_heartbeats = [
                 item
                 for item in heartbeats
@@ -168,10 +174,38 @@ async def main() -> None:
                     in str(item.get("description") or "")
                     for item in midflight_heartbeats
                 ),
-                "heartbeat_has_current_work": all(
-                    "現在: 外部システムとの疎通を追加調査中。"
+                "heartbeat_has_plan_stage": all(
+                    "段階: 外部システムとの疎通を追加調査中"
                     in str(item.get("description") or "")
                     for item in midflight_heartbeats
+                ),
+                "heartbeat_has_current_work": all(
+                    any(
+                        phrase in str(item.get("description") or "")
+                        for phrase in (
+                            "現在: コマンドで実装・検証中",
+                            "現在: 次の処理を判断中",
+                        )
+                    )
+                    for item in midflight_heartbeats
+                ),
+                "heartbeat_has_delta": all(
+                    "変化: 進捗率" in str(item.get("description") or "")
+                    and "実作業イベント +" in str(item.get("description") or "")
+                    for item in heartbeats
+                ),
+                "heartbeat_has_last_real_progress": all(
+                    "最終実進展:" in str(item.get("description") or "")
+                    for item in heartbeats
+                ),
+                "heartbeat_preserves_full_text": all(
+                    "…" not in str(item.get("description") or "")
+                    for item in heartbeats
+                ),
+                "event_update_has_real_work": any(
+                    "現在: コマンドで実装・検証中"
+                    in str(item.get("description") or "")
+                    for item in event_updates
                 ),
                 "tool_lifecycle_status_absent": not any(
                     str(item.get("description") or "").startswith(("実行中:", "完了:"))
@@ -201,7 +235,12 @@ async def main() -> None:
             assert result["heartbeat_has_elapsed"], result
             assert result["midflight_heartbeat_count"] >= 2, result
             assert result["heartbeat_has_completed_milestone"], result
+            assert result["heartbeat_has_plan_stage"], result
             assert result["heartbeat_has_current_work"], result
+            assert result["heartbeat_has_delta"], result
+            assert result["heartbeat_has_last_real_progress"], result
+            assert result["heartbeat_preserves_full_text"], result
+            assert result["event_update_has_real_work"], result
             assert result["tool_lifecycle_status_absent"], result
             assert result["tool_name_absent"], result
             assert result["private_tool_input_absent"], result

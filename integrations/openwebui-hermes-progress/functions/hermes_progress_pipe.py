@@ -1,9 +1,9 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.14
+version: 2.1.0-local.15
 required_open_webui_version: 0.10.2
-description: Hermes Runs API adapter with live interim assistant messages, plan-based semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
+description: Hermes Runs API adapter with live interim assistant messages, event-grounded semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
 
 # Derived from MartianInGreen/openwebui-hermes (MIT), pinned during review at
@@ -65,47 +65,111 @@ _PROGRESS_URL_USERINFO_RE = re.compile(
     r"(?i)\b(https?://)([^\s/@:]+):([^@\s/]+)@"
 )
 _PROGRESS_URL_QUERY_SECRET_RE = re.compile(
-    r"(?i)([?&](?:access[_-]?token|token|api[_-]?key|password|passwd|secret|"
-    r"signature|sig|authorization)=)([^&#\s]*)"
+    r"(?i)([?&#](?:access(?:[_-]|%5f)?token|refresh(?:[_-]|%5f)?token|"
+    r"client(?:[_-]|%5f)?secret|token|api(?:[_-]|%5f)?key|password|passwd|"
+    r"secret|signature|sig|authorization)(?:=|%3d))([^&#\s]*)"
 )
 _PROGRESS_ASSIGNMENT_SECRET_RE = re.compile(
-    r"(?i)\b((?:access[_-]?token|token|api[_-]?key|password|passwd|secret|"
-    r"authorization)\s*[:=]\s*)(?:Bearer\s+)?[^\s,;]+"
+    r"(?i)\b((?:access[_-]?token|refresh[_-]?token|client[_-]?secret|token|"
+    r"api[_-]?key|password|passwd|secret|authorization)\s*[:=]\s*)"
+    r"(?:Bearer\s+)?[^\s,;]+"
 )
 _PROGRESS_BEARER_SECRET_RE = re.compile(r"(?i)\bBearer\s+[^\s,;]+")
-_SAFE_PROGRESS_TOOL_NAMES = frozenset(
-    {
-        "browser_back",
-        "browser_click",
-        "browser_console",
-        "browser_get_images",
-        "browser_navigate",
-        "browser_press",
-        "browser_scroll",
-        "browser_snapshot",
-        "browser_type",
-        "browser_vision",
-        "cronjob",
-        "delegate_task",
-        "execute_code",
-        "image_generate",
-        "memory",
-        "patch",
-        "process",
-        "read_file",
-        "search_files",
-        "session_search",
-        "skill_manage",
-        "skill_view",
-        "skills_list",
-        "terminal",
-        "todo",
-        "vision_analyze",
-        "web_extract",
-        "web_search",
-        "write_file",
-    }
+_PROGRESS_TOOL_ACTIVITY_GROUPS = (
+    (
+        frozenset({"read_file"}),
+        ("対象ファイルの内容を確認中", "対象ファイルの確認を完了"),
+    ),
+    (
+        frozenset({"search_files", "session_search"}),
+        ("関連コード・記録を検索中", "関連コード・記録の検索を完了"),
+    ),
+    (
+        frozenset({"terminal", "execute_code", "process"}),
+        ("コマンドで実装・検証中", "コマンド実行を完了"),
+    ),
+    (
+        frozenset({"patch", "write_file"}),
+        ("実装・文書を更新中", "実装・文書の更新を完了"),
+    ),
+    (
+        frozenset({"web_search", "web_extract"}),
+        ("公開情報を調査中", "公開情報の調査を完了"),
+    ),
+    (
+        frozenset(
+            {
+                "browser_back",
+                "browser_click",
+                "browser_console",
+                "browser_get_images",
+                "browser_navigate",
+                "browser_press",
+                "browser_scroll",
+                "browser_snapshot",
+                "browser_type",
+                "browser_vision",
+                "computer_use",
+            }
+        ),
+        ("画面上の対象を操作・確認中", "画面上の操作・確認を完了"),
+    ),
+    (
+        frozenset({"todo"}),
+        ("作業段階を更新中", "作業段階の更新を完了"),
+    ),
+    (
+        frozenset({"delegate_task"}),
+        ("並行作業を実行中", "並行作業を完了"),
+    ),
+    (
+        frozenset(
+            {
+                "kanban_comment",
+                "kanban_heartbeat",
+                "kanban_complete",
+                "kanban_block",
+                "kanban_request_review",
+                "kanban_request_changes",
+                "kanban_create",
+                "kanban_link",
+                "kanban_attach",
+                "kanban_attach_url",
+            }
+        ),
+        ("作業記録を更新中", "作業記録の更新を完了"),
+    ),
+    (
+        frozenset({"kanban_show", "kanban_attachments"}),
+        ("作業状態・資料を確認中", "作業状態・資料の確認を完了"),
+    ),
+    (
+        frozenset({"skill_manage", "skill_view", "skills_list"}),
+        ("作業手順を確認・更新中", "作業手順の確認・更新を完了"),
+    ),
+    (
+        frozenset({"cronjob"}),
+        ("定期処理を確認・更新中", "定期処理の確認・更新を完了"),
+    ),
+    (
+        frozenset({"memory"}),
+        ("継続情報を確認・更新中", "継続情報の確認・更新を完了"),
+    ),
+    (
+        frozenset({"image_generate", "vision_analyze", "text_to_speech"}),
+        ("画像・音声の内容を処理中", "画像・音声の処理を完了"),
+    ),
+    (
+        frozenset({"tool_search", "tool_describe", "tool_call", "scope_gate"}),
+        ("利用可能な機能と作業範囲を確認中", "機能と作業範囲の確認を完了"),
+    ),
 )
+_PROGRESS_TOOL_ACTIVITY = {
+    tool: activity
+    for tools, activity in _PROGRESS_TOOL_ACTIVITY_GROUPS
+    for tool in tools
+}
+_SAFE_PROGRESS_TOOL_NAMES = frozenset(_PROGRESS_TOOL_ACTIVITY)
 
 
 class Pipe:
@@ -137,6 +201,15 @@ class Pipe:
                 "0 disables periodic updates."
             ),
         )
+        PROGRESS_STALL_SECONDS: int = Field(
+            default=600,
+            ge=0,
+            le=604800,
+            description=(
+                "Time without a real plan, tool, approval, or run-state event before "
+                "progress is marked stalled; 0 disables stall classification."
+            ),
+        )
         APPROVAL_TIMEOUT_SECONDS: int = Field(
             default=55,
             ge=15,
@@ -148,7 +221,9 @@ class Pipe:
         )
         SHOW_TOOL_PREVIEW: bool = Field(
             default=False,
-            description="Show Hermes' redacted tool preview in status history. Off avoids storing command details in Open WebUI.",
+            description=(
+                "Legacy compatibility Valve. Tool previews are never stored or displayed."
+            ),
         )
         SHOW_TOOL_ACTIVITY: bool = Field(
             default=False,
@@ -161,7 +236,7 @@ class Pipe:
             default=160,
             ge=0,
             le=1000,
-            description="Maximum displayed tool-preview length when enabled.",
+            description="Legacy compatibility Valve; tool previews remain disabled.",
         )
         SHOW_REASONING_STATUS: bool = Field(
             default=False,
@@ -406,14 +481,26 @@ class Pipe:
             return text[: max(0, limit - 1)] + "…"
         return text
 
+    @staticmethod
+    def _clean_status_text(value: Any) -> str:
+        text = str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+        text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", " ", text)
+        return "\n".join(
+            re.sub(r"[\t ]+", " ", line).strip()
+            for line in text.split("\n")
+        ).strip()
+
     @classmethod
     def _redact_progress_text(cls, value: Any, limit: int) -> str:
-        text = cls._clean_text(value, max(2_000, limit * 4))
+        text = cls._clean_status_text(value)
+        if len(text) > limit:
+            return ""
         text = _PROGRESS_URL_USERINFO_RE.sub(r"\1\2:***@", text)
         text = _PROGRESS_URL_QUERY_SECRET_RE.sub(r"\1***", text)
         text = _PROGRESS_ASSIGNMENT_SECRET_RE.sub(r"\1***", text)
         text = _PROGRESS_BEARER_SECRET_RE.sub("Bearer ***", text)
-        return cls._clean_text(text, limit)
+        text = cls._clean_status_text(text)
+        return text if len(text) <= limit else ""
 
     @staticmethod
     def _validated_notification_url(
@@ -491,7 +578,7 @@ class Pipe:
             return
         data = {
             "action": "hermes_agent",
-            "description": self._clean_text(description, 1200),
+            "description": self._clean_status_text(description),
             "done": bool(done),
             **extra,
         }
@@ -517,48 +604,129 @@ class Pipe:
                 return f"失敗: {name}{duration_text}"
             return f"完了: {name}{duration_text}"
 
-        description = f"実行中: {name}"
-        if self.valves.SHOW_TOOL_PREVIEW and self.valves.TOOL_PREVIEW_CHARS > 0:
-            preview = self._clean_text(
-                event.get("preview"), int(self.valves.TOOL_PREVIEW_CHARS)
-            )
-            if preview:
-                description += f" — {preview}"
-        return description
+        return f"実行中: {name}"
 
     @staticmethod
-    def _initial_progress_state() -> dict[str, Any]:
-        return {"plan_items": []}
+    def _initial_progress_state(
+        *, started_at: Optional[float] = None
+    ) -> dict[str, Any]:
+        try:
+            started = float(time.time() if started_at is None else started_at)
+        except (TypeError, ValueError):
+            started = time.time()
+        if not 0 < started < float("inf"):
+            started = time.time()
+        return {
+            "plan_items": [],
+            "current_activity": "",
+            "recent_result": "",
+            "active_tool": "",
+            "blocker": "",
+            "run_state": "starting",
+            "started_at": started,
+            "last_real_progress_at": started,
+            "real_event_count": 0,
+            "last_report_at": None,
+            "last_report_event_count": 0,
+            "last_report_snapshot": None,
+        }
 
-    def _track_progress_event(self, progress: dict[str, Any], event: dict) -> None:
-        if str(event.get("event") or "") != "plan.updated":
-            return
+    @staticmethod
+    def _progress_event_time(event: dict, observed_at: Optional[float]) -> float:
+        del event
+        try:
+            observed = float(time.time() if observed_at is None else observed_at)
+        except (TypeError, ValueError):
+            observed = time.time()
+        if not 0 < observed < float("inf"):
+            observed = time.time()
+        return observed
+
+    @staticmethod
+    def _mark_real_progress(progress: dict[str, Any], observed_at: float) -> None:
+        previous = float(progress.get("last_real_progress_at") or 0)
+        progress["last_real_progress_at"] = max(previous, observed_at)
+        progress["real_event_count"] = int(progress.get("real_event_count") or 0) + 1
+
+    def _track_progress_event(
+        self,
+        progress: dict[str, Any],
+        event: dict,
+        *,
+        observed_at: Optional[float] = None,
+    ) -> bool:
+        event_type = str(event.get("event") or "")
+        event_time = self._progress_event_time(event, observed_at)
+        if event_type in {"tool.started", "tool.completed"}:
+            tool = self._safe_progress_tool_name(event.get("tool"))
+            current, completed = _PROGRESS_TOOL_ACTIVITY.get(
+                tool,
+                ("実行イベントを処理中", "実行イベントの処理を完了"),
+            )
+            progress["run_state"] = "running"
+            progress["blocker"] = ""
+            if event_type == "tool.started":
+                progress["active_tool"] = tool
+                progress["current_activity"] = current
+            else:
+                if progress.get("active_tool") == tool:
+                    progress["active_tool"] = ""
+                    progress["current_activity"] = ""
+                progress["recent_result"] = (
+                    f"{completed}できず"
+                    if bool(event.get("error"))
+                    else completed
+                )
+            self._mark_real_progress(progress, event_time)
+            return True
+
+        if event_type == "approval.request":
+            progress["run_state"] = "waiting"
+            progress["current_activity"] = "操作承認の応答待ち"
+            progress["blocker"] = "ユーザーの操作承認待ち"
+            self._mark_real_progress(progress, event_time)
+            return True
+
+        if event_type in TERMINAL_EVENTS:
+            progress["run_state"] = event_type.removeprefix("run.")
+            progress["current_activity"] = ""
+            progress["active_tool"] = ""
+            self._mark_real_progress(progress, event_time)
+            return True
+
+        if event_type != "plan.updated":
+            return False
         raw_items = event.get("items")
         if not isinstance(raw_items, list) or len(raw_items) > 100:
-            return
+            return False
 
         items: list[dict[str, str]] = []
         seen_ids: set[str] = set()
         for raw in raw_items[:100]:
             if not isinstance(raw, dict):
-                continue
+                return False
             status = str(raw.get("status") or "").strip().lower()
             item_id = self._redact_progress_text(raw.get("id"), 100)
-            content = self._redact_progress_text(raw.get("content"), 500)
+            content = self._redact_progress_text(raw.get("content"), 4_000)
             if (
                 status not in {"pending", "in_progress", "completed", "cancelled"}
                 or not item_id
                 or not content
                 or item_id in seen_ids
             ):
-                if item_id in seen_ids:
-                    return
-                continue
+                return False
             seen_ids.add(item_id)
             items.append({"id": item_id, "content": content, "status": status})
         if raw_items and not items:
-            return
+            return False
+        progress["run_state"] = "running"
+        progress["blocker"] = ""
+        if progress.get("plan_items") == items:
+            self._mark_real_progress(progress, event_time)
+            return True
         progress["plan_items"] = items
+        self._mark_real_progress(progress, event_time)
+        return True
 
     @staticmethod
     def _progress_fragment(value: Any) -> str:
@@ -566,7 +734,7 @@ class Pipe:
 
     @staticmethod
     def _format_elapsed(elapsed_seconds: float) -> str:
-        total_seconds = max(1, int(elapsed_seconds))
+        total_seconds = max(0, int(elapsed_seconds))
         if total_seconds < 60:
             return f"{total_seconds}秒"
         total_minutes = total_seconds // 60
@@ -577,21 +745,13 @@ class Pipe:
             return f"{hours}時間"
         return f"{minutes}分"
 
-    def _heartbeat_description(
-        self,
-        *,
-        elapsed_seconds: float,
-        progress: dict[str, Any],
-    ) -> str:
-        elapsed = self._format_elapsed(elapsed_seconds)
+    @staticmethod
+    def _format_progress_timestamp(timestamp: float) -> str:
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(timestamp))
+
+    def _progress_snapshot(self, progress: dict[str, Any]) -> dict[str, Any]:
         plan_items = progress.get("plan_items") or []
         actionable = [item for item in plan_items if item.get("status") != "cancelled"]
-        if not actionable:
-            return (
-                f"[{elapsed}経過] 処理中 (進捗率未算出) - "
-                "作業計画が未登録のため、意味のある節目を取得できていません。"
-            )
-
         completed = [item for item in actionable if item.get("status") == "completed"]
         current = next(
             (item for item in actionable if item.get("status") == "in_progress"),
@@ -601,21 +761,173 @@ class Pipe:
             (item for item in actionable if item.get("status") == "pending"),
             None,
         )
-        percent = round(len(completed) * 100 / len(actionable))
-        details: list[str] = []
-        if completed:
-            details.append(
-                f"完了: {self._progress_fragment(completed[-1].get('content'))}。"
-            )
+        percent = round(len(completed) * 100 / len(actionable)) if actionable else None
         if current:
-            details.append(
-                f"現在: {self._progress_fragment(current.get('content'))}。"
-            )
+            stage = self._progress_fragment(current.get("content"))
         elif pending:
-            details.append(f"次: {self._progress_fragment(pending.get('content'))}。")
+            stage = self._progress_fragment(pending.get("content"))
+        elif actionable:
+            stage = "最終検証または結果整理"
+        elif progress.get("blocker"):
+            stage = "待機"
+        elif progress.get("current_activity") or progress.get("recent_result"):
+            stage = "実作業"
         else:
-            details.append("計画上の工程は完了。最終検証または結果整理中。")
-        return f"[{elapsed}経過] 処理中 ({percent}%) - {''.join(details)}"
+            stage = "開始処理"
+
+        current_activity = self._progress_fragment(progress.get("current_activity"))
+        if not current_activity:
+            if progress.get("recent_result"):
+                current_activity = "次の処理を判断中"
+            elif current:
+                current_activity = self._progress_fragment(current.get("content"))
+            elif pending:
+                current_activity = self._progress_fragment(pending.get("content"))
+            elif actionable:
+                current_activity = "最終検証または結果整理中"
+            else:
+                current_activity = "開始処理中／最初の実行イベント待ち"
+
+        plan_result = (
+            self._progress_fragment(completed[-1].get("content"))
+            if completed
+            else ""
+        )
+        recent_result = self._progress_fragment(progress.get("recent_result"))
+        return {
+            "percent": percent,
+            "stage": stage,
+            "current": current_activity,
+            "recent_result": recent_result or plan_result,
+            "plan_result": plan_result,
+            "blocker": self._progress_fragment(progress.get("blocker")),
+        }
+
+    @staticmethod
+    def _progress_delta(
+        previous: Optional[dict[str, Any]],
+        current: dict[str, Any],
+        event_delta: int,
+    ) -> str:
+        if previous is None:
+            percent_delta = (
+                "進捗率 初回未算出"
+                if current["percent"] is None
+                else f"進捗率 初回{current['percent']}%"
+            )
+            stage_delta = "段階 初回"
+            message_delta = "表示文 初回"
+        else:
+            old_percent = previous.get("percent")
+            new_percent = current.get("percent")
+            if old_percent is None and new_percent is None:
+                percent_delta = "進捗率 未算出のまま"
+            elif old_percent is None or new_percent is None:
+                old_label = "未算出" if old_percent is None else f"{old_percent}%"
+                new_label = "未算出" if new_percent is None else f"{new_percent}%"
+                percent_delta = f"進捗率 {old_label}→{new_label}"
+            else:
+                difference = int(new_percent) - int(old_percent)
+                percent_delta = (
+                    "進捗率 ±0pt"
+                    if difference == 0
+                    else f"進捗率 {difference:+d}pt"
+                )
+            stage_delta = (
+                "段階 同一"
+                if previous.get("stage") == current.get("stage")
+                else "段階 変更"
+            )
+            old_message = (
+                previous.get("current"),
+                previous.get("recent_result"),
+                previous.get("blocker"),
+            )
+            new_message = (
+                current.get("current"),
+                current.get("recent_result"),
+                current.get("blocker"),
+            )
+            message_delta = (
+                "表示文 同一" if old_message == new_message else "表示文 変更"
+            )
+        return (
+            f"{percent_delta}／{stage_delta}／{message_delta}／"
+            f"実作業イベント +{max(0, int(event_delta))}"
+        )
+
+    def _heartbeat_description(
+        self,
+        *,
+        elapsed_seconds: float,
+        progress: dict[str, Any],
+        now: Optional[float] = None,
+        stall_seconds: int = 600,
+    ) -> str:
+        try:
+            observed_at = float(time.time() if now is None else now)
+        except (TypeError, ValueError):
+            observed_at = time.time()
+        if not 0 < observed_at < float("inf"):
+            observed_at = time.time()
+        elapsed = self._format_elapsed(elapsed_seconds)
+        snapshot = self._progress_snapshot(progress)
+        last_progress_at = float(
+            progress.get("last_real_progress_at")
+            or progress.get("started_at")
+            or observed_at
+        )
+        since_progress = max(0.0, observed_at - last_progress_at)
+        stalled = int(stall_seconds) > 0 and since_progress >= int(stall_seconds)
+        state = "停滞" if stalled else "処理中"
+        percent_label = (
+            "進捗率未算出"
+            if snapshot["percent"] is None
+            else f"{snapshot['percent']}%"
+        )
+        details: list[str] = []
+        if snapshot["plan_result"]:
+            details.append(f"完了: {snapshot['plan_result']}。")
+        details.append(f"現在: {snapshot['current']}。")
+        if snapshot["recent_result"] and not snapshot["plan_result"]:
+            details.append(f"直近結果: {snapshot['recent_result']}。")
+
+        previous_report_at = progress.get("last_report_at")
+        previous_snapshot = progress.get("last_report_snapshot")
+        event_count = int(progress.get("real_event_count") or 0)
+        previous_event_count = int(progress.get("last_report_event_count") or 0)
+        delta = self._progress_delta(
+            previous_snapshot,
+            snapshot,
+            event_count - previous_event_count,
+        )
+        if previous_report_at is None:
+            previous_line = "前回表示: 初回"
+        else:
+            previous_line = (
+                "前回表示から: "
+                f"{self._format_elapsed(max(0.0, observed_at - float(previous_report_at)))}"
+            )
+
+        lines = [
+            f"[{elapsed}経過] {state} ({percent_label}) - {''.join(details)}",
+            f"状態: {'停滞' if stalled else '実行中'}",
+            previous_line,
+            f"段階: {snapshot['stage']}",
+            f"現在: {snapshot['current']}",
+            f"直近結果: {snapshot['recent_result'] or 'なし'}",
+            f"待機・阻害: {snapshot['blocker'] or 'なし'}",
+            f"変化: {delta}",
+            (
+                "最終実進展: "
+                f"{self._format_progress_timestamp(last_progress_at)}"
+                f"（{self._format_elapsed(since_progress)}前）"
+            ),
+        ]
+        progress["last_report_at"] = observed_at
+        progress["last_report_event_count"] = event_count
+        progress["last_report_snapshot"] = dict(snapshot)
+        return "\n".join(lines)
 
     async def _progress_heartbeat(
         self,
@@ -647,6 +959,7 @@ class Pipe:
                 self._heartbeat_description(
                     elapsed_seconds=elapsed_seconds,
                     progress=progress,
+                    stall_seconds=int(self.valves.PROGRESS_STALL_SECONDS),
                 ),
                 done=False,
                 heartbeat=True,
@@ -1171,10 +1484,21 @@ class Pipe:
                         raise RuntimeError("Hermes returned an invalid run response") from exc
 
                 heartbeat_started_at = asyncio.get_running_loop().time()
+                progress_started_at = time.time()
+                progress = self._initial_progress_state(started_at=progress_started_at)
                 await self._emit_status(
                     status_emitter,
-                    "Hermesが処理を開始しました…",
+                    self._heartbeat_description(
+                        elapsed_seconds=0,
+                        progress=progress,
+                        now=progress_started_at,
+                        stall_seconds=int(self.valves.PROGRESS_STALL_SECONDS),
+                    ),
                     done=False,
+                    progress_update=True,
+                    heartbeat=False,
+                    event_type="run.started",
+                    elapsed_seconds=0,
                     run_id=run_id,
                 )
                 heartbeat_interval = int(self.valves.PROGRESS_HEARTBEAT_SECONDS)
@@ -1206,7 +1530,39 @@ class Pipe:
 
                     async for event in self._iter_sse(response):
                         event_type = str(event.get("event") or "")
-                        self._track_progress_event(progress, event)
+                        observed_at = time.time()
+                        meaningful_progress = self._track_progress_event(
+                            progress,
+                            event,
+                            observed_at=observed_at,
+                        )
+                        if (
+                            meaningful_progress
+                            and event_type not in TERMINAL_EVENTS
+                            and status_emitter is not None
+                        ):
+                            elapsed_seconds = max(
+                                0.0,
+                                asyncio.get_running_loop().time()
+                                - heartbeat_started_at,
+                            )
+                            await self._emit_status(
+                                status_emitter,
+                                self._heartbeat_description(
+                                    elapsed_seconds=elapsed_seconds,
+                                    progress=progress,
+                                    now=observed_at,
+                                    stall_seconds=int(
+                                        self.valves.PROGRESS_STALL_SECONDS
+                                    ),
+                                ),
+                                done=False,
+                                progress_update=True,
+                                heartbeat=False,
+                                event_type=event_type,
+                                elapsed_seconds=int(elapsed_seconds),
+                                run_id=run_id,
+                            )
 
                         if (
                             event_type == "tool.started"

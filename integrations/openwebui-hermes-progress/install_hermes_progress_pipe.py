@@ -313,6 +313,9 @@ def build_valves_payload(
         # Emit a model-invisible Open WebUI status while a long run remains
         # active. Set this Valve to 0 to disable periodic heartbeat statuses.
         "PROGRESS_HEARTBEAT_SECONDS": 300,
+        # Classify ten minutes without a real work event as stalled. Heartbeat
+        # emissions alone never reset this clock; set 0 to disable the label.
+        "PROGRESS_STALL_SECONDS": 600,
         # Hermes owns the canonical approval deadline (60s by default).
         # Expire the UI first so its deny reaches an active session.
         "APPROVAL_TIMEOUT_SECONDS": 55,
@@ -387,7 +390,7 @@ async def main() -> None:
             "meta": {
                 "description": (
                     "Hermes Runs API adapter with live interim assistant messages, "
-                    "plan-based semantic progress, per-chat sessions, fail-safe "
+                    "event-grounded semantic progress, per-chat sessions, fail-safe "
                     "approvals, and topic-titled Open WebUI completion previews."
                 ),
                 "manifest": {INSTALL_NONCE_KEY: install_nonce},
