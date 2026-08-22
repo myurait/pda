@@ -8,7 +8,7 @@ Hermes本体のKanban状態機械へ適用する管理パッチ series。goal M0
 
 このパッチは3つのterminal遷移に「live foreign claim guard」を追加する。
 
-- 拒否対象は「statusがrunning、claimが未失効、claim所有者が呼び出しプロセス自身ではなく、記録された `worker_pid` が生存している」場合の匿名呼び出しのみ。拒否時は `terminal_transition_refused` イベントをカードへ記録する。
+- 拒否対象は「statusがrunning、claimが未失効、記録された `worker_pid` が呼び出しプロセスと異なる生存プロセスである」場合の匿名呼び出しのみ。拒否時は `terminal_transition_refused` イベントをカードへ記録する。`worker_pid` 未登録のclaim（ラベルclaimerによる同一プロセス運用・テスト規約）は生存する外部workerへ帰属できないため従来挙動を維持する — dispatcher起動の実workerは常に `worker_pid` が登録されるので、インシデント経路の遮断は保たれる。これが本ガードの残余であり、`worker_pid` 未登録の匿名claimは保護対象外である。
 - workerは従来どおり自runの `expected_run_id` を渡して所有権を証明する。オペレーターは CLI の `--force`（complete / block / archive に追加）で明示上書きできる。
 - 同一プロセスでclaim→terminalする既存の手動・テスト規約、claim未取得タスクへの手動操作、claim所有者プロセスが死んでいる場合の回収操作は従来どおり通る。
 - 環境変数ベースのdelegate child保護（`HERMES_DELEGATED_CHILD_CONTEXT`）は子プロセスが自己解除できる原理的限界を持つため、このガードはDB側のchokepoint（`write_txn` 配下の遷移関数）で成立する。

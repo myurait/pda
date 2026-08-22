@@ -1,4 +1,4 @@
-From 84d3a5cc3a2c0c6bbbe22b658cda2a63b570001b Mon Sep 17 00:00:00 2001
+From dd42edf1c853c4c5e021ddd2c26e962430f1e1b6 Mon Sep 17 00:00:00 2001
 From: myurait <myurait@gmail.com>
 Date: Sat, 22 Aug 2026 17:52:07 +0900
 Subject: [PATCH] fix(kanban): bind terminal transitions to live claim
@@ -6,9 +6,9 @@ Subject: [PATCH] fix(kanban): bind terminal transitions to live claim
 
 ---
  hermes_cli/kanban.py                          |  21 +-
- hermes_cli/kanban_db.py                       | 116 ++++++++++-
- .../test_kanban_terminal_claim_guard.py       | 189 ++++++++++++++++++
- 3 files changed, 322 insertions(+), 4 deletions(-)
+ hermes_cli/kanban_db.py                       | 128 ++++++++++-
+ .../test_kanban_terminal_claim_guard.py       | 212 ++++++++++++++++++
+ 3 files changed, 357 insertions(+), 4 deletions(-)
  create mode 100644 tests/hermes_cli/test_kanban_terminal_claim_guard.py
 
 diff --git a/hermes_cli/kanban.py b/hermes_cli/kanban.py
@@ -79,10 +79,10 @@ index 79519831b..71fe834c7 100644
                  print(f"cannot archive {tid}", file=sys.stderr)
              else:
 diff --git a/hermes_cli/kanban_db.py b/hermes_cli/kanban_db.py
-index 79398b7d6..5929cba40 100644
+index 79398b7d6..62c53c2f4 100644
 --- a/hermes_cli/kanban_db.py
 +++ b/hermes_cli/kanban_db.py
-@@ -5349,6 +5349,37 @@ class ArtifactPreservationError(RuntimeError):
+@@ -5349,6 +5349,49 @@ class ArtifactPreservationError(RuntimeError):
      """Raised when a declared scratch deliverable cannot be preserved."""
  
  
@@ -93,8 +93,12 @@ index 79398b7d6..5929cba40 100644
 +
 +    * no claim, non-running status, or an expired claim → not foreign;
 +    * the calling process itself holds the claim (``claim_lock`` equals this
-+      process's :func:`_claimer_id`) → not foreign (same-process claim →
-+      terminal call is the historical single-worker pattern);
++      process's :func:`_claimer_id`, or the recorded ``worker_pid`` is this
++      process) → not foreign (same-process claim → terminal call is the
++      historical single-worker pattern);
++    * no ``worker_pid`` recorded → not foreign (the claim cannot be
++      attributed to a live worker process; dispatcher-spawned workers always
++      record one);
 +    * the recorded ``worker_pid`` is dead → not foreign (nothing to strand).
 +
 +    What remains — a live claim held by a *different, still-alive* process —
@@ -112,7 +116,15 @@ index 79398b7d6..5929cba40 100644
 +    if row["claim_lock"] == _claimer_id():
 +        return False
 +    pid = row["worker_pid"] if "worker_pid" in row.keys() else None
-+    if pid is not None and not _pid_alive(int(pid)):
++    if pid is None:
++        # No recorded worker process: the claim cannot be attributed to a
++        # live foreign worker. Label-style claimers without a registered pid
++        # (tests, ad-hoc same-process flows) keep the legacy behaviour;
++        # dispatcher-spawned workers always have worker_pid recorded.
++        return False
++    if int(pid) == os.getpid():
++        return False
++    if not _pid_alive(int(pid)):
 +        return False
 +    return True
 +
@@ -120,7 +132,7 @@ index 79398b7d6..5929cba40 100644
  def complete_task(
      conn: sqlite3.Connection,
      task_id: str,
-@@ -5358,10 +5389,21 @@ def complete_task(
+@@ -5358,10 +5401,21 @@ def complete_task(
      metadata: Optional[dict] = None,
      created_cards: Optional[Iterable[str]] = None,
      expected_run_id: Optional[int] = None,
@@ -142,7 +154,7 @@ index 79398b7d6..5929cba40 100644
      Accepts a task that is merely ``ready`` too, so a manual CLI
      completion (``hermes kanban complete <id>``) works without requiring
      a claim/start/complete sequence. ``review`` is accepted so a human
-@@ -5435,10 +5477,30 @@ def complete_task(
+@@ -5435,10 +5489,30 @@ def complete_task(
          if not _parents_satisfied(conn, task_id):
              return False
          prior = conn.execute(
@@ -174,7 +186,7 @@ index 79398b7d6..5929cba40 100644
          if expected_run_id is None:
              cur = conn.execute(
                  """
-@@ -6250,9 +6312,16 @@ def block_task(
+@@ -6250,9 +6324,16 @@ def block_task(
      reason: Optional[str] = None,
      kind: Optional[str] = None,
      expected_run_id: Optional[int] = None,
@@ -191,7 +203,7 @@ index 79398b7d6..5929cba40 100644
      ``kind`` (one of :data:`VALID_BLOCK_KINDS`, or ``None`` for a legacy
      un-typed block) drives routing instead of every block landing in one
      undifferentiated ``blocked`` bucket:
-@@ -6285,11 +6354,26 @@ def block_task(
+@@ -6285,11 +6366,26 @@ def block_task(
      recurrences = 0
      with write_txn(conn):
          cur_row = conn.execute(
@@ -219,7 +231,7 @@ index 79398b7d6..5929cba40 100644
          source_status = (
              _retry_status_for_run(conn, task_id)
              if cur_row["status"] == "running"
-@@ -7510,8 +7594,34 @@ def decompose_triage_task(
+@@ -7510,8 +7606,34 @@ def decompose_triage_task(
      return child_ids
  
  
@@ -257,10 +269,10 @@ index 79398b7d6..5929cba40 100644
              "    claim_lock = NULL, claim_expires = NULL, worker_pid = NULL "
 diff --git a/tests/hermes_cli/test_kanban_terminal_claim_guard.py b/tests/hermes_cli/test_kanban_terminal_claim_guard.py
 new file mode 100644
-index 000000000..b01ac1c39
+index 000000000..7f5ecaa4a
 --- /dev/null
 +++ b/tests/hermes_cli/test_kanban_terminal_claim_guard.py
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,212 @@
 +"""Tests: terminal transitions are claim-lock-aware.
 +
 +``complete_task`` / ``block_task`` / ``archive_task`` used to accept an
@@ -437,6 +449,29 @@ index 000000000..b01ac1c39
 +    kb._set_worker_pid(conn, tid, dead.pid)
 +
 +    assert kb.complete_task(conn, tid, result="recovered") is True
++    assert _refusal_events(conn, tid) == []
++
++
++def test_label_claimed_task_without_worker_pid_keeps_legacy_flows(conn):
++    # Upstream test/manual convention: claim under an arbitrary label without
++    # registering a worker pid, then finish anonymously from the same
++    # process. Such a claim cannot be attributed to a live foreign worker,
++    # so the guard must not fire.
++    tid = kb.create_task(conn, title="label claim", assignee="default")
++    assert kb.claim_task(conn, tid, claimer="worker") is not None
++    assert kb.complete_task(conn, tid, summary="done") is True
++    assert _refusal_events(conn, tid) == []
++
++
++def test_own_pid_recorded_claim_keeps_legacy_flows(conn):
++    # A claim whose recorded worker_pid is the calling process itself is
++    # self-owned even when the claimer label differs from _claimer_id().
++    import os as _os
++
++    tid = kb.create_task(conn, title="own pid claim", assignee="default")
++    assert kb.claim_task(conn, tid, claimer="labelled-worker") is not None
++    kb._set_worker_pid(conn, tid, _os.getpid())
++    assert kb.complete_task(conn, tid, summary="done") is True
 +    assert _refusal_events(conn, tid) == []
 +
 +
