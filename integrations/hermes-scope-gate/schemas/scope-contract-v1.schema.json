@@ -17,8 +17,14 @@
     "state"
   ],
   "properties": {
-    "schema": {"const": "pda.scope-contract/v1"},
-    "turn_id": {"type": "string", "minLength": 1, "maxLength": 512},
+    "schema": {
+      "const": "pda.scope-contract/v1"
+    },
+    "turn_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
     "origin_message_sha256": {
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
@@ -32,15 +38,30 @@
         "open-mission"
       ]
     },
-    "objective": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    },
     "targets": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["repositories", "worktrees", "branches", "worktree_branches"],
+      "required": [
+        "repositories",
+        "worktrees",
+        "branches",
+        "worktree_branches"
+      ],
       "properties": {
-        "repositories": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
-        "worktrees": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
-        "branches": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
+        "repositories": {
+          "$ref": "#/$defs/nonEmptyUniqueStrings"
+        },
+        "worktrees": {
+          "$ref": "#/$defs/nonEmptyUniqueStrings"
+        },
+        "branches": {
+          "$ref": "#/$defs/nonEmptyUniqueStrings"
+        },
         "worktree_branches": {
           "type": "object",
           "minProperties": 1,
@@ -55,21 +76,41 @@
     "actions": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["required", "prerequisite", "verification", "forbidden"],
+      "required": [
+        "required",
+        "prerequisite",
+        "verification",
+        "forbidden"
+      ],
       "properties": {
-        "required": {"$ref": "#/$defs/uniqueStrings"},
-        "prerequisite": {"$ref": "#/$defs/uniqueStrings"},
-        "verification": {"$ref": "#/$defs/uniqueStrings"},
-        "forbidden": {"$ref": "#/$defs/nonEmptyUniqueStrings"}
+        "required": {
+          "$ref": "#/$defs/uniqueStrings"
+        },
+        "prerequisite": {
+          "$ref": "#/$defs/uniqueStrings"
+        },
+        "verification": {
+          "$ref": "#/$defs/uniqueStrings"
+        },
+        "forbidden": {
+          "$ref": "#/$defs/nonEmptyUniqueStrings"
+        }
       }
     },
     "completion": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["all", "blocked_targets_may_be_reported"],
+      "required": [
+        "all",
+        "blocked_targets_may_be_reported"
+      ],
       "properties": {
-        "all": {"$ref": "#/$defs/nonEmptyUniqueStrings"},
-        "blocked_targets_may_be_reported": {"type": "boolean"}
+        "all": {
+          "$ref": "#/$defs/nonEmptyUniqueStrings"
+        },
+        "blocked_targets_may_be_reported": {
+          "type": "boolean"
+        }
       }
     },
     "budget": {
@@ -84,31 +125,125 @@
         "subagents"
       ],
       "properties": {
-        "max_wall_seconds": {"type": "integer", "minimum": 1, "maximum": 86400},
-        "max_tool_calls": {"type": "integer", "minimum": 1, "maximum": 500},
-        "max_denied_calls": {"type": "integer", "minimum": 0, "maximum": 20},
-        "max_expansions": {"type": "integer", "minimum": 0, "maximum": 20},
-        "background_processes": {"type": "integer", "minimum": 0, "maximum": 20},
-        "subagents": {"type": "integer", "minimum": 0, "maximum": 20}
+        "max_wall_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "max_denied_calls": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "max_expansions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "background_processes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "subagents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20
+        }
       }
     },
-    "state": {"const": "locked"}
+    "state": {
+      "const": "locked"
+    }
   },
   "allOf": [
     {
       "if": {
-        "properties": {"task_class": {"const": "repository-closeout"}},
-        "required": ["task_class"]
+        "properties": {
+          "task_class": {
+            "const": "repository-closeout"
+          }
+        },
+        "required": [
+          "task_class"
+        ]
       },
       "then": {
         "properties": {
           "budget": {
             "properties": {
-              "max_wall_seconds": {"maximum": 900},
-              "max_tool_calls": {"maximum": 32},
-              "max_expansions": {"const": 0},
-              "background_processes": {"const": 0},
-              "subagents": {"const": 0}
+              "max_wall_seconds": {
+                "maximum": 900
+              },
+              "max_tool_calls": {
+                "maximum": 32
+              },
+              "max_expansions": {
+                "const": 0
+              },
+              "background_processes": {
+                "const": 0
+              },
+              "subagents": {
+                "const": 0
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_class": {
+            "const": "bounded-operation"
+          }
+        },
+        "required": [
+          "task_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "budget": {
+            "properties": {
+              "minutes": {
+                "maximum": 20
+              },
+              "tool_calls": {
+                "maximum": 32
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "task_class": {
+            "const": "artifact-change"
+          }
+        },
+        "required": [
+          "task_class"
+        ]
+      },
+      "then": {
+        "properties": {
+          "budget": {
+            "properties": {
+              "minutes": {
+                "maximum": 60
+              },
+              "tool_calls": {
+                "maximum": 96
+              }
             }
           }
         }
@@ -118,13 +253,21 @@
   "$defs": {
     "uniqueStrings": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1, "maxLength": 512},
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
       "uniqueItems": true
     },
     "nonEmptyUniqueStrings": {
       "type": "array",
       "minItems": 1,
-      "items": {"type": "string", "minLength": 1, "maxLength": 4096},
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 4096
+      },
       "uniqueItems": true
     }
   }

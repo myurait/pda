@@ -57,6 +57,66 @@ _GLOBAL_RE = re.compile(
     r"every\s+(?:branch|worktree|repository|repo))",
     re.IGNORECASE,
 )
+# --- S2/S3 rollout, stage G0: deterministic classification only. ---
+# The classes below are recorded on the turn contract for audit and gold-set
+# calibration; admission keeps treating every non-closeout class as
+# not-enforced until their admission functions are activated in a later
+# rollout stage.
+_BROAD_MISSION_RE = re.compile(
+    r"(?:全面|全体|大規模|包括|徹底|作り直|再設計|"
+    r"(?<![A-Za-z0-9_])redesign(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])migrat(?:e|ion|ing)(?![A-Za-z0-9_])|移行|"
+    r"(?<![A-Za-z0-9_])audit(?![A-Za-z0-9_])|監査)",
+    re.IGNORECASE,
+)
+_BOUNDED_OP_RE = re.compile(
+    r"(?:再起動|リスタート|再読込|有効化|無効化|切り?替え|"
+    r"(?<![A-Za-z0-9_])restart(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])reload(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])enable(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])disable(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])cutover(?![A-Za-z0-9_]))",
+    re.IGNORECASE,
+)
+_BOUNDED_TARGET_RE = re.compile(
+    r"(?:[\w.-]+\.(?:service|timer)|gateway|dashboard|daemon|デーモン|"
+    r"サービス|systemd|(?<![A-Za-z0-9_])timer(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])cron(?![A-Za-z0-9_])|valve|pipe|plugin|プラグイン|"
+    r"container|コンテナ|docker)",
+    re.IGNORECASE,
+)
+_ARTIFACT_CHANGE_RE = re.compile(
+    r"(?:実装|修正|変更|解消|作成|追加|削除|導入|反映|直して|"
+    r"(?<![A-Za-z0-9_])fix(?:ed|es|ing)?(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])implement(?:ation|ed|s|ing)?(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])resolve(?:d|s|ing)?(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])edit(?:ed|s|ing)?(?![A-Za-z0-9_])|"
+    r"(?<![A-Za-z0-9_])refactor(?:ed|s|ing)?(?![A-Za-z0-9_]))",
+    re.IGNORECASE,
+)
+
+
+def _classify_non_closeout(text: str) -> TaskIntent:
+    """Deterministic class for requests that are not repository closeouts.
+
+    Conservative by design: any broad-mission marker keeps the wider
+    ``audit-only`` class so a large piece of work is never misfiled into a
+    narrow, budget-capped class (design gold-set requirement). Investigation,
+    analysis, and design requests also stay ``audit-only``.
+    """
+    if _BROAD_MISSION_RE.search(text):
+        return TaskIntent(task_class="audit-only")
+    if (
+        _BOUNDED_OP_RE.search(text)
+        and _BOUNDED_TARGET_RE.search(text)
+        and not _ARTIFACT_CHANGE_RE.search(text)
+    ):
+        return TaskIntent(task_class="bounded-operation")
+    if _ARTIFACT_CHANGE_RE.search(text):
+        return TaskIntent(task_class="artifact-change")
+    return TaskIntent(task_class="audit-only")
+
+
 _REPOSITORY_CONTEXT_RE = re.compile(
     r"(?:\bgit\b|repo(?:sitory)?|worktree|branch|origin|remote|changes?|results?|"
     r"リポジトリ|作業ツリー|ブランチ|差分|成果|資源|"
@@ -75,16 +135,19 @@ _EXPLICIT_ACTION_RE = re.compile(
 
 
 def classify_task(user_message: str) -> TaskIntent:
-    """Classify only high-confidence repository closeout requests.
+    """Classify the request into a deterministic task class.
 
-    Any explicit content-changing verb wins over commit/push wording. Other
-    requests remain audit-only in the initial rollout.
+    Any explicit content-changing verb wins over commit/push wording, so a
+    change request never becomes a closeout. Non-closeout requests are
+    classified by :func:`_classify_non_closeout` for audit and gold-set
+    calibration; only ``repository-closeout`` is enforced in the current
+    rollout stage (every other class stays not-enforced at admission).
     """
 
     text = user_message or ""
     action_text = _STATE_MENTION_RE.sub("", text)
     if _CHANGE_RE.search(text) or not _CLOSEOUT_RE.search(action_text):
-        return TaskIntent(task_class="audit-only")
+        return _classify_non_closeout(text)
 
     commit_requested = bool(
         re.search(
@@ -106,7 +169,7 @@ def classify_task(user_message: str) -> TaskIntent:
     repository_context = bool(_REPOSITORY_CONTEXT_RE.search(text))
     explicit_action = bool(_EXPLICIT_ACTION_RE.search(action_text))
     if ("?" in text or "？" in text) and not explicit_action:
-        return TaskIntent(task_class="audit-only")
+        return _classify_non_closeout(text)
 
     commit_requested = commit_requested and (explicit_action or repository_context)
     push_requested = push_requested and (
@@ -117,7 +180,7 @@ def classify_task(user_message: str) -> TaskIntent:
         or bool(re.search(r"close[ -]?out", action_text, re.IGNORECASE))
     )
     if not (commit_requested or push_requested or save_requested):
-        return TaskIntent(task_class="audit-only")
+        return _classify_non_closeout(text)
     return TaskIntent(
         task_class="repository-closeout",
         allow_commit=commit_requested or save_requested,

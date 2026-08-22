@@ -44,9 +44,14 @@ def test_incident_request_is_repository_closeout() -> None:
 
 
 def test_explicit_repair_request_is_not_hard_closeout() -> None:
+    # A change verb always vetoes the enforced closeout class; since the
+    # S2/S3 G0 stage the request is recorded as artifact-change (still
+    # not enforced at admission).
     intent = classify_task("失敗testも修正し、全test後にcommit/pushして")
 
-    assert intent.task_class == "audit-only"
+    assert intent.task_class == "artifact-change"
+    assert intent.allow_commit is False
+    assert intent.allow_push is False
 
 
 def test_save_existing_results_means_commit_without_push() -> None:
@@ -73,6 +78,65 @@ def test_uncommitted_status_question_without_action_is_not_closeout() -> None:
 )
 def test_non_git_commit_push_or_save_wording_is_not_closeout(message: str) -> None:
     assert classify_task(message).task_class == "audit-only"
+
+
+# --- G0 gold set for the S2/S3 rollout classes (classification only; every
+# --- non-closeout class stays not-enforced at admission in this stage).
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        # bounded-operation: one named operational action on a named target.
+        ("hermes-gateway.serviceを再起動して", "bounded-operation"),
+        ("openwebui.service を無効化してください", "bounded-operation"),
+        ("please restart the dashboard daemon", "bounded-operation"),
+        ("cron を reload して", "bounded-operation"),
+        # artifact-change: a named feature/doc/fix creation or modification.
+        ("ログイン画面のバグを修正して", "artifact-change"),
+        ("READMEへ手順を追加して", "artifact-change"),
+        ("implement retry backoff for the notifier", "artifact-change"),
+        ("この関数をrefactorして", "artifact-change"),
+        # broad missions must never be misfiled into a narrow budgeted class.
+        ("システム全体を再設計して", "audit-only"),
+        ("認証基盤を新アーキテクチャへ移行して", "audit-only"),
+        ("audit the deployment pipeline end to end", "audit-only"),
+        ("リポジトリ全体を徹底的に修正して", "audit-only"),
+        # investigation / analysis / design stay audit-only.
+        ("この障害を調査して", "audit-only"),
+        ("パフォーマンスを分析して", "audit-only"),
+        # operation keyword without a named target stays audit-only.
+        ("再起動して", "audit-only"),
+        # operation wording mixed with change verbs is not a bounded op.
+        ("設定を変更してgatewayを再起動して", "artifact-change"),
+    ],
+)
+def test_g0_gold_set_for_s2_s3_classes(message: str, expected: str) -> None:
+    intent = classify_task(message)
+    assert intent.task_class == expected
+    assert intent.allow_commit is False
+    assert intent.allow_push is False
+
+
+def test_new_classes_stay_not_enforced_at_admission(tmp_path: Path) -> None:
+    # Rollout guard: bounded-operation / artifact-change are audit signals
+    # only; admission must keep treating them as not-enforced until their
+    # admission functions ship.
+    store = GateStore(tmp_path / "gate.db")
+    intent = store.start_turn(
+        turn_id="turn-new-class",
+        session_id="s-new-class",
+        task_id="t-new-class",
+        user_message="ログイン画面のバグを修正して",
+    )
+    assert intent.task_class == "artifact-change"
+    decision = store.admit_tool(
+        turn_id="turn-new-class",
+        tool_call_id="c1",
+        tool_name="write_file",
+        args={"path": "app/login.py", "content": "fix"},
+    )
+    assert decision.allowed is True
+    assert decision.action == "not-enforced"
+    assert decision.reason == "initial rollout audits this task class"
 
 
 def test_closeout_starts_in_bounded_discovery_and_allows_git_status(tmp_path: Path) -> None:
@@ -469,7 +533,7 @@ def test_shell_parser_allows_quoted_commit_text_but_rejects_composition(tmp_path
     assert composed.action == "compound-command"
 
 
-def test_explicit_fix_and_test_request_remains_audit_only_in_s1(tmp_path: Path) -> None:
+def test_explicit_fix_and_test_request_is_recorded_but_not_enforced(tmp_path: Path) -> None:
     store = GateStore(tmp_path / "scope.db")
     intent = store.start_turn(
         turn_id="artifact",
@@ -484,7 +548,7 @@ def test_explicit_fix_and_test_request_remains_audit_only_in_s1(tmp_path: Path) 
         args={"path": str(tmp_path / "file"), "old_string": "a", "new_string": "b"},
     )
 
-    assert intent.task_class == "audit-only"
+    assert intent.task_class == "artifact-change"
     assert decision.allowed is True
     assert decision.action == "not-enforced"
 
