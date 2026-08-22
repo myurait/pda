@@ -49,6 +49,25 @@ _SCOPE_GATE_SCHEMA = {
                 "type": "string",
                 "description": "Why an expansion review is indispensable; review always denies for closeout.",
             },
+            "candidate": {
+                "type": "object",
+                "description": "Expansion candidate for action=review: the exact tool action that the contract does not allow.",
+                "properties": {
+                    "tool_name": {"type": "string"},
+                    "args": {"type": "object"},
+                    "reason": {"type": "string"},
+                    "estimated_cost": {
+                        "type": "object",
+                        "properties": {
+                            "seconds": {"type": "number"},
+                            "tool_calls": {"type": "number"},
+                        },
+                        "additionalProperties": False,
+                    },
+                },
+                "required": ["tool_name", "reason"],
+                "additionalProperties": False,
+            },
         },
         "required": ["action"],
         "additionalProperties": False,

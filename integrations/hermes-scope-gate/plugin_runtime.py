@@ -133,10 +133,21 @@ class ScopeGatePluginRuntime:
                 )
                 return {"ok": True, "contract": contract}
             if action == "review":
-                return {
-                    "ok": False,
-                    "error": "repository-closeout has zero expansion budget; report the blocker",
-                }
+                candidate = params.get("candidate") or {}
+                result = self.store.request_expansion(
+                    turn_id=turn_id,
+                    tool_name=str(candidate.get("tool_name") or ""),
+                    args=dict(candidate.get("args") or {}),
+                    reason=str(candidate.get("reason") or params.get("reason") or ""),
+                    estimated_cost=candidate.get("estimated_cost"),
+                    # No independent judge is wired in this rollout stage:
+                    # stage 3 fails closed, so only deterministic outcomes
+                    # (deny / already-allowed) can occur at runtime.
+                    judge=None,
+                )
+                if result["ok"]:
+                    return result
+                return {"ok": False, "error": result["reason"], **result}
             if action == "complete":
                 status = str(params.get("status") or "success")
                 turn = self.store.finalize_turn(turn_id=turn_id, status=status)

@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 from scope_gate import (
     GateStore,
     _validate_contract_against_schema,
+    action_fingerprint,
     classify_task,
     validate_shell_payload,
 )
@@ -652,3 +653,146 @@ def test_short_option_bundles_and_unbounded_stage_inputs_are_denied(
 
     assert decision.allowed is False
     assert decision.action == expected_action
+
+
+# --- G3 expansion review: deterministic core (judge is pluggable and fails
+# --- closed when absent; hard bounds stay with the deterministic validator).
+
+
+def test_closeout_expansion_review_denies_with_zero_budget(tmp_path: Path) -> None:
+    store = _locked_store(tmp_path)
+    result = store.request_expansion(
+        turn_id="turn-1",
+        tool_name="terminal",
+        args={"command": "rm -rf build", "workdir": str(tmp_path)},
+        reason="cleanup before commit",
+    )
+
+    assert result["ok"] is False
+    assert result["reviewer"] == "deterministic-deny"
+    assert "zero expansion budget" in result["reason"]
+
+
+def test_closeout_expansion_review_reports_already_allowed_actions(tmp_path: Path) -> None:
+    store = _locked_store(tmp_path)
+    result = store.request_expansion(
+        turn_id="turn-1",
+        tool_name="terminal",
+        args={"command": "git status --short", "workdir": str(tmp_path / "repo")},
+        reason="normalizer did not recognize this",
+    )
+
+    # Zero-budget classes deny before the already-allowed stage: the caller
+    # must simply retry the action, which admission will accept.
+    assert result["ok"] is False
+    assert result["reviewer"] == "deterministic-deny"
+
+
+def _artifact_turn(tmp_path: Path) -> GateStore:
+    store = GateStore(tmp_path / "gate.db")
+    store.start_turn(
+        turn_id="turn-a",
+        session_id="s",
+        task_id="t",
+        user_message="ログイン画面のバグを修正して",
+    )
+    return store
+
+
+def test_expansion_fails_closed_without_independent_judge(tmp_path: Path) -> None:
+    store = _artifact_turn(tmp_path)
+    result = store.request_expansion(
+        turn_id="turn-a",
+        tool_name="terminal",
+        args={"command": "pip install foo"},
+        reason="dependency is indispensable",
+    )
+
+    assert result["ok"] is False
+    assert result["reviewer"] == "fail-closed"
+
+
+def test_judge_permit_is_fingerprint_bound_one_use_and_expiring(tmp_path: Path) -> None:
+    store = _artifact_turn(tmp_path)
+    approve = lambda payload: {"allow": True, "reason": "indispensable"}
+
+    result = store.request_expansion(
+        turn_id="turn-a",
+        tool_name="write_file",
+        args={"path": "app/login.py"},
+        reason="fix requires this file",
+        judge=approve,
+    )
+    assert result["ok"] is True and result["reviewer"] == "judge"
+
+    fingerprint = result["action_fingerprint"]
+    with store._connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        other = store._consume_permit_locked(
+            connection, "turn-a", action_fingerprint("write_file", {"path": "other.py"})
+        )
+        first = store._consume_permit_locked(connection, "turn-a", fingerprint)
+        second = store._consume_permit_locked(connection, "turn-a", fingerprint)
+        connection.commit()
+    assert other is False
+    assert first is True
+    assert second is False
+
+    expired = store.request_expansion(
+        turn_id="turn-a",
+        tool_name="write_file",
+        args={"path": "app/session.py"},
+        reason="second file",
+        judge=approve,
+        ttl_seconds=0,
+    )
+    with store._connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        consumed = store._consume_permit_locked(
+            connection, "turn-a", expired["action_fingerprint"]
+        )
+        connection.commit()
+    assert expired["ok"] is True
+    assert consumed is False
+
+
+def test_expansion_review_budget_is_enforced_per_class(tmp_path: Path) -> None:
+    store = _artifact_turn(tmp_path)
+    approve = lambda payload: {"allow": True, "reason": "ok"}
+
+    first = store.request_expansion(
+        turn_id="turn-a", tool_name="t1", args={"n": 1}, reason="r1", judge=approve
+    )
+    second = store.request_expansion(
+        turn_id="turn-a", tool_name="t2", args={"n": 2}, reason="r2", judge=approve
+    )
+    third = store.request_expansion(
+        turn_id="turn-a", tool_name="t3", args={"n": 3}, reason="r3", judge=approve
+    )
+    replay = store.request_expansion(
+        turn_id="turn-a", tool_name="t1", args={"n": 1}, reason="r1", judge=approve
+    )
+
+    assert first["ok"] is True and second["ok"] is True
+    assert third["ok"] is False
+    assert third["reviewer"] == "deterministic-deny"
+    assert "budget exhausted" in third["reason"]
+    assert replay["ok"] is True
+    assert replay["action_fingerprint"] == first["action_fingerprint"]
+
+
+def test_judge_exception_fails_closed(tmp_path: Path) -> None:
+    store = _artifact_turn(tmp_path)
+
+    def broken(payload):
+        raise RuntimeError("reviewer crashed")
+
+    result = store.request_expansion(
+        turn_id="turn-a",
+        tool_name="terminal",
+        args={"command": "x"},
+        reason="r",
+        judge=broken,
+    )
+    assert result["ok"] is False
+    assert result["reviewer"] == "fail-closed"

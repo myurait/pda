@@ -189,6 +189,25 @@ def classify_task(user_message: str) -> TaskIntent:
     )
 
 
+# G3 expansion review (design doc §6): per-class number of expansion
+# reviews a single turn may consume. Classes not listed here have no
+# expansion budget. Hard bounds always stay with the deterministic
+# validator; an LLM judge is only a pluggable second opinion.
+EXPANSION_REVIEW_BUDGET = {
+    "repository-closeout": 0,
+    "bounded-operation": 1,
+    "artifact-change": 2,
+}
+EXPANSION_PERMIT_TTL_SECONDS = 300.0
+
+
+def action_fingerprint(tool_name: str, args: dict[str, Any]) -> str:
+    """Canonical sha256 fingerprint of a tool action (name + arguments)."""
+    return hashlib.sha256(
+        json.dumps([tool_name, args], sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()
+
+
 @dataclass(frozen=True)
 class GateDecision:
     allowed: bool
@@ -251,6 +270,21 @@ class GateStore:
                     path TEXT NOT NULL,
                     source TEXT NOT NULL,
                     PRIMARY KEY (turn_id, path)
+                );
+                CREATE TABLE IF NOT EXISTS expansion_permits (
+                    turn_id TEXT NOT NULL,
+                    action_fingerprint TEXT NOT NULL,
+                    tool_name TEXT NOT NULL,
+                    resource TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    outcome_reason TEXT NOT NULL DEFAULT '',
+                    estimated_cost_json TEXT NOT NULL DEFAULT '',
+                    verdict TEXT NOT NULL,
+                    reviewer TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    expires_at REAL NOT NULL,
+                    consumed_at REAL,
+                    PRIMARY KEY (turn_id, action_fingerprint)
                 );
                 """
             )
@@ -571,6 +605,189 @@ class GateStore:
             )
             connection.commit()
 
+    def request_expansion(
+        self,
+        *,
+        turn_id: str,
+        tool_name: str,
+        args: dict[str, Any],
+        reason: str,
+        estimated_cost: dict[str, Any] | None = None,
+        judge: Any = None,
+        ttl_seconds: float = EXPANSION_PERMIT_TTL_SECONDS,
+    ) -> dict[str, Any]:
+        """G3 expansion review (design doc §6).
+
+        Review order: (1) deterministic deny — no class budget, budget
+        exhausted, or a forbidden/foreign action; (2) deterministic allow —
+        the contract already permits the action, so no permit is needed;
+        (3) independent judge when the class permits one and a ``judge``
+        callable is supplied; (4) otherwise fail closed. Permits are bound
+        to the exact action fingerprint, are one-use, and expire after
+        ``ttl_seconds``. Hard bounds stay with this deterministic validator:
+        a judge can only approve what stages 1-2 did not already settle.
+        """
+        if not tool_name:
+            raise ValueError(
+                "expansion review requires a candidate tool_name; "
+                "repository-closeout has zero expansion budget and always denies"
+            )
+        fingerprint = action_fingerprint(tool_name, args)
+        now = time.time()
+        cost_json = json.dumps(estimated_cost or {}, sort_keys=True)
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            turn = connection.execute(
+                "SELECT * FROM turns WHERE turn_id = ?", (turn_id,)
+            ).fetchone()
+            if turn is None:
+                connection.commit()
+                raise ValueError("unknown turn")
+            prior = connection.execute(
+                "SELECT * FROM expansion_permits "
+                "WHERE turn_id = ? AND action_fingerprint = ?",
+                (turn_id, fingerprint),
+            ).fetchone()
+            if prior is not None:
+                connection.commit()
+                return self._render_permit(prior)
+
+            task_class = turn["task_class"]
+            budget = int(EXPANSION_REVIEW_BUDGET.get(task_class, 0))
+            reviews_used = connection.execute(
+                "SELECT COUNT(*) FROM expansion_permits WHERE turn_id = ?",
+                (turn_id,),
+            ).fetchone()[0]
+
+            verdict, reviewer, outcome_reason = "deny", "deterministic-deny", ""
+            already_allowed = False
+            if budget <= 0:
+                outcome_reason = (
+                    f"{task_class} has zero expansion budget; report the blocker"
+                )
+            elif reviews_used >= budget:
+                outcome_reason = (
+                    f"expansion review budget exhausted ({reviews_used}/{budget})"
+                )
+            else:
+                # Stage 2 deterministic allow: only meaningful for classes
+                # whose admission is enforced (locked closeout today).
+                if task_class == "repository-closeout" and turn["state"] == "locked":
+                    admitted = self._admit_closeout_locked(turn, tool_name, args)
+                    if admitted.allowed:
+                        verdict = "allow"
+                        reviewer = "deterministic-allow"
+                        already_allowed = True
+                        outcome_reason = (
+                            "the contract already permits this action; no permit needed"
+                        )
+                if not outcome_reason:
+                    if judge is None:
+                        reviewer = "fail-closed"
+                        outcome_reason = (
+                            "no independent scope reviewer is available; "
+                            "expansion fails closed"
+                        )
+                    else:
+                        try:
+                            payload = {
+                                "turn_id": turn_id,
+                                "task_class": task_class,
+                                "origin_sha256": turn["origin_sha256"],
+                                "contract": json.loads(turn["contract_json"])
+                                if turn["contract_json"]
+                                else None,
+                                "tool_name": tool_name,
+                                "resource": json.dumps(args, sort_keys=True, default=str)[:500],
+                                "reason": reason,
+                                "estimated_cost": estimated_cost or {},
+                                "action_fingerprint": fingerprint,
+                            }
+                            result = judge(payload)
+                            if isinstance(result, dict) and bool(result.get("allow")):
+                                verdict = "allow"
+                                reviewer = "judge"
+                                outcome_reason = str(
+                                    result.get("reason") or "approved by scope reviewer"
+                                )
+                            else:
+                                reviewer = "judge"
+                                rejected = (
+                                    result.get("reason")
+                                    if isinstance(result, dict)
+                                    else None
+                                )
+                                outcome_reason = (
+                                    str(rejected)
+                                    if rejected
+                                    else "rejected by scope reviewer"
+                                )
+                        except Exception:
+                            verdict = "deny"
+                            reviewer = "fail-closed"
+                            outcome_reason = "scope reviewer failed; expansion fails closed"
+
+            expires_at = now + max(0.0, float(ttl_seconds))
+            consumed_at = now if already_allowed else None
+            connection.execute(
+                """
+                INSERT INTO expansion_permits (
+                    turn_id, action_fingerprint, tool_name, resource, reason,
+                    outcome_reason, estimated_cost_json, verdict, reviewer,
+                    created_at, expires_at, consumed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    turn_id,
+                    fingerprint,
+                    tool_name,
+                    json.dumps(args, sort_keys=True, default=str)[:500],
+                    reason,
+                    outcome_reason,
+                    cost_json,
+                    verdict,
+                    reviewer,
+                    now,
+                    expires_at,
+                    consumed_at,
+                ),
+            )
+            connection.commit()
+            row = connection.execute(
+                "SELECT * FROM expansion_permits "
+                "WHERE turn_id = ? AND action_fingerprint = ?",
+                (turn_id, fingerprint),
+            ).fetchone()
+            return self._render_permit(row)
+
+    @staticmethod
+    def _render_permit(row) -> dict[str, Any]:
+        return {
+            "ok": row["verdict"] == "allow",
+            "verdict": row["verdict"],
+            "reviewer": row["reviewer"],
+            "reason": row["outcome_reason"],
+            "action_fingerprint": row["action_fingerprint"],
+            "expires_at": row["expires_at"],
+            "consumed": row["consumed_at"] is not None,
+        }
+
+    def _consume_permit_locked(
+        self, connection: sqlite3.Connection, turn_id: str, fingerprint: str
+    ) -> bool:
+        """One-use consumption inside an open BEGIN IMMEDIATE transaction."""
+        cur = connection.execute(
+            """
+            UPDATE expansion_permits
+               SET consumed_at = ?
+             WHERE turn_id = ? AND action_fingerprint = ?
+               AND verdict = 'allow' AND consumed_at IS NULL
+               AND expires_at > ?
+            """,
+            (time.time(), turn_id, fingerprint, time.time()),
+        )
+        return cur.rowcount == 1
+
     def finalize_turn(self, *, turn_id: str, status: str) -> dict[str, Any]:
         if status not in {"success", "partial", "blocked", "failed", "interrupted"}:
             raise ValueError("invalid completion status")
@@ -668,12 +885,8 @@ class GateStore:
         tool_name: str,
         args: dict[str, Any],
     ) -> GateDecision:
-        call_key = tool_call_id or hashlib.sha256(
-            json.dumps([tool_name, args], sort_keys=True, default=str).encode("utf-8")
-        ).hexdigest()
-        fingerprint = hashlib.sha256(
-            json.dumps([tool_name, args], sort_keys=True, default=str).encode("utf-8")
-        ).hexdigest()
+        fingerprint = action_fingerprint(tool_name, args)
+        call_key = tool_call_id or fingerprint
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             prior = connection.execute(
@@ -730,6 +943,15 @@ class GateStore:
                 decision = self._admit_closeout_discovery(turn, tool_name, args)
             elif turn["state"] == "locked":
                 decision = self._admit_closeout_locked(turn, tool_name, args)
+                if not decision.allowed and self._consume_permit_locked(
+                    connection, turn_id, fingerprint
+                ):
+                    decision = GateDecision(
+                        True,
+                        "expansion-permit",
+                        "one-use expansion permit approved for this exact action",
+                        decision.resource,
+                    )
             else:
                 decision = GateDecision(
                     False,
