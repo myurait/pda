@@ -20,6 +20,16 @@ from hermes_cli import kanban_db
 PLUGIN_API = Path(__file__).parents[1] / "dashboard" / "plugin_api.py"
 
 
+@pytest.fixture(autouse=True)
+def _isolate_kanban_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HERMES_KANBAN_DB", str(tmp_path / "kanban.db"))
+    monkeypatch.delenv("HERMES_KANBAN_BOARD", raising=False)
+
+
+def test_test_database_is_isolated_from_runtime(tmp_path: Path) -> None:
+    assert kanban_db.kanban_db_path() == tmp_path / "kanban.db"
+
+
 def _load_plugin_api():
     name = "pda_approvals_plugin_api_test"
     spec = importlib.util.spec_from_file_location(name, PLUGIN_API)
