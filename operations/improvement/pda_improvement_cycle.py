@@ -209,6 +209,32 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
         if not bool(config.get("enabled", False)):
             return {"ok": True, "enabled": False, "assigned": [], "reason": "disabled"}
 
+        # The committed repository policy is the single source of truth for
+        # whether the cycle may run (see continuity/autonomous-improvement.json
+        # and the installer's activation gate). The rendered runtime config is
+        # derived state: if it disagrees with the policy — e.g. it was edited
+        # directly instead of going through owner-approved activation — the
+        # router fails closed instead of trusting the tampered copy.
+        policy_path = (
+            _absolute_dir(config.get("repo_root"), "repo_root")
+            / "continuity"
+            / "autonomous-improvement.json"
+        )
+        try:
+            policy = json.loads(policy_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CycleError(
+                "policy-unreadable",
+                f"committed policy could not be read: {policy_path}: {exc}",
+            ) from exc
+        if not bool(policy.get("enabled", False)):
+            return {
+                "ok": True,
+                "enabled": False,
+                "assigned": [],
+                "reason": "disabled-by-committed-policy",
+            }
+
         tenant = str(config.get("tenant") or "").strip()
         assignee = str(config.get("assignee") or "").strip()
         if not tenant or not assignee:

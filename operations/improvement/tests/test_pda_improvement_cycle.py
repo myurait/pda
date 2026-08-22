@@ -30,9 +30,19 @@ def _repo(tmp_path: Path) -> Path:
     _git(repo, "config", "user.email", "pda-test@example.invalid")
     _git(repo, "config", "user.name", "PDA Test")
     (repo / "README.md").write_text("pda\n", encoding="utf-8")
-    _git(repo, "add", "README.md")
+    (repo / "continuity").mkdir()
+    (repo / "continuity" / "autonomous-improvement.json").write_text(
+        json.dumps({"schema_version": 1, "enabled": True}), encoding="utf-8"
+    )
+    _git(repo, "add", "README.md", "continuity")
     _git(repo, "commit", "-m", "base")
     return repo
+
+
+def _set_committed_policy(repo: Path, *, enabled: bool) -> None:
+    (repo / "continuity" / "autonomous-improvement.json").write_text(
+        json.dumps({"schema_version": 1, "enabled": enabled}), encoding="utf-8"
+    )
 
 
 def _config(tmp_path: Path, repo: Path, *, enabled: bool = True, max_wip: int = 1) -> Path:
@@ -76,6 +86,26 @@ def _task(conn, title: str, *, priority: int, status: str = "ready", assignee=No
             metadata={"pda_approval": {"schema_version": 1}},
         )
     return task_id
+
+
+def test_tampered_runtime_config_cannot_outrank_committed_policy(tmp_path, monkeypatch):
+    # Adversarial replay: the rendered runtime config is user-writable, so a
+    # stray writer can flip its "enabled" to true. The committed repository
+    # policy is the single source of truth; the router must stay a noop.
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=False)
+    config = _config(tmp_path, repo, enabled=True)
+
+    result = run_cycle(config)
+
+    assert result == {
+        "ok": True,
+        "enabled": False,
+        "assigned": [],
+        "reason": "disabled-by-committed-policy",
+    }
+    assert not (tmp_path / "worktrees").exists()
 
 
 def test_disabled_cycle_is_a_true_noop(tmp_path, monkeypatch):
