@@ -151,6 +151,8 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 
 ### M1. 統治核 — 思想準拠の強制力（最重要・再有効化の前提）
 
+進捗記録（2026-08-22, /goal 実行）: M0 exit gate承認後、(a) governance ADR のドラフトを `docs/design/self-improvement-governance-adr.md` として作成（draft-for-owner-review、レビュー承認待ち）。M0で承認された運用は実施済み: main統合とorigin/agent-node同期、terminal claim guardパッチのライブ適用（Hermes 084cdbf1、graceful restart、ヘルス200、実DBでの拒否・監査イベント・force動作のsmoke検証green）、merged worktree 9件のGC。パッチはフルスイート比較（patched 236失敗 = baseline 236失敗、patched固有の失敗0件、追加テスト11件pass）で回帰なしを確認した改訂版（worker_pid帰属判定）。
+
 - 内容: (a) self-improvement governance ADR（何を自動化し何をオーナー承認に固定するか、ゲートの所有権と配置）、(b) 憲章由来不変条件の機械検査化（初期セット: C1-C9をチェック可能な形へコンパイル。identity contract / clause ID設計を下敷きにする）、(c) スコープ審査ゲートのS2/S3拡張をworker実行へ適用（artifact-changeクラス）、(d) 実装workerと独立した検証者ステージの導入（実装者の自己申告を承認根拠にしない）、(e) ゲートpolicy・承認ledgerのworker書込権限外への配置検証（迂回の敵対的テストを含む）。
 - exit gate: workerが自己完了・保護解除・スコープ逸脱を試みる敵対的テストが全て遮断される。全finalizationが決定論的な不変条件チェックを通る。ADRがオーナー承認済み。
 - オーナー関与: ADR承認（自動化範囲の確定）。
