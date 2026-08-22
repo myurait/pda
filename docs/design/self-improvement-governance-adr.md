@@ -1,6 +1,6 @@
 # ADR: 自律改善の統治 (self-improvement governance)
 
-- Status: draft-for-owner-review（オーナーのレビュー承認まで効力を持たない。承認により goal M1 の統治正本となる）
+- Status: approved（2026-08-22 オーナー承認。Open Questions は全て決定済み — 末尾「確定済みオーナー決定」参照。goal M1 の統治正本）
 - 日付: 2026-08-22
 - 位置付け: `docs/roadmap/autonomous-improvement-goal.md` M1(a) の成果物。全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md:145,168,178`）が要求する self-improvement governance の ADR。
 - 根拠となる規範: `pda_charter.md`（特に第五条・第六条）、`personal_delegate_agent_plan.md:168-183`（提案と受入判断の分離、ゲートをコアの上位に置く）、goal文書6節の不変条件 C1-C9。
@@ -41,15 +41,15 @@ goal文書4節の確定（独立検証者は「AI/決定論混成」）を、層
 
 判断層（AI検証者）:
 
-- 性質: 実装workerと別主体のAIが、受入条件の意味的充足・回帰リスク・スコープ妥当性を判定する。
-- 消費契約（C6 充足）: 検証者の出力は review handoff の必須添付であり、承認画面に表示される。参照されない検証レポートを生成するための起動はしない。
+- 性質: 実装workerと別主体のAIが、受入条件の意味的充足・回帰リスク・スコープ妥当性を判定する。**全ての変更に適用する**（2026-08-22 オーナー決定。risk_class による適用可否の傾斜は行わない — 深さの調整は許容）。
+- 消費契約（C6 充足）: 検証者の出力は review handoff の必須添付であり、承認画面に表示される。C6 が禁じるのは「参照されない証跡・ログ・オーナーに届かない建前文書」のためのAI起動であり、消費される検証はこれに当たらない。
 - 限界の明文化: AI検証者の「合格」は強制層の通過にも digest 承認にも代替しない。検証者は lifecycle 変更権限を持たない（terminal claim guard により機械的に保証される）。
 - 実装プリミティブの選定（Hermes の reviewer 引数 / `claim_review_task` / swarm verifier 段のいずれを使うか）は M2 のオーケストレーター設計で行い、本 ADR は契約のみを固定する。
 
 ## D3. ゲートの所有権と配置
 
 - ゲート policy・不変条件定義・敵対テストは Git 正本（本リポジトリ）で管理し、変更はオーナー承認のコミットのみとする。worker の finalization contract に統治ファイルへの変更が含まれる場合、強制層は無条件で拒否する。
-- 承認 ledger（`pda_owner_approvals`）は現在 Kanban DB 内にあり、DB に書ける主体からは物理的に隔離されていない。M0 の terminal claim guard と installer の検証は関数・契約レベルの保護であり、「worker の書込権限外への物理配置」（root 所有 broker 等、identity 計画の control-owned binding と同系）は未達である。これは本 ADR の残余であり、物理分離の時期と方式は Open Question 4 とする。
+- 承認 ledger（`pda_owner_approvals`）は現在 Kanban DB 内にあり、DB に書ける主体からは物理的に隔離されていない。M0 の terminal claim guard と installer の検証は関数・契約レベルの保護であり、「worker の書込権限外への物理配置」（root 所有 broker 等、identity 計画の control-owned binding と同系）は未達である。これは本 ADR の残余であり、物理分離は identity 計画（control-owned session binding）と統合して後続実施とする（確定済みオーナー決定 4）。
 - 強制層のコードは Hermes 本体への管理パッチ（`integrations/hermes-kanban-governance/`）と本リポジトリの決定論的ツールに置き、worker のスキル・プロンプトには置かない。
 
 ## D4. 不変条件 C1-C9 の検査化分類
@@ -66,7 +66,7 @@ goal文書4節の確定（独立検証者は「AI/決定論混成」）を、層
 M1-M2 で検査化する:
 
 - C3（ゲート・ledger の権限外配置）: M1 では統治ファイル変更の拒否ゲートと敵対テスト、物理分離は Open Question 4。
-- C6（クレジット規律）: AI 起動と出力消費先の対応を監査イベント化し、消費先のない定期起動を検出する。
+- C6（クレジット規律）: AI 起動と出力消費先の対応を監査イベント化し、消費先のない起動（参照されない証跡・ログ・オーナーに届かない建前文書の作成・校正）を検出する。検証・レビューのような消費されるAI起動は制限対象ではない（2026-08-22 オーナー明確化）。
 - C9（通知契約）: 表示側は実装・実証済み（Open WebUI v2.1.0-local.18）。cycle 側のカード専用スレッド通知は M2（t_c5638264）で実装し、終端通知の欠落を検査する。
 - C8 の残り（再有効化の禁止）: 有効化経路が policy コミット＋承認以外に存在しないことの敵対テスト。
 
@@ -91,12 +91,12 @@ M1-M2 で検査化する:
 
 新しい迂回が実運用で観測された場合、ポストモーテム起票と同時にこのスイートへ再現テストを追加する（学習ループ、M3）。
 
-## Open Questions（オーナー判断事項）
+## 確定済みオーナー決定（2026-08-22）
 
-1. 全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md`）との関係。本再設計を全体設計の一部として進めるか、独立トラックとするか。（goal文書 Open Question 2 の再掲。本 ADR レビューが判断の場）
-2. 多層認知ゲート（構想フェーズ8）との順序。本 ADR は「自己改善に必要な最小ゲート群」の先行実装であり、フェーズ8全体の代替ではない。この先行を許容するか。（goal文書 Open Question 3 の再掲）
-3. AI検証者の深度を risk_class（`pda-autonomous-improvement` SKILL.md の local-reversible / service-restart / external-visible / security-sensitive）に連動させるか。全カード一律の AI 検証は C6（クレジット規律）と緊張するため、例えば local-reversible は強制層のみ、external-visible 以上で AI 検証必須、という傾斜を提案する。
-4. 承認 ledger・ゲート policy の worker 書込権限外への物理分離（root 所有 broker 等）の時期。M2 で実施するか、identity 計画（control-owned session binding）と統合して後続にするか。
+1. 本再設計は全体設計と一本化せず、**独立トラックで先行**する。
+2. 最小ゲート群の先行実装を**許容**する（フェーズ8全体の代替ではないという位置付けのまま）。
+3. **AI検証は全ての変更に適用**する（推奨の傾斜案を棄却）。C6 の禁止対象は「参照されない証跡・ログ・オーナーに届かない建前文書のための文書作成・校正」であり、消費される検証はこれに当たらない。
+4. 承認 ledger・ゲート policy の物理分離は**後回し**とし、identity 計画（control-owned session binding）と統合して実施する。それまでの改竄検知・拒否は現行の機械検査で担保する。
 
 ## 承認後に M1 実装として動くもの
 

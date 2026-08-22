@@ -120,7 +120,7 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 - C3. ゲートpolicy・承認ledger・監査log・バックアップはworker/coreの書込権限外に置く（`personal_delegate_agent_plan.md:178-183`、`.hermes/plans/2026-07-20:708-709`）。
 - C4. 評価条件・承認境界・監査記録・復元手段を自己正当化で無効化できないこと（`.hermes/prompts/claude-fable-full-system-design.md:49`）。
 - C5. 二段階実行契約の維持: main統合・push・デプロイ・restart・外部送信はdigest束縛のオーナー承認後のみ。承認は暗黙に拡大しない（`docs/operations/pda-improvement-cycle.md`）。
-- C6. クレジット規律: AI起動は出力が消費される工程に限定。参照されない証跡・無条件の定期起動を作らない（2026-08-22 オーナー指示）。
+- C6. クレジット規律: AI起動は出力が消費される工程に限定。禁止対象は「参照されない証跡・ログ・オーナーに届かない建前文書の作成・校正」であり、検証・レビューのような消費されるAI起動は制限しない（2026-08-22 オーナー指示・同日明確化）。
 - C7. 試験は本番状態（Kanban DB・承認ledger・runtime）に接触しない。本番パス検出時はfail-closed（t_4a78c98b 完了条件）。
 - C8. 停止指示・停止中カードの尊重。自動再有効化の禁止。
 - C9. 通信契約の維持: 長時間作業は5分間隔の進捗（delta・次工程・進捗率）と停滞・終端の必達通知（`docs/roadmap/current-priority.md`、t_c5638264 要件10-12）。
