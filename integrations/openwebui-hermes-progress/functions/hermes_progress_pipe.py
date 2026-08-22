@@ -1,7 +1,7 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.15
+version: 2.1.0-local.16
 required_open_webui_version: 0.10.2
 description: Hermes Runs API adapter with live interim assistant messages, event-grounded semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
@@ -197,8 +197,9 @@ class Pipe:
             ge=0,
             le=86400,
             description=(
-                "Interval for model-invisible long-run progress status in seconds; "
-                "0 disables periodic updates."
+                "Display interval for the model-invisible long-run progress "
+                "status in seconds. Runs events change what is shown, never "
+                "how often; 0 disables the periodic display."
             ),
         )
         PROGRESS_STALL_SECONDS: int = Field(
@@ -1531,38 +1532,14 @@ class Pipe:
                     async for event in self._iter_sse(response):
                         event_type = str(event.get("event") or "")
                         observed_at = time.time()
-                        meaningful_progress = self._track_progress_event(
+                        # Runs events only update the progress state. The
+                        # periodic display, not the event rate, decides how
+                        # often the owner sees that state.
+                        self._track_progress_event(
                             progress,
                             event,
                             observed_at=observed_at,
                         )
-                        if (
-                            meaningful_progress
-                            and event_type not in TERMINAL_EVENTS
-                            and status_emitter is not None
-                        ):
-                            elapsed_seconds = max(
-                                0.0,
-                                asyncio.get_running_loop().time()
-                                - heartbeat_started_at,
-                            )
-                            await self._emit_status(
-                                status_emitter,
-                                self._heartbeat_description(
-                                    elapsed_seconds=elapsed_seconds,
-                                    progress=progress,
-                                    now=observed_at,
-                                    stall_seconds=int(
-                                        self.valves.PROGRESS_STALL_SECONDS
-                                    ),
-                                ),
-                                done=False,
-                                progress_update=True,
-                                heartbeat=False,
-                                event_type=event_type,
-                                elapsed_seconds=int(elapsed_seconds),
-                                run_id=run_id,
-                            )
 
                         if (
                             event_type == "tool.started"

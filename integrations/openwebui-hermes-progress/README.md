@@ -78,7 +78,7 @@ TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 ## 実作業ベースの現在進捗
 
 - run作成直後は `開始処理中／最初の実行イベント待ち` を即時表示する。`plan.updated` がなくても、tool開始・完了、承認待ち、run状態から、現在の具体的行為、直近結果、待機・阻害要因を構成する。「作業計画が未登録」のような内部事情をユーザー側の欠落として表示しない。
-- 意味のあるRunsイベントでは直ちに `status` を更新し、継続中は既定300秒（5分）ごとにもheartbeatを送る。両経路は同じformatterを使い、通常のassistant本文や次ターンのモデル入力を汚染しない。
+- ユーザーが見る進捗表示は、run作成直後の初回表示と、その後 `PROGRESS_HEARTBEAT_SECONDS`（既定300秒＝5分）ごとのheartbeatだけである。Runsイベントは表示内容の正本だが、表示回数には影響しない。toolが毎秒動く実作業でも表示は5分間隔に保たれ、通常のassistant本文や次ターンのモデル入力も汚染しない。
 - 表示は、開始からの経過、前回表示からの経過、状態、概算進捗率、段階、現在の実作業、直近結果、待機・阻害、前回からのdelta、最後に実進展したUTC時刻を改行区切りで保持する。deltaは進捗率のポイント差、段階・表示文の同一/変更、前回表示後の実作業イベント数を明示する。
 - `plan.updated` がある場合だけcancelled以外の項目から概算進捗率と段階を算出する。計画がない場合は率を捏造せず `進捗率未算出` としつつ、観測済みtool/runイベントによる実作業表示は継続する。前提APIは `/v1/capabilities` の `features.plan_progress_events=true` を公開する。
 - heartbeatを繰り返しただけでは実進展時刻を更新しない。同じ率・段階・表示文でも新しいtool等の実イベントがあれば通常の実行中とし、既定600秒（10分）実イベントがなければ `停滞` と最後の実進展時刻を表示する。`PROGRESS_HEARTBEAT_SECONDS` は既定 `300`、`PROGRESS_STALL_SECONDS` は既定 `600` で、各Valveは `0` にすると対応機能を無効化できる。
@@ -98,7 +98,7 @@ TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 
 ## 完了タイミングと表示内容
 
-実装バージョンは `hermes_progress_pipe` v2.1.0-local.15。
+実装バージョンは `hermes_progress_pipe` v2.1.0-local.16。
 
 ストリーミング時は、Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信タスクを起動する。Pipe開始時のOpen WebUI host taskの終了を待ってから、Open WebUI DB上の対象assistant messageを読む。success、failure、cancel、timeoutやhost taskの終了状態は通知種別として区別せず、所有者本人のmessageが `done=true` かつ本文が非空なら保存済み内容を通知する。通知タイトルと本文は保存済みレコードだけから読み、Hermesのterminal outputやユーザー入力を代用しない。outlet filterによるredactionを前提にする環境では、filter失敗時にも保存済み本文が通知され得るため、`NTFY_TOPIC`を空にして外部pushを無効化する。
 

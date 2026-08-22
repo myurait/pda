@@ -204,6 +204,27 @@ def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
     assert disabled.PROGRESS_STALL_SECONDS == 0
 
 
+def test_runs_events_update_progress_state_without_scheduling_a_display():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1000.0)
+
+    for event in (
+        {"event": "tool.started", "tool": "read_file"},
+        {"event": "tool.completed", "tool": "read_file", "error": False},
+        {"event": "tool.started", "tool": "write_file"},
+    ):
+        assert pipe._track_progress_event(progress, event, observed_at=1001.0)
+
+    assert progress["last_report_at"] is None
+    assert progress["real_event_count"] == 3
+    assert pipe._progress_snapshot(progress)["current"] == "実装・文書を更新中"
+
+    pipe._heartbeat_description(elapsed_seconds=1, progress=progress, now=1001.0)
+
+    assert progress["last_report_at"] == 1001.0
+    assert progress["last_report_event_count"] == 3
+
+
 def test_progress_heartbeat_reports_plan_milestone_and_current_work():
     pipe = Pipe()
     progress = pipe._initial_progress_state()
@@ -968,7 +989,7 @@ async def test_tool_lifecycle_is_suppressed_from_status_and_content_by_default()
 
 
 @pytest.mark.asyncio
-async def test_tool_events_emit_event_based_semantic_progress_without_raw_log_text():
+async def test_periodic_display_reports_event_based_work_without_raw_log_text():
     fake = await FakeHermes(
         [
             {
@@ -983,10 +1004,12 @@ async def test_tool_events_emit_event_based_semantic_progress_without_raw_log_te
                 "result": "PRIVATE_RESULT_MUST_NOT_APPEAR",
             },
             {"event": "run.completed", "output": "EVENT_PROGRESS_OK"},
-        ]
+        ],
+        event_delays=[0.2, 1.2, 1.2],
     ).start()
     try:
         pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
         emitted = []
 
         async def emitter(event):
@@ -1006,10 +1029,13 @@ async def test_tool_events_emit_event_based_semantic_progress_without_raw_log_te
         ]
 
         semantic = [
-            item for item in status_data(emitted) if item.get("progress_update")
+            item
+            for item in status_data(emitted)
+            if item.get("progress_update") or item.get("heartbeat")
         ]
         descriptions = [item["description"] for item in semantic]
         assert visible_content(chunks) == "EVENT_PROGRESS_OK"
+        assert sum(1 for item in semantic if item.get("heartbeat")) >= 2
         assert any("現在: 対象ファイルの内容を確認中" in text for text in descriptions)
         assert any("直近結果: 対象ファイルの確認を完了" in text for text in descriptions)
         assert all("変化:" in text for text in descriptions)
@@ -1017,6 +1043,52 @@ async def test_tool_events_emit_event_based_semantic_progress_without_raw_log_te
         assert not any(text == "実行中: read_file" for text in descriptions)
         assert "PRIVATE_PATH_MUST_NOT_APPEAR" not in "\n".join(descriptions)
         assert "PRIVATE_RESULT_MUST_NOT_APPEAR" not in "\n".join(descriptions)
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_dense_tool_events_do_not_outpace_the_display_interval():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "read_file"},
+            {"event": "tool.completed", "tool": "read_file", "error": False},
+            {"event": "tool.started", "tool": "search_files"},
+            {"event": "tool.completed", "tool": "search_files", "error": False},
+            {"event": "tool.started", "tool": "write_file"},
+            {"event": "tool.completed", "tool": "write_file", "error": False},
+            {"event": "run.completed", "output": "RATE_LIMIT_OK"},
+        ]
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="dense events",
+                history=[],
+                instructions=None,
+                session_id="owui_dense_events",
+                session_key="openwebui:dense-events",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        semantic = [
+            item for item in status_data(emitted) if item.get("progress_update")
+        ]
+
+        assert visible_content(chunks) == "RATE_LIMIT_OK"
+        assert pipe.valves.PROGRESS_HEARTBEAT_SECONDS == 300
+        assert len(semantic) == 1
+        assert semantic[0]["event_type"] == "run.started"
+        assert "現在: 開始処理中／最初の実行イベント待ち" in semantic[0]["description"]
     finally:
         await fake.close()
 
