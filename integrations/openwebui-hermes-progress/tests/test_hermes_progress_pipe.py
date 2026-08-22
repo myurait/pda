@@ -218,6 +218,49 @@ def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
     assert disabled.PROGRESS_STALL_SECONDS == 0
 
 
+@pytest.mark.asyncio
+async def test_status_history_never_reaches_model_context_or_hermes_payload():
+    sentinel = "STATUS_HISTORY_MUST_NOT_REACH_MODEL_9f27"
+    poisoned_messages = [
+        {"role": "system", "content": "system instructions"},
+        {
+            "role": "assistant",
+            "content": "earlier answer",
+            "statusHistory": [
+                {"description": sentinel, "done": False, "heartbeat": True}
+            ],
+            "status": {"description": sentinel},
+        },
+        {"role": "user", "content": "follow-up"},
+    ]
+    pipe = Pipe()
+    history, instructions = pipe._build_context(poisoned_messages)
+    serialized = json.dumps({"history": history, "instructions": instructions})
+    assert sentinel not in serialized
+
+    fake = await FakeHermes(
+        [{"event": "run.completed", "output": "CONTEXT_CLEAN_OK"}]
+    ).start()
+    try:
+        live = configured_pipe(fake.base_url)
+        chunks = [
+            chunk
+            async for chunk in live._stream_response(
+                message="follow-up",
+                history=history,
+                instructions=instructions,
+                session_id="owui_ctx_clean",
+                session_key="openwebui:ctx-clean",
+                event_emitter=None,
+                event_call=None,
+            )
+        ]
+        assert visible_content(chunks) == "CONTEXT_CLEAN_OK"
+        assert sentinel not in json.dumps(fake.run_payloads[0])
+    finally:
+        await fake.close()
+
+
 def test_runs_events_update_progress_state_without_scheduling_a_display():
     pipe = Pipe()
     progress = pipe._initial_progress_state(started_at=1000.0)
