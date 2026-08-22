@@ -5,6 +5,7 @@
 - 目的: 自律改善サイクルを「オーナーが承認点でのみ関与すれば自走する」状態へ再設計するための、現状整理・問題診断・目標定義・制約・完了条件・マイルストーン。承認後は `/goal` 実行の入力契約となる。
 - 作成日: 2026-08-22
 - 関連: `pda_charter.md` / `docs/roadmap/current-priority.md` / `docs/operations/pda-improvement-cycle.md` / `docs/design/task-scope-admission-gate.md` / `personal_delegate_agent_plan.md`
+- 運用細則: `docs/roadmap/autonomous-improvement-operating-rules.md`（2026-08-22 オーナー指示。本文書とADRに従属）
 
 本文書は記述を Fact（一次証拠で検証済み）、Assumption（未確認の仮定）、Decision（本文書が提案する判断）、Open Question（オーナー判断が必要）に区分する。
 
