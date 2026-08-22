@@ -79,3 +79,19 @@ def test_control_board_neutralizes_ambient_pin_and_restores_it(
 
     assert os.environ.get("HERMES_KANBAN_DB") == str(ambient)
     assert not ambient.exists()
+
+
+def test_kanban_db_contract_env_pin_has_highest_precedence(tmp_path, monkeypatch):
+    # Contract test against the external hermes_cli.kanban_db module: our
+    # guards and installer hardening assume HERMES_KANBAN_DB outranks
+    # HERMES_HOME. If a Hermes upgrade changes that, this test must fail
+    # loudly instead of the assumption drifting silently.
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    pinned = tmp_path / "pinned" / "kanban.db"
+    monkeypatch.setenv("HERMES_KANBAN_DB", str(pinned))
+
+    assert kanban_db.kanban_db_path() == pinned
+
+    monkeypatch.delenv("HERMES_KANBAN_DB")
+    resolved = kanban_db.kanban_db_path(board="default")
+    assert str(resolved).startswith(str(tmp_path / "home"))
