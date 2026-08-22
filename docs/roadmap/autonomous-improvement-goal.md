@@ -143,6 +143,8 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 
 ### M0. 衛生と信頼回復（サイクルは停止のまま）
 
+進捗記録（2026-08-22, /goal 実行）: (a) 全pytest配下でのambient `HERMES_KANBAN_*` 除去と本番kanban DBのfail-closedガード（repo直下 `conftest.py`）、installer本番コードのambient無効化（`_default_env` / `_control_board`）、インシデント再現の回帰テストを実装。(b) statusHistoryのmodel context非混入を回帰テスト化。(c) Hermes本体へのterminal遷移claim束縛パッチを `integrations/hermes-kanban-governance/` として作成（適用はオーナー承認後）。(d) enabled正本を `continuity/autonomous-improvement.json` へ一本化し、policy停止中の活性化をfail-closed化。(e) `docs/operations/worktree-lifecycle.md` を制定し棚卸し実施。(f) `task-scope-control` スキルをリポジトリ正本化、`workstream-reconciliation` はHermes同梱スキルと確認、`kanban_db` のenv優先順位契約をテストで固定。
+
 - 内容: (a) t_4a78c98b — 試験の状態分離をfail-closed化する再発防止（混入カード・漏洩worktreeの除去自体は2026-08-22にオーナー指示で実施済み）、(b) t_40cb8c26 — 実施済み修正の証拠をカードへ消し込み、残条件（statusHistoryのmodel context非混入検証等）を閉じる、(c) t_877230c3 — terminal遷移のidentity束縛と再試行制御、(d) enabled状態の正本を1箇所に統合し、habit/policy/runtimeを導出値にする、(e) 残置worktreeのGC方針確立、(f) リポジトリ外実体（kanban_db・不足スキル2件）の所在確認と契約の固定。
 - exit gate: インシデント2件closed・回帰テストあり・状態正本が単一。何も再有効化されていないこと。
 - オーナー関与: M0完了確認。
