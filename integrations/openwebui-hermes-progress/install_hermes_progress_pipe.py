@@ -319,6 +319,7 @@ def build_valves_payload(
         # Owner-visible progress must stay computable: refuse tool work that
         # starts before a full task plan is registered.
         "REQUIRE_REGISTERED_PLAN": True,
+        "PLAN_REQUIRED_AFTER_SECONDS": 300,
         # Hermes owns the canonical approval deadline (60s by default).
         # Expire the UI first so its deny reaches an active session.
         "APPROVAL_TIMEOUT_SECONDS": 55,

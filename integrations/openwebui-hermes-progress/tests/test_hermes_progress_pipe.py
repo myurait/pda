@@ -34,6 +34,7 @@ class FakeHermes:
         self.approval_status = approval_status
         self.approval_error_code = approval_error_code
         self.capabilities_features = capabilities_features
+        self.steers = []
         self.approvals = []
         self.stops = []
         self.run_payloads = []
@@ -48,6 +49,7 @@ class FakeHermes:
         app.router.add_post("/v1/runs/{run_id}/approval", self.approval)
         app.router.add_post("/v1/runs/{run_id}/stop", self.stop)
         app.router.add_get("/v1/capabilities", self.capabilities)
+        app.router.add_post("/v1/runs/{run_id}/steer", self.steer)
         self.runner = web.AppRunner(app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, "127.0.0.1", 0)
@@ -59,6 +61,10 @@ class FakeHermes:
     async def close(self):
         if self.runner:
             await self.runner.cleanup()
+
+    async def steer(self, request):
+        self.steers.append(await request.json())
+        return web.json_response({"accepted": True})
 
     async def capabilities(self, request):
         if self.capabilities_features is None:
@@ -1105,13 +1111,13 @@ PLAN_CAPABILITY = {"plan_progress_events": True}
 
 
 @pytest.mark.asyncio
-async def test_unplanned_tool_start_stops_the_run_fail_closed():
+async def test_light_task_without_plan_is_not_steered_or_stopped():
     fake = await FakeHermes(
         [
             {"event": "tool.started", "tool": "read_file"},
-            {"event": "run.completed", "output": "MUST_NOT_FINISH"},
+            {"event": "tool.completed", "tool": "read_file", "error": False},
+            {"event": "run.completed", "output": "LIGHT_TASK_OK"},
         ],
-        event_delays=[0, 0.4],
         capabilities_features=PLAN_CAPABILITY,
     ).start()
     try:
@@ -1124,22 +1130,136 @@ async def test_unplanned_tool_start_stops_the_run_fail_closed():
         chunks = [
             chunk
             async for chunk in pipe._stream_response(
-                message="unplanned work",
+                message="light task",
                 history=[],
                 instructions=None,
-                session_id="owui_unplanned",
-                session_key="openwebui:unplanned",
+                session_id="owui_light",
+                session_key="openwebui:light",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        assert visible_content(chunks) == "LIGHT_TASK_OK"
+        assert pipe.valves.PLAN_REQUIRED_AFTER_SECONDS == 300
+        assert fake.steers == []
+        assert fake.stops == []
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_long_run_without_plan_is_steered_then_stopped():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "read_file"},
+            {"event": "run.cancelled"},
+        ],
+        event_delays=[0, 2.7],
+        capabilities_features=PLAN_CAPABILITY,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="unplanned long run",
+                history=[],
+                instructions=None,
+                session_id="owui_unplanned_long",
+                session_key="openwebui:unplanned-long",
                 event_emitter=emitter,
                 event_call=None,
             )
         ]
 
         rendered = visible_content(chunks)
-        assert "MUST_NOT_FINISH" not in rendered
         assert "作業計画が未登録" in rendered
-        assert len(fake.stops) == 1
+        assert len(fake.steers) == 1
+        assert "todo" in fake.steers[0]["input"]
+        assert len(fake.stops) >= 1
+        demanded_lines = [
+            item["description"]
+            for item in status_data(emitted)
+            if "計画: 未登録（登録を要求済み" in str(item.get("description") or "")
+        ]
+        assert demanded_lines
     finally:
         await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_steered_run_that_registers_plan_is_not_stopped():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "read_file"},
+            {
+                "event": "plan.updated",
+                "items": [{"id": "a", "content": "実装する", "status": "in_progress"}],
+            },
+            {"event": "tool.completed", "tool": "read_file", "error": False},
+            {"event": "run.completed", "output": "STEERED_PLAN_OK"},
+        ],
+        event_delays=[0, 1.5, 0, 1.1],
+        capabilities_features=PLAN_CAPABILITY,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = 1
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="steered planned run",
+                history=[],
+                instructions=None,
+                session_id="owui_steered",
+                session_key="openwebui:steered",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        assert visible_content(chunks) == "STEERED_PLAN_OK"
+        assert len(fake.steers) == 1
+        assert fake.stops == []
+    finally:
+        await fake.close()
+
+
+def test_heartbeat_notes_pending_plan_demand_until_plan_registers():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1000.0)
+    progress["plan_demanded_at"] = 1300.0
+    demanded = pipe._heartbeat_description(
+        elapsed_seconds=300, progress=progress, now=1310.0
+    )
+    assert "計画: 未登録（登録を要求済み・未応答ならrun停止）" in demanded
+
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [{"id": "a", "content": "実装する", "status": "in_progress"}],
+        },
+        observed_at=1320.0,
+    )
+    registered = pipe._heartbeat_description(
+        elapsed_seconds=600, progress=progress, now=1610.0
+    )
+    assert "計画: 未登録" not in registered
 
 
 @pytest.mark.asyncio
@@ -1181,17 +1301,19 @@ async def test_plan_registration_first_run_completes_normally():
         assert fake.stops == []
         sent_instructions = fake.run_payloads[0]["instructions"]
         assert sent_instructions.startswith("既存の指示")
-        assert "todoツールで依頼全体" in sent_instructions
+        assert "todoツールにより依頼全体" in sent_instructions
+        assert "5分" in sent_instructions
     finally:
         await fake.close()
 
 
 @pytest.mark.asyncio
 async def test_plan_enforcement_is_skipped_without_capability_or_valve():
-    for capabilities, valve in (
-        (None, True),
-        ({"plan_progress_events": False}, True),
-        (PLAN_CAPABILITY, False),
+    for capabilities, valve, after_seconds in (
+        (None, True, 300),
+        ({"plan_progress_events": False}, True, 300),
+        (PLAN_CAPABILITY, False, 300),
+        (PLAN_CAPABILITY, True, 0),
     ):
         fake = await FakeHermes(
             [
@@ -1203,6 +1325,7 @@ async def test_plan_enforcement_is_skipped_without_capability_or_valve():
         try:
             pipe = configured_pipe(fake.base_url)
             pipe.valves.REQUIRE_REGISTERED_PLAN = valve
+            pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = after_seconds
             emitted = []
 
             async def emitter(event):
@@ -1222,6 +1345,7 @@ async def test_plan_enforcement_is_skipped_without_capability_or_valve():
             ]
 
             assert visible_content(chunks) == "LEGACY_OK"
+            assert fake.steers == []
             assert fake.stops == []
             assert "instructions" not in fake.run_payloads[0]
         finally:

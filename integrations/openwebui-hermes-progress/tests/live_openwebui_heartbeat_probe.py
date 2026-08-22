@@ -202,10 +202,13 @@ async def main() -> None:
                     "…" not in str(item.get("description") or "")
                     for item in heartbeats
                 ),
-                "event_update_has_real_work": any(
-                    "現在: コマンドで実装・検証中"
-                    in str(item.get("description") or "")
-                    for item in event_updates
+                "event_updates_limited_to_run_start": (
+                    len(event_updates) == 1
+                    and event_updates[0].get("event_type") == "run.started"
+                ),
+                "heartbeat_has_next_step": all(
+                    "次: " in str(item.get("description") or "")
+                    for item in heartbeats
                 ),
                 "tool_lifecycle_status_absent": not any(
                     str(item.get("description") or "").startswith(("実行中:", "完了:"))
@@ -240,7 +243,8 @@ async def main() -> None:
             assert result["heartbeat_has_delta"], result
             assert result["heartbeat_has_last_real_progress"], result
             assert result["heartbeat_preserves_full_text"], result
-            assert result["event_update_has_real_work"], result
+            assert result["event_updates_limited_to_run_start"], result
+            assert result["heartbeat_has_next_step"], result
             assert result["tool_lifecycle_status_absent"], result
             assert result["tool_name_absent"], result
             assert result["private_tool_input_absent"], result

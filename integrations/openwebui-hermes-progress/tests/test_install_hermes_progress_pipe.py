@@ -79,6 +79,7 @@ def test_default_install_valves_enable_semantic_progress_without_tool_log_noise(
     assert valves["PROGRESS_HEARTBEAT_SECONDS"] == 300
     assert valves["PROGRESS_STALL_SECONDS"] == 600
     assert valves["REQUIRE_REGISTERED_PLAN"] is True
+    assert valves["PLAN_REQUIRED_AFTER_SECONDS"] == 300
     assert valves["SHOW_TOOL_ACTIVITY"] is False
     assert valves["SHOW_REASONING_STATUS"] is False
     assert valves["RUN_TIMEOUT_SECONDS"] == 0
