@@ -106,6 +106,16 @@ def _managed_payloads(repo_root: Path, paths: RuntimePaths, activate: bool) -> l
     desired = json.loads(
         (repo_root / "continuity" / "autonomous-improvement.json").read_text(encoding="utf-8")
     )
+    # The committed policy file is the single source of truth for whether the
+    # autonomous cycle may run. Activation can never exceed it: while the
+    # policy is suspended, only the owner may lift it by committing a policy
+    # change, and the rendered runtime config stays disabled.
+    if activate and not bool(desired.get("enabled")):
+        raise ValueError(
+            "autonomous improvement policy is suspended "
+            "(continuity/autonomous-improvement.json enabled=false); "
+            "activation requires an owner-committed policy change"
+        )
     desired["enabled"] = bool(activate)
     runtime_config = (json.dumps(desired, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
     repo_workdir = Path(str(desired.get("repo_root") or "")).expanduser()

@@ -38,6 +38,31 @@ def _paths(tmp_path: Path) -> RuntimePaths:
     )
 
 
+def _repo_with_policy(tmp_path: Path, *, enabled: bool) -> Path:
+    """Copy the install inputs into a scratch repo with a chosen policy state."""
+    import shutil
+
+    root = tmp_path / "repo"
+    for subtree in (
+        Path("continuity"),
+        Path("infra") / "systemd",
+        Path("integrations") / "hermes-pda-approvals",
+        Path("profiles") / "pda" / "skills",
+        Path("operations") / "improvement",
+    ):
+        shutil.copytree(
+            REPO / subtree,
+            root / subtree,
+            ignore=shutil.ignore_patterns("tests", "__pycache__"),
+        )
+    policy_path = root / "continuity" / "autonomous-improvement.json"
+    policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    policy["enabled"] = enabled
+    policy_path.write_text(json.dumps(policy, ensure_ascii=False, indent=2) + "\n")
+    return root
+
+
+
 def _git(repo: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(repo), *args],
@@ -558,6 +583,7 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
 
 
 def test_activation_rechecks_after_timer_stop_before_mutation(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -606,7 +632,7 @@ def test_activation_rechecks_after_timer_stop_before_mutation(tmp_path, monkeypa
 
     with pytest.raises(ValueError, match="revoked"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -623,6 +649,7 @@ def test_activation_rechecks_after_timer_stop_before_mutation(tmp_path, monkeypa
 
 
 def test_activation_claims_rechecks_and_consumes_one_approval(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -683,7 +710,7 @@ def test_activation_claims_rechecks_and_consumes_one_approval(tmp_path, monkeypa
     monkeypatch.setattr(install_module, "_run", fake_run)
 
     result = install_module.activate_runtime(
-        REPO,
+        activation_repo,
         paths,
         task_id="t_test",
         approval_id=marker["approval_id"],
@@ -698,6 +725,7 @@ def test_activation_rechecks_before_enabling_timer_and_rolls_back_drift(
     tmp_path,
     monkeypatch,
 ):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -756,7 +784,7 @@ def test_activation_rechecks_before_enabling_timer_and_rolls_back_drift(
 
     with pytest.raises(ValueError, match="drifted during activation"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -772,6 +800,7 @@ def test_activation_rechecks_before_enabling_timer_and_rolls_back_drift(
 
 
 def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -829,7 +858,7 @@ def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, m
 
     with pytest.raises(RuntimeError, match="synthetic service failure"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -845,6 +874,7 @@ def test_activation_failure_restores_disabled_runtime_and_prior_cron(tmp_path, m
 
 
 def test_claim_post_commit_exception_releases_preassigned_nonce(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -892,7 +922,7 @@ def test_claim_post_commit_exception_releases_preassigned_nonce(tmp_path, monkey
 
     with pytest.raises(RuntimeError, match="post-commit"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -904,6 +934,7 @@ def test_claim_post_commit_exception_releases_preassigned_nonce(tmp_path, monkey
 
 
 def test_claim_release_failure_re_stops_timer(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -957,7 +988,7 @@ def test_claim_release_failure_re_stops_timer(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="approval-claim rollback failed"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -972,6 +1003,7 @@ def test_rollback_failure_keeps_timer_stopped_and_approval_claimed(
     tmp_path,
     monkeypatch,
 ):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
@@ -1032,7 +1064,7 @@ def test_rollback_failure_keeps_timer_stopped_and_approval_claimed(
 
     with pytest.raises(RuntimeError, match="runtime-disable rollback failed"):
         install_module.activate_runtime(
-            REPO,
+            activation_repo,
             paths,
             task_id="t_test",
             approval_id=marker["approval_id"],
@@ -1045,6 +1077,7 @@ def test_rollback_failure_keeps_timer_stopped_and_approval_claimed(
 
 
 def test_explicit_rollback_restores_snapshot_and_noop_timer(tmp_path, monkeypatch):
+    activation_repo = _repo_with_policy(tmp_path, enabled=True)
     paths = _paths(tmp_path)
     prior = {
         "schema_version": 1,
@@ -1069,7 +1102,7 @@ def test_explicit_rollback_restores_snapshot_and_noop_timer(tmp_path, monkeypatc
         lambda args, **kwargs: commands.append(list(args)) or "",
     )
 
-    result = install_module.rollback_runtime(REPO, paths)
+    result = install_module.rollback_runtime(activation_repo, paths)
 
     runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
     assert result["mode"] == "rolled-back"
@@ -1081,8 +1114,9 @@ def test_explicit_rollback_restores_snapshot_and_noop_timer(tmp_path, monkeypatc
 
 def test_activate_writes_enabled_runtime_only_after_verification_boundary(tmp_path):
     paths = _paths(tmp_path)
+    repo_root = _repo_with_policy(tmp_path, enabled=True)
     with pytest.raises(ValueError, match="verified owner approval"):
-        install_managed_files(REPO, paths, activate=True)
+        install_managed_files(repo_root, paths, activate=True)
     marker = {
         "schema": "PDA_OWNER_APPROVAL_V1",
         "approval_id": "pa_verified",
@@ -1090,7 +1124,7 @@ def test_activate_writes_enabled_runtime_only_after_verification_boundary(tmp_pa
     }
 
     result = install_managed_files(
-        REPO,
+        repo_root,
         paths,
         activate=True,
         approval_marker=marker,
@@ -1099,5 +1133,46 @@ def test_activate_writes_enabled_runtime_only_after_verification_boundary(tmp_pa
     assert result["enabled"] is True
     runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
     assert runtime["enabled"] is True
-    source = json.loads((REPO / "continuity" / "autonomous-improvement.json").read_text())
-    assert source["enabled"] is True
+
+
+def test_activation_is_refused_while_the_committed_policy_is_suspended(tmp_path):
+    paths = _paths(tmp_path)
+    marker = {
+        "schema": "PDA_OWNER_APPROVAL_V1",
+        "approval_id": "pa_verified",
+        "digest": "d" * 64,
+    }
+    suspended_repo = _repo_with_policy(tmp_path, enabled=False)
+
+    with pytest.raises(ValueError, match="policy is suspended"):
+        install_managed_files(
+            suspended_repo, paths, activate=True, approval_marker=marker
+        )
+
+    assert not paths.runtime_config.exists()
+    staged = install_managed_files(suspended_repo, paths, activate=False)
+    assert staged["enabled"] is False
+    runtime = json.loads(paths.runtime_config.read_text(encoding="utf-8"))
+    assert runtime["enabled"] is False
+
+
+def test_committed_policy_habit_and_runtime_state_agree_on_suspension():
+    policy = json.loads(
+        (REPO / "continuity" / "autonomous-improvement.json").read_text(encoding="utf-8")
+    )
+    habits = json.loads(
+        (REPO / "profiles" / "pda" / "managed-habits.json").read_text(encoding="utf-8")
+    )
+    habit = next(
+        item
+        for item in habits["habits"]
+        if item["id"] == "autonomous-pda-improvement"
+    )
+
+    suspended_in_policy = not bool(policy.get("enabled"))
+    suspended_in_habit = str(habit.get("desired_status", "")).startswith("suspended")
+
+    assert suspended_in_policy == suspended_in_habit
+    if suspended_in_policy:
+        assert isinstance(policy.get("suspension"), dict)
+        assert policy["suspension"].get("by") == "owner"
