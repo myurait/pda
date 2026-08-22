@@ -24,6 +24,17 @@ from hermes_cli import kanban_db
 PLUGIN_NAME = "pda-approvals"
 WORKER_PROFILE = "default"
 WORKER_SKILL = "pda-autonomous-improvement"
+
+# Ambient worker/delegate environments pin these at higher precedence than
+# HERMES_HOME (incident t_4a78c98b). Control-plane code must neutralize them
+# so the board is always resolved from the HERMES_HOME it sets itself.
+KANBAN_ENV_OVERRIDES = (
+    "HERMES_KANBAN_DB",
+    "HERMES_KANBAN_HOME",
+    "HERMES_KANBAN_BOARD",
+    "HERMES_KANBAN_WORKSPACES_ROOT",
+    "HERMES_KANBAN_ATTACHMENTS_ROOT",
+)
 APPROVAL_SCHEMA = "PDA_OWNER_APPROVAL_V1"
 _ALLOWED_RISK_CLASSES = {
     "local-reversible",
@@ -567,6 +578,8 @@ def _run(
 
 def _default_env(paths: RuntimePaths) -> dict[str, str]:
     env = os.environ.copy()
+    for name in KANBAN_ENV_OVERRIDES:
+        env.pop(name, None)
     env["HERMES_HOME"] = str(paths.hermes_home)
     env["HERMES_PROFILE"] = "default"
     return env
@@ -726,17 +739,21 @@ def rollback_runtime(
 
 @contextlib.contextmanager
 def _control_board(paths: RuntimePaths):
-    old_home = os.environ.get("HERMES_HOME")
+    saved = {
+        name: os.environ.pop(name, None)
+        for name in ("HERMES_HOME", *KANBAN_ENV_OVERRIDES)
+    }
     os.environ["HERMES_HOME"] = str(paths.hermes_home)
     try:
         kanban_db.init_db()
         with kanban_db.connect_closing() as conn:
             yield conn
     finally:
-        if old_home is None:
-            os.environ.pop("HERMES_HOME", None)
-        else:
-            os.environ["HERMES_HOME"] = old_home
+        for name, value in saved.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 def check_approval_runtime(
