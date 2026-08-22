@@ -45,7 +45,7 @@
     {
       "id": "autonomous-pda-improvement",
       "status": "managed-desired-state",
-      "desired_status": "active-after-owner-approval",
+      "desired_status": "suspended-by-owner",
       "class": "self-improvement",
       "owner_intent": "PDA改善カードを隔離実装・検証し、最終反映だけを承認リストへ送る。",
       "policy_source": "continuity/autonomous-improvement.json",
@@ -74,6 +74,17 @@
           "owner-approved-activation",
           "real-card-reaches-review-without-main-or-runtime-mutation"
         ]
+      },
+      "suspension": {
+        "date": "2026-08-22",
+        "by": "owner",
+        "scope": [
+          "pda-improvement-cycle.timer",
+          "pda-improvement-cycle.service",
+          "kanban-workers",
+          "daily-reconciler-cron-64b615bad09c"
+        ],
+        "reason": "進捗可視化の不備修正を優先するため、所有者指示で自律改善の自動起動を全面停止。再開は所有者の明示指示による。"
       }
     }
   ]

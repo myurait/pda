@@ -1,7 +1,7 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.16
+version: 2.1.0-local.17
 required_open_webui_version: 0.10.2
 description: Hermes Runs API adapter with live interim assistant messages, event-grounded semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
@@ -164,6 +164,20 @@ _PROGRESS_TOOL_ACTIVITY_GROUPS = (
         ("利用可能な機能と作業範囲を確認中", "機能と作業範囲の確認を完了"),
     ),
 )
+# Tools that register or maintain the run's task plan. They are the only
+# tools a plan-enforced run may start before `plan.updated` arrives.
+PLAN_REGISTRATION_TOOLS = frozenset({"todo"})
+PLAN_MANDATE_INSTRUCTION = (
+    "作業規律: 依頼に対する実作業を始める前に、必ずtodoツールで依頼全体の"
+    "作業計画（全工程）を登録すること。計画を登録せずに他のtoolを実行した"
+    "場合、このrunは自動停止される。工程が進むたびにtodoの項目statusを"
+    "更新し、全体進捗を常に算出可能に保つこと。"
+)
+PLAN_REQUIRED_ERROR = (
+    "作業計画が未登録のまま実作業toolが開始されたため、runを停止しました。"
+    "全体の作業計画をtodoツールで登録してから再実行してください。"
+)
+
 _PROGRESS_TOOL_ACTIVITY = {
     tool: activity
     for tools, activity in _PROGRESS_TOOL_ACTIVITY_GROUPS
@@ -209,6 +223,15 @@ class Pipe:
             description=(
                 "Time without a real plan, tool, approval, or run-state event before "
                 "progress is marked stalled; 0 disables stall classification."
+            ),
+        )
+        REQUIRE_REGISTERED_PLAN: bool = Field(
+            default=True,
+            description=(
+                "Stop a user-visible run fail-closed when a non-plan tool "
+                "starts before a full task plan is registered, so overall "
+                "progress percent is always computable. Enforced only when "
+                "the Hermes API advertises plan_progress_events."
             ),
         )
         APPROVAL_TIMEOUT_SECONDS: int = Field(
@@ -286,6 +309,10 @@ class Pipe:
         # Notification delivery is advisory and at-most-once per Open WebUI
         # assistant message for the lifetime of this Function instance.
         self._notified_message_keys: set[str] = set()
+        # Cached per API base: whether Hermes advertises plan progress
+        # events. Refreshed lazily so a Hermes upgrade is noticed without
+        # restarting Open WebUI.
+        self._plan_capability_cache: dict[str, tuple[float, bool]] = {}
 
     async def pipe(
         self,
@@ -799,6 +826,8 @@ class Pipe:
             "percent": percent,
             "stage": stage,
             "current": current_activity,
+            "next": self._progress_fragment(pending.get("content")) if pending else "",
+            "has_plan": bool(actionable),
             "recent_result": recent_result or plan_result,
             "plan_result": plan_result,
             "blocker": self._progress_fragment(progress.get("blocker")),
@@ -910,12 +939,19 @@ class Pipe:
                 f"{self._format_elapsed(max(0.0, observed_at - float(previous_report_at)))}"
             )
 
+        if snapshot["next"]:
+            next_label = snapshot["next"]
+        elif snapshot["has_plan"]:
+            next_label = "残工程なし（最終検証・結果整理）"
+        else:
+            next_label = "未登録"
         lines = [
             f"[{elapsed}経過] {state} ({percent_label}) - {''.join(details)}",
             f"状態: {'停滞' if stalled else '実行中'}",
             previous_line,
             f"段階: {snapshot['stage']}",
             f"現在: {snapshot['current']}",
+            f"次: {next_label}",
             f"直近結果: {snapshot['recent_result'] or 'なし'}",
             f"待機・阻害: {snapshot['blocker'] or 'なし'}",
             f"変化: {delta}",
@@ -929,6 +965,38 @@ class Pipe:
         progress["last_report_event_count"] = event_count
         progress["last_report_snapshot"] = dict(snapshot)
         return "\n".join(lines)
+
+    async def _plan_progress_supported(
+        self,
+        session: aiohttp.ClientSession,
+        base: str,
+        headers: dict[str, str],
+    ) -> bool:
+        """Return whether Hermes advertises plan progress events.
+
+        Plan enforcement is a visibility guard, not a security boundary:
+        when the capability cannot be confirmed, enforcement stays off so
+        chats keep working against an older or unreachable API.
+        """
+        cached = self._plan_capability_cache.get(base)
+        now = time.time()
+        if cached is not None and now - cached[0] < 600:
+            return cached[1]
+        supported = False
+        try:
+            async with session.get(
+                f"{base}/capabilities",
+                headers=headers,
+                allow_redirects=False,
+            ) as response:
+                if response.status == 200:
+                    data = json.loads(await response.text())
+                    features = data.get("features") or {}
+                    supported = bool(features.get("plan_progress_events"))
+        except Exception:
+            logger.debug("Hermes capability probe failed", exc_info=True)
+        self._plan_capability_cache[base] = (now, supported)
+        return supported
 
     async def _progress_heartbeat(
         self,
@@ -1457,6 +1525,20 @@ class Pipe:
             headers = self._headers(session_key)
             timeout = self._run_client_timeout()
             async with aiohttp.ClientSession(timeout=timeout) as session:
+                plan_required = False
+                if (
+                    bool(self.valves.REQUIRE_REGISTERED_PLAN)
+                    and status_emitter is not None
+                ):
+                    plan_required = await self._plan_progress_supported(
+                        session, base, headers
+                    )
+                if plan_required:
+                    instructions = (
+                        f"{instructions}\n\n{PLAN_MANDATE_INSTRUCTION}"
+                        if instructions
+                        else PLAN_MANDATE_INSTRUCTION
+                    )
                 payload: dict[str, Any] = {
                     "input": message,
                     "conversation_history": history,
@@ -1540,6 +1622,15 @@ class Pipe:
                             event,
                             observed_at=observed_at,
                         )
+
+                        if (
+                            plan_required
+                            and event_type == "tool.started"
+                            and not progress.get("plan_items")
+                            and str(event.get("tool") or "").strip().lower()
+                            not in PLAN_REGISTRATION_TOOLS
+                        ):
+                            raise RuntimeError(PLAN_REQUIRED_ERROR)
 
                         if (
                             event_type == "tool.started"

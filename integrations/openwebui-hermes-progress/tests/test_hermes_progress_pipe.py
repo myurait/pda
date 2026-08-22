@@ -26,12 +26,14 @@ class FakeHermes:
         event_delays=None,
         approval_status=200,
         approval_error_code="approval_not_active",
+        capabilities_features=None,
     ):
         self.events = events
         self.event_delay = event_delay
         self.event_delays = list(event_delays or [])
         self.approval_status = approval_status
         self.approval_error_code = approval_error_code
+        self.capabilities_features = capabilities_features
         self.approvals = []
         self.stops = []
         self.run_payloads = []
@@ -45,6 +47,7 @@ class FakeHermes:
         app.router.add_get("/v1/runs/{run_id}/events", self.run_events)
         app.router.add_post("/v1/runs/{run_id}/approval", self.approval)
         app.router.add_post("/v1/runs/{run_id}/stop", self.stop)
+        app.router.add_get("/v1/capabilities", self.capabilities)
         self.runner = web.AppRunner(app)
         await self.runner.setup()
         site = web.TCPSite(self.runner, "127.0.0.1", 0)
@@ -56,6 +59,11 @@ class FakeHermes:
     async def close(self):
         if self.runner:
             await self.runner.cleanup()
+
+    async def capabilities(self, request):
+        if self.capabilities_features is None:
+            return web.json_response({"detail": "not found"}, status=404)
+        return web.json_response({"features": dict(self.capabilities_features)})
 
     async def create_run(self, request):
         self.headers.append(dict(request.headers))
@@ -1043,6 +1051,210 @@ async def test_periodic_display_reports_event_based_work_without_raw_log_text():
         assert not any(text == "実行中: read_file" for text in descriptions)
         assert "PRIVATE_PATH_MUST_NOT_APPEAR" not in "\n".join(descriptions)
         assert "PRIVATE_RESULT_MUST_NOT_APPEAR" not in "\n".join(descriptions)
+    finally:
+        await fake.close()
+
+
+def test_heartbeat_always_reports_next_step_delta_and_percent():
+    pipe = Pipe()
+    progress = pipe._initial_progress_state(started_at=1000.0)
+    pipe._track_progress_event(
+        progress,
+        {
+            "event": "plan.updated",
+            "items": [
+                {"id": "a", "content": "設計を確定する", "status": "completed"},
+                {"id": "b", "content": "実装する", "status": "in_progress"},
+                {"id": "c", "content": "検証する", "status": "pending"},
+            ],
+        },
+        observed_at=1001.0,
+    )
+
+    description = pipe._heartbeat_description(
+        elapsed_seconds=300, progress=progress, now=1301.0
+    )
+
+    assert "(33%)" in description
+    assert "次: 検証する" in description
+    assert "変化: " in description
+
+
+def test_heartbeat_next_step_is_honest_without_pending_or_plan():
+    pipe = Pipe()
+    no_plan = pipe._initial_progress_state(started_at=1000.0)
+    assert "次: 未登録" in pipe._heartbeat_description(
+        elapsed_seconds=60, progress=no_plan, now=1060.0
+    )
+
+    finished = pipe._initial_progress_state(started_at=1000.0)
+    pipe._track_progress_event(
+        finished,
+        {
+            "event": "plan.updated",
+            "items": [{"id": "a", "content": "実装する", "status": "completed"}],
+        },
+        observed_at=1001.0,
+    )
+    assert "次: 残工程なし（最終検証・結果整理）" in pipe._heartbeat_description(
+        elapsed_seconds=60, progress=finished, now=1060.0
+    )
+
+
+PLAN_CAPABILITY = {"plan_progress_events": True}
+
+
+@pytest.mark.asyncio
+async def test_unplanned_tool_start_stops_the_run_fail_closed():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "read_file"},
+            {"event": "run.completed", "output": "MUST_NOT_FINISH"},
+        ],
+        event_delays=[0, 0.4],
+        capabilities_features=PLAN_CAPABILITY,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="unplanned work",
+                history=[],
+                instructions=None,
+                session_id="owui_unplanned",
+                session_key="openwebui:unplanned",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        rendered = visible_content(chunks)
+        assert "MUST_NOT_FINISH" not in rendered
+        assert "作業計画が未登録" in rendered
+        assert len(fake.stops) == 1
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_plan_registration_first_run_completes_normally():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "todo"},
+            {
+                "event": "plan.updated",
+                "items": [{"id": "a", "content": "実装する", "status": "in_progress"}],
+            },
+            {"event": "tool.started", "tool": "read_file"},
+            {"event": "tool.completed", "tool": "read_file", "error": False},
+            {"event": "run.completed", "output": "PLANNED_OK"},
+        ],
+        capabilities_features=PLAN_CAPABILITY,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        emitted = []
+
+        async def emitter(event):
+            emitted.append(event)
+
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="planned work",
+                history=[],
+                instructions="既存の指示",
+                session_id="owui_planned",
+                session_key="openwebui:planned",
+                event_emitter=emitter,
+                event_call=None,
+            )
+        ]
+
+        assert visible_content(chunks) == "PLANNED_OK"
+        assert fake.stops == []
+        sent_instructions = fake.run_payloads[0]["instructions"]
+        assert sent_instructions.startswith("既存の指示")
+        assert "todoツールで依頼全体" in sent_instructions
+    finally:
+        await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_plan_enforcement_is_skipped_without_capability_or_valve():
+    for capabilities, valve in (
+        (None, True),
+        ({"plan_progress_events": False}, True),
+        (PLAN_CAPABILITY, False),
+    ):
+        fake = await FakeHermes(
+            [
+                {"event": "tool.started", "tool": "read_file"},
+                {"event": "run.completed", "output": "LEGACY_OK"},
+            ],
+            capabilities_features=capabilities,
+        ).start()
+        try:
+            pipe = configured_pipe(fake.base_url)
+            pipe.valves.REQUIRE_REGISTERED_PLAN = valve
+            emitted = []
+
+            async def emitter(event):
+                emitted.append(event)
+
+            chunks = [
+                chunk
+                async for chunk in pipe._stream_response(
+                    message="legacy run",
+                    history=[],
+                    instructions=None,
+                    session_id="owui_legacy",
+                    session_key="openwebui:legacy",
+                    event_emitter=emitter,
+                    event_call=None,
+                )
+            ]
+
+            assert visible_content(chunks) == "LEGACY_OK"
+            assert fake.stops == []
+            assert "instructions" not in fake.run_payloads[0]
+        finally:
+            await fake.close()
+
+
+@pytest.mark.asyncio
+async def test_internal_task_run_gets_no_plan_mandate_or_enforcement():
+    fake = await FakeHermes(
+        [
+            {"event": "tool.started", "tool": "read_file"},
+            {"event": "run.completed", "output": "INTERNAL_OK"},
+        ],
+        capabilities_features=PLAN_CAPABILITY,
+    ).start()
+    try:
+        pipe = configured_pipe(fake.base_url)
+        chunks = [
+            chunk
+            async for chunk in pipe._stream_response(
+                message="internal task",
+                history=[],
+                instructions=None,
+                session_id="owui_internal_plan",
+                session_key="openwebui:internal-plan",
+                event_emitter=None,
+                event_call=None,
+            )
+        ]
+
+        assert visible_content(chunks) == "INTERNAL_OK"
+        assert fake.stops == []
+        assert "instructions" not in fake.run_payloads[0]
     finally:
         await fake.close()
 
