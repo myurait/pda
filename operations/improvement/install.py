@@ -38,6 +38,37 @@ _ALLOWED_FINALIZATION_KINDS = {
     "no-runtime-change",
 }
 _SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
+_OWNER_MESSAGE_FIELDS = (
+    "approval_subject",
+    "purpose",
+    "changes_after_approval",
+    "risk_and_reversibility",
+    "recommendation",
+    "action",
+)
+_ACTION_VERB_RE = re.compile(
+    r"(?:押(?:し|して)|選択(?:し|して)|入力(?:し|して)|確認(?:し|して)|"
+    r"開(?:い|いて|く)|実行(?:し|して)|送信(?:し|して)|返信(?:し|して)|"
+    r"再読込(?:し|して)|承認(?:し|して)|差し戻(?:し|して)|依頼(?:し|して))"
+)
+_WORKER_DETAIL_PATTERNS = (
+    re.compile(r"`"),
+    re.compile(
+        r"\b(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|systemctl|docker|"
+        r"command|path|changed[_ -]?files?|hash|digest|checksum)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"(?:^|\s)/(?:home|Users|tmp|etc|var|opt|srv)/"),
+    re.compile(r"\b[A-Za-z]:[\\/][^\s]+"),
+    re.compile(r"(?<!\w)(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_./\\-]+"),
+    re.compile(r"\b[0-9a-f]{6,64}\b", re.IGNORECASE),
+    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}\b"),
+    re.compile(
+        r"ブランチ|ワークツリー|作業ツリー|コミット|差分|実行コマンド|設定値|"
+        r"変更ファイル|テスト(?:手順|件数)|\d+\s*件(?:の)?テスト|実装順序|"
+        r"(?:ファイル|絶対)?パス(?:[:：]|$|\s|を|へ|が|の)"
+    ),
+)
 ACTIVATION_CLAIM_STALE_SECONDS = 15 * 60
 
 
@@ -270,6 +301,43 @@ def _string_list(value: Any, *, allow_empty: bool = True) -> bool:
     )
 
 
+def _validate_owner_message(value: Any) -> list[str]:
+    if not isinstance(value, dict):
+        return ["owner_message is required"]
+    errors: list[str] = []
+    unknown = sorted(set(value) - set(_OWNER_MESSAGE_FIELDS))
+    if unknown:
+        errors.append("owner_message contains unknown fields: " + ", ".join(unknown))
+    for key in _OWNER_MESSAGE_FIELDS:
+        text = value.get(key)
+        if not _nonempty_string(text):
+            errors.append(f"owner_message.{key} is required")
+            continue
+        normalized = str(text).strip()
+        if len(normalized) > 600:
+            errors.append(f"owner_message.{key} must be 600 characters or fewer")
+        if any(pattern.search(normalized) for pattern in _WORKER_DETAIL_PATTERNS):
+            errors.append(f"owner_message.{key} contains worker-only technical detail")
+    risk = str(value.get("risk_and_reversibility") or "")
+    if risk and re.search(r"戻せ|取り消|無効化|復旧|復元|ロールバック|不可逆", risk) is None:
+        errors.append("owner_message.risk_and_reversibility must state reversibility")
+    recommendation = str(value.get("recommendation") or "")
+    if recommendation and re.search(r"推奨|勧め", recommendation) is None:
+        errors.append("owner_message.recommendation must state a recommendation")
+    action = str(value.get("action") or "")
+    if action and (
+        action.count("してください") != 1
+        or len(_ACTION_VERB_RE.findall(action)) != 1
+        or re.search(
+            r"、|してから|した後|次に|その後|あわせて|加えて|さらに|"
+            r"および|ならびに|または|もしくは|あるいは",
+            action,
+        )
+    ):
+        errors.append("owner_message.action must contain one clear operation")
+    return errors
+
+
 def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
@@ -293,6 +361,7 @@ def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
     for key in ("owner_outcome", "impact"):
         if not _nonempty_string(value.get(key)):
             errors.append(f"{key} is required")
+    errors.extend(_validate_owner_message(value.get("owner_message")))
     for key in ("base_sha", "head_sha"):
         sha = value.get(key)
         if not isinstance(sha, str) or _SHA_RE.fullmatch(sha) is None:

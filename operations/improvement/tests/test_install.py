@@ -90,6 +90,7 @@ def test_installer_exposes_full_fail_closed_approval_contract_validator():
 
     assert "task_id does not match the review card" in errors
     assert "owner_outcome is required" in errors
+    assert "owner_message is required" in errors
     assert "base_sha must be a full hexadecimal Git SHA" in errors
     assert "workspace_path must be an absolute path" in errors
     assert "verification must contain at least one check" in errors
@@ -337,6 +338,14 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             "schema_version": 1,
             "task_id": task_id,
             "owner_outcome": "verified PDA improvement",
+            "owner_message": {
+                "approval_subject": "検証済みのPDA改善を最終反映すること",
+                "purpose": "改善結果を通常のPDAで利用できるようにするためです",
+                "changes_after_approval": "承認後は改善済みの動作が通常環境へ反映されます",
+                "risk_and_reversibility": "動作差異の可能性は残りますが、反映を取り消して元へ戻せます",
+                "recommendation": "最終反映の承認を推奨します",
+                "action": "承認一覧で「最終反映を承認」を一度押してください",
+            },
             "impact": "local test repository",
             "base_sha": base,
             "head_sha": head,

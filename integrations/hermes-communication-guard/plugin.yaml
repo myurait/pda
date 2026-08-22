@@ -1,0 +1,13 @@
+name: pda-communication-guard
+version: 1.0.0
+manifest_version: 2
+api_version: 1
+description: Runtime preemption, approval-copy, and language-quality guard for PDA owner communication.
+license: MIT
+tags: [pda, guardrails, communication, approvals]
+provides_hooks:
+  - pre_llm_call
+  - pre_tool_call
+  - transform_llm_output
+  - post_llm_call
+  - on_session_end

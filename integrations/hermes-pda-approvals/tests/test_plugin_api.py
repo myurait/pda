@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import importlib.util
 import json
@@ -69,6 +70,14 @@ def _approval(
         "schema_version": 1,
         "task_id": task_id,
         "owner_outcome": "PDA改善が検証済み成果として反映可能になる",
+        "owner_message": {
+            "approval_subject": "検証済みのPDA改善を最終反映すること",
+            "purpose": "PDAが依頼された改善結果を継続利用できるようにするためです",
+            "changes_after_approval": "承認後は改善済みの動作が通常のPDAへ反映されます",
+            "risk_and_reversibility": "動作が意図と異なる可能性は残りますが、反映を取り消して元へ戻せます",
+            "recommendation": "最終反映の承認を推奨します",
+            "action": "承認一覧で「最終反映を承認」を一度押してください",
+        },
         "base_sha": base,
         "head_sha": head,
         "workspace_path": str(workspace.resolve()),
@@ -144,6 +153,13 @@ def _review_task(
     return module, TestClient(app), task_id, workspace, payload
 
 
+def _internal_workspace_errors(module, task_id: str, payload: dict) -> list[str]:
+    with kanban_db.connect() as conn:
+        task = kanban_db.get_task(conn, task_id)
+        assert task is not None
+        return module.verify_workspace(task, payload)
+
+
 def test_existing_approval_ledger_is_migrated_with_owner_identity_columns(
     tmp_path,
     monkeypatch,
@@ -194,19 +210,97 @@ def test_existing_approval_ledger_is_migrated_with_owner_identity_columns(
 
 
 def test_pending_list_exposes_only_valid_review_requests(tmp_path, monkeypatch):
-    module, client, task_id, _repo_path, payload = _review_task(tmp_path, monkeypatch)
+    module, client, task_id, workspace, payload = _review_task(tmp_path, monkeypatch)
 
     response = client.get("/pending")
 
     assert response.status_code == 200
     item = response.json()["items"][0]
     assert item["task_id"] == task_id
-    assert item["approval"] == payload
+    assert item["owner_message"] == payload["owner_message"]
+    assert "approval" not in item
+    assert "summary" not in item
+    assert "errors" not in item
     assert item["eligible"] is True
     assert item["digest"] == module.approval_digest(payload)
     assert item["digest"] == hashlib.sha256(
         json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
+    visible = json.dumps(item, ensure_ascii=False)
+    assert payload["head_sha"] not in visible
+    assert str(workspace) not in visible
+    assert "change.txt" not in visible
+    assert "pytest" not in visible
+
+
+def test_approval_requires_owner_message_and_rejects_worker_only_details(
+    tmp_path,
+    monkeypatch,
+):
+    module, _client, task_id, _workspace, payload = _review_task(tmp_path, monkeypatch)
+
+    missing = copy.deepcopy(payload)
+    missing.pop("owner_message")
+    noisy = copy.deepcopy(payload)
+    noisy["owner_message"]["purpose"] = (
+        "branch pda-auto/example の SHA abcdef123456 を pytest 42件で検証するためです"
+    )
+    noisy["owner_message"]["changes_after_approval"] = (
+        "作業ツリーとコミットを通常環境へ反映します"
+    )
+
+    missing_errors = module.validate_approval(task_id, missing)
+    noisy_errors = module.validate_approval(task_id, noisy)
+
+    assert "owner_message is required" in missing_errors
+    assert any(
+        error == "owner_message.purpose contains worker-only technical detail"
+        for error in noisy_errors
+    )
+    assert any(
+        error
+        == "owner_message.changes_after_approval contains worker-only technical detail"
+        for error in noisy_errors
+    )
+
+
+def test_owner_message_rejects_unknown_fields_paths_and_multiple_operations(
+    tmp_path,
+    monkeypatch,
+):
+    module, _client, task_id, _workspace, payload = _review_task(tmp_path, monkeypatch)
+    unsafe = copy.deepcopy(payload)
+    unsafe["owner_message"]["worker_evidence"] = "SECRET_EVIDENCE"
+    unsafe["owner_message"]["purpose"] = (
+        "src/internal/module.custom と C:\\private\\artifact を確認するためです"
+    )
+    unsafe["owner_message"]["action"] = (
+        "一覧を開いて、内容を確認してから承認してください"
+    )
+
+    errors = module.validate_approval(task_id, unsafe)
+
+    assert "owner_message contains unknown fields: worker_evidence" in errors
+    assert "owner_message.purpose contains worker-only technical detail" in errors
+    assert "owner_message.action must contain one clear operation" in errors
+
+
+def test_pending_list_never_returns_unknown_owner_message_fields(tmp_path, monkeypatch):
+    module, client, task_id, _workspace, payload = _review_task(tmp_path, monkeypatch)
+    payload["owner_message"]["worker_evidence"] = "SECRET_EVIDENCE"
+    with kanban_db.connect() as conn:
+        conn.execute(
+            "UPDATE task_runs SET metadata = ? WHERE task_id = ? AND outcome = 'review_requested'",
+            (json.dumps({"pda_approval": payload}), task_id),
+        )
+        conn.commit()
+
+    item = client.get("/pending").json()["items"][0]
+
+    assert item["eligible"] is False
+    assert "worker_evidence" not in item["owner_message"]
+    assert "SECRET_EVIDENCE" not in json.dumps(item, ensure_ascii=False)
+    assert module.validate_owner_message(item["owner_message"]) == []
 
 
 def test_config_only_basic_auth_owner_can_approve(tmp_path, monkeypatch):
@@ -269,8 +363,13 @@ def test_task_branch_drift_is_not_approvable(tmp_path, monkeypatch):
     )
 
     assert pending["eligible"] is False
-    assert any("branch" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any("branch" in error for error in _internal_workspace_errors(module, task_id, payload))
     assert response.status_code == 409
+    assert response.json()["detail"] == (
+        "承認条件を再検証できないため、差し戻しが必要です。"
+    )
 
 
 def test_declared_workspace_path_must_match_task_worktree(tmp_path, monkeypatch):
@@ -290,7 +389,9 @@ def test_declared_workspace_path_must_match_task_worktree(tmp_path, monkeypatch)
     )
 
     assert pending["eligible"] is False
-    assert any("workspace" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any("workspace" in error for error in _internal_workspace_errors(module, task_id, payload))
     assert response.status_code == 409
 
 
@@ -310,7 +411,9 @@ def test_symlinked_workspace_path_is_not_approvable(tmp_path, monkeypatch):
     pending = client.get("/pending").json()["items"][0]
 
     assert pending["eligible"] is False
-    assert any("symlink" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any("symlink" in error for error in _internal_workspace_errors(module, task_id, payload))
 
 
 def test_git_worktree_identity_is_digest_bound(tmp_path, monkeypatch):
@@ -326,7 +429,9 @@ def test_git_worktree_identity_is_digest_bound(tmp_path, monkeypatch):
     pending = client.get("/pending").json()["items"][0]
 
     assert pending["eligible"] is False
-    assert any("git_dir" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any("git_dir" in error for error in _internal_workspace_errors(module, task_id, payload))
 
 
 def test_primary_checkout_is_not_an_isolated_task_worktree(tmp_path, monkeypatch):
@@ -377,7 +482,12 @@ def test_primary_checkout_is_not_an_isolated_task_worktree(tmp_path, monkeypatch
     )
 
     assert pending["eligible"] is False
-    assert any("linked worktree" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any(
+        "linked worktree" in error
+        for error in _internal_workspace_errors(module, task_id, payload)
+    )
     assert response.status_code == 409
 
 
@@ -398,7 +508,12 @@ def test_declared_changed_files_must_exactly_match_git_diff(tmp_path, monkeypatc
     )
 
     assert pending["eligible"] is False
-    assert any("exactly match" in error for error in pending["errors"])
+    assert "errors" not in pending
+    assert pending["blocking_reason"]
+    assert any(
+        "exactly match" in error
+        for error in _internal_workspace_errors(module, task_id, payload)
+    )
     assert response.status_code == 409
     with kanban_db.connect() as conn:
         assert kanban_db.get_task(conn, task_id).status == "review"

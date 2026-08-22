@@ -1,7 +1,7 @@
 ---
 name: pda-user-escalation
 description: "Use when reporting non-trivial work to the PDA owner, requesting a decision or authorization, presenting a plan, or surfacing a blocker or risk. Convert internal execution state into a purpose-explicit owner-level message with one clear ask, or state explicitly that no action is required."
-version: 1.3.0
+version: 1.4.0
 author: PDA
 license: MIT
 metadata:
@@ -55,6 +55,42 @@ When such a request arrives:
 For long-running work, use the available progress channel to keep owner visibility bounded. While work remains active, report about every five minutes unless the owner requested silence or the delivery surface makes that impossible. Include elapsed time, an honest approximate percentage, the last meaningful milestone, and the current work or blocker. Surface a stall, blocker, material scope change, or inability to honor a requested report before the owner must chase the PDA. A progress update is not a console transcript: it still states owner-level outcome, risk, and required action rather than tool logs.
 
 This timing rule is part of communication integrity. A late, polished report does not repair an earlier failure to answer.
+
+## 0C. Approval Requests: Decision Copy Is Not Evidence
+
+An approval request is the owner's decision surface, not a compacted worker log. Its visible copy must let the owner decide without reconstructing implementation history. It contains exactly these decision elements:
+
+1. 何を承認するのか。
+2. 何のためか／得られる成果。
+3. 承認後に何が変わるか。
+4. 判断に必要な主要リスクと可逆性。
+5. 推奨と一つの明確な操作。
+
+Keep the owner-visible copy separate from machine evidence. Commands, configuration values, branch/worktree/SHA/path identifiers, changed files, test procedures or counts, and implementation order belong only in 機械検証用metadata; do not put them in the message body or default approval-list view. The rule “詳しいほど良い” is prohibited: detail that changes neither outcome, risk, reversibility, nor the decision is harmful noise and must be removed before sending.
+
+If one required element is unknown, say that it is not stated; never fill the gap with worker telemetry. Runtime checks may normalize vocabulary, remove worker-only detail, or expose a missing element, but the author remains responsible for writing complete decision copy before requesting approval.
+
+### 固定テキストテンプレート
+
+Use this text directly. Replace only the bracketed values; do not add worker-information fields.
+
+承認依頼です。
+承認対象: [何を承認するか]
+目的・成果: [何のためか・得られる成果]
+承認後の変化: [何が変わるか]
+主要リスクと可逆性: [判断に必要なリスクと戻せるか]
+推奨: [推奨判断]
+必要な操作: [一つだけ]
+
+### 良い例
+
+`承認依頼です。承認対象は、検証済みのコミュニケーション改善を通常のPDAへ反映することです。これにより、承認要求と報告が判断に必要な成果・変化・リスクへ絞られます。承認後は応答前の監査と簡潔な承認一覧が有効になります。表現を誤って補正する可能性は残りますが、機能を無効化して元へ戻せます。承認を推奨します。承認一覧で「最終反映を承認」を一度押してください。`
+
+### 悪い例
+
+`承認してください。branch、worktree、SHA、変更ファイル、テスト件数、実行コマンドは次のとおりです……`
+
+これは何を得られるか、承認後の変化、主要リスク、可逆性を示さず、判断に不要な作業者情報で本文を埋めています。技術証跡が正しくても、承認文面としては失格です。
 
 ## 1. Choose One Primary Purpose
 

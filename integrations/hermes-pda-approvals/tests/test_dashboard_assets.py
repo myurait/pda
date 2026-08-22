@@ -33,3 +33,30 @@ def test_bundle_uses_digest_bound_actions_and_header_badge():
     assert "window.__HERMES_BASE_PATH__" in source
     assert 'href: basePath + "/pda-approvals"' in source
     assert "dangerouslySetInnerHTML" not in source
+
+
+def test_bundle_shows_only_owner_decision_fields_by_default():
+    source = (ROOT / "dashboard" / "dist" / "index.js").read_text(encoding="utf-8")
+
+    for field in (
+        "approval_subject",
+        "purpose",
+        "changes_after_approval",
+        "risk_and_reversibility",
+        "recommendation",
+        "action",
+    ):
+        assert "ownerMessage." + field in source
+
+    for worker_detail in (
+        "approval.head_sha",
+        "approval.changed_files",
+        "approval.verification",
+        "finalization.steps",
+        'h("code", null, item.task_id)',
+        '"変更ファイル"',
+        '"検証"',
+        '"反映手順"',
+        '"HEAD: "',
+    ):
+        assert worker_detail not in source
