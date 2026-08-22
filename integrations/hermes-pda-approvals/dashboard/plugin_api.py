@@ -44,6 +44,46 @@ _ALLOWED_FINALIZATION_KINDS = {
     "no-runtime-change",
 }
 _SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
+
+# Governance surfaces (ADR D3): a worker finalization may never change the
+# rules that judge workers. Changes to these paths are owner-committed only,
+# so an approval contract whose diff touches them is refused outright.
+GOVERNANCE_PATHS = (
+    "pda_charter.md",
+    "conftest.py",
+    "continuity/autonomous-improvement.json",
+    "profiles/pda/managed-habits.json",
+    "profiles/pda/skills/pda-autonomous-improvement/",
+    "docs/design/self-improvement-governance-adr.md",
+    "docs/design/task-scope-admission-gate.md",
+    "docs/roadmap/autonomous-improvement-goal.md",
+    "docs/roadmap/autonomous-improvement-operating-rules.md",
+    "docs/roadmap/current-priority.md",
+    "docs/operations/adversarial-suite.md",
+    "integrations/hermes-kanban-governance/",
+    "integrations/hermes-scope-gate/",
+    "integrations/hermes-pda-approvals/",
+    "operations/improvement/",
+    "infra/systemd/",
+)
+
+
+def _is_governance_path(path: str) -> bool:
+    normalized = path.strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    # Any conftest.py anywhere is part of the test-isolation guard (C7).
+    if Path(normalized).name == "conftest.py":
+        return True
+    for entry in GOVERNANCE_PATHS:
+        if entry.endswith("/"):
+            if normalized.startswith(entry):
+                return True
+        elif normalized == entry:
+            return True
+    return False
+
+
 _DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -263,6 +303,15 @@ def validate_approval(task_id: str, value: Any) -> list[str]:
             if path.is_absolute() or ".." in path.parts or any(ord(char) < 32 for char in changed):
                 errors.append("changed_files contains an unsafe path")
                 break
+    if isinstance(changed_files, list) and _string_list(changed_files):
+        governance_hits = sorted(
+            {changed for changed in changed_files if _is_governance_path(changed)}
+        )
+        if governance_hits:
+            errors.append(
+                "changed_files touches governance paths (owner-committed "
+                "changes only): " + ", ".join(governance_hits[:3])
+            )
     if not _string_list(value.get("residual_risks")):
         errors.append("residual_risks must be a string list")
     if value.get("risk_class") not in _ALLOWED_RISK_CLASSES:
@@ -280,6 +329,41 @@ def validate_approval(task_id: str, value: Any) -> list[str]:
                 errors.append(f"verification[{index}].command is required")
             if check.get("outcome") != "passed":
                 errors.append(f"verification[{index}] must have outcome=passed")
+
+
+    # ADR D2 (2026-08-22 owner decision): every change carries an independent
+    # verification report. NOTE the current guarantee honestly: until the M2
+    # verifier stage exists, these are self-declared labels checked for
+    # internal consistency (verifier != implementer, verified_head_sha bound
+    # to the real Git HEAD) — they do not yet prove a separate principal ran
+    # the verification. Task-bound identity cross-checks happen at the
+    # pending/approve call sites where the task row is available.
+    independent = value.get("independent_verification")
+    if not isinstance(independent, dict):
+        errors.append("independent_verification is required for every change")
+    else:
+        for key in ("verifier", "implementer", "summary"):
+            if not _nonempty_string(independent.get(key)):
+                errors.append(f"independent_verification.{key} is required")
+        if (
+            _nonempty_string(independent.get("verifier"))
+            and _nonempty_string(independent.get("implementer"))
+            and str(independent.get("verifier")).strip()
+            == str(independent.get("implementer")).strip()
+        ):
+            errors.append(
+                "independent_verification.verifier must differ from the implementer"
+            )
+        if independent.get("verdict") != "pass":
+            errors.append("independent_verification.verdict must be pass")
+        if independent.get("verified_head_sha") != value.get("head_sha"):
+            errors.append(
+                "independent_verification.verified_head_sha must match head_sha"
+            )
+        if not _string_list(independent.get("checks"), allow_empty=False):
+            errors.append(
+                "independent_verification.checks must be a non-empty string list"
+            )
 
     finalization = value.get("finalization")
     if not isinstance(finalization, dict):
@@ -362,7 +446,7 @@ def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> list[str
                 errors.append("base_sha is not an ancestor of head_sha")
             else:
                 diff = subprocess.run(
-                    ["git", "-C", str(path), "diff", "--name-only", "-z", base, head],
+                    ["git", "-C", str(path), "diff", "--no-renames", "--name-only", "-z", base, head],
                     check=False,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,
@@ -432,10 +516,39 @@ def _ledger_matches_approval(
     return all(row.get(key) == value for key, value in expected.items())
 
 
+def _verification_identity_errors(task, approval: Any) -> list[str]:
+    """Cross-check the self-declared verification identities against the task.
+
+    The contract-level check inside validate_approval can only compare the
+    two declared strings; here the task row is available, so the declared
+    implementer must be the task's assignee profile and the verifier must be
+    someone else. Still label-level until the M2 verifier stage.
+    """
+    if not isinstance(approval, dict):
+        return []
+    independent = approval.get("independent_verification")
+    if not isinstance(independent, dict):
+        return []
+    errors: list[str] = []
+    assignee = str(task.assignee or "default").strip()
+    implementer = str(independent.get("implementer") or "").strip()
+    verifier = str(independent.get("verifier") or "").strip()
+    if implementer and implementer != assignee:
+        errors.append(
+            "independent_verification.implementer must match the task assignee"
+        )
+    if verifier and verifier == assignee:
+        errors.append(
+            "independent_verification.verifier must not be the task assignee"
+        )
+    return errors
+
+
 def _pending_item(conn, task: kanban_db.Task) -> dict[str, Any]:
     handoff = _latest_review_handoff(conn, task.id)
     approval = handoff.get("approval") if handoff else None
     errors = validate_approval(task.id, approval)
+    errors.extend(_verification_identity_errors(task, approval))
     if task.assignee not in (None, "default"):
         errors.append("task is assigned to a non-finalizer profile")
     if not errors and isinstance(approval, dict):
@@ -565,6 +678,7 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
         handoff = _latest_review_handoff(conn, task_id)
         approval = handoff.get("approval") if handoff else None
         errors = validate_approval(task_id, approval)
+        errors.extend(_verification_identity_errors(task, approval))
         if errors:
             raise HTTPException(status_code=409, detail={"errors": errors})
         assert isinstance(approval, dict)

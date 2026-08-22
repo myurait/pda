@@ -291,6 +291,46 @@ def _string_list(value: Any, *, allow_empty: bool = True) -> bool:
     )
 
 
+
+# Governance surfaces (ADR D3): a worker finalization may never change the
+# rules that judge workers. Changes to these paths are owner-committed only,
+# so an approval contract whose diff touches them is refused outright.
+GOVERNANCE_PATHS = (
+    "pda_charter.md",
+    "conftest.py",
+    "continuity/autonomous-improvement.json",
+    "profiles/pda/managed-habits.json",
+    "profiles/pda/skills/pda-autonomous-improvement/",
+    "docs/design/self-improvement-governance-adr.md",
+    "docs/design/task-scope-admission-gate.md",
+    "docs/roadmap/autonomous-improvement-goal.md",
+    "docs/roadmap/autonomous-improvement-operating-rules.md",
+    "docs/roadmap/current-priority.md",
+    "docs/operations/adversarial-suite.md",
+    "integrations/hermes-kanban-governance/",
+    "integrations/hermes-scope-gate/",
+    "integrations/hermes-pda-approvals/",
+    "operations/improvement/",
+    "infra/systemd/",
+)
+
+
+def _is_governance_path(path: str) -> bool:
+    normalized = path.strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    # Any conftest.py anywhere is part of the test-isolation guard (C7).
+    if Path(normalized).name == "conftest.py":
+        return True
+    for entry in GOVERNANCE_PATHS:
+        if entry.endswith("/"):
+            if normalized.startswith(entry):
+                return True
+        elif normalized == entry:
+            return True
+    return False
+
+
 def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
@@ -331,6 +371,15 @@ def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
             ):
                 errors.append("changed_files contains an unsafe path")
                 break
+    if isinstance(changed_files, list) and _string_list(changed_files):
+        governance_hits = sorted(
+            {changed for changed in changed_files if _is_governance_path(changed)}
+        )
+        if governance_hits:
+            errors.append(
+                "changed_files touches governance paths (owner-committed "
+                "changes only): " + ", ".join(governance_hits[:3])
+            )
     if not _string_list(value.get("residual_risks")):
         errors.append("residual_risks must be a string list")
     if value.get("risk_class") not in _ALLOWED_RISK_CLASSES:
@@ -347,6 +396,41 @@ def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
                 errors.append(f"verification[{index}].command is required")
             if check.get("outcome") != "passed":
                 errors.append(f"verification[{index}] must have outcome=passed")
+
+    # ADR D2 (2026-08-22 owner decision): every change carries an independent
+    # verification report. NOTE the current guarantee honestly: until the M2
+    # verifier stage exists, these are self-declared labels checked for
+    # internal consistency (verifier != implementer, verified_head_sha bound
+    # to the real Git HEAD) — they do not yet prove a separate principal ran
+    # the verification. Task-bound identity cross-checks happen in
+    # _verify_approved_artifact where the task row is available.
+    independent = value.get("independent_verification")
+    if not isinstance(independent, dict):
+        errors.append("independent_verification is required for every change")
+    else:
+        for key in ("verifier", "implementer", "summary"):
+            if not _nonempty_string(independent.get(key)):
+                errors.append(f"independent_verification.{key} is required")
+        if (
+            _nonempty_string(independent.get("verifier"))
+            and _nonempty_string(independent.get("implementer"))
+            and str(independent.get("verifier")).strip()
+            == str(independent.get("implementer")).strip()
+        ):
+            errors.append(
+                "independent_verification.verifier must differ from the implementer"
+            )
+        if independent.get("verdict") != "pass":
+            errors.append("independent_verification.verdict must be pass")
+        if independent.get("verified_head_sha") != value.get("head_sha"):
+            errors.append(
+                "independent_verification.verified_head_sha must match head_sha"
+            )
+        if not _string_list(independent.get("checks"), allow_empty=False):
+            errors.append(
+                "independent_verification.checks must be a non-empty string list"
+            )
+
     finalization = value.get("finalization")
     if not isinstance(finalization, dict):
         errors.append("finalization is required")
@@ -450,6 +534,23 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     if not isinstance(approval, dict):
         raise ValueError("approved task has no pda_approval metadata")
     contract_errors = _validate_approval_contract(task_id, approval)
+    independent = (
+        approval.get("independent_verification")
+        if isinstance(approval, dict)
+        else None
+    )
+    if isinstance(independent, dict):
+        assignee = str(task.assignee or "default").strip()
+        implementer = str(independent.get("implementer") or "").strip()
+        verifier = str(independent.get("verifier") or "").strip()
+        if implementer and implementer != assignee:
+            contract_errors.append(
+                "independent_verification.implementer must match the task assignee"
+            )
+        if verifier and verifier == assignee:
+            contract_errors.append(
+                "independent_verification.verifier must not be the task assignee"
+            )
     if contract_errors:
         raise ValueError("approved approval contract is invalid: " + "; ".join(contract_errors))
     actual_digest = hashlib.sha256(
@@ -537,7 +638,7 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     if ancestry.returncode != 0:
         raise ValueError("approved base_sha is not an ancestor of head_sha")
     diff = subprocess.run(
-        ["git", "-C", str(workspace), "diff", "--name-only", "-z", base, head],
+        ["git", "-C", str(workspace), "diff", "--no-renames", "--name-only", "-z", base, head],
         check=False,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -1005,6 +1106,9 @@ def activate_runtime(
         _enable_dashboard_plugin(paths, hermes_bin)
         _set_human_review(paths, hermes_bin)
         _run(["systemctl", "--user", "daemon-reload"])
+        # Reload the approval dashboard so the freshly deployed
+        # validator (not a stale in-memory copy) judges /pending.
+        _run(["systemctl", "--user", "restart", "hermes-dashboard.service"])
         marker = _recheck_activation_claim(
             paths,
             task_id=task_id,

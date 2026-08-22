@@ -118,7 +118,148 @@ def test_installer_exposes_full_fail_closed_approval_contract_validator():
     assert "base_sha must be a full hexadecimal Git SHA" in errors
     assert "workspace_path must be an absolute path" in errors
     assert "verification must contain at least one check" in errors
+    assert "independent_verification is required for every change" in errors
     assert "finalization is required" in errors
+
+
+def test_governance_path_lists_match_between_installer_and_plugin():
+    import importlib.util
+
+    plugin_path = (
+        REPO
+        / "integrations"
+        / "hermes-pda-approvals"
+        / "dashboard"
+        / "plugin_api.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "pda_approvals_plugin_api_paritycheck", plugin_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+
+    assert module.GOVERNANCE_PATHS == install_module.GOVERNANCE_PATHS
+
+
+def _plugin_module():
+    import importlib.util
+
+    plugin_path = (
+        REPO
+        / "integrations"
+        / "hermes-pda-approvals"
+        / "dashboard"
+        / "plugin_api.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "pda_approvals_plugin_api_behaviorcheck", plugin_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec and spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
+def _behavior_contract(**overrides):
+    contract = {
+        "schema_version": 1,
+        "task_id": "t_parity01",
+        "owner_outcome": "o",
+        "impact": "i",
+        "base_sha": "c" * 40,
+        "head_sha": "b" * 40,
+        "workspace_path": "/x/worktree",
+        "branch_name": "pda-auto/t_parity01",
+        "git_common_dir": "/x/repo/.git",
+        "git_dir": "/x/repo/.git/worktrees/task",
+        "changed_files": ["src/app.py"],
+        "verification": [{"command": "pytest -q", "outcome": "passed"}],
+        "residual_risks": [],
+        "risk_class": "local-reversible",
+        "independent_verification": {
+            "verifier": "verifier-profile",
+            "implementer": "default",
+            "verified_head_sha": "b" * 40,
+            "verdict": "pass",
+            "summary": "independent review",
+            "checks": ["acceptance"],
+        },
+        "finalization": {
+            "kind": "merge-only",
+            "targets": ["main"],
+            "steps": ["merge"],
+            "rollback": ["revert"],
+        },
+    }
+    contract.update(overrides)
+    return contract
+
+
+def test_plugin_and_installer_validators_agree_on_behavior():
+    plugin = _plugin_module()
+    cases = [
+        _behavior_contract(),
+        _behavior_contract(changed_files=["operations/improvement/install.py"]),
+        _behavior_contract(changed_files=["conftest.py", "conftest.py"]),
+        _behavior_contract(changed_files=["docs/notes.md", "infra/systemd/x.timer"]),
+        _behavior_contract(independent_verification=None),
+        _behavior_contract(
+            independent_verification={
+                "verifier": " default ",
+                "implementer": "default",
+                "verified_head_sha": "b" * 40,
+                "verdict": "pass",
+                "summary": "s",
+                "checks": ["a"],
+            }
+        ),
+        _behavior_contract(head_sha="d" * 40),
+        {"schema_version": 1, "task_id": "t_other"},
+    ]
+    for case in cases:
+        assert plugin.validate_approval(
+            "t_parity01", case
+        ) == install_module._validate_approval_contract("t_parity01", case), case
+
+
+def test_worker_finalization_touching_governance_paths_is_refused():
+    contract_errors = install_module._validate_approval_contract(
+        "t_gov00001",
+        {
+            "schema_version": 1,
+            "task_id": "t_gov00001",
+            "owner_outcome": "o",
+            "impact": "i",
+            "base_sha": "c" * 40,
+            "head_sha": "b" * 40,
+            "workspace_path": "/x/worktree",
+            "branch_name": "pda-auto/t_gov00001",
+            "git_common_dir": "/x/repo/.git",
+            "git_dir": "/x/repo/.git/worktrees/task",
+            "changed_files": ["integrations/hermes-kanban-governance/manifest.json"],
+            "verification": [
+                {"command": "pytest -q", "outcome": "passed"}
+            ],
+            "residual_risks": [],
+            "risk_class": "local-reversible",
+            "independent_verification": {
+                "verifier": "verifier-profile",
+                "implementer": "default",
+                "verified_head_sha": "b" * 40,
+                "verdict": "pass",
+                "summary": "independent review",
+                "checks": ["acceptance"],
+            },
+            "finalization": {
+                "kind": "merge-only",
+                "targets": ["main"],
+                "steps": ["merge"],
+                "rollback": ["revert"],
+            },
+        },
+    )
+    assert any("governance paths" in error for error in contract_errors)
 
 
 def test_default_systemd_python_is_the_hermes_venv(tmp_path):
@@ -375,6 +516,14 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             ],
             "residual_risks": [],
             "risk_class": "local-reversible",
+            "independent_verification": {
+                "verifier": "verifier-profile",
+                "implementer": "default",
+                "verified_head_sha": head,
+                "verdict": "pass",
+                "summary": "independent acceptance/scope/regression review",
+                "checks": ["acceptance", "scope", "regression"],
+            },
             "finalization": {
                 "kind": "merge-only",
                 "targets": ["main"],

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pda.local/schemas/verification-report-v1.schema.json",
+  "title": "PDA independent verification report v1",
+  "description": "ADR D2 判断層の契約。実装workerと別主体の検証者が、review handoff (pda_approval.independent_verification) へ必須添付する。2026-08-22 オーナー決定により全ての変更に適用する。AI検証者の pass は強制層の通過にも digest 承認にも代替しない。",
+  "type": "object",
+  "required": [
+    "verifier",
+    "implementer",
+    "verified_head_sha",
+    "verdict",
+    "summary",
+    "checks"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "verifier": {
+      "type": "string",
+      "minLength": 1,
+      "description": "検証者の識別子。implementer と一致してはならない (検証は実装者の自己申告を根拠にしない)"
+    },
+    "implementer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "実装workerの識別子 (現行cycleでは assignee プロファイル)"
+    },
+    "verified_head_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$",
+      "description": "検証対象の Git head。pda_approval.head_sha と一致しなければならない (検証後の差し替えを禁止)"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass"],
+      "description": "承認可能なのは pass のみ。fail はそもそも review に載せない"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "description": "受入条件・スコープ・回帰の観点での判定要旨 (承認画面に表示され、消費される)"
+    },
+    "checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "description": "実施した検証観点の一覧 (例: acceptance / scope / regression)"
+    }
+  }
+}

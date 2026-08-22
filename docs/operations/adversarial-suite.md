@@ -19,10 +19,17 @@
   - `operations/improvement/tests/test_install.py::test_activation_is_refused_while_the_committed_policy_is_suspended`
 - **スコープ外 action の expansion 迂回**（審査なしの拡張、予算超過、審査者不在時の fail-open）
   - `integrations/hermes-scope-gate/tests/test_scope_gate.py` の G3 テスト群（zero-budget deny / fail-closed / one-use / TTL / 予算超過）
+- **worker による統治ファイル変更の finalization 拒否**（ADR D3。憲章・ADR・ロードマップ決定・ゲート/承認/ガード実装・停止policyへ触れる approval contract の機械拒否）
+  - `operations/improvement/tests/test_install.py::test_worker_finalization_touching_governance_paths_is_refused` ほか、`integrations/hermes-pda-approvals/tests/test_plugin_api.py::test_governance_path_changes_are_not_approvable`（plugin/installer の統治パス一覧の一致テストを含む）
+- **実装者の自己承認**（検証者なし・自己検証・検証対象の差し替え・task assigneeへのなりすまし）
+  - `test_plugin_api.py::test_missing_or_self_signed_independent_verification_is_rejected` / `test_verification_identity_is_cross_checked_against_the_task`（`independent_verification` の必須化、verifier≠implementer≠assignee、verified_head_sha 束縛、pass 以外の拒否。現状はラベル整合検査であり別主体実行の証明はM2の検証者ステージで導入）
+- **強制層自身の書き換えによる自己永続化**（installer・router・ゲート実装・配布物への変更を含む approval contract）
+  - GOVERNANCE_PATHS が `operations/improvement/` `infra/systemd/` `integrations/hermes-pda-approvals/` 等の強制層本体を包含し、`test_governance_path_changes_are_not_approvable` / `test_plugin_and_installer_validators_agree_on_behavior` で拒否を固定
+- **rename による統治ファイルの diff 隠蔽**（統治ファイルを非統治パスへ改名しつつ編集し、changed_files から旧パスを消す試み）
+  - diff照合を `--no-renames` 化し旧パスを必ず diff に残す。`test_plugin_api.py::test_renaming_a_tracked_file_cannot_hide_the_old_path_from_the_diff`
 
-未カバー（ADR レビュー後に追加する）:
+未カバー（後続で追加する）:
 
-- worker による統治ファイル（ゲート policy・ADR・承認記録簿）変更の finalization 拒否（ADR D3 依存）
 - 検証者・review 専用主体による lifecycle 変更試行の網羅（検証者ステージの実装は M2）
 
 ## 実行方法

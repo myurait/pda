@@ -82,6 +82,14 @@ def _approval(
         "impact": "ローカルPDAリポジトリだけを更新する",
         "residual_risks": [],
         "risk_class": "local-reversible",
+        "independent_verification": {
+            "verifier": "verifier-profile",
+            "implementer": "default",
+            "verified_head_sha": head,
+            "verdict": "pass",
+            "summary": "受入条件・スコープ・回帰を独立に確認",
+            "checks": ["acceptance", "scope", "regression"],
+        },
         "finalization": {
             "kind": "merge-only",
             "targets": ["/home/user/projects/pda"],
@@ -791,3 +799,187 @@ def test_non_pda_or_non_review_tasks_are_not_approvable(tmp_path, monkeypatch):
     response = client.post(f"/tasks/{task_id}/approve", json={"digest": "0" * 64})
 
     assert response.status_code == 404
+
+
+def _contract_for_unit_tests(task_id: str = "t_unit0001") -> dict:
+    return {
+        "schema_version": 1,
+        "task_id": task_id,
+        "owner_outcome": "unit outcome",
+        "impact": "unit impact",
+        "base_sha": "c" * 40,
+        "head_sha": "b" * 40,
+        "workspace_path": "/x/worktree",
+        "branch_name": f"pda-auto/{task_id}",
+        "git_common_dir": "/x/repo/.git",
+        "git_dir": "/x/repo/.git/worktrees/task",
+        "changed_files": ["src/app.py"],
+        "verification": [
+            {"command": "pytest -q", "outcome": "passed", "summary": "ok"}
+        ],
+        "residual_risks": [],
+        "risk_class": "local-reversible",
+        "independent_verification": {
+            "verifier": "verifier-profile",
+            "implementer": "default",
+            "verified_head_sha": "b" * 40,
+            "verdict": "pass",
+            "summary": "independent review",
+            "checks": ["acceptance"],
+        },
+        "finalization": {
+            "kind": "merge-only",
+            "targets": ["main"],
+            "steps": ["merge"],
+            "rollback": ["revert"],
+        },
+    }
+
+
+def test_valid_unit_contract_passes_validation(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    module = _load_plugin_api()
+    assert module.validate_approval("t_unit0001", _contract_for_unit_tests()) == []
+
+
+def test_governance_path_changes_are_not_approvable(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    module = _load_plugin_api()
+    for path in (
+        "conftest.py",
+        "operations/improvement/tests/conftest.py",
+        "pda_charter.md",
+        "integrations/hermes-scope-gate/scope_gate.py",
+        "integrations/hermes-pda-approvals/dashboard/plugin_api.py",
+        "operations/improvement/install.py",
+        "operations/improvement/pda_improvement_cycle.py",
+        "operations/improvement/c6_audit.py",
+        "infra/systemd/pda-improvement-cycle.timer",
+        "profiles/pda/skills/pda-autonomous-improvement/SKILL.md",
+        "docs/design/self-improvement-governance-adr.md",
+        "docs/design/task-scope-admission-gate.md",
+        "docs/roadmap/autonomous-improvement-operating-rules.md",
+        "./continuity/autonomous-improvement.json",
+    ):
+        contract = _contract_for_unit_tests()
+        contract["changed_files"] = ["src/app.py", path]
+        errors = module.validate_approval("t_unit0001", contract)
+        assert any("governance paths" in error for error in errors), path
+
+
+def test_missing_or_self_signed_independent_verification_is_rejected(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    module = _load_plugin_api()
+
+    contract = _contract_for_unit_tests()
+    del contract["independent_verification"]
+    errors = module.validate_approval("t_unit0001", contract)
+    assert "independent_verification is required for every change" in errors
+
+    contract = _contract_for_unit_tests()
+    contract["independent_verification"]["verifier"] = "default"
+    errors = module.validate_approval("t_unit0001", contract)
+    assert (
+        "independent_verification.verifier must differ from the implementer"
+        in errors
+    )
+
+    contract = _contract_for_unit_tests()
+    contract["independent_verification"]["verified_head_sha"] = "d" * 40
+    errors = module.validate_approval("t_unit0001", contract)
+    assert (
+        "independent_verification.verified_head_sha must match head_sha" in errors
+    )
+
+    contract = _contract_for_unit_tests()
+    contract["independent_verification"]["verdict"] = "fail"
+    errors = module.validate_approval("t_unit0001", contract)
+    assert "independent_verification.verdict must be pass" in errors
+
+
+def test_duplicate_governance_paths_still_surface_the_governance_error(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    module = _load_plugin_api()
+    contract = _contract_for_unit_tests()
+    contract["changed_files"] = ["conftest.py", "conftest.py"]
+    errors = module.validate_approval("t_unit0001", contract)
+    assert "changed_files must not contain duplicates" in errors
+    assert any("governance paths" in error for error in errors)
+
+
+def test_verification_identity_is_cross_checked_against_the_task(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    module = _load_plugin_api()
+    task = SimpleNamespace(assignee="default")
+
+    ok = _contract_for_unit_tests()
+    assert module._verification_identity_errors(task, ok) == []
+
+    self_signed = _contract_for_unit_tests()
+    self_signed["independent_verification"]["verifier"] = "default"
+    self_signed["independent_verification"]["implementer"] = "someone-else"
+    errors = module._verification_identity_errors(task, self_signed)
+    assert (
+        "independent_verification.verifier must not be the task assignee" in errors
+    )
+    assert (
+        "independent_verification.implementer must match the task assignee"
+        in errors
+    )
+
+
+def test_renaming_a_tracked_file_cannot_hide_the_old_path_from_the_diff(
+    tmp_path, monkeypatch
+):
+    # Bypass replay: rename a base-tracked file with a small edit. With
+    # default rename detection `git diff --name-only` reports only the new
+    # path, so a contract listing just the new path would match the diff and
+    # a renamed-away governance file would vanish from review. --no-renames
+    # keeps the old path in the diff, so the exact-match check refuses a
+    # contract that omits it.
+    module, client, task_id, workspace, payload = _review_task(tmp_path, monkeypatch)
+    _git(workspace, "mv", "base.txt", "renamed.txt")
+    (workspace / "renamed.txt").write_text("base\nedited\n", encoding="utf-8")
+    _git(workspace, "add", "-A")
+    _git(workspace, "commit", "-m", "rename with edit")
+    head = _git(workspace, "rev-parse", "HEAD")
+
+    payload["head_sha"] = head
+    payload["changed_files"] = ["change.txt", "renamed.txt"]
+    payload["independent_verification"] = dict(
+        payload["independent_verification"], verified_head_sha=head
+    )
+    with kanban_db.connect() as conn:
+        conn.execute(
+            "UPDATE task_runs SET metadata = ? WHERE task_id = ? AND outcome = 'review_requested'",
+            (json.dumps({"pda_approval": payload}), task_id),
+        )
+        conn.commit()
+
+    pending = client.get("/pending").json()["items"][0]
+
+    assert pending["eligible"] is False
+    assert any(
+        "does not exactly match the base-to-head Git diff" in error
+        for error in pending["errors"]
+    )
+
+    # Declaring the renamed-away old path as well restores an exact match.
+    payload["changed_files"] = ["base.txt", "change.txt", "renamed.txt"]
+    with kanban_db.connect() as conn:
+        conn.execute(
+            "UPDATE task_runs SET metadata = ? WHERE task_id = ? AND outcome = 'review_requested'",
+            (json.dumps({"pda_approval": payload}), task_id),
+        )
+        conn.commit()
+
+    pending = client.get("/pending").json()["items"][0]
+    assert pending["eligible"] is True, pending["errors"]

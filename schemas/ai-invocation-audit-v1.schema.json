@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pda.local/schemas/ai-invocation-audit-v1.schema.json",
+  "title": "PDA AI invocation audit event v1",
+  "description": "C6 (クレジット規律) の監査契約。改善サイクルが起動する全てのAI起動は、この形式の監査イベントを対象カードへ記録する。consumer が空・none の起動 (参照されない証跡・ログ・オーナーに届かない建前文書のための起動) は C6 違反として検出対象。検証・レビューのような消費される起動は制限対象ではない (2026-08-22 オーナー明確化)。発行の配線は M2 オーケストレーターで行う。",
+  "type": "object",
+  "required": ["actor", "purpose", "consumer", "started_at"],
+  "additionalProperties": true,
+  "properties": {
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "description": "起動されたAI主体 (worker / verifier / specifier / capture 等)"
+    },
+    "purpose": {
+      "type": "string",
+      "minLength": 1,
+      "description": "起動目的の一文"
+    },
+    "consumer": {
+      "type": "string",
+      "minLength": 1,
+      "description": "出力を消費する工程・成果物 (例: review-handoff / approval-screen / card-spec / owner-report)。'none' は不可",
+      "not": { "enum": ["none", "None", "NONE"] }
+    },
+    "task_id": {
+      "type": "string",
+      "description": "関連カード (あれば)"
+    },
+    "started_at": {
+      "type": "number",
+      "description": "起動時刻 (unix秒)"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 ---
 name: pda-autonomous-improvement
 description: "Use for PDA Kanban self-improvement implementation and approval handoff."
-version: 1.0.0
+version: 1.1.0
 author: PDA
 license: MIT
 metadata:
@@ -31,8 +31,11 @@ Use this phase unless a latest `pda-owner-approval` notification provides task I
    - the exact absolute non-symlink linked-worktree root, canonical Git common-dir/worktree git-dir identities, and exact `pda-auto/<task_id>` branch;
    - every verification command with `outcome=passed` and a short result;
    - residual risks;
+   - an `independent_verification` report (schema: `schemas/verification-report-v1.schema.json`) produced by a verifier that is not the implementer — self-verification is never approvable (governance ADR D2; applies to every change per the 2026-08-22 owner decision). Interim honesty note: until the M2 verifier stage exists, enforcement checks label consistency (verifier ≠ implementer ≠ task assignee, `verified_head_sha` bound to the real Git HEAD); it does not yet prove a separate principal executed the verification;
    - an exact finalization contract: kind, targets, ordered steps, rollback.
 7. Call `kanban_request_review` with an owner-readable summary and the metadata. Never call `kanban_complete` in Phase 1.
+
+Governance surfaces are never a worker deliverable: an approval whose changed files touch the charter, the governance ADR, roadmap decisions, gate/approval/guard code, or the suspension policy is refused mechanically (ADR D3). Such changes reach the repository only as owner-committed changes.
 
 Allowed risk classes are `local-reversible`, `service-restart`, `external-visible`, and `security-sensitive`. Allowed finalization kinds are `merge-only`, `merge-and-restart`, `apply-artifacts`, and `no-runtime-change`. Secret values must never enter summaries, metadata, comments, commits, or logs.
 
