@@ -1,7 +1,13 @@
 # Current PDA priority
 
 Status: active
-Latest owner decision date: 2026-08-18
+Latest owner decision date: 2026-08-22
+
+## Owner decision update — 2026-08-22
+
+1. Priority 0 (communication integrity) is **not closed**. The five-minute cadence contract, stall display, and plan-registration enforcement were implemented, deployed, and live-probe verified on 2026-08-22, but the owner defined a stricter completion condition: a standing external communication audit (advisory) performed by the local Claude runtime. That work is captured as Kanban card `t_5c02eea5`.
+2. **Scope change**: the subordination rule in Priority 0 ("new delegation architecture, Fable pilot work, and identity-injection feature work are subordinate") was premised on the PDA running its own improvement cycle. It does **not** apply to the externally driven upper-layer redesign of the autonomous improvement cycle described in [`autonomous-improvement-goal.md`](autonomous-improvement-goal.md). That redesign is the currently active workstream.
+3. The daily reconciler (morning AI sweep) stays frozen. Queued-on-arrival processing via Kanban replaces the daily sweep; a redesigned "normalization process" (a queue of runtime-normalization actions such as required restarts, executed in a defined morning window only when the queue is non-empty) may reintroduce a daily step — see the goal document, milestone M2.
 
 ## Priority 0 — Communication integrity and escalation quality
 
