@@ -49,14 +49,15 @@ _OWNER_REVALIDATION_FAILURE = "承認条件を再検証できないため、差�
 _OWNER_REFRESH_REQUIRED = "承認対象の状態が更新されたため、一覧を再読込してください。"
 _OWNER_NOT_PENDING = "この項目は現在承認待ちではありません。一覧を再読込してください。"
 _OWNER_IN_PROGRESS = "最終反映の処理中です。完了後に一覧を再読込してください。"
-_OWNER_MESSAGE_FIELDS = (
-    "approval_subject",
-    "purpose",
-    "changes_after_approval",
-    "risk_and_reversibility",
-    "recommendation",
-    "action",
+_OWNER_MESSAGE_LABELS = (
+    ("approval_subject", "承認対象"),
+    ("purpose", "目的・成果"),
+    ("changes_after_approval", "承認後の変化"),
+    ("risk_and_reversibility", "主要リスクと可逆性"),
+    ("recommendation", "推奨"),
+    ("action", "必要な操作"),
 )
+_OWNER_MESSAGE_FIELDS = tuple(key for key, _label in _OWNER_MESSAGE_LABELS)
 _ACTION_VERB_RE = re.compile(
     r"(?:押(?:し|して)|選択(?:し|して)|入力(?:し|して)|確認(?:し|して)|"
     r"開(?:い|いて|く)|実行(?:し|して)|送信(?:し|して)|返信(?:し|して)|"
@@ -65,15 +66,19 @@ _ACTION_VERB_RE = re.compile(
 _WORKER_DETAIL_PATTERNS = (
     re.compile(r"`"),
     re.compile(
-        r"\b(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|systemctl|docker|"
-        r"command|path|changed[_ -]?files?|hash|digest|checksum)\b",
+        r"(?<![A-Za-z0-9_])(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|"
+        r"systemctl|docker|command|path|changed[_ -]?files?|merge|hash|digest|checksum)"
+        r"(?![A-Za-z0-9_])",
         re.IGNORECASE,
     ),
     re.compile(r"(?:^|\s)/(?:home|Users|tmp|etc|var|opt|srv)/"),
-    re.compile(r"\b[A-Za-z]:[\\/][^\s]+"),
-    re.compile(r"(?<!\w)(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_./\\-]+"),
-    re.compile(r"\b[0-9a-f]{6,64}\b", re.IGNORECASE),
-    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}\b"),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s]+"),
+    re.compile(
+        r"(?<![A-Za-z0-9_])(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+"
+        r"[\\/][A-Za-z0-9_./\\-]+"
+    ),
+    re.compile(r"(?<![A-Za-z0-9_])[0-9a-f]{6,64}(?![A-Za-z0-9_])", re.IGNORECASE),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}(?![A-Za-z0-9_])"),
     re.compile(
         r"ブランチ|ワークツリー|作業ツリー|コミット|差分|実行コマンド|設定値|"
         r"変更ファイル|テスト(?:手順|件数)|\d+\s*件(?:の)?テスト|実装順序|"
@@ -271,6 +276,8 @@ def validate_owner_message(value: Any) -> list[str]:
         normalized = str(text).strip()
         if len(normalized) > 600:
             errors.append(f"owner_message.{key} must be 600 characters or fewer")
+        if "\n" in normalized or "\r" in normalized:
+            errors.append(f"owner_message.{key} must be a single line")
         if any(pattern.search(normalized) for pattern in _WORKER_DETAIL_PATTERNS):
             errors.append(f"owner_message.{key} contains worker-only technical detail")
     risk = str(value.get("risk_and_reversibility") or "")
@@ -291,6 +298,27 @@ def validate_owner_message(value: Any) -> list[str]:
     ):
         errors.append("owner_message.action must contain one clear operation")
     return errors
+
+
+def render_owner_review_summary(value: dict[str, Any]) -> str:
+    """Render the only owner-visible review summary accepted by the gate."""
+
+    return "\n".join(
+        ["承認依頼です。"]
+        + [f"{label}: {str(value[key]).strip()}" for key, label in _OWNER_MESSAGE_LABELS]
+    )
+
+
+def validate_review_summary(summary: Any, owner_message: Any) -> list[str]:
+    if validate_owner_message(owner_message):
+        return []
+    assert isinstance(owner_message, dict)
+    expected = render_owner_review_summary(owner_message)
+    if not isinstance(summary, str) or summary != expected:
+        return [
+            "review summary must exactly render owner_message using the fixed approval template"
+        ]
+    return []
 
 
 def validate_approval(task_id: str, value: Any) -> list[str]:
@@ -511,11 +539,17 @@ def _pending_item(conn, task: kanban_db.Task) -> dict[str, Any]:
     handoff = _latest_review_handoff(conn, task.id)
     approval = handoff.get("approval") if handoff else None
     errors = validate_approval(task.id, approval)
+    owner_message = approval.get("owner_message") if isinstance(approval, dict) else None
+    errors.extend(
+        validate_review_summary(
+            handoff.get("summary") if handoff else None,
+            owner_message,
+        )
+    )
     if task.assignee not in (None, "default"):
         errors.append("task is assigned to a non-finalizer profile")
     if not errors and isinstance(approval, dict):
         errors.extend(verify_workspace(task, approval))
-    owner_message = approval.get("owner_message") if isinstance(approval, dict) else None
     if validate_owner_message(owner_message):
         owner_message = {
             "approval_subject": "承認文面の再作成が必要です",
@@ -613,6 +647,14 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
             prior_handoff = _latest_review_handoff(conn, task_id)
             prior_approval = prior_handoff.get("approval") if prior_handoff else None
             prior_errors = validate_approval(task_id, prior_approval)
+            prior_errors.extend(
+                validate_review_summary(
+                    prior_handoff.get("summary") if prior_handoff else None,
+                    prior_approval.get("owner_message")
+                    if isinstance(prior_approval, dict)
+                    else None,
+                )
+            )
             if (
                 prior_handoff is None
                 or prior_handoff.get("run_id") != existing.get("review_run_id")
@@ -650,6 +692,12 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
         handoff = _latest_review_handoff(conn, task_id)
         approval = handoff.get("approval") if handoff else None
         errors = validate_approval(task_id, approval)
+        errors.extend(
+            validate_review_summary(
+                handoff.get("summary") if handoff else None,
+                approval.get("owner_message") if isinstance(approval, dict) else None,
+            )
+        )
         if errors:
             raise HTTPException(status_code=409, detail=_OWNER_REVALIDATION_FAILURE)
         assert isinstance(approval, dict)
@@ -672,11 +720,18 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
                 raise HTTPException(status_code=409, detail=_OWNER_REFRESH_REQUIRED)
             fresh_handoff = _latest_review_handoff(conn, task_id)
             fresh_approval = fresh_handoff.get("approval") if fresh_handoff else None
+            fresh_summary_errors = validate_review_summary(
+                fresh_handoff.get("summary") if fresh_handoff else None,
+                fresh_approval.get("owner_message")
+                if isinstance(fresh_approval, dict)
+                else None,
+            )
             if (
                 fresh_handoff is None
                 or fresh_handoff.get("run_id") != review_run_id
                 or not isinstance(fresh_approval, dict)
                 or not secrets.compare_digest(approval_digest(fresh_approval), actual_digest)
+                or fresh_summary_errors
             ):
                 raise HTTPException(status_code=409, detail=_OWNER_REFRESH_REQUIRED)
             fresh_workspace_errors = verify_workspace(fresh_task, fresh_approval)

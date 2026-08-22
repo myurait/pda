@@ -20,7 +20,7 @@ The remaining `pda_approval` fields are technical evidence. They remain digest-b
 The standalone `pda-communication-guard` Hermes plugin uses documented hooks and does not patch Hermes core.
 
 1. `pre_llm_call` classifies only high-confidence direct status and stop requests. It injects one-turn instructions without changing the cached system-prompt prefix.
-2. `pre_tool_call` blocks new tool execution during a direct status request. During a stop request it permits only process/subagent cancellation and blocks new work.
+2. `pre_tool_call` blocks new tool execution during a direct status request. During a stop request it permits only process/subagent cancellation and blocks new work. For `kanban_request_review`, it validates `metadata.pda_approval.owner_message`, blocks incomplete or worker-facing copy, and shallow-rewrites `summary` to the fixed seven-line approval template before the tool executes.
 3. `transform_llm_output` runs before final delivery. It normalizes a bounded list of Japanese plain-style endings and raw English worker terms, removes high-confidence worker-only detail from approval requests, and exposes every missing owner decision field instead of inventing content.
 4. `post_llm_call` and `on_session_end` clear turn state so one session or turn cannot affect another.
 5. A profile-scoped SQLite audit stores hashes, intent, outcome, and violation codes. It stores no prompt, response, command argument, path, or technical evidence body. Rows older than 30 days are deleted on write.
@@ -31,7 +31,7 @@ The plugin keeps turn intent in a `ContextVar`, verifies that the transform call
 
 The Dashboard pending endpoint still verifies the full digest-bound artifact, worktree identity, Git state, and finalization contract internally. Its response contains only `owner_message`, eligibility, a generic blocking reason, the opaque task id needed for the action route, and the digest needed to bind approval. The default view does not render branches, worktrees, SHAs, paths, changed files, commands, verification steps/counts, or implementation order.
 
-Invalid or technically contaminated owner copy is not displayed. The card becomes ineligible and shows a generic request to send it back for correction. Detailed validation errors remain inside the verifier and test evidence rather than becoming owner copy.
+Invalid or technically contaminated owner copy is not displayed. The card becomes ineligible and shows a generic request to send it back for correction. The API also requires the stored review-run summary to exactly equal the fixed template rendered from the digest-bound `owner_message`; a generic worker summary or later summary drift fails closed. The finalizer independently repeats this equality check before any approved side effect. Detailed validation errors remain inside the verifier and test evidence rather than becoming owner copy.
 
 ## Scenario coverage
 
@@ -42,11 +42,14 @@ The regression suite covers:
 - future report instructions not preempting current authorized work;
 - polite-language and vocabulary normalization;
 - complete approval copy passing unchanged;
+- generic `kanban_request_review` summaries being replaced by the fixed template;
+- malformed review metadata being blocked before the review notification is created;
 - missing approval elements being made explicit;
 - worker-only technical detail being removed;
 - audit data minimization;
 - real Hermes `PluginManager` dispatch;
 - approval payload validation and evidence/presentation separation;
+- approval-list and finalizer rejection of review-summary drift;
 - approval-list source containing no default worker-detail fields;
 - installer idempotence and disable rollback.
 

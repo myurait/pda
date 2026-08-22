@@ -43,6 +43,10 @@ _STOP_CONTEXT = (
     "事実だけを簡潔な敬語で報告してください。"
 )
 _STOP_BLOCK_MESSAGE = "停止指示を優先するため、停止専用操作以外を遮断しました。"
+_REVIEW_REQUEST_TOOL = "kanban_request_review"
+_REVIEW_BLOCK_MESSAGE = (
+    "承認依頼の固定テンプレートを構成できないため、レビュー依頼を遮断しました。"
+)
 
 _PROTECTED_MARKDOWN = re.compile(r"(```.*?```|`[^`\n]*`|https?://\S+)", re.DOTALL)
 _REPORT_PREFIX = re.compile(r"^(?:完了報告|進捗報告|状況報告|判断依頼|承認依頼|障害報告|提案)")
@@ -90,15 +94,19 @@ _ACTION_VERB_RE = re.compile(
 _WORKER_DETAIL_PATTERNS = (
     re.compile(r"`"),
     re.compile(
-        r"\b(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|systemctl|docker|"
-        r"command|path|changed[_ -]?files?|merge|hash|digest|checksum)\b",
+        r"(?<![A-Za-z0-9_])(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|"
+        r"systemctl|docker|command|path|changed[_ -]?files?|merge|hash|digest|checksum)"
+        r"(?![A-Za-z0-9_])",
         re.IGNORECASE,
     ),
     re.compile(r"(?:^|\s)/(?:home|Users|tmp|etc|var|opt|srv)/"),
-    re.compile(r"\b[A-Za-z]:[\\/][^\s]+"),
-    re.compile(r"(?<!\w)(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_./\\-]+"),
-    re.compile(r"\b[0-9a-f]{6,64}\b", re.IGNORECASE),
-    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}\b"),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s]+"),
+    re.compile(
+        r"(?<![A-Za-z0-9_])(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+"
+        r"[\\/][A-Za-z0-9_./\\-]+"
+    ),
+    re.compile(r"(?<![A-Za-z0-9_])[0-9a-f]{6,64}(?![A-Za-z0-9_])", re.IGNORECASE),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}(?![A-Za-z0-9_])"),
     re.compile(
         r"ブランチ|ワークツリー|作業ツリー|コミット|差分|実行コマンド|設定値|"
         r"変更ファイル|テスト(?:手順|件数)|\d+\s*件(?:の)?テスト|実装順序|"
@@ -226,21 +234,34 @@ class CommunicationGuardRuntime:
             return {"context": _STOP_CONTEXT}
         return None
 
-    def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
+    def pre_tool_call(self, **kwargs: Any) -> dict[str, Any] | None:
         key = (str(kwargs.get("session_id") or ""), str(kwargs.get("turn_id") or ""))
+        tool_name = str(kwargs.get("tool_name") or "")
         with self._lock:
             intent = self._intents.get(key)
         if intent is not None and intent.kind == "status":
-            self._audit_tool_block(intent, str(kwargs.get("tool_name") or ""))
+            self._audit_tool_block(intent, tool_name)
             return {"action": "block", "message": _STATUS_BLOCK_MESSAGE}
         if intent is not None and intent.kind == "stop":
-            if _is_cancellation_tool(
-                str(kwargs.get("tool_name") or ""),
-                kwargs.get("args"),
-            ):
+            if _is_cancellation_tool(tool_name, kwargs.get("args")):
                 return None
-            self._audit_tool_block(intent, str(kwargs.get("tool_name") or ""))
+            self._audit_tool_block(intent, tool_name)
             return {"action": "block", "message": _STOP_BLOCK_MESSAGE}
+        if tool_name == _REVIEW_REQUEST_TOOL:
+            summary, violations = _canonical_review_tool_summary(kwargs.get("args"))
+            if summary is None:
+                self._audit_review_check(key, "blocked", violations)
+                return {"action": "block", "message": _REVIEW_BLOCK_MESSAGE}
+            args = kwargs.get("args")
+            current_summary = args.get("summary") if isinstance(args, dict) else None
+            if current_summary != summary:
+                self._audit_review_check(
+                    key,
+                    "modified",
+                    ("approval_summary_rewritten",),
+                )
+                return {"action": "modify", "args": {"summary": summary}}
+            self._audit_review_check(key, "passed", ())
         return None
 
     def _audit_tool_block(self, intent: TurnIntent, tool_name: str) -> None:
@@ -253,6 +274,25 @@ class CommunicationGuardRuntime:
                 outcome="blocked",
                 violations=(f"{intent.kind}_preemption",),
                 response_hash=_hash_text(tool_name),
+            )
+        except (OSError, sqlite3.Error):
+            pass
+
+    def _audit_review_check(
+        self,
+        key: tuple[str, str],
+        outcome: str,
+        violations: tuple[str, ...],
+    ) -> None:
+        try:
+            self.audit.record(
+                session_id=key[0],
+                turn_id=key[1],
+                event_type="approval_request_checked",
+                intent="normal",
+                outcome=outcome,
+                violations=violations,
+                response_hash=_hash_text(_REVIEW_REQUEST_TOOL),
             )
         except (OSError, sqlite3.Error):
             pass
@@ -393,6 +433,53 @@ def _is_single_owner_action(action: str) -> bool:
         )
         is None
     )
+
+
+def _canonical_review_tool_summary(
+    raw_args: Any,
+) -> tuple[str | None, tuple[str, ...]]:
+    if not isinstance(raw_args, dict):
+        return None, ("approval_tool_args_missing",)
+    metadata = raw_args.get("metadata")
+    approval = metadata.get("pda_approval") if isinstance(metadata, dict) else None
+    owner_message = approval.get("owner_message") if isinstance(approval, dict) else None
+    violations = _owner_message_violations(owner_message)
+    if violations:
+        return None, violations
+    assert isinstance(owner_message, dict)
+    lines = ["承認依頼です。"]
+    for key, label, _pattern in _APPROVAL_FIELDS:
+        lines.append(f"{label}: {str(owner_message[key]).strip()}")
+    return "\n".join(lines), ()
+
+
+def _owner_message_violations(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, dict):
+        return ("approval_owner_message_missing",)
+    violations: list[str] = []
+    expected = {key for key, _label, _pattern in _APPROVAL_FIELDS}
+    if set(value) != expected:
+        violations.append("approval_owner_message_fields_invalid")
+    for key, _label, _pattern in _APPROVAL_FIELDS:
+        text = value.get(key)
+        if not isinstance(text, str) or not text.strip():
+            violations.append(f"missing_approval_{key}")
+            continue
+        normalized = text.strip()
+        if len(normalized) > 600 or "\n" in normalized or "\r" in normalized:
+            violations.append(f"invalid_approval_{key}")
+        if any(pattern.search(normalized) for pattern in _WORKER_DETAIL_PATTERNS):
+            violations.append(f"worker_detail_in_approval_{key}")
+    risk = str(value.get("risk_and_reversibility") or "")
+    if risk and re.search(r"戻せ|取り消|無効化|復旧|復元|ロールバック|不可逆", risk) is None:
+        violations.append("approval_reversibility_missing")
+    recommendation = str(value.get("recommendation") or "")
+    if recommendation and re.search(r"推奨|勧め", recommendation) is None:
+        violations.append("approval_recommendation_missing")
+    action = str(value.get("action") or "")
+    if action and not _is_single_owner_action(action):
+        violations.append("approval_action_invalid")
+    return tuple(dict.fromkeys(violations))
 
 
 def _transform_markdown_prose(text: str, violations: list[str]) -> str:

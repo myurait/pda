@@ -27,8 +27,9 @@ After restart, replay these owner-visible scenarios:
 
 1. Ask for current status; no new investigation tool should run before the answer.
 2. Ask to stop; cancellation is permitted, new work is denied.
-3. Submit a complete fixed approval template; it should pass unchanged.
-4. Submit approval copy with missing fields and worker detail; the detail should be removed and each missing decision field made explicit.
+3. Call `kanban_request_review` with valid `owner_message` metadata and a generic worker summary; the summary should be replaced by the complete fixed approval template before the tool executes.
+4. Call it with missing or worker-facing `owner_message` content; the review request itself should be blocked.
+5. Submit approval prose outside the review tool with missing fields and worker detail; the detail should be removed and each missing decision field made explicit.
 
 The audit database is profile-scoped at:
 

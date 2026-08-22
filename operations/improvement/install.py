@@ -38,14 +38,15 @@ _ALLOWED_FINALIZATION_KINDS = {
     "no-runtime-change",
 }
 _SHA_RE = re.compile(r"^[0-9a-f]{40,64}$")
-_OWNER_MESSAGE_FIELDS = (
-    "approval_subject",
-    "purpose",
-    "changes_after_approval",
-    "risk_and_reversibility",
-    "recommendation",
-    "action",
+_OWNER_MESSAGE_LABELS = (
+    ("approval_subject", "承認対象"),
+    ("purpose", "目的・成果"),
+    ("changes_after_approval", "承認後の変化"),
+    ("risk_and_reversibility", "主要リスクと可逆性"),
+    ("recommendation", "推奨"),
+    ("action", "必要な操作"),
 )
+_OWNER_MESSAGE_FIELDS = tuple(key for key, _label in _OWNER_MESSAGE_LABELS)
 _ACTION_VERB_RE = re.compile(
     r"(?:押(?:し|して)|選択(?:し|して)|入力(?:し|して)|確認(?:し|して)|"
     r"開(?:い|いて|く)|実行(?:し|して)|送信(?:し|して)|返信(?:し|して)|"
@@ -54,15 +55,19 @@ _ACTION_VERB_RE = re.compile(
 _WORKER_DETAIL_PATTERNS = (
     re.compile(r"`"),
     re.compile(
-        r"\b(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|systemctl|docker|"
-        r"command|path|changed[_ -]?files?|hash|digest|checksum)\b",
+        r"(?<![A-Za-z0-9_])(?:branch|worktree|sha|head|commit|diff|pytest|ruff|git|"
+        r"systemctl|docker|command|path|changed[_ -]?files?|merge|hash|digest|checksum)"
+        r"(?![A-Za-z0-9_])",
         re.IGNORECASE,
     ),
     re.compile(r"(?:^|\s)/(?:home|Users|tmp|etc|var|opt|srv)/"),
-    re.compile(r"\b[A-Za-z]:[\\/][^\s]+"),
-    re.compile(r"(?<!\w)(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+[\\/][A-Za-z0-9_./\\-]+"),
-    re.compile(r"\b[0-9a-f]{6,64}\b", re.IGNORECASE),
-    re.compile(r"\b[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}\b"),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z]:[\\/][^\s]+"),
+    re.compile(
+        r"(?<![A-Za-z0-9_])(?:\.{1,2}[\\/])?[A-Za-z0-9_.-]+"
+        r"[\\/][A-Za-z0-9_./\\-]+"
+    ),
+    re.compile(r"(?<![A-Za-z0-9_])[0-9a-f]{6,64}(?![A-Za-z0-9_])", re.IGNORECASE),
+    re.compile(r"(?<![A-Za-z0-9_])[A-Za-z0-9_-]+\.[A-Za-z0-9]{1,10}(?![A-Za-z0-9_])"),
     re.compile(
         r"ブランチ|ワークツリー|作業ツリー|コミット|差分|実行コマンド|設定値|"
         r"変更ファイル|テスト(?:手順|件数)|\d+\s*件(?:の)?テスト|実装順序|"
@@ -316,6 +321,8 @@ def _validate_owner_message(value: Any) -> list[str]:
         normalized = str(text).strip()
         if len(normalized) > 600:
             errors.append(f"owner_message.{key} must be 600 characters or fewer")
+        if "\n" in normalized or "\r" in normalized:
+            errors.append(f"owner_message.{key} must be a single line")
         if any(pattern.search(normalized) for pattern in _WORKER_DETAIL_PATTERNS):
             errors.append(f"owner_message.{key} contains worker-only technical detail")
     risk = str(value.get("risk_and_reversibility") or "")
@@ -336,6 +343,24 @@ def _validate_owner_message(value: Any) -> list[str]:
     ):
         errors.append("owner_message.action must contain one clear operation")
     return errors
+
+
+def _render_owner_review_summary(value: dict[str, Any]) -> str:
+    return "\n".join(
+        ["承認依頼です。"]
+        + [f"{label}: {str(value[key]).strip()}" for key, label in _OWNER_MESSAGE_LABELS]
+    )
+
+
+def _validate_review_summary(summary: Any, owner_message: Any) -> list[str]:
+    if _validate_owner_message(owner_message):
+        return []
+    assert isinstance(owner_message, dict)
+    if not isinstance(summary, str) or summary != _render_owner_review_summary(owner_message):
+        return [
+            "review summary must exactly render owner_message using the fixed approval template"
+        ]
+    return []
 
 
 def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
@@ -487,7 +512,7 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     if WORKER_SKILL not in (task.skills or []):
         raise ValueError("approved task is missing the forced finalizer skill")
     row = conn.execute(
-        "SELECT id, metadata FROM task_runs WHERE task_id = ? "
+        "SELECT id, summary, metadata FROM task_runs WHERE task_id = ? "
         "AND outcome = 'review_requested' ORDER BY id DESC LIMIT 1",
         (task_id,),
     ).fetchone()
@@ -500,6 +525,9 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     contract_errors = _validate_approval_contract(task_id, approval)
     if contract_errors:
         raise ValueError("approved approval contract is invalid: " + "; ".join(contract_errors))
+    summary_errors = _validate_review_summary(row["summary"], approval.get("owner_message"))
+    if summary_errors:
+        raise ValueError("approved review summary is invalid: " + "; ".join(summary_errors))
     actual_digest = hashlib.sha256(
         json.dumps(
             approval,

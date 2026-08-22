@@ -40,6 +40,8 @@ def test_owner_escalation_skill_contains_fixed_approval_request_template() -> No
     )
 
     assert expected in section
+    assert "kanban_request_review" in content
+    assert "summary" in content
     for forbidden_field in (
         "変更ファイル:",
         "テスト件数:",
@@ -64,6 +66,9 @@ def test_improvement_worker_requires_separate_owner_message_contract() -> None:
     ):
         assert field in content
     assert "worker-only technical evidence" in content
+    assert "kanban_request_review" in content
+    assert "固定テキストテンプレート" in content
+    assert "自由文の作業報告" in content
 
 
 def test_design_and_runbook_document_runtime_boundary_and_rollback() -> None:

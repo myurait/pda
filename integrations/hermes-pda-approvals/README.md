@@ -4,13 +4,13 @@ This integration turns the `pda-improvement` Hermes Kanban tenant into a two-pha
 
 1. a deterministic 30-minute router assigns Ready cards to a fresh task-scoped worker of the `default` profile in task-specific Git worktrees;
 2. the forced `pda-autonomous-improvement` skill limits the worker to implementation, focused tests, and a local task-branch commit;
-3. the worker requests review with a structured `pda_approval` handoff;
+3. the worker requests review with a structured `pda_approval` handoff and the exact fixed seven-line summary rendered from `owner_message`;
 4. the Dashboard `承認` tab verifies the full handoff evidence but shows only the separate `owner_message`: approval subject, purpose/outcome, post-approval change, material risk and reversibility, recommendation, and one operation;
 5. only the configured basic-auth owner session can approve or request changes and reopen the card for the digest-bound finalization contract.
 
 The approval queue and its control-owned approval ledger are stored in the same Hermes Kanban DB. It does not create a second task database. Human-readable comments are notifications only and cannot authorize activation by themselves.
 
-Worker evidence and owner copy are separate. Branch/worktree/SHA/path identities, commands, changed files, verification procedures/counts, and implementation order remain in machine metadata and are not returned in the pending-list presentation object or rendered by default. An invalid or technically contaminated `owner_message` makes the card ineligible and produces only a generic owner-facing blocking reason; exact verifier errors remain internal evidence.
+Worker evidence and owner copy are separate. Branch/worktree/SHA/path identities, commands, changed files, verification procedures/counts, and implementation order remain in machine metadata and are not returned in the pending-list presentation object or rendered by default. An invalid or technically contaminated `owner_message`, or a review summary that is not its exact fixed-template rendering, makes the card ineligible and produces only a generic owner-facing blocking reason; exact verifier errors remain internal evidence.
 
 ## Managed assets
 
@@ -78,7 +78,7 @@ python operations/improvement/install.py --recover-activation-claim \
 - Assignment is the last routing write, after the exact worktree, branch, skill, and audit comment are durable.
 - Existing non-matching worktree paths or branches fail closed; they are never reset, removed, or adopted heuristically.
 - Approval requires the configured basic-auth owner identity (env-wins, config fallback), valid structured metadata, all verification outcomes passed, a clean non-symlink linked worktree, exact task-bound path, canonical Git common/worktree identities and `pda-auto/<task-id>` branch, matching full Git HEAD, base ancestry, and exact changed-files diff.
-- `owner_message` is required, contains all owner decision fields, states reversibility and a recommendation, has exactly one operation, and rejects worker-only technical detail.
+- `owner_message` is required, contains all owner decision fields as single lines, states reversibility and a recommendation, has exactly one operation, and rejects worker-only technical detail. The stored review summary must exactly render those fields in the fixed template.
 - Approval binds the owner decision copy and the exact machine finalization contract in one digest; any target or step change requires new owner copy, a new digest, and a new approval.
 - Drift requires a new commit, digest, and approval.
 - Profile `SOUL.md` is not modified; policy is force-loaded per task.

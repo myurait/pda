@@ -18,7 +18,9 @@ A direct status or stop request preempts new investigation. Japanese responses r
 です・ます style. Approval requests must state, in this order: 承認対象, 目的・成果,
 承認後の変化, 主要リスクと可逆性, 推奨, and 一つの操作. Keep worker-only technical
 evidence out of owner-visible prose; evidence remains in structured metadata. More detail is harmful
-when it does not change the owner's outcome, risk, reversibility, or decision."""
+when it does not change the owner's outcome, risk, reversibility, or decision. Before
+kanban_request_review executes, render its summary from metadata.pda_approval.owner_message with the fixed
+approval template; never send a free-form worker status as the approval request."""
 
 
 def _default_audit_path() -> Path:

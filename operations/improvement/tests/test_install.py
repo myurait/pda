@@ -27,6 +27,13 @@ from operations.improvement.install import (
 REPO = Path(__file__).parents[3]
 
 
+@pytest.fixture(autouse=True)
+def _isolate_kanban_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HERMES_KANBAN_DB", str(tmp_path / "kanban.db"))
+    monkeypatch.delenv("HERMES_KANBAN_BOARD", raising=False)
+    monkeypatch.delenv("HERMES_DELEGATED_CHILD_CONTEXT", raising=False)
+
+
 def _paths(tmp_path: Path) -> RuntimePaths:
     home = tmp_path / "user"
     hermes_home = home / ".hermes"
@@ -52,6 +59,18 @@ def _git(repo: Path, *args: str) -> str:
 def _git_path(workspace: Path, flag: str) -> str:
     value = Path(_git(workspace, "rev-parse", flag))
     return str((value if value.is_absolute() else workspace / value).resolve())
+
+
+def _owner_review_summary(owner_message: dict[str, str]) -> str:
+    return (
+        "承認依頼です。\n"
+        f"承認対象: {owner_message['approval_subject']}\n"
+        f"目的・成果: {owner_message['purpose']}\n"
+        f"承認後の変化: {owner_message['changes_after_approval']}\n"
+        f"主要リスクと可逆性: {owner_message['risk_and_reversibility']}\n"
+        f"推奨: {owner_message['recommendation']}\n"
+        f"必要な操作: {owner_message['action']}"
+    )
 
 
 def _create_approval_ledger(conn) -> None:
@@ -95,6 +114,32 @@ def test_installer_exposes_full_fail_closed_approval_contract_validator():
     assert "workspace_path must be an absolute path" in errors
     assert "verification must contain at least one check" in errors
     assert "finalization is required" in errors
+
+
+@pytest.mark.parametrize(
+    "purpose",
+    (
+        "検証済み成果を通常環境へmergeするためです",
+        "検証識別子abcdef123456を確認するためです",
+    ),
+)
+def test_installer_rejects_worker_detail_next_to_japanese(purpose: str) -> None:
+    owner_message = {
+        "approval_subject": "検証済みのPDA改善を最終反映すること",
+        "purpose": purpose,
+        "changes_after_approval": "承認後は改善済みの動作が通常環境へ反映されます",
+        "risk_and_reversibility": "差異は残りますが、反映を取り消して元へ戻せます",
+        "recommendation": "最終反映の承認を推奨します",
+        "action": "承認一覧で「最終反映を承認」を一度押してください",
+    }
+
+    errors = install_module._validate_owner_message(owner_message)
+
+    assert "owner_message.purpose contains worker-only technical detail" in errors
+
+
+def test_test_database_is_isolated_from_runtime(tmp_path: Path) -> None:
+    assert kanban_db.kanban_db_path() == tmp_path / "kanban.db"
 
 
 def test_default_systemd_python_is_the_hermes_venv(tmp_path):
@@ -369,7 +414,7 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
         assert kanban_db.request_review(
             conn,
             task_id,
-            summary="verified",
+            summary=_owner_review_summary(approval["owner_message"]),
             metadata={"pda_approval": approval},
         )
         run = conn.execute(
@@ -431,6 +476,21 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
         conn.commit()
 
         _verify_approved_artifact(conn, task_id, marker)
+        conn.execute(
+            "UPDATE task_runs SET summary = ? WHERE id = ?",
+            ("実装と検証が完了しました。", marker["review_run_id"]),
+        )
+        conn.commit()
+        with pytest.raises(ValueError, match="review summary"):
+            _verify_approved_artifact(conn, task_id, marker)
+        conn.execute(
+            "UPDATE task_runs SET summary = ? WHERE id = ?",
+            (
+                _owner_review_summary(approval["owner_message"]),
+                marker["review_run_id"],
+            ),
+        )
+        conn.commit()
         checked = check_approval_runtime(
             paths,
             task_id=task_id,
@@ -558,7 +618,7 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
         assert kanban_db.request_review(
             conn,
             task_id,
-            summary="new review",
+            summary=_owner_review_summary(newer_approval["owner_message"]),
             metadata={"pda_approval": newer_approval},
         )
         assert kanban_db.reopen_review_task(conn, task_id)

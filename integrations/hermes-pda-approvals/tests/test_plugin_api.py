@@ -24,6 +24,7 @@ PLUGIN_API = Path(__file__).parents[1] / "dashboard" / "plugin_api.py"
 def _isolate_kanban_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("HERMES_KANBAN_DB", str(tmp_path / "kanban.db"))
     monkeypatch.delenv("HERMES_KANBAN_BOARD", raising=False)
+    monkeypatch.delenv("HERMES_DELEGATED_CHILD_CONTEXT", raising=False)
 
 
 def test_test_database_is_isolated_from_runtime(tmp_path: Path) -> None:
@@ -110,6 +111,18 @@ def _approval(
     }
 
 
+def _owner_review_summary(owner_message: dict[str, str]) -> str:
+    return (
+        "承認依頼です。\n"
+        f"承認対象: {owner_message['approval_subject']}\n"
+        f"目的・成果: {owner_message['purpose']}\n"
+        f"承認後の変化: {owner_message['changes_after_approval']}\n"
+        f"主要リスクと可逆性: {owner_message['risk_and_reversibility']}\n"
+        f"推奨: {owner_message['recommendation']}\n"
+        f"必要な操作: {owner_message['action']}"
+    )
+
+
 def _review_task(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -145,7 +158,7 @@ def _review_task(
         assert kanban_db.request_review(
             conn,
             task_id,
-            summary="implementation verified",
+            summary=_owner_review_summary(payload["owner_message"]),
             metadata={"pda_approval": payload},
         )
     module = _load_plugin_api()
@@ -243,6 +256,29 @@ def test_pending_list_exposes_only_valid_review_requests(tmp_path, monkeypatch):
     assert "pytest" not in visible
 
 
+def test_pending_list_rejects_review_summary_outside_fixed_template(
+    tmp_path,
+    monkeypatch,
+):
+    module, client, task_id, _workspace, payload = _review_task(tmp_path, monkeypatch)
+    with kanban_db.connect() as conn:
+        conn.execute(
+            "UPDATE task_runs SET summary = ? WHERE task_id = ? AND outcome = 'review_requested'",
+            ("実装と検証が完了しました。", task_id),
+        )
+        conn.commit()
+
+    item = client.get("/pending").json()["items"][0]
+    response = client.post(
+        f"/tasks/{task_id}/approve",
+        json={"digest": module.approval_digest(payload)},
+    )
+
+    assert item["eligible"] is False
+    assert item["blocking_reason"]
+    assert response.status_code == 409
+
+
 def test_approval_requires_owner_message_and_rejects_worker_only_details(
     tmp_path,
     monkeypatch,
@@ -258,9 +294,17 @@ def test_approval_requires_owner_message_and_rejects_worker_only_details(
     noisy["owner_message"]["changes_after_approval"] = (
         "作業ツリーとコミットを通常環境へ反映します"
     )
+    merge_copy = copy.deepcopy(payload)
+    merge_copy["owner_message"]["purpose"] = (
+        "検証済み成果を通常環境へmergeするためです"
+    )
+    sha_copy = copy.deepcopy(payload)
+    sha_copy["owner_message"]["purpose"] = "検証識別子abcdef123456を確認するためです"
 
     missing_errors = module.validate_approval(task_id, missing)
     noisy_errors = module.validate_approval(task_id, noisy)
+    merge_errors = module.validate_approval(task_id, merge_copy)
+    sha_errors = module.validate_approval(task_id, sha_copy)
 
     assert "owner_message is required" in missing_errors
     assert any(
@@ -272,6 +316,10 @@ def test_approval_requires_owner_message_and_rejects_worker_only_details(
         == "owner_message.changes_after_approval contains worker-only technical detail"
         for error in noisy_errors
     )
+    assert (
+        "owner_message.purpose contains worker-only technical detail" in merge_errors
+    )
+    assert "owner_message.purpose contains worker-only technical detail" in sha_errors
 
 
 def test_owner_message_rejects_unknown_fields_paths_and_multiple_operations(

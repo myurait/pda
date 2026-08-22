@@ -10,6 +10,30 @@ sys.path.insert(0, str(ROOT))
 from communication_guard import CommunicationGuardRuntime, guard_response
 
 
+def _owner_message() -> dict[str, str]:
+    return {
+        "approval_subject": "検証済みのコミュニケーション改善を通常のPDAへ反映することです",
+        "purpose": "承認判断に必要な成果とリスクだけを確認できるようにするためです",
+        "changes_after_approval": "承認要求と承認一覧が簡潔な判断情報へ統一されます",
+        "risk_and_reversibility": "表現の誤検出は残りますが、機能を無効化して元へ戻せます",
+        "recommendation": "最終反映の承認を推奨します",
+        "action": "承認一覧で「最終反映を承認」を一度押してください",
+    }
+
+
+def _owner_review_summary() -> str:
+    message = _owner_message()
+    return (
+        "承認依頼です。\n"
+        f"承認対象: {message['approval_subject']}\n"
+        f"目的・成果: {message['purpose']}\n"
+        f"承認後の変化: {message['changes_after_approval']}\n"
+        f"主要リスクと可逆性: {message['risk_and_reversibility']}\n"
+        f"推奨: {message['recommendation']}\n"
+        f"必要な操作: {message['action']}"
+    )
+
+
 def test_status_request_blocks_new_tools_and_injects_immediate_report_policy(
     tmp_path: Path,
 ) -> None:
@@ -261,3 +285,57 @@ def test_approval_runtime_rejects_multiple_owner_operations() -> None:
     assert "一覧を開いて" not in result.text
     assert "必要な操作: 元の応答では明示されていません。" in result.text
     assert "multiple_approval_actions_removed" in result.violations
+
+
+def test_review_tool_rewrites_generic_summary_to_fixed_approval_template(
+    tmp_path: Path,
+) -> None:
+    runtime = CommunicationGuardRuntime(tmp_path / "audit.db")
+
+    decision = runtime.pre_tool_call(
+        session_id="session-review",
+        turn_id="turn-review",
+        tool_name="kanban_request_review",
+        args={
+            "summary": "実装と検証が完了しました。",
+            "metadata": {"pda_approval": {"owner_message": _owner_message()}},
+        },
+    )
+
+    assert decision == {
+        "action": "modify",
+        "args": {"summary": _owner_review_summary()},
+    }
+
+
+def test_review_tool_blocks_missing_or_worker_facing_owner_copy(tmp_path: Path) -> None:
+    runtime = CommunicationGuardRuntime(tmp_path / "audit.db")
+    missing = runtime.pre_tool_call(
+        session_id="session-review",
+        turn_id="turn-missing",
+        tool_name="kanban_request_review",
+        args={"summary": "実装と検証が完了しました。", "metadata": {}},
+    )
+    noisy_decisions = []
+    for turn_id, purpose in (
+        ("turn-merge", "検証済み成果を通常環境へmergeするためです"),
+        ("turn-sha", "検証識別子abcdef123456を確認するためです"),
+    ):
+        noisy_message = _owner_message()
+        noisy_message["purpose"] = purpose
+        noisy_decisions.append(
+            runtime.pre_tool_call(
+                session_id="session-review",
+                turn_id=turn_id,
+                tool_name="kanban_request_review",
+                args={
+                    "summary": "実装と検証が完了しました。",
+                    "metadata": {"pda_approval": {"owner_message": noisy_message}},
+                },
+            )
+        )
+
+    for decision in (missing, *noisy_decisions):
+        assert decision is not None
+        assert decision["action"] == "block"
+        assert "固定テンプレート" in decision["message"]

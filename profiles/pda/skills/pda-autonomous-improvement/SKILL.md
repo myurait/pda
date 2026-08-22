@@ -27,14 +27,14 @@ Use this phase unless a latest `pda-owner-approval` notification provides task I
 5. Commit only the card's files on its task branch. Do not merge, push, deploy, restart services, alter runtime/profile state outside the worktree, send externally, change credentials, delete durable data, or perform an irreversible operation.
 6. Build a `pda_approval` metadata object with:
    - `schema_version: 1` and the exact `task_id`;
-   - an `owner_message` object containing non-empty `approval_subject`, `purpose`, `changes_after_approval`, `risk_and_reversibility`, `recommendation`, and `action` fields. `action` contains exactly one owner operation. This object is the only default approval-list copy;
+   - an `owner_message` object containing non-empty `approval_subject`, `purpose`, `changes_after_approval`, `risk_and_reversibility`, `recommendation`, and `action` fields. `action` contains exactly one owner operation. This object is the only default approval-list copy and the source for the fixed text summary;
    - owner outcome, impact, risk class, base SHA, head SHA, changed files;
    - the exact absolute non-symlink linked-worktree root, canonical Git common-dir/worktree git-dir identities, and exact `pda-auto/<task_id>` branch;
    - every verification command with `outcome=passed` and a short result;
    - residual risks;
    - an exact finalization contract: kind, targets, ordered steps, rollback.
    Keep worker-only technical evidence in the surrounding machine metadata. Never put commands, configuration values, branch/worktree/SHA/path identifiers, changed files, test procedures/counts, or implementation order inside `owner_message` or the owner-readable summary.
-7. Call `kanban_request_review` with an owner-readable summary and the metadata. Never call `kanban_complete` in Phase 1.
+7. Render the `kanban_request_review` summary with the `pda-user-escalation` 固定テキストテンプレート, mapping the six `owner_message` fields in order: `承認依頼です。`, `承認対象`, `目的・成果`, `承認後の変化`, `主要リスクと可逆性`, `推奨`, `必要な操作`. Use that exact seven-line text as `summary`; a 自由文の作業報告 or implementation-complete status is prohibited. Call `kanban_request_review` with that summary and the metadata. Never call `kanban_complete` in Phase 1.
 
 Allowed risk classes are `local-reversible`, `service-restart`, `external-visible`, and `security-sensitive`. Allowed finalization kinds are `merge-only`, `merge-and-restart`, `apply-artifacts`, and `no-runtime-change`. Secret values must never enter summaries, metadata, comments, commits, or logs.
 
