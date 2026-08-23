@@ -41,12 +41,24 @@
   - 同ファイル: `test_the_read_tool_allowlist_matches_the_running_tool_vocabulary`
 - **許可カテゴリの推論による拡大**（作業記録系カテゴリを capability 推論やツール形状で判定し、未列挙ツールが変異系に紛れ込む）
   - 同ファイル: `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`
+- **許可カテゴリの否定側の空振り**（否定例をツール語彙に存在しない名前で構成し、実在する近傍ツールが検査されない）
+  - 同ファイル: `test_tools_outside_the_work_record_catalogue_stay_denied`（実在する近傍ツールのみで構成）/ `test_the_work_record_catalogue_is_a_closed_explicit_set`（除外名が語彙に存在しかつカタログ外であることを固定）
+- **統治シグナルの汚染**（契約が検証できていないターンから run 終端シグナル（完了・レビュー要求）を発信する、blocker をカード新規作成で新タスクへ変える、レビュアー側の判定を実装主体が記録する）
+  - 同ファイル: `test_run_signal_tools_are_denied_outside_a_locked_turn` / `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`
+- **引数無検査カテゴリへの宛先の持ち込み**（許可カテゴリのツール引数にパス・URL・他カードの宛先を運ぶ）
+  - 同ファイル: `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`（宛先を運ぶツールをカタログ外へ出すことで固定）
+- **ターン束縛の喪失による記録経路の獲得**（束縛できない呼び出しから作業管理平面へ書く）
+  - 同ファイル: `test_an_unbindable_call_cannot_record_work_state`
 - **読み取り許可に紛れる書込・境界外読み取り**（読み取り subcommand の書込形、ロック済み worktree 外への読み取り、読み取り許可が書込権限検査を飛ばす経路）
   - 同ファイル: `test_read_only_git_arguments_outside_the_admitted_form_are_denied` / `test_read_only_git_reads_outside_the_locked_worktree_are_denied` / `test_read_only_git_needs_no_git_write_permission` / `test_push_stays_outside_the_first_layer` / `test_the_read_only_git_subset_is_a_closed_set`
 - **拒否上限の計上規則を使った座礁と免除の悪用**（必要手順の拒否で上限を食い潰す false deny 側、および免除経路を無償の無制限探索に使う fail-open 側）
   - 同ファイル: `test_the_deny_ceiling_counts_only_boundary_deviations` / `test_read_refusals_do_not_strand_a_turn_that_keeps_working` / `test_boundary_deviations_still_exhaust_the_deny_ceiling` / `test_uncounted_denials_stay_bounded_by_the_class_budget` / `test_closeout_deny_counting_is_unchanged`
-- **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜17）
-  - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_replay_the_worker_flow_survives_one_unadmitted_read_attempt` / `test_replay_the_enforced_flow_still_refuses_the_incident_expansions`
+- **免除粒度のずれによる両方向の誤分類**（状態変更形を持つ subcommand 族が免除側に載り write 境界の反復探索が上限を消費しない fail-open 側、および境界内の純粋な読み取りが計上され必須手順が上限で座礁する false deny 側。リビジョン範囲の `..` を上位参照と誤判定する形を含む）
+  - 同ファイル: `test_a_refused_read_is_classified_by_the_whole_invocation` / `test_git_families_with_a_write_form_are_never_exempt` / `test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane` / `test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling` / `test_the_read_only_git_subset_is_a_closed_set` / `test_repeated_refused_reads_do_not_strand_the_required_flow`
+- **受入項目の縮小による整合の空振り**（受入項目を必須手順ではなく実装の許可範囲へ合わせて書き、免除される形のみを固定する）
+  - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`（承認 metadata 収集手順を列に含む）/ `test_replay_the_worker_flow_survives_one_refused_read`（未 admit subcommand と admit 済み subcommand の allowlist 外引数形の両類型）
+- **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、必須手順の拒否件数が上限を超えても非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜18）
+  - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_replay_the_worker_flow_survives_one_refused_read` / `test_repeated_refused_reads_do_not_strand_the_required_flow` / `test_replay_the_enforced_flow_still_refuses_the_incident_expansions`
 - **強制層の回帰**（closeout 専用ガードの弱化）
   - `integrations/hermes-scope-gate/tests/test_closeout_guards.py`
 - **worker による統治ファイル変更の finalization 拒否**（ADR D3。憲章・ADR・ロードマップ決定・ゲート/承認/ガード実装・停止policyへ触れる approval contract の機械拒否）

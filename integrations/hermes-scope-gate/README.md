@@ -37,13 +37,23 @@ contract layers.
 
 - First layer (hard, deterministic): known read/search tools are admitted with an audit record, as
   are work-record tools — a closed, explicitly listed catalogue of tools that act only on the task
-  board and the step list, never on the repository. Read-only Git (`status`, `diff`, `rev-parse`,
-  `branch`) is admitted through the closeout allowlist implementation itself rather than a second
-  parser, before the Git write permission is consulted, since a contract with no write permission
-  still has to see the state it works on. The deny ceiling counts only deviations against the write
-  and execution boundaries: refusing a read-only subcommand that is not admitted spends the tool
-  budget instead, so a turn following the required procedure cannot strand itself, and no uncounted
-  path escapes the class budget.
+  board and the step list, never on the repository. That catalogue is split by stage: the annotation
+  tools (board reads, comments, heartbeat, step list, blocked record) are admitted in every stage,
+  because INV-S6 needs a stalled turn to be able to record a blocked state; the two run-terminal
+  signals (completion, review request) are admitted only in a locked turn, because the orchestrator
+  dispatches the next run on them and an unverified contract has established nothing to report.
+  Card creation, the reviewer's verdict, and the link/attach forms are outside the catalogue
+  entirely, so no admitted tool in it carries a destination that would need bounding.
+  Read-only Git (`status`, `diff`, `rev-parse`, `branch`) is admitted through the closeout allowlist
+  implementation itself rather than a second parser, before the Git write permission is consulted,
+  since a contract with no write permission still has to see the state it works on. The deny ceiling
+  counts only deviations against the write and execution boundaries. Because that is a property of
+  the whole invocation and not of its subcommand, a refused read is classified three ways: arguments
+  naming a path outside the locked root and the write form of an admitted read subcommand count,
+  while a pure read inside the locked root whose argument form is simply not on the allowlist spends
+  the tool budget instead. So a turn following the required procedure cannot strand itself, a family
+  carrying both a read form and a state-changing form is never exempt, and no uncounted path escapes
+  the class budget.
   Write destinations are identified from an explicit tool-name-to-fields catalogue, so an unlisted
   tool is treated as a mutation, and a listed tool that carries none of its declared destination
   fields — or carries a declared container in an unexpected shape — is denied rather than skipped.
@@ -153,6 +163,16 @@ against the installed Hermes runtime.
 - The read-only Git subset is narrower than closeout's on purpose (D-S3-7): remote-ref reads serve
   push, which this class does not have, and `log` has no bounded-argument implementation to reuse, so
   `rev-parse HEAD` is the admitted way to read the commit id.
+- The canonical Git directory identities the approval metadata asks for (`git_dir`,
+  `git_common_dir`) have no admitted form inside the contract. Attempting them is refused without
+  spending the deny ceiling, so the turn is not stranded, but the values themselves have to come
+  from somewhere other than the worker's own reads. Open in the design document.
+- Read/search tools carry no path bound in this class: the first layer's guarantee is about the
+  write boundary, and the read-only Git subset, not about every read. Recorded as a residue.
+- What holds read-only Git inside the locked worktree is the seed check that fixed the locked root
+  at a worktree top level plus Git's own repository discovery from there; the workdir binding pins
+  the working directory but does not by itself bound the arguments. `git status` arguments are
+  bounded by Git's own pathspec resolution, matching the shared closeout implementation.
 - Commit admission inspects the command, not the index: content staged outside the gate still lands
   in the local commit. Push is denied, so this stays inside local history. Recorded as a first-layer
   residue in the design document.
