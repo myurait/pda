@@ -374,6 +374,44 @@ Exit: closeout taskの95%が15分以内、expansion 0、必要actionのfalse den
 - write scope、targeted verification、expansion reviewを有効化する。
 - broad implementationを狭く誤分類しないgold setを通す。
 
+#### S3-M1: 決定論コアの具体設計（2026-08-22、governance ADR承認後に確定）
+
+goal M1 が実装するのは S3 の決定論コアであり、worker profileへの配線・judge実接続・実トラフィック由来gold set・discovery段は M2（オーケストレーター設計）の残余とする。
+
+契約の拡張（scope-contract-v1）:
+
+- `targets.write_paths`: artifact-change で必須。リポジトリ相対のglobパターン（fnmatch、最大32件、絶対パス・`..`・空を拒否）。ターンの書込許可範囲の閉集合（INV-S2の write 版）。
+- class別budget補正の既存バグを修正する: `budget.minutes`/`budget.tool_calls` という存在しないキーへの `allOf` 制約は常に真であり何も検査していないため、実キー `max_wall_seconds`/`max_tool_calls` への制約に置き換える（bounded-operation 側も同様）。
+
+lock（artifact-change）:
+
+- `lock_turn` を artifact-change に開放する。closeout と同じ原子的 lock で、`write_paths` を含む契約を固定する。lock 前は G0/G1 の既存挙動（audit）を維持する。
+
+admission（locked artifact-change）:
+
+- 読み取り系ツール（read/search/list系）: 許可（audit記録のみ）。
+- 構造化書込ツール（`write_file` / `patch` 等、`args.path` を持つもの）: path を正規化（絶対パス・`..`・制御文字は即deny）し、いずれかの `write_paths` glob に一致すれば許可、不一致は G3 expansion review へ（既存permit機構。judge未接続のためfail-closed）。
+- `terminal`: 既存tokenizer（複合コマンド・シェル展開はfail-closed）を流用し、(a) closeout と同じ Git 読み取り部分集合、(b) targeted verification テンプレート、のみ許可。それ以外は G3 へ。
+- targeted verification の決定論的定義（INV-S4の実装形）: `pytest`/`python -m pytest` は、位置引数のパスが全て `write_paths` 配下または `tests/` 配下を指す場合のみ許可し、パス引数なしのfull-suite起動は許可しない。`python -m py_compile <paths>` は全パスが `write_paths` 配下の場合のみ許可。
+- 未知ツール・上記以外の変異系: G3 expansion へ（default deny for mutation）。
+
+M2 への残余（本設計で明示的に先送り）:
+
+- worker profile への配線と有効化、judge の実接続、artifact-change 用 discovery 段、実トラフィックからの S3 exit 用 gold set、pre_llm_call のクラス別policy注入の拡充、verification 契約（検証者ハンドオフ）との統合。
+
+#### S3-M1 未解決の設計判断（2026-08-22 反証レビュー結果）
+
+上記ドラフトは実装着手前の並列反証レビュー（運用細則2）を通し、確証欠陥 20 件（blocker 6 / major 7 / minor 7）が返った。**ドラフトは未承認であり、この判断が決まるまで実装へ進まない。** 各欠陥の根拠と対応方針は `docs/status/restricted-s3-write-scope-review-2026-08-22.md` にある。同ファイルは迂回手法の具体形を含み Fable セッションでは直接読まない扱いのため、対応は Opus のサブエージェントへ委譲する。
+
+- **D-S3-1（検証実行の位置づけ）**: locked artifact-change のターンでテスト実行を許すか。許すなら「実行中の副作用は write scope の保証対象外」であることを脅威モデルとして明文化し、名前空間の隔離と収集経路の静的検査を M2 の必須要件として固定する。許さないなら M1 は実行を伴わない静的検査のみとする。テスト資産の新規作成・編集の可否、リポジトリ内テスト配置の扱いも同じ判断に含める。D-S3-2・D-S3-3 と整合した単一の決定として書く。
+- **D-S3-2（引数検査の水準）**: 許可コマンドの引数検査を、closeout の既存実装と同じ水準（全トークン走査、安全な指定の明示allowlist、未知の指定は即deny）へ揃える。あわせてパス照合の健全性（正規化基準の一元化、glob の区切り扱い、実体解決、書込先フィールドの網羅）を同じ改訂で扱う。
+- **D-S3-3（ローカルコミットの扱い）**: artifact-change で worker のローカルコミットを決定論allowlistへ含めるか。現ドラフトは含めておらず、既存運用（実装→focused test→local commit→handoff）と正面から矛盾する。push は承認後の別契約に残す。
+- **D-S3-4（lock 前の既定）**: 現行は lock 前が無制限許可で、書込境界が worker の自発的な lock 実行に依存する（INV-S8「強制は自己抑制に依存しない」と衝突）。closeout 相当の bounded な前段を置くか、dispatch 時に lock 済み契約を注入するか。
+- **D-S3-5（lock 機構の到達性）**: 現行の state 機械では artifact-change のターンを lock まで到達させる経路が存在しない。遷移経路を設計に含める。
+- **D-S3-6（M1/M2 の境界。オーナー判断事項）**: ドラフトは S3 の worker 配線を M2 へ先送りしたが、ADR D2 と goal M1 はこれを M1 の成果物と規定している。M1 として実装するか、ADR 改訂（＝オーナー承認）を経て M2 へ付け替えるかを決める。設計側で一方的に格下げしない。
+
+実装チェックリストへ回す項目: 期待審査経路（G3）の実効性の再確認、契約スキーマの必須指定漏れと上限反映、runtime ハンドラでの write scope 配線漏れ。
+
 ## 12. Metrics and review triggers
 
 記録する主指標:
