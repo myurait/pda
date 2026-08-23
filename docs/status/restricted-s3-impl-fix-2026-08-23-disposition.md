@@ -1,6 +1,6 @@
 # S3-M1 実装 反証レビュー 確証欠陥の処置台帳（2026-08-23）
 
-- Status: closed（確証欠陥 37 件の処置完了。司令塔判断へ回した 4 項目も 2026-08-23 の決定で解決済み＝7 節。残余は 8 節の 1 項目のみ）
+- Status: closed（第1ラウンドの確証欠陥 37 件＝1〜6 節、司令塔判断 4 項目＝7 節、D-S3-7 実装の反証レビュー 14 件＝9〜10 節、いずれも処置完了。exit 条件 3 件はすべて closed＝10 節 3。残余は 8 節の 1 項目と 10 節 4 の司令塔判断 2 項目）
 - 読み取り方針: **`restricted-` 接頭辞の対象。個別の再現条件に触れるため Fable モデルのセッションでは直接読まない**。抽象名のみの一覧は `docs/operations/adversarial-suite.md` にある。
 - 対象レビュー: `restricted-s3-impl-review-2026-08-23-{correctness,bypass,compat,fidelity}.md`（確証欠陥 37 件 + 判断 1 件）
 - 正本設計: `docs/design/task-scope-admission-gate.md`「S3-M1」節（本処置に伴う改訂を含む）
@@ -238,3 +238,64 @@ lock 前段・契約検証失敗段でも許可した点は「第一層で許可
 
 - **承認 metadata の `git_dir` / `git_common_dir`（canonical Git 同一性）を契約内で取得する手段が無い。** 座礁は 2 の免除で解消した（試行は拒否されるが上限を消費しない）が、値そのものは取得できない。選択肢: (a) 割当 seed が値を供給する、(b) 承認ゲート側が worktree root から導出する、(c) 共有 allowlist を拡張して `rev-parse --git-dir` / `--git-common-dir` を admit する。(c) は D-S3-7 決定 1 の「共有実装を artifact-change のために拡張しない」に触れる。
 - **本クラスの読み取り系ツール（`read_file` / `search_files`）がパス境界の検査を受けない。** 基準点から不変の既存残余であり本ラウンドの差分外。第一層の主張が「読み取りもロック済み root 内」を含むかは決定されていない。
+
+## 10. 14 件の実地再判定と取り残しの処置（2026-08-23、9 節の続き）
+
+9 節の処置は前任セッションがコミット `6d49aa0` で投入した直後にクレジット上限で中断したため、台帳の記載を鵜呑みにせず、14 件すべてをコードとテストで実地に再判定した。判定手段は (a) 該当コードの読解、(b) store 水準の end-to-end プローブ（`tmp/probe-d8/`、`tmp/probe-d9/`。git 管理外）、(c) 回帰テストの実行である。
+
+- ローカルテスト: 393 passed（9 節時点）→ **427 passed**。新規 34 パラメタ。
+- 結果: **12 件は `6d49aa0` で処置済みと確認**。**2 件（I-DC-01 / I-DB-03）は同一欠陥類型の取り残しが実測で残っており、本節で追加処置した**。誤検知 0 件。
+
+### 1. 欠陥ID → 処置 → 回帰テスト（14 件全件）
+
+`6d49aa0` で処置済みと確認したもの（実地判定の根拠を併記）:
+
+- **I-DB-01 [blocker]** 作業記録系カテゴリの引数無検査書込 — 宛先を引数に運ぶツール（カード新規作成、リンク、パス添付、URL 添付、レビュー差戻し）をカタログ外へ出し、残余を段階別に二分。実測でカタログ外の 5 名がすべて `expansion-required` へ落ちることを確認。回帰テスト: `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied` / `test_work_record_tools_are_admitted_in_a_locked_turn`
+- **I-DB-02 [blocker]** 承認 metadata の必須読み取りが拒否上限を枯渇させ座礁 — 免除粒度を invocation 単位へ。実測で必須手順 17 件の読み取り列が `denied_count == 0` で完走し、直後の write / stage / commit がすべて許可されることを確認（レビュー時の 6 件目座礁が反転）。回帰テスト: `test_repeated_refused_reads_do_not_strand_the_required_flow` / `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling`
+- **I-DB-04 [major]** §10 受入項目が必須手順より狭い — 項目 15 の列に承認 metadata 収集を追加（19 手順）、項目 16 を admit 済み subcommand の allowlist 外引数形まで拡張、項目 18 を新設。回帰テスト: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_replay_the_worker_flow_survives_one_refused_read` / `test_repeated_refused_reads_do_not_strand_the_required_flow`
+- **I-DB-05 [minor]** ブランチ生成・削除形が読み取り系の理由コードで記録される — 判定順を最も具体的な分類から置き、当該形は書込形の理由コードへ。実測で確認。回帰テスト: `test_a_refused_read_is_classified_by_the_whole_invocation` / `test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane`
+- **I-DB-06 [minor]** 読み取りの確定根拠の記述誤り — 設計本文を「seed 検証が root を worktree top-level に固定していること＋git 自身のリポジトリ探索」へ書き直し、読み取り系ツールがパス検査を受けない点を既存残余として明記（設計 §11 の該当行を確認）。文書対応のみ。
+- **I-DB-07 [minor]** 否定側の閉集合テストが架空のツール名で構成 — 実在する近傍ツール 6 名へ置換したことをテスト本文で確認。回帰テスト: `test_tools_outside_the_work_record_catalogue_stay_denied`
+- **I-DB-08 [minor]** 座礁時記録の許可根拠がターン束縛喪失経路へ適用されていない — fail-closed を維持し、根拠の適用範囲を実装 docstring と設計本文へ明記。回帰テスト: `test_an_unbindable_call_cannot_record_work_state`
+- **I-DC-02 [major]** 逸脱しえない読み取り拒否が上限を消費し座礁 — I-DB-02 と同一処置。実測で反転を確認。回帰テスト: I-DB-02 に同じ
+- **I-DC-03 [minor]** admit 済み読み取り集合内の引数検査の非対称 — 実装は変更せず、引数境界が git 自身の pathspec 解決に依存する点を設計本文へ明記（該当行を確認）。共有実装への allowlist 新設は D-S3-7 決定 1 に触れるため行わない。文書対応のみ。
+- **I-DC-04 [major, 判断要]** 契約検証失敗段で run 終端シグナルが許可される — run 終端シグナル系 2 名を locked 段限定とし、blocked 記録は同段に残した。実測で当該段が `seed-verification-failed` へ落ち、blocked 記録・注記が残ることを確認。回帰テスト: `test_run_signal_tools_are_denied_outside_a_locked_turn` / `test_run_signal_tools_are_admitted_in_a_locked_turn`
+- **I-DC-05 [minor]** per-turn policy 文面が lock 前段の読み取りを誤解させる — 文面から当該語を除去し、読み取り専用 git が lock 後のみであることを明示（該当語の不在を確認）。文書対応のみ。
+- **I-DC-06 [minor]** 読み取り admission への無効なブランチ束縛引数 — 引数を削除。回帰テスト: `test_read_admission_does_not_consult_the_branch_binding`
+
+本節で追加処置したもの:
+
+- **I-DC-01 [major] / I-DB-03 [major]** 計上免除カタログに書込形を持つ subcommand 族が含まれる — `6d49aa0` はリモート設定系と reflog 系の 2 族を免除集合から除去したが、**免除集合そのものの分類が subcommand 名のみで行われる経路が残っていた**（許可集合側だけが invocation 単位に改まっていた）。実測により、免除集合の member のうち diff 系オプションを受け取る 4 名が出力先指定で実際にファイルを作成し、うち 2 名は外部プログラム駆動の指定も受け取ることを確認した。当該形はいずれも拒否されるが免除側に落ち、write 境界の反復探索が拒否上限ではなく tool 予算でのみ有界になっていた。処置は 2 を参照。
+
+### 2. 追加処置の内容
+
+**(a) 免除集合にも invocation 単位の分類を適用した。** 三分類の判定を共通関数へ切り出し、許可集合と免除集合の双方が同じ判定を通るようにした。純粋な読み取りの場合の理由コードのみ集合ごとに異なる（既存の計上規則と audit 記録の意味を保つため、免除集合側の理由コード文字列は変更していない）。diff 系オプションを受け取る免除集合 member には書込指定の明示マーカーを宣言し、宣言漏れが免除の穴になるため当該 member にマーカーが存在することをテストで固定した。
+
+**(b) 境界外判定をトークン内部へ拡張した。** パスはトークン全体であるとは限らないため、結合値（`--opt=<value>`）と単一ダッシュのフラグに詰めた形（`-X<value>`）の値部分も同じパス要素単位の判定にかける。リビジョン範囲が `..` を演算子として運ぶ形は従来どおり免除側に残る（false deny 側の対照テストで固定）。
+
+いずれも**分類のみの変更であり、admission を一切広げない**。判定は artifact-change 専用の分類関数の内部にあり、closeout と共有するトークナイザ・境界付き pathspec 検査・検証用引数 allowlist には触れていないため、D-S3-7 決定 1（共有実装を artifact-change のために拡張しない）に抵触しない。closeout の計上規則も無変更（`test_closeout_deny_counting_is_unchanged` と `test_closeout_guards.py` が緑）。
+
+副作用として、パスを含まない装飾的な結合値（出力接頭辞指定・相対表示指定など）は計上側へ移る。いずれも拒否済みの呼び出しであり、必須手順が用いない形であるため、設計が明記する「未分類は計上側」の方針と同方向の保守的な変化である。
+
+回帰テスト（新規 34 パラメタ）:
+
+- `test_a_write_form_under_a_recognized_read_name_is_never_exempt`（10 パラメタ。免除集合 member の書込形・外部プログラム駆動形・境界外読み取りが計上側に落ちることを固定）
+- `test_a_pure_read_of_a_recognized_read_name_stays_exempt`（11 パラメタ。同じ閉鎖の反対側。必須手順が到達する形とリビジョン範囲を含む）
+- `test_a_path_inside_a_joined_option_value_is_not_exempt`（5 パラメタ。許可集合・免除集合の双方について固定）
+- `test_a_joined_value_without_a_path_stays_exempt`（6 パラメタ。束ね形・`key=value` 形が誤って計上側へ落ちないことを固定）
+- `test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling`（end-to-end。免除集合 member の書込形の反復が tool 予算ではなく拒否上限を枯渇させる）
+- `test_a_recognized_read_still_does_not_strand_the_required_flow`（end-to-end。同 member の読み取り形は上限を超えても免除され、直後の write scope 内書込が成立する）
+- `test_the_read_only_git_subset_is_a_closed_set`（拡張。マーカー宣言の網羅と、宣言先が認識集合の内側であることを固定。従来の宣言先の包含 assert は許可集合のみを見ており、免除集合 member について空振りしていた）
+
+### 3. exit 条件の判定（M1 gate 前提）
+
+- **I-COM-01 残余 — closed。** 必須手順が契約内で完結しない状態と、その後段（必須手順の拒否が拒否上限を枯渇させ admit 範囲内の呼び出しと write scope 内の書込まで予算拒否になる）の双方が解消した。実測で必須手順 17 件の読み取り列が拒否計上 0 件で完走し、直後の write / stage / commit が成立する。根拠: `test_repeated_refused_reads_do_not_strand_the_required_flow` / `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`。値そのものを契約内で取得できない 2 項は 4 の司令塔判断へ残す（座礁は解消済み）。
+- **I-COM-06 — closed。** 構造面（読み取り専用 git の第一層追加、§10 受入項目 15〜18 の別立て、強制状態 replay、`push` の対象外明記）に加え、受入項目が必須手順全体と整合した。項目 15 は承認 metadata 収集を列に含む 19 手順、項目 16 は admit 済み subcommand の allowlist 外引数形と「拒否件数が上限を超えても座礁しない」を含む、項目 18 は分類の両方向を義務化し、本節でさらに「認識のみの集合も両方向で固定する」を追記した。既存項目 1〜14 は無改訂。
+- **J-FID-01 — closed。** 計上規則の機構、理由コードから計数先への写像、免除経路のクラス予算による有界性に加え、**invocation から理由コードへの分類が両方向で正しいことを許可集合と免除集合の双方について固定した**。両方向の誤りはいずれも実測で反転を確認している: 書込形の種別（免除集合 member の出力先指定・外部プログラム駆動形、許可集合 member のブランチ操作形、トークン内部に運ばれた境界外パス）はすべて計上側、境界内の純粋な読み取り（承認 metadata の同一性読み取り、リビジョン範囲、束ね形・装飾的な `key=value` 形）はすべて免除側。9 節 2 の三分類が正本であり、本節はその適用範囲を免除集合と引数内部へ広げたものである。
+
+### 4. 本ラウンド後の残余（司令塔判断）
+
+9 節 5 の 2 項目をそのまま引き継ぐ。本節の処置で新たに増えた判断事項は無い。
+
+- **承認 metadata の canonical Git 同一性（`git_dir` / `git_common_dir`）を契約内で取得する手段が無い。** 座礁は解消済み（試行は拒否されるが上限を消費しない）で、値そのものが取得できない。選択肢: (a) 割当 seed が値を供給する、(b) 承認ゲート側が worktree root から導出する、(c) 共有 allowlist を拡張して当該取得形を admit する。(c) は D-S3-7 決定 1 に触れる。
+- **本クラスの読み取り系ツールがパス境界の検査を受けない。** 基準点から不変の既存残余。第一層の主張が「読み取りもロック済み root 内」を含むかは未決定。

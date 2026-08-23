@@ -31,6 +31,7 @@ from plugin_runtime import (
 )
 from scope_gate import (
     ARTIFACT_CHANGE_CLASS_BUDGET,
+    ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS,
     ARTIFACT_GIT_READ_FORM_FLAGS,
     ARTIFACT_GIT_READ_SUBCOMMANDS,
     ARTIFACT_GIT_READ_UNADMITTED,
@@ -43,6 +44,7 @@ from scope_gate import (
     ARTIFACT_WRITE_TOOL_CATALOG,
     artifact_deny_counter,
     artifact_git_read_refusal_action,
+    artifact_git_unadmitted_refusal_action,
     EXECUTION_TEMPLATES,
     GateStore,
     PathRejected,
@@ -2607,9 +2609,8 @@ def test_the_read_only_git_subset_is_a_closed_set() -> None:
     assert not (ARTIFACT_GIT_READ_SUBCOMMANDS & ARTIFACT_GIT_READ_UNADMITTED)
     for excluded in ("ls-remote", "remote", "log"):
         assert excluded not in ARTIFACT_GIT_READ_SUBCOMMANDS, excluded
-    # The exempt lane holds subcommands that cannot deviate. Any family that
-    # carries a write form under the same subcommand name is absent from both
-    # sets, so its refusals stay on the counted side.
+    # No subcommand whose own purpose is changing state may be recognized as a
+    # read, so its refusals stay on the counted side.
     assert not (
         ARTIFACT_GIT_READ_UNADMITTED & ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS
     )
@@ -2619,11 +2620,23 @@ def test_the_read_only_git_subset_is_a_closed_set() -> None:
     # read-form allowlist, so anything else about it counts. Widening the
     # admitted set with such a subcommand and no allowlist fails here.
     assert set(ARTIFACT_GIT_READ_FORM_FLAGS) <= ARTIFACT_GIT_READ_SUBCOMMANDS
-    assert set(ARTIFACT_GIT_WRITE_FORM_MARKERS) <= ARTIFACT_GIT_READ_SUBCOMMANDS
     guarded = ARTIFACT_GIT_READ_SUBCOMMANDS & ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS
     assert guarded, "the invariant is vacuous if no admitted subcommand can write"
     for subcommand in sorted(guarded):
         assert subcommand in ARTIFACT_GIT_READ_FORM_FLAGS, subcommand
+    # Write-form markers are declared per subcommand, so they only bite where
+    # the refusal is classified at all: the admitted subset or the recognized
+    # unadmitted set. A marker declared for anything else is dead.
+    recognized = ARTIFACT_GIT_READ_SUBCOMMANDS | ARTIFACT_GIT_READ_UNADMITTED
+    assert set(ARTIFACT_GIT_WRITE_FORM_MARKERS) <= recognized
+    # Membership in the unadmitted set is not the exemption. Every member that
+    # takes the diff family's options can be told to write a file, so it has
+    # to carry markers -- otherwise naming it here would exempt its write form
+    # from the ceiling, which is the error this classification removed once at
+    # the subcommand level and would otherwise re-open at the argument level.
+    for subcommand in sorted(ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS):
+        assert subcommand in ARTIFACT_GIT_WRITE_FORM_MARKERS, subcommand
+    assert ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS & ARTIFACT_GIT_READ_UNADMITTED
 
 
 @pytest.mark.parametrize(
@@ -2706,6 +2719,171 @@ def test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling(
 
     assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
     assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        # The output form of each diff-family member actually creates the
+        # named file, so naming the subcommand as a recognized read must not
+        # carry its write form into the exempt lane with it.
+        ("log", ["--output=out.txt"]),
+        ("log", ["--output", "out.txt"]),
+        ("show", ["--output=out.txt"]),
+        ("blame", ["--output=out.txt", "src/app.py"]),
+        ("shortlog", ["--output=out.txt"]),
+        # Handing the comparison to an external program is an execution
+        # boundary, not a read.
+        ("log", ["--ext-diff"]),
+        ("show", ["--ext-diff"]),
+        # Reaching outside the locked root under a recognized read name.
+        ("log", ["../outside"]),
+        ("show", ["/etc/passwd"]),
+        ("blame", ["--", "../outside"]),
+    ],
+)
+def test_a_write_form_under_a_recognized_read_name_is_never_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    # Recognizing a subcommand as read-only is not the exemption. Several
+    # members of the unadmitted set take the diff family's options, so the
+    # closure has to hold at the argument level here too -- classifying this
+    # set by subcommand name alone is the same granularity error that put
+    # state-changing forms in the exempt lane one round earlier.
+    action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    assert action not in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        ("log", []),
+        ("log", ["--oneline", "-1"]),
+        ("log", ["--no-ext-diff"]),
+        ("show", ["--name-only", "HEAD"]),
+        ("blame", ["src/app.py"]),
+        ("shortlog", ["-s", "-n"]),
+        ("merge-base", ["main", "HEAD"]),
+        ("ls-files", ["--cached"]),
+        ("describe", ["--tags"]),
+        # A revision range under a recognized name is still a pure read.
+        ("log", ["HEAD~1..HEAD"]),
+        ("show", ["main...HEAD"]),
+    ],
+)
+def test_a_pure_read_of_a_recognized_read_name_stays_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    # The other half of the same closure. The required approval-metadata flow
+    # reaches several of these, so counting them strands the turn.
+    action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    assert action == "git-read-unadmitted", (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        # A path does not have to be the whole token: an option can pack it
+        # onto a single-dash flag or carry it as a joined value, and an option
+        # that reads a file from an absolute path is reaching outside the root
+        # whatever the option is called.
+        ("diff", ["-O/etc/passwd"]),
+        ("diff", ["--relative=../outside"]),
+        ("log", ["-O/etc/passwd"]),
+        ("rev-parse", ["--git-path=/etc/passwd"]),
+        ("show", ["--relative=../../elsewhere"]),
+    ],
+)
+def test_a_path_inside_a_joined_option_value_is_not_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    admitted = artifact_git_read_refusal_action(subcommand, tail)
+    recognized = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    for action in (admitted, recognized):
+        assert action == "git-read-unsafe", (subcommand, tail, action)
+        assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        # Short flags and joined values that carry no path at all: bundling or
+        # an `=` must not by itself move a pure read onto the ceiling.
+        ("branch", ["-a"]),
+        ("branch", ["--color=never"]),
+        ("diff", ["--output-indicator-new=x"]),
+        ("log", ["-1"]),
+        ("log", ["--format=%H"]),
+        ("shortlog", ["-sn"]),
+    ],
+)
+def test_a_joined_value_without_a_path_stays_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    # The false-deny side of the same widening: looking inside a token for a
+    # path must not make every bundled flag or `key=value` option a deviation.
+    if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
+        action = artifact_git_read_refusal_action(subcommand, tail)
+    else:
+        action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
+
+
+def test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling(
+    tmp_path: Path,
+) -> None:
+    # End to end: the point of the classification is which budget the probe
+    # spends. A write form repeated under a recognized read name has to hit
+    # the deny ceiling, not run to the far larger tool budget.
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for _ in range(ceiling):
+        refused = _admit(
+            store,
+            "terminal",
+            {"command": "git log --output=leak.txt", "workdir": str(repo)},
+        )
+        assert refused.allowed is False
+        assert refused.action == "git-write-form"
+
+    turn = store.get_turn("turn-change")
+    assert turn is not None
+    assert turn["denied_count"] == ceiling
+    exhausted = _admit(
+        store, "terminal", {"command": "git log --output=leak.txt", "workdir": str(repo)}
+    )
+    assert exhausted.action == "deny-budget"
+
+
+def test_a_recognized_read_still_does_not_strand_the_required_flow(
+    tmp_path: Path,
+) -> None:
+    # The same subcommand in its read form stays exempt past the ceiling, so
+    # the in-scope write that follows is still admitted.
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for _ in range(ceiling + 2):
+        refused = _admit(
+            store, "terminal", {"command": "git show --name-only HEAD", "workdir": str(repo)}
+        )
+        assert refused.allowed is False
+        assert refused.action == "git-read-unadmitted"
+
+    written = _admit(store, "write_file", {"path": "src/app.py", "content": "fixed"})
+    turn = store.get_turn("turn-change")
+
+    assert written.allowed is True, written
+    assert turn is not None
+    assert turn["denied_count"] == 0
 
 
 @pytest.mark.parametrize(

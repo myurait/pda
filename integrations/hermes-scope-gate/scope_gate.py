@@ -2626,12 +2626,18 @@ ARTIFACT_GIT_READ_SUBCOMMANDS = frozenset({"status", "diff", "rev-parse", "branc
 # `artifact_deny_counter`). An unrecognized subcommand is not in this set and
 # keeps counting as a deviation.
 #
-# Membership requires that the subcommand have *no* write form at all. A
-# subcommand that carries both a read form and a state-changing form (the
-# remote-configuration and reflog families are the two this class had to
-# remove) does not belong here: its denial is an attempt at the write
-# boundary, and exempting it would let that boundary be probed against the
-# tool budget instead of the deny ceiling.
+# Membership means the subcommand has no state-changing form of its own. A
+# subcommand whose own purpose includes changing state (the remote
+# configuration and reflog families are the two this class had to remove)
+# does not belong here: its denial is an attempt at the write boundary, and
+# exempting it would let that boundary be probed against the tool budget
+# instead of the deny ceiling.
+#
+# Membership is not by itself the exemption. Several members take the diff
+# family's options, which can write a file or run an external program, so the
+# refusal is classified by the whole invocation exactly as the admitted subset
+# is: a member named here reaches the exempt lane only when its arguments
+# carry no write-form marker and no path outside the locked root.
 ARTIFACT_GIT_READ_UNADMITTED = frozenset(
     {
         "log",
@@ -2687,15 +2693,29 @@ ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS = frozenset(
     }
 )
 
-# The write forms of subcommands whose read form this class admits. Matching
-# is exact or `<marker>=<value>`, so a joined value is covered and a longer
-# unrelated option (`--output-indicator-new`) is not swept in with it.
+# The write forms of subcommands whose refusal this class classifies, whether
+# it admits their read form or only recognizes it. Matching is exact or
+# `<marker>=<value>`, so a joined value is covered and a longer unrelated
+# option (`--output-indicator-new`) is not swept in with it.
 #
 # `git diff` is a read of the working tree that can nevertheless be told to
 # write its output to a file or to hand the comparison to an external
-# program, so those two forms are deviations rather than refused reads.
+# program, so those two forms are deviations rather than refused reads. The
+# same two options belong to the whole diff family: `log`, `show`, `blame`,
+# and `shortlog` each accept the output form and each actually creates the
+# named file (verified against the installed Git), so the markers are declared
+# for them too even though their read form is not admitted at all.
+_ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS = frozenset({"--output", "--ext-diff"})
+
+# Subcommands that take the diff family's options, and therefore have a write
+# form regardless of whether this class admits their read form.
+ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS = frozenset(
+    {"diff", "log", "show", "blame", "shortlog"}
+)
+
 ARTIFACT_GIT_WRITE_FORM_MARKERS: dict[str, frozenset[str]] = {
-    "diff": frozenset({"--output", "--ext-diff"}),
+    subcommand: _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS
+    for subcommand in sorted(ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS)
 }
 
 # Read-form argument allowlist for an admitted subcommand that doubles as a
@@ -2978,6 +2998,25 @@ def _artifact_commit_verdict(tail: list[str]) -> tuple[bool, str, str]:
     return (True, "", "")
 
 
+def _git_token_path_candidates(token: str) -> tuple[str, ...]:
+    """The substrings of one Git argument token that could name a path.
+
+    A path is not always the whole token. An option can carry it as a joined
+    value (`--opt=<path>`) or packed onto a single-dash flag (`-X<path>`), and
+    an option that reads a file from an absolute path reaches outside the root
+    whatever the option itself is called.
+    """
+
+    if not token.startswith("-"):
+        return (token,)
+    _, separator, value = token.partition("=")
+    if separator and value:
+        return (token, value)
+    if not token.startswith("--") and len(token) > 2:
+        return (token, token[2:])
+    return (token,)
+
+
 def _git_token_reaches_outside(token: str) -> bool:
     """Does one Git argument token name a path outside the locked root?
 
@@ -2987,8 +3026,11 @@ def _git_token_reaches_outside(token: str) -> bool:
     classification exists to remove.
     """
 
-    path = Path(token)
-    return path.is_absolute() or ".." in path.parts
+    for candidate in _git_token_path_candidates(token):
+        path = Path(candidate)
+        if path.is_absolute() or ".." in path.parts:
+            return True
+    return False
 
 
 def _git_token_matches_marker(token: str, markers: frozenset[str]) -> bool:
@@ -2997,17 +3039,21 @@ def _git_token_matches_marker(token: str, markers: frozenset[str]) -> bool:
     )
 
 
-def artifact_git_read_refusal_action(subcommand: str, tail: list[str]) -> str:
-    """Classify a refused read of an admitted read subcommand (D-S3-7 #3).
+def _artifact_git_deviation_action(subcommand: str, tail: list[str]) -> str | None:
+    """Is a refused Git read actually an attempt on a boundary? (D-S3-7 #3)
 
-    Three-way, because the deny ceiling counts deviations against the write
-    and execution boundaries and a refused read is only sometimes one. The
-    classification changes which budget an already-denied call spends; it
+    Returns the deviation reason code, or None when the invocation is a pure
+    read inside the locked root. Both the admitted read subset and the
+    recognized-but-unadmitted set go through this: whether a call is a
+    deviation is a property of the whole invocation, so classifying either set
+    by subcommand name alone leaves write forms in the exempt lane.
+
+    The classification changes which budget an already-denied call spends; it
     never admits anything.
     """
 
-    # Most specific label first. All three of these branches count, so the
-    # order changes only what the audit record says the attempt was.
+    # Most specific label first. All of these branches count, so the order
+    # changes only what the audit record says the attempt was.
     markers = ARTIFACT_GIT_WRITE_FORM_MARKERS.get(subcommand)
     if markers and any(_git_token_matches_marker(token, markers) for token in tail):
         return "git-write-form"
@@ -3017,7 +3063,25 @@ def artifact_git_read_refusal_action(subcommand: str, tail: list[str]) -> str:
     read_forms = ARTIFACT_GIT_READ_FORM_FLAGS.get(subcommand)
     if read_forms is not None and any(token not in read_forms for token in tail):
         return "git-write-form"
-    return "git-read-unbounded"
+    return None
+
+
+def artifact_git_read_refusal_action(subcommand: str, tail: list[str]) -> str:
+    """Classify a refused read of an *admitted* read subcommand."""
+
+    return _artifact_git_deviation_action(subcommand, tail) or "git-read-unbounded"
+
+
+def artifact_git_unadmitted_refusal_action(subcommand: str, tail: list[str]) -> str:
+    """Classify a refusal of a recognized-but-unadmitted read subcommand.
+
+    Same three-way split as the admitted subset, with a different label for
+    the pure-read case. Naming the subcommand is not enough: several members
+    of the unadmitted set take the diff family's options, so the write form of
+    one of them would otherwise be exempt from the ceiling.
+    """
+
+    return _artifact_git_deviation_action(subcommand, tail) or "git-read-unadmitted"
 
 
 _GIT_READ_REFUSAL_REASONS = {
@@ -3025,6 +3089,12 @@ _GIT_READ_REFUSAL_REASONS = {
     "git-write-form": "git {subcommand} is being used in its write form",
     "git-read-unbounded": (
         "the git {subcommand} arguments are outside the admitted read form"
+    ),
+}
+
+_GIT_UNADMITTED_REASONS = dict(_GIT_READ_REFUSAL_REASONS) | {
+    "git-read-unadmitted": (
+        "git {subcommand} is read-only but is not in the admitted read set"
     ),
 }
 
@@ -3099,11 +3169,13 @@ def _admit_artifact_change_git(
         # working directory but does not by itself bound the arguments.
         return _admit_artifact_change_git_read(subcommand, tail, root=root)
     if subcommand in ARTIFACT_GIT_READ_UNADMITTED:
-        return GateDecision(
-            False,
-            "git-read-unadmitted",
-            f"git {subcommand} is read-only but is not in the admitted read set",
-        )
+        # Recognizing the subcommand is not the exemption. Its arguments go
+        # through the same whole-invocation classification the admitted subset
+        # uses, so a write form under a recognized name spends the ceiling.
+        action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+        return GateDecision(False, action, _GIT_UNADMITTED_REASONS[action].format(
+            subcommand=subcommand
+        ))
     if subcommand not in {"add", "commit"}:
         return GateDecision(
             False,

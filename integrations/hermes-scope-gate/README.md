@@ -49,11 +49,14 @@ contract layers.
   since a contract with no write permission still has to see the state it works on. The deny ceiling
   counts only deviations against the write and execution boundaries. Because that is a property of
   the whole invocation and not of its subcommand, a refused read is classified three ways: arguments
-  naming a path outside the locked root and the write form of an admitted read subcommand count,
+  naming a path outside the locked root and the write form of a recognized read subcommand count,
   while a pure read inside the locked root whose argument form is simply not on the allowlist spends
-  the tool budget instead. So a turn following the required procedure cannot strand itself, a family
-  carrying both a read form and a state-changing form is never exempt, and no uncounted path escapes
-  the class budget.
+  the tool budget instead. The same classification covers the subcommands this class recognizes but
+  does not admit — several of them take the diff family's options and can be told to write a file, so
+  naming a subcommand as read-only is not by itself the exemption — and the path check looks inside a
+  joined option value or a packed single-dash flag, since a path need not be the whole token. So a
+  turn following the required procedure cannot strand itself, a family carrying both a read form and
+  a state-changing form is never exempt, and no uncounted path escapes the class budget.
   Write destinations are identified from an explicit tool-name-to-fields catalogue, so an unlisted
   tool is treated as a mutation, and a listed tool that carries none of its declared destination
   fields — or carries a declared container in an unexpected shape — is denied rather than skipped.

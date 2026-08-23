@@ -55,6 +55,10 @@
   - 同ファイル: `test_the_deny_ceiling_counts_only_boundary_deviations` / `test_read_refusals_do_not_strand_a_turn_that_keeps_working` / `test_boundary_deviations_still_exhaust_the_deny_ceiling` / `test_uncounted_denials_stay_bounded_by_the_class_budget` / `test_closeout_deny_counting_is_unchanged`
 - **免除粒度のずれによる両方向の誤分類**（状態変更形を持つ subcommand 族が免除側に載り write 境界の反復探索が上限を消費しない fail-open 側、および境界内の純粋な読み取りが計上され必須手順が上限で座礁する false deny 側。リビジョン範囲の `..` を上位参照と誤判定する形を含む）
   - 同ファイル: `test_a_refused_read_is_classified_by_the_whole_invocation` / `test_git_families_with_a_write_form_are_never_exempt` / `test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane` / `test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling` / `test_the_read_only_git_subset_is_a_closed_set` / `test_repeated_refused_reads_do_not_strand_the_required_flow`
+- **認識のみの読み取り集合における免除の穴**（許可しないが認識する subcommand を名前だけで免除し、その書込形・境界外読み取りが拒否上限を消費せずに反復探索できる。免除集合と許可集合の一方だけを invocation 単位で分類した場合に残る）
+  - 同ファイル: `test_a_write_form_under_a_recognized_read_name_is_never_exempt` / `test_a_pure_read_of_a_recognized_read_name_stays_exempt` / `test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling` / `test_a_recognized_read_still_does_not_strand_the_required_flow` / `test_the_read_only_git_subset_is_a_closed_set`
+- **トークン内部に運ばれた境界外パス**（パスをトークン全体ではなく結合値やフラグに詰めた形で運び、境界外判定を素通りして免除側へ落ちる。逆側として、パスを含まない結合値・束ね形が計上側へ誤って落ちる false deny も対象）
+  - 同ファイル: `test_a_path_inside_a_joined_option_value_is_not_exempt` / `test_a_joined_value_without_a_path_stays_exempt`
 - **受入項目の縮小による整合の空振り**（受入項目を必須手順ではなく実装の許可範囲へ合わせて書き、免除される形のみを固定する）
   - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`（承認 metadata 収集手順を列に含む）/ `test_replay_the_worker_flow_survives_one_refused_read`（未 admit subcommand と admit 済み subcommand の allowlist 外引数形の両類型）
 - **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、必須手順の拒否件数が上限を超えても非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜18）
