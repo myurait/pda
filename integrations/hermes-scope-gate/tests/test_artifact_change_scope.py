@@ -2315,9 +2315,7 @@ _EXPECTED_DEVIATION_DENY_ACTIONS = frozenset(
         "stage-scope",
         "commit-unsafe",
         "commit-rewrite",
-        # Execution lane.
-        "execution-not-opted-in",
-        "execution-template",
+        # Execution lane: only codes issued after a template head matched.
         "execution-option",
         "execution-stdin",
         "execution-target",
@@ -2359,6 +2357,10 @@ def test_a_budget_denial_consumes_no_counter(action: str) -> None:
         # Lanes an actual pure read reaches.
         "git-subcommand",
         "expansion-required",
+        # No template head matched, so the lane is undetermined: a command
+        # issued to read a file lands on these too.
+        "execution-not-opted-in",
+        "execution-template",
         "lock-pending",
         "seed-verification-failed",
         "contract-invalid",
@@ -2470,6 +2472,57 @@ def test_read_refusals_do_not_strand_a_turn_that_keeps_working(
     assert turn["denied_count"] == 0
 
 
+@pytest.mark.parametrize(
+    "execution",
+    [
+        # No opt-in at all, and an opt-in the command does not match: both
+        # produce a template mismatch, so neither fixes the lane.
+        [],
+        ["focused-test", "syntax-check"],
+    ],
+)
+def test_a_terminal_read_that_matches_no_template_does_not_strand_the_turn(
+    tmp_path: Path, execution: list[str]
+) -> None:
+    # A command issued to read a file inside the locked scope is denied -- the
+    # execution boundary holds -- but the denial does not fix the lane, so it
+    # must not spend the ceiling. Counting it stranded the turn: past the
+    # ceiling even an unconditionally admitted read tool came back
+    # `deny-budget`.
+    store, repo = _seeded_store(tmp_path, execution=execution)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for index in range(ceiling + 2):
+        refused = _admit(
+            store,
+            "terminal",
+            {"command": "cat src/app.py", "workdir": str(repo)},
+            call_id=f"read-{index}",
+        )
+        assert refused.allowed is False, index
+        assert refused.action in {
+            "execution-not-opted-in",
+            "execution-template",
+        }, (index, refused)
+
+    read_tool = _admit(store, "read_file", {"path": "src/app.py"})
+    admitted_git = _admit(
+        store, "terminal", {"command": "git status --porcelain", "workdir": str(repo)}
+    )
+    write = _admit(store, "write_file", {"path": "src/app.py", "content": "fixed"})
+    stage = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert read_tool.allowed is True
+    assert admitted_git.allowed is True
+    assert write.allowed is True
+    assert stage.allowed is True
+    assert turn is not None
+    assert turn["denied_count"] == 0
+
+
 def test_boundary_deviations_still_exhaust_the_deny_ceiling(tmp_path: Path) -> None:
     store, _ = _seeded_store(tmp_path)
     ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
@@ -2490,19 +2543,33 @@ def test_boundary_deviations_still_exhaust_the_deny_ceiling(tmp_path: Path) -> N
 
 
 @pytest.mark.parametrize(
-    ("last_command", "beyond_command", "action"),
+    ("last_command", "beyond_command", "action", "execution"),
     [
-        ("git show HEAD", "git show HEAD~1", "git-read-unadmitted"),
-        ("git rev-parse --git-dir", "git branch --list", "git-read-unbounded"),
+        ("git show HEAD", "git show HEAD~1", "git-read-unadmitted", []),
+        ("git rev-parse --git-dir", "git branch --list", "git-read-unbounded", []),
+        # Template mismatch: no head matched, so the lane is undetermined and
+        # the denial is uncounted. Both variants -- no opt-in at all, and an
+        # opt-in the command does not match.
+        ("cat src/app.py", "cat README.md", "execution-not-opted-in", []),
+        (
+            "cat src/app.py",
+            "cat README.md",
+            "execution-template",
+            ["focused-test", "syntax-check"],
+        ),
     ],
 )
 def test_uncounted_denials_stay_bounded_by_the_class_budget(
-    tmp_path: Path, last_command: str, beyond_command: str, action: str
+    tmp_path: Path,
+    last_command: str,
+    beyond_command: str,
+    action: str,
+    execution: list[str],
 ) -> None:
     # The uncounted path is not an unbounded path: it spends the tool budget,
     # so the class ceilings still terminate it. Every exempt reason code has
     # to be shown bounded, not just the first one that was exempted.
-    store, repo = _seeded_store(tmp_path)
+    store, repo = _seeded_store(tmp_path, execution=execution)
     ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_tool_calls"])
     with store._connect() as connection:
         connection.execute(

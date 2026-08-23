@@ -2836,15 +2836,24 @@ ARTIFACT_BUDGET_DENY_ACTIONS = frozenset({"wall-budget", "tool-budget", "deny-bu
 
 # Reason codes that charge the deny ceiling (D-S3-7 補則, 2026-08-23).
 #
-# The membership rule is a property of the *determination*, not of the
-# argument spelling: a code belongs here only when every invocation that can
-# receive it has already been established, by a fact admission decides for
-# itself, to be an attempt at the write or execution boundary. The facts that
-# qualify are the ones admission cannot be wrong about -- the tool name being
-# in the write catalogue, the Git subcommand being `add`/`commit`, the command
-# being a non-Git program, a contract permission field being absent, a
-# resolved path failing the write-scope match. Equivalently: no invocation
-# that is really a pure in-scope read can ever land on a code named here.
+# Membership is decided by one rule and one rule only (the litmus): a code
+# belongs here when no invocation whose purpose is reading can land on it.
+# "Reading" means the paths this class serves reads through -- the read tools,
+# the admitted read-only Git subcommands -- plus any terminal command whose
+# lane admission has not yet determined.
+#
+# The per-lane facts below are how that litmus applies, not a second rule to
+# check against it: the tool name being in the write catalogue, the Git
+# subcommand being `add`/`commit`, the command matching the head form of an
+# opted-in execution template, a contract permission field being absent, a
+# resolved path failing the write-scope match. Each is a fact admission
+# decides for itself, and each excludes every reading invocation.
+#
+# For the execution lane specifically: matching a template head is what fixes
+# the invocation as an act at the execution boundary, regardless of what the
+# caller meant by it, because the contract's own opt-in named that program.
+# Failing to match any head does not fix the lane -- a command issued to read
+# a file lands there too -- so the mismatch codes are uncounted.
 #
 # This replaces an exempt-list whose default was to count. The polarity is
 # inverted because the old default made every unclassified refusal a
@@ -2863,6 +2872,9 @@ ARTIFACT_BUDGET_DENY_ACTIONS = frozenset({"wall-budget", "tool-budget", "deny-bu
 #   `git-subcommand`                 an unrecognized subcommand can be a pure
 #                                    read, so the lane is undetermined
 #   `expansion-required`             an unrecognized *tool* can be a read
+#   `execution-not-opted-in`,        no template head matched, so the lane is
+#   `execution-template`              undetermined: a command issued to read a
+#                                     file reaches these (V3-02, measured)
 #   `lock-pending`,                  pre-lock refusals: reads via terminal are
 #   `seed-verification-failed`        unadmitted there, so reads reach these
 #   `workdir-*`                      decided before the command is tokenized,
@@ -2894,10 +2906,9 @@ ARTIFACT_DEVIATION_DENY_ACTIONS = frozenset(
         "stage-scope",
         "commit-unsafe",
         "commit-rewrite",
-        # Execution lane: reached only by a non-Git command, which crosses the
-        # execution boundary by running a program at all.
-        "execution-not-opted-in",
-        "execution-template",
+        # Execution lane: reached only after a command matched the head form
+        # of a template the contract opted in to, which fixes the invocation
+        # as an act at the execution boundary.
         "execution-option",
         "execution-stdin",
         "execution-target",

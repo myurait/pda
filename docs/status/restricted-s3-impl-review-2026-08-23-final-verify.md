@@ -207,3 +207,122 @@
 ## V2-4. 司令塔判断へ回す残余（本検証で増えたもの）
 
 無し。台帳 §10-4 の 2 項目をそのまま引き継ぐ。V2-01 / V2-02 はいずれも実装の網羅の問題であり、修正は既存の明示列挙機構と単一ヘルパの内側に収まる（admission を広げない）。
+
+---
+
+# V3 ラウンド: D-S3-7 補則実装の独立検証（`240d859..17b236b`）
+
+- Status: 確証欠陥 2 件（minor 2）。誤検知 0 件。major / blocker 無し。
+- 対象差分: `240d859..17b236b`（修正コミット `17b236b`）。計上規則を admission の確定判定由来へ改訂し、引数分類を audit 帰属専用へ降格した差分。
+- 判定基準: 旧 §10 受入項目 18 ではなく、司令塔決定 D-S3-7 補則の**改訂後 5 点**（(i) 確定判定由来のみ計上 / (ii) ヒューリスティック段は計上ゼロかつ座礁ゼロ / (iii) 非計上経路がクラス予算で有界 / (iv) 計上ロジックが分類表を参照しない / (v) bypass 観点）。
+- 検証環境: `./tmp/venv-scope/bin/python -m pytest integrations/hermes-scope-gate/tests -q --ignore=.../test_hermes_integration.py` → **502 passed** を再現確認。
+- プローブ: `tmp/verify-hosoku/diff_admission.py`（差分前後の判定比較 254 形）、`criteria.py`（改訂 5 基準）、`probe3.py`（実行レーン座礁・closeout・冪等性ガード）。いずれも git 管理外。修正者のテストファイルは import せず、設計本文と実装から独立に構成した。
+- プローブ環境の注意: `scope_gate.py` は契約 JSON schema を `Path(__file__).parent / "schemas"` で解決する。差分前コピーを別ディレクトリに置いて import すると seed 検証が失敗し全ターンが `mutation-denied` に落ちるため、比較プローブでは `schemas/` を隣に配置する必要がある。
+
+## V3-0. 修正報告のうち独立に確認できたもの
+
+- **admission は無変更（最重要の確認、構造側）。** 差分前後の AST を関数単位で正規化比較したところ、admission に関わる関数のうち**本体が変化したのは `_admit_artifact_change_terminal` の 1 つだけ**であり、その差は既に拒否している 3 分岐の理由コード文字列リテラル 3 個のみ（`allowed=False` は不変）。`_artifact_change_decision` / `_admit_artifact_change_pre_lock` / `_admit_artifact_change_locked` / `_admit_artifact_change_git` / `_admit_artifact_change_git_read` / `_artifact_stage_targets` / `_artifact_commit_verdict` / `_scan_template_tokens` / `_admit_artifact_change_execution` / `_admit_closeout_locked` はいずれも AST 同一である。admission 以外で本体が変化したのは `artifact_deny_counter`（計上写像そのもの）だけである。すなわち「全ての deny が deny のまま」は実測の一般化ではなく、変更集合の同定によって成立している。
+- **admission は無変更（実測側の裏付け）。** 254 形について差分前後の `allowed` を対比。**判定反転は両方向ともゼロ。** `deny → allow`（境界の突破）も `allow → deny`（可用性の退行）も無い。corpus の構成（実測の内訳、合計 254）:
+  - 読み取りツール 3 / 作業記録 6 / run 終端 2（各カタログの全 member）
+  - write カタログ 12 ツール × 7 形 = 84
+  - 認識外ツール 4 / terminal 引数フィールドと background・pty 3 / workdir 6 変種 / 字句解析と空コマンド 4
+  - 許可読み取り subcommand の純粋形 16 / その allowlist 外・書込形 10
+  - 認識のみ集合の全 member 8 / V-01・V-02・V-03・V2-01・V2-02 の各形 32（内訳 7 / 5 / 14 / 6）
+  - 認識外 subcommand 21（`git` 単体・push・reset・worktree 作成・履歴書換系を含む）
+  - `git add`・`git commit` 25（権限欄の有無 4 形を含む）
+  - 非 git 実行 24 / 実行テンプレート 6
+- **理由コードの変化は意図した 3 コードの改称 6 形のみ。** `target-missing → workdir-missing`（2 形）、`target-traversal → workdir-traversal`（1 形）、`target-closed → workdir-outside`（3 形）。他の 248 形は同一コード。
+- **計上先の変化 63 形はすべて計上 → 非計上の一方向。** 非計上 → 計上はゼロ。すなわち今回の改訂は単調な緩和であり、V2-02 型（純粋読み取りの誤計上による座礁）の新規区画を作っていない。移動の内訳（差分前に付いていた理由コード別の実測。合計 63）: `git-subcommand` 21 / 分類ラベル由来 25（`git-write-form` 16・`git-read-unsafe` 9）/ `expansion-required` 4 / workdir 検査 6（`target-closed` 3・`target-missing` 2・`target-traversal` 1）/ 字句解析 4（`compound-command` 2・`command-parse` 2）/ terminal 引数フィールドと background 3（`background-forbidden` 2・`terminal-argument-unlisted` 1）。
+- **未 lock 段は実測していない（invariance は上記 AST 同一性による）。** 比較 corpus はいずれも lock 済みターンで構成しており、`pre-lock` / `mutation-denied` 段は通っていない。当該段の判定 invariance は `_artifact_change_decision` と `_admit_artifact_change_pre_lock` が AST 同一であることをもって成立する。計上先は変わっており（「lock 未了」は純粋な読み取りも到達するため非計上へ）、その有界性は設計 D-S3-4 節の書き換えと既存テスト `test_the_unlocked_stages_are_bounded_by_the_class_budget` が担保する。したがって「254 形で判定反転ゼロ」という実測の主張は lock 済み段についてのものである。
+- **改称の波及なし。** `schemas/*.json` / `plugin_runtime.py` / `README.md` / `__init__.py` のいずれも理由コードを列挙しておらず、旧綴りへの参照も無い。台帳のみが改称の経緯として旧綴りに言及しており、これは正しい。
+- **計上箇所は 2 か所のみ。** モジュール全体の `denied_count` 加算は写像経由（2178）と冪等性ガード（2112）の 2 か所。設計が例外として明記した構成と一致し、第三の経路は無い。
+- **旧免除集合は削除済み。** `ARTIFACT_READ_REFUSAL_ACTIONS` は属性として存在しない。「計上に使わないが残す」形の drift 面が無い。
+- **closeout 非干渉。** `artifact_deny_counter` の呼び出し元は 1 か所で、`task_class == "artifact-change"` に閉じている。他クラスは `else` 節で常に `denied_count`。
+- 置換対象の旧テスト 2 件（分類段の拒否が拒否上限を枯渇させることを固定していたもの）は不在を確認。旧基準の語彙（`..._reaches_the_exempt_lane` / `..._still_count_as_deviations` / `..._never_exempt`）も残存なし。台帳が列挙する新規テスト名はすべて実在。
+
+## V3-1. 確証欠陥
+
+### V3-01 [minor] 批准対象である計上集合の要素数が台帳で誤記されている
+
+- 位置: `docs/status/restricted-s3-impl-fix-2026-08-23-disposition.md` §12-4 項目 1、および §12-5 の `test_every_definitive_determination_charges_the_deny_ceiling` の項
+- 台帳は計上集合 `ARTIFACT_DEVIATION_DENY_ACTIONS` を「25 メンバー」、全数テストを「25」と記載する。実測は **24**（`write-scope` / `target-shape` / `target-missing` / `target-control` / `target-base` / `target-traversal` / `target-escape` / `target-closed` / `target-root` / `git-write-unspecified` / `git-write-forbidden` / `target-drift` / `stage-unbounded` / `stage-option` / `stage-magic` / `stage-directory` / `stage-scope` / `commit-unsafe` / `commit-rewrite` / `execution-not-opted-in` / `execution-template` / `execution-option` / `execution-stdin` / `execution-target`）。`pytest --collect-only` での当該テストのパラメタ数も 24。
+- 併せて §12-5 の見出しは「新規 42 パラメタ」、同節末尾は「新規テストは 43 パラメタ」と食い違う（net の増分 502 − 459 = 43 が正しいと読める）。
+- 影響: 機能影響なし。集合同値性テスト `test_the_counting_set_is_exactly_the_ratified_enumeration` はテスト側に正本列挙を持ち緑であり、実装と正本列挙は一致している。壊れているのは台帳の数値のみ。
+- 判定: M1 exit gate の批准者が突き合わせる量（批准する集合の規模そのもの）が誤っているため、確証欠陥として記録する。severity は minor。
+- 修正の形: 台帳 §12-4 項目 1 と §12-5 の「25」を「24」へ、§12-5 見出しの「42」を「43」へ改める。
+
+### V3-02 [minor] 計上集合の帰属規則が §11 内で二つの定式化を持ち、実行レーンで両者が乖離する（読み取り形の invocation が 6 回で座礁する）
+
+- 位置: `docs/design/task-scope-admission-gate.md` §11「第一層」の計上規則、`integrations/hermes-scope-gate/scope_gate.py` `ARTIFACT_DEVIATION_DENY_ACTIONS`（`execution-not-opted-in` / `execution-template`）
+- §11 は帰属規則を二通りに書く。(A) 列挙型:「ツール名が write カタログに属すること、git subcommand が `add`/`commit` であること、**コマンドが git 以外のプログラム起動であること**、契約の権限欄が当該操作を許可していないこと、解決後のパスが write scope 照合に失敗すること」。(B) 同値だと述べる形:「**実際には scope 内の純粋な読み取りである呼び出しが到達しうる理由コードは、計上対象に入れない**」。
+- 両者は実行レーンで一致しない。ロック済み worktree 内・write scope 内のファイルを terminal 経由で読むだけの呼び出しは、(A) では「git 以外のプログラム起動」として確定判定に当たるが、(B) の文言では「純粋な読み取り」に当たる。実装は (A) を採っている。
+- 実測（`tmp/verify-hosoku/probe3.py` セクション A。locked 段、workdir はロック済み root、予算は新規状態から）: scope 内ファイルの内容取得を terminal 経由で 6 回反復すると `execution-not-opted-in` が 6 回計上され `denied_count == 6` に達し、その直後の
+  - write scope 内の `write_file` → `deny-budget`
+  - 許可読み取り subcommand（status） → `deny-budget`
+  - **無条件に許可される読み取りツール（`read_file`） → `deny-budget`**
+  となる。実行テンプレートに opt-in した契約でも同様（`execution-template` が 6 回計上され同じ終状態、セクション A2）。**I-DC-02 / V-03 / V2-02 が報告した終状態と同一である。**
+- 本差分の退行ではない。差分前後の比較で当該形の計上先は不変（63 形の移動に含まれない）。§11 の (A) は司令塔決定文が「execution opt-in 違反」を確定判定として明示的に列挙した内容であり、実装は決定に忠実である。
+- 到達性: 必須手順（§10 受入項目 15 の列）はこの形を用いない（読み取りは読み取りツールと許可 git subcommand で足りる）。したがって規定フローに従うターンは座礁しない（V3-2 で実測）。前回 V-03 / 今回 V2-02 と同じ扱いで、I-COM-01 の閉鎖判定は変えない。
+- 影響: admission は拒否のままで、プログラムは起動しない。壊れるのは可用性の一部（読み取り形の terminal 呼び出しを続けたターンが自らの拒否で座礁する）と、§11 の (B) が主張する同値性。改訂基準 (ii) が対象とするヒューリスティック段は清浄であり（V3-2 で実測）、本件は実行レーン。
+- 判定: 設計文書内部の不整合（(A) と (B) が同値でない）として確証欠陥に当たる。座礁そのものは決定文が受け入れた帰結の範囲内であるため severity は minor。
+- 修正の形: (a) §11 の (B) を「純粋な読み取り」ではなく「本クラスが読み取り経路として許可している呼び出し（読み取りツールおよび許可 git subcommand）が到達しうる理由コードは計上しない」と書き直し、terminal 経由の非 git 起動が読み取り目的であっても実行境界の行為である旨を明示する。文言のみの修正で実装は無変更。または (b) 実行レーンの opt-in 違反・テンプレート不一致を非計上へ移す（tool 予算で有界）。(b) は決定文の「execution opt-in 違反は確定判定」に反するため司令塔判断を要する。**(a) を推奨する**: 実行境界は本クラスの硬い境界であり、そこへの反復試行を拒否上限で有界に保つ設計意図は妥当で、変えるべきは記述の方である。
+
+## V3-2. 改訂 5 基準の判定
+
+### (i) 確定判定由来の拒否のみ計上され、テストで固定されている — 充足（V3-02 の記述上の留保付き）
+
+- 計上集合 24 メンバー全数が `denied_count` へ写る。予算枯渇 3 コードはいずれの計数も消費しない。未知コードの既定は `tool_count`（極性反転済み）。集合同値性テストがテスト側に正本列挙を持つ。
+- §11 の列挙型 (A) の 5 つの確定判定それぞれについて、対応する呼び出しが計上側コードへ落ちることを実測（write カタログの scope 外・root 脱出、`git add` の scope 外・bulk、git write 権限欄の不許可 2 形、`git commit --amend`、非 git の opt-in 無し・テンプレート不一致）。
+- 逆走査（計 19 形）: 許可読み取りツール 1・許可 git subcommand の純粋形 9・認識のみ集合の純粋形 3・V-03 / V2-02 型の「値がパスに見えるだけの読み取り」4・terminal 経由の非 git 読み取り 2。このうち計上側へ落ちるのは**実行レーンの 2 形のみ**（V3-02）。git 読み取りレーンからの計上はゼロ。
+
+### (ii) ヒューリスティック段の拒否は計上ゼロかつ座礁ゼロ — 充足
+
+分類器の 4 ラベル（`git-write-form` / `git-read-unsafe` / `git-read-unbounded` / `git-read-unadmitted`）それぞれについて、上限 + 2 回（8 回）反復後に `denied_count == 0`、`tool_count == 8`。直後の許可読み取り（status）・write scope 内書込・ステージがすべて許可される。**V2-02 の失敗様態は当該段で解消している。**
+
+### (iii) 非計上の拒否経路がクラス予算で有界 — 充足
+
+認識外 subcommand レーンと認識外ツールレーンについて tool 予算（96）まで反復。`denied_count == 0`、`tool_count == 96`、97 回目が `tool-budget` の**拒否**（fail-open でない）。閉鎖後は write scope 内の書込も許可読み取りも `deny-budget` で拒否される（fail-closed）。予算枯渇由来の拒否自体はいずれの計数も増やさない（`tool_count` が 96 で止まる）。
+
+### (iv) 計上ロジックが並行分類表を参照しない — 充足
+
+- 第1層: `artifact_deny_counter.__code__.co_names == {"ARTIFACT_BUDGET_DENY_ACTIONS", "ARTIFACT_DEVIATION_DENY_ACTIONS"}`。分類表・分類関数の識別子を 1 つも含まない。関数本体が 4 行であるため `co_names` の浅さは実害にならない。
+- 第2層: 分類器の値域を理由文表から導出した 4 ラベルは計上集合と交わらず、全て `tool_count`。
+- 第3層: 旧免除集合が属性として存在しない。「参照されないが残る集合」による drift 面が無い。
+- 呼び出し元の全数走査でも計上箇所は 2 か所のみ（写像・冪等性ガード）。
+
+### (v) bypass 観点 — 新たな迂回・オラクルは認められない
+
+- **緩和量**: 非計上へ移った経路の有界性は拒否上限 6 → tool 予算 96、すなわち反復回数で 16 倍。§10 受入項目 17 が列挙する元事例 expansion のうち、**push・reset・worktree 作成・履歴書換系は認識外 subcommand として、subagent 起動は認識外ツールとして、いずれも非計上側へ移った**（実測で全形 `allowed is False` を維持）。緩和されたのは探索の反復回数のみで、許可は一切広がっていない。
+- **オラクル**: write scope の内容を推定しうる拒否コード（`write-scope` / `stage-scope` / `stage-directory` / `execution-target` / `target-closed` / `target-escape`、すなわち scope パターン照合とパス解決に依存して値が決まるコード）は**すべて計上側**にある。したがって scope 内容の探索は従前どおり 6 回で有界である。非計上側へ移ったコードの値を決めるのは、呼び出し側が自ら与えた入力（workdir・ツール名・subcommand 名・引数フィールド名）か、プラグインに静的に含まれる認識 subcommand 集合のいずれかであり、新たな情報は得られない。workdir 検査の 3 コード分離は粒度を上げるが、workdir は呼び出し側の入力であり既知である。
+- 拒否理由文の内挿値も呼び出し側入力に限られる（正規化後の自パス、subcommand 名、ツール名、権限名、未許可引数フィールド名）。scope パターンそのものを返す拒否理由は無い。
+- 冪等性ガード（`hook-argument-drift`）は写像を経由せず直接上限へ計上する。台帳 §12-4 が自ら「純粋な読み取りの呼び出し id を引数を変えて再送する形も到達しうるため帰属規則の litmus に厳密には合わない」と開示しており、記述と実装が一致している（実測で計上を確認）。既存挙動の保持であり本差分の変更点ではない。
+
+## V3-3. exit 条件の判定
+
+### I-COM-01 残余 — closed 維持（退行なし）
+
+必須手順 17 形（読み取りツール・検索・status 3 形・diff 2 形・rev-parse 6 形・branch 4 形）を独立プローブで実測。`denied_count == 0` で完走し、直後の write / stage / commit がすべて許可される。承認 metadata のうち canonical Git 同一性 2 項の値が契約内で取得できない点は残るが、台帳 §10-4 の司令塔判断として既に起票済み。V3-02 は必須手順が到達する形ではないため、前回 V-03 / V2-02 と同じ扱いで I-COM-01 の判定は変えない。
+
+### I-COM-06 — closed 維持（退行なし）
+
+§10 受入項目 18 は「改訂（2026-08-23、D-S3-7 補則）」として出所を残して書き換えられており、削除ではない。改訂理由 3 点（旧要件の充足不能性の実証 / 安全目的は tool 予算が担保 / 境界は無変更）が明記され、固定対象 4 点それぞれに対応テストが実在し緑。項目 15〜17 および 1〜14 は無改訂。読み取り専用 git の第一層許可・`push` の対象外明記・強制状態 replay はいずれも無変更で緑。
+
+### J-FID-01 — **closed**（改訂基準による再判定）
+
+改訂後 5 基準のうち (i)〜(iv) をすべて独立に充足確認した。前回まで J-FID-01 を開いていた理由は「invocation → 理由コードの分類が両方向で正しいこと」が 3 巡連続で反例を持ったことであり、その要件は D-S3-7 補則により受入項目から外された。**当該失敗様態は再発しえない構造になっている**: 分類の誤りは計上先を動かさない（値域と計上集合の交わりが空、実測で 4 ラベル全て非計上）し、計上集合は分類表を参照しない（`co_names` に識別子が無く、旧免除集合も削除済み）。安全目的の担保も実測で成立（非計上レーンは tool 予算で閉じ、閉鎖は拒否）。境界は無変更（lock 済み段 254 形で判定反転ゼロ、未 lock 段は差分が当該分岐に触れていないことによる静的確認）。
+
+残余は V3-02（設計文書内部の記述の不整合と、実行レーンにおける読み取り形 terminal 呼び出しの座礁）のみであり、これは計上規則の機構ではなく**計上集合に置く要素の選択とその記述**の問題である。機構としての J-FID-01 は closed と判定する。
+
+## V3-4. 誤検知として棄却した候補（記録）
+
+- **認識外 subcommand・認識外ツールの非計上が境界の緩和にあたるか** — admission は全形で拒否のまま。tool 予算で有界であり fail-closed で閉じる。司令塔決定が明示的に受け入れた帰結であり、実装は決定に忠実。棄却（V3-2 (v) に残余リスクとして記録）。
+- **workdir がロック済み worktree 外である拒否の非計上** — 当該コードには許可読み取り subcommand も到達する（実測）ため、帰属規則 (B) に照らして非計上が正しい。判定順序（字句解析より前）は補則が要求する admission 無変更のため動かせない。棄却。
+- **`ARTIFACT_GIT_READ_FORM_FLAGS` の降格が admission を広げるか** — 当該表のみ admission に対して load-bearing のまま（`branch` の書込形を読み取りとして admit させない allowlist）であり、コメントにもそう明記されている。`git branch -D` / `-d` / `-m` / `--set-upstream-to` / 新規作成形はいずれも差分前後で拒否のまま。棄却。
+- **計上集合が分類表から構築されていないか（識別子を書かずに実質参照する形）** — 集合は文字列リテラルのみで構成され、値域との交わりが空であることを理由文表から導出して確認。棄却。
+- **closeout の計上規則への波及** — 呼び出し元 1 か所、クラス条件で閉じており、他クラスは `else` 節で常に計上。棄却。
+- **改称による外部 I/F の破壊** — 理由コードを列挙する schema / runtime / README が存在しない。棄却。
+- **`git-read-unbounded` / `git-read-unsafe` の差が境界情報のオラクルになるか** — 差を決めるのは呼び出し側が与えた引数とロック済み root（契約に記載され呼び出し側が既知）のみ。scope パターンには依存しない。棄却。
+
+## V3-5. 司令塔判断へ回す残余（本検証で増えたもの）
+
+無し。V3-01 は台帳の数値修正、V3-02 は推奨する修正形 (a) が設計文書の文言修正であり、いずれも設計判断を要さない。台帳 §10-4 の 2 項目および §12-7 の批准確認 3 項目をそのまま引き継ぐ。修正報告が司令塔判断へ回した 3 項目のうち、1（認識外 subcommand・認識外ツールの非計上）と 2（workdir の非計上）は本検証で決定文に忠実と確認済みであり、3（ステージ・コミット引数形と実行テンプレート不一致の計上）は V3-02 として実行テンプレート側のみ記述の留保を付す。
