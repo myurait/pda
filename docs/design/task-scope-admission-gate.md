@@ -1,6 +1,6 @@
 # PDAタスク・スコープ審査ゲート設計
 
-Status: Implemented through rollout S1; production activation pending
+Status: Implemented through rollout S1; S3-M1 design decided 2026-08-23 (D-S3-6 pending owner decision); production activation pending
 Checked: 2026-08-18 JST
 Initial target: Hermes Agent v0.20.2 on the PDA runtime
 
@@ -374,43 +374,150 @@ Exit: closeout taskの95%が15分以内、expansion 0、必要actionのfalse den
 - write scope、targeted verification、expansion reviewを有効化する。
 - broad implementationを狭く誤分類しないgold setを通す。
 
-#### S3-M1: 決定論コアの具体設計（2026-08-22、governance ADR承認後に確定）
+#### S3-M1: 決定論コアの具体設計（2026-08-22 ドラフト、2026-08-23 に D-S3-1・D-S3-2・D-S3-3 の決定を反映）
 
-goal M1 が実装するのは S3 の決定論コアであり、worker profileへの配線・judge実接続・実トラフィック由来gold set・discovery段は M2（オーケストレーター設計）の残余とする。
+goal M1 が実装するのは S3 の決定論コアである。worker profile への配線・judge 実接続・実トラフィック由来 gold set・discovery 段の帰属は D-S3-6（オーナー判断）の決定に従う。
 
-契約の拡張（scope-contract-v1）:
+基本原理: **書込権限と実行権限を、別の保証水準として契約上分離する（二層契約）。**
 
-- `targets.write_paths`: artifact-change で必須。リポジトリ相対のglobパターン（fnmatch、最大32件、絶対パス・`..`・空を拒否）。ターンの書込許可範囲の閉集合（INV-S2の write 版）。
-- class別budget補正の既存バグを修正する: `budget.minutes`/`budget.tool_calls` という存在しないキーへの `allOf` 制約は常に真であり何も検査していないため、実キー `max_wall_seconds`/`max_tool_calls` への制約に置き換える（bounded-operation 側も同様）。
+- 第一層（write 境界）は決定論的に強制できる硬い境界であり、S3-M1 が主張する「スコープ逸脱の機械的遮断」はこの層についての主張である。
+- 第二層（実行を伴う検証）は、契約が明示的に opt-in した場合にのみ、閉じたテンプレート集合として許可する。実行中のプロセス副作用は第一層の保証対象外であることを脅威モデルとして明文化し、残余を M2 の必須要件として固定する。opt-in のない契約では実行を伴うツール呼び出しを一切許可しない（default deny）。
 
-lock（artifact-change）:
+##### 契約の拡張（scope-contract-v1）
 
-- `lock_turn` を artifact-change に開放する。closeout と同じ原子的 lock で、`write_paths` を含む契約を固定する。lock 前は G0/G1 の既存挙動（audit）を維持する。
+- `targets.write_paths`: artifact-change で必須。リポジトリ相対の glob パターン（最大32件、空・上位参照・制御文字を拒否）。ターンの書込許可範囲の閉集合（INV-S2 の write 版）。
+- `targets.test_paths`: テスト資産（テストファイル、テスト専用フィクスチャ）の書込許可範囲の閉集合。`write_paths` と対称の構文・件数上限を持つ独立フィールドとする。既定は当該ターンの `write_paths` に対応するテストファイル単位まで絞り、リポジトリのテストディレクトリ全体を無条件には含めない。省略時は空集合（テスト資産の書込を許可しない）。
+- `execution`: 第二層の opt-in。許可する検証テンプレートの ID 集合のみを持つ。省略時または空集合のとき、実行を伴うツール呼び出しを全て拒否する。契約側に実行コマンド文字列を自由記述させない（§13 の却下事項「Agent が自由記述した contract を無検証で採用」と整合させる）。テンプレート ID から具体の検査規則への対応は、ゲート実装側の閉じたレジストリに置く。
+- glob 構文: `*` はパスセグメント境界を越えず、再帰は `**` として構文上区別する。承認レビュー時に読める文字列と実効許可範囲を一致させるため、標準ライブラリのパターン照合をそのまま用いない。意図した粒度を示す例を1つ本節へ載せる。
+- class 別 budget 補正の既存バグを修正する: 実在しないキーへの条件付き制約は常に真であり何も検査していないため、実キー（`max_wall_seconds` / `max_tool_calls`）への制約に置き換える（bounded-operation 側も同様）。
+- スキーマ記述規律: 新設フィールドの class 別必須化は、条件節の下に必須キー宣言を伴わせる。プロパティ形状の宣言だけでは欠落を検査できず、上記の既存バグと同種の空振りが再発する。
 
-admission（locked artifact-change）:
+##### lock（artifact-change）
 
-- 読み取り系ツール（read/search/list系）: 許可（audit記録のみ）。
-- 構造化書込ツール（`write_file` / `patch` 等、`args.path` を持つもの）: path を正規化（絶対パス・`..`・制御文字は即deny）し、いずれかの `write_paths` glob に一致すれば許可、不一致は G3 expansion review へ（既存permit機構。judge未接続のためfail-closed）。
-- `terminal`: 既存tokenizer（複合コマンド・シェル展開はfail-closed）を流用し、(a) closeout と同じ Git 読み取り部分集合、(b) targeted verification テンプレート、のみ許可。それ以外は G3 へ。
-- targeted verification の決定論的定義（INV-S4の実装形）: `pytest`/`python -m pytest` は、位置引数のパスが全て `write_paths` 配下または `tests/` 配下を指す場合のみ許可し、パス引数なしのfull-suite起動は許可しない。`python -m py_compile <paths>` は全パスが `write_paths` 配下の場合のみ許可。
-- 未知ツール・上記以外の変異系: G3 expansion へ（default deny for mutation）。
+- `lock_turn` を artifact-change に開放し、closeout と同じ原子的 lock で `write_paths` / `test_paths` / `execution` を含む契約を固定する。lock 到達経路と lock 前の既定は D-S3-4 / D-S3-5 の決定に従い、本節は locked 状態の admission のみを規定する。
+- lock 時に、`write_paths` / `test_paths` が指す範囲の祖先ディレクトリに、ロック済み worktree 外を指すシンボリックリンクが存在しないことを検査する。
 
-M2 への残余（本設計で明示的に先送り）:
+##### 第一層: write 境界（硬い決定論保証）
 
-- worker profile への配線と有効化、judge の実接続、artifact-change 用 discovery 段、実トラフィックからの S3 exit 用 gold set、pre_llm_call のクラス別policy注入の拡充、verification 契約（検証者ハンドオフ）との統合。
+- 読み取り系ツール（read/search/list 系）: 許可（audit 記録のみ）。
+- **書込先の識別はツールカタログで行う。** 「ツール名 → 書込先を表す全フィールド名」の明示 allowlist を持ち、単一パス、パス配列、変更元と変更先の対を持つツールを区別して、書込先になりうる全フィールドを検査する。未列挙のツールは変異系として G3（default deny for mutation）へ落とす。引数の形状に対する名前ヒューリスティックで判定しない。
+- **パス正規化は単一の決定論関数へ集約する。** 検査は「パス要素を完全に解決し、上位参照要素の不在と制御文字の不在を確認する」形で行い、文字列前処理の積み増しで実装しない。「絶対パス即 deny」は引数の表記形式ではなく「ロック済み repository / worktree root のいずれにも属さないパス」を意味するものとする（既存の読み取り系ツールと terminal は絶対パスを要求しており、表記形式での一律 deny は既存規約と矛盾する）。ツールが作業ディレクトリを持たない場合の解決基準も同じ関数に含める。
+- **照合順序**: 絶対パスへ解決 → ロック済み root への相対化 → root 外は deny → 相対パスを `write_paths` / `test_paths` の glob へ照合。
+- **実体解決を含める。** 書込先の直近の既存祖先ディレクトリを実体解決し、解決後の絶対パスがロック済み worktree root 配下であることを検査する。レキシカルな文字列照合のみで書込を許可しない。
+- `git add` とメッセージ指定付きの `git commit` を決定論 allowlist に含める。`push` は含めず、承認後の別 finalization 契約に残す。
+  - ステージ範囲は write scope に従属させる。ステージ対象は `write_paths` ∪ `test_paths` へ照合済みのパス指定経由のみとし、対象を列挙しない一括ステージ系の指定は許可しない。closeout は「既存差分を保存する」意味論のため一括指定を許容できるが、artifact-change では許容しない。**「closeout 同水準」は検査の厳密さの下限であり、許可範囲の上限ではない。**
+  - 履歴書換および検証フック迂回に相当する指定は deny する。
+  - artifact-change 用の terminal admission は closeout 用関数とコードパスを共有しない独立実装とする。git 書込の可否を、分類器が偶然立てないフラグの副作用に依存させない。
+  - lock 時に固定したブランチ束縛に対する drift 再検査を、git 書込の admission 前に行う（ブランチ束縛の持ち方は D-S3-5 に従う）。
+- 上記以外の変異系: G3 expansion へ（default deny for mutation）。
 
-#### S3-M1 未解決の設計判断（2026-08-22 反証レビュー結果）
+##### 第二層: 実行を伴う検証（契約単位の opt-in、write 境界の保証対象外）
 
-上記ドラフトは実装着手前の並列反証レビュー（運用細則2）を通し、確証欠陥 20 件（blocker 6 / major 7 / minor 7）が返った。**ドラフトは未承認であり、この判断が決まるまで実装へ進まない。** 各欠陥の根拠と対応方針は `docs/status/restricted-s3-write-scope-review-2026-08-22.md` にある。同ファイルは迂回手法の具体形を含み Fable セッションでは直接読まない扱いのため、対応は Opus のサブエージェントへ委譲する。
+- `execution` が空の契約では、実行を伴うツール呼び出しを全て deny する。
+- opt-in された契約では、レジストリに登録された検証テンプレート（対象ファイルを明示した焦点テストの実行、対象ファイルの構文検査）のみを許可する。
+- **引数検査は closeout の既存 allowlist 実装と同水準に揃える。** 規範:
+  1. 位置引数に限定せず、全トークンを走査する。
+  2. 安全な指定のみを明示 allowlist とし、未知の指定は即 deny する。
+  3. 値を取る指定は、値の結合形と分離形を同一の規則で扱う。
+  4. 設定の探索経路、収集経路、プラグイン読込経路、出力先および一時領域を差し替える指定は deny する。
+  5. 標準入力から対象を受け取る起動形態は deny する（または terminal の標準入力を常に空へ固定する）。いずれを採るかを M1 の受入テストで固定する。
+  6. 対象は**ファイル単位**で `write_paths` ∪ `test_paths` へ照合する。ディレクトリ単位の指定、および対象指定を伴わない全体起動は許可しない。
+  7. 実運用で常用される安全な指定を allowlist に含め、正当な検証が false deny にならないことを受入テストで固定する。
+  - 具体トークン列は本設計へ列挙せず、実装時に closeout 側の allowlist 実装を正本として確定し、受入テストで固定する。
+- **脅威モデルの明文化**: 第二層で許可されたコマンドのプロセス副作用（キャッシュおよびコンパイル成果物の生成、収集経路上の資産の読込と実行を含む）は、第一層の write 境界の保証対象外である。ゲートはコマンド引数のみを検査する。これは closeout における commit フック自動実行の許容と同じ扱いの拡張であり、S3-M1 の「スコープ逸脱の機械的遮断」の主張は第一層に限る。
+- **M2 の必須要件として固定する残余**（この2点が入るまで第二層は「宣言済み・未強制」である）:
+  1. ファイルシステム名前空間をロック済み worktree（および読み取り専用の依存関係）へ制限した隔離実行。
+  2. 収集経路上に置かれた `write_paths` / `test_paths` 外の資産に対する静的検査。
+- 将来、実行を実装 worker とは別主体（独立検証者ステージ）へ移す場合、その接続点はこの第二層とする（検証者ステージの契約自体は M2）。
 
-- **D-S3-1（検証実行の位置づけ）**: locked artifact-change のターンでテスト実行を許すか。許すなら「実行中の副作用は write scope の保証対象外」であることを脅威モデルとして明文化し、名前空間の隔離と収集経路の静的検査を M2 の必須要件として固定する。許さないなら M1 は実行を伴わない静的検査のみとする。テスト資産の新規作成・編集の可否、リポジトリ内テスト配置の扱いも同じ判断に含める。D-S3-2・D-S3-3 と整合した単一の決定として書く。
-- **D-S3-2（引数検査の水準）**: 許可コマンドの引数検査を、closeout の既存実装と同じ水準（全トークン走査、安全な指定の明示allowlist、未知の指定は即deny）へ揃える。あわせてパス照合の健全性（正規化基準の一元化、glob の区切り扱い、実体解決、書込先フィールドの網羅）を同じ改訂で扱う。
-- **D-S3-3（ローカルコミットの扱い）**: artifact-change で worker のローカルコミットを決定論allowlistへ含めるか。現ドラフトは含めておらず、既存運用（実装→focused test→local commit→handoff）と正面から矛盾する。push は承認後の別契約に残す。
-- **D-S3-4（lock 前の既定）**: 現行は lock 前が無制限許可で、書込境界が worker の自発的な lock 実行に依存する（INV-S8「強制は自己抑制に依存しない」と衝突）。closeout 相当の bounded な前段を置くか、dispatch 時に lock 済み契約を注入するか。
-- **D-S3-5（lock 機構の到達性）**: 現行の state 機械では artifact-change のターンを lock まで到達させる経路が存在しない。遷移経路を設計に含める。
+##### G3 と予算の較正順序
+
+- ローカルコミットとテスト資産の書込を決定論許可へ取り込み、G3 が真に例外的な拡張のみを扱う状態にしたうえで、実トラフィックの gold set で審査予算を較正する。judge 未接続の間は回数に関わらず全て fail-closed であり、予算値の妥当性は検証不能であることを明記する。
+- G3 の第二段（契約が既に許すが normalizer だけが未認識だった既知 action の決定論 allow）は、task class のハードコード分岐をやめ、「その task class の locked admission 関数」を引く dispatch テーブルへ一般化する。
+
+##### S3-M1 契約ライフサイクル（D-S3-4 / D-S3-5 の決定、2026-08-23）
+
+**1. 権限の出所と二つの lock 経路**
+
+artifact-change の書込境界を実行主体の自発的な宣言に依存させない（INV-S8）。契約は次の二経路のいずれかで `locked` に到達する。
+
+- **割当 seed（正規経路）**: オーケストレーターがタスク割当時に、対象 worktree・branch・write scope・許可アクションを含む契約 seed をゲート状態へ記録する。ゲートはターン開始時にこの seed を消費し、最初の tool call より前にターンを `locked` として作る。実行主体側の操作を必要とせず、実行主体は seed を広げられない。
+- **自己 lock（seed が無いターン）**: 対話ターンなど seed の無い場合に限り、lock 前段（第2項）を経て実行主体が lock を要求できる。seed があるターンで lock が要求された場合は、seed 契約をそのまま冪等に返す（既存 closeout の再 lock と同じ挙動）。seed を超える宣言は拒否する。自己 lock はクラス上限（単一 worktree、相対指定、件数上限）に対して検査する。
+
+契約には出所（`assignment` / `self`）を記録する。自己 lock 由来の契約は、狭い write scope が独立した権限から与えられていないため、監査上は弱い保証として扱う。自律 worker レーンは常に seed 経路とする。
+
+**2. lock 前の既定（D-S3-4）**
+
+lock されていない artifact-change ターンでは、既知の読み取り系ツール（read/search/list 相当）だけを許可し、監査記録のみを行う。構造化書込・変異系ツール、`terminal` を含む実行系、未知ツールは既定拒否とし、理由コードを「lock 未了」とする。拒否は既存の拒否計上に載せる。
+
+M1 では artifact-change 専用の discovery 予算を新設しない（discovery 段自体は M2 残余のまま）。上限はクラス予算（wall time / tool calls）とする。
+
+**3. lock 到達経路と対象集合の閉鎖（D-S3-5）**
+
+- `lock` 制御アクションを artifact-change に開放する。原子的 lock は closeout と同じ経路を用いるが、admission は task class ごとの dispatch とし、closeout 専用ロジックとコードパスを共有しない。
+- M1 の artifact-change は **単一 worktree** のみ lock できる。この単一 root が書込先パス照合の相対化基準となる（照合規則そのものは D-S3-2 の決定に従う）。
+- INV-S2（対象集合の閉鎖）は、closeout の候補集合機構を流用せず、**lock 時のリポジトリ実体検証**で満たす。指定対象が Git worktree の root と一致すること、現在ブランチが取得できること（detached HEAD は拒否）を、closeout と同じ検証器で確認する。seed 経路では、seed の branch と実ブランチの不一致を fail-closed とする。
+- 対象と write scope の追加は lock 後に行えない。必要な場合は G3 の拡張審査に載せる。
+
+**4. 状態と遷移、および closure の規範**
+
+- 分類直後: 強制対象クラスは lock 前段（既定拒否）、未強制クラスは従来どおり監査のみ。
+- seed 消費に成功したターン: 直ちに `locked`。
+- 自己 lock 成功: lock 前段から `locked`。
+- 完了: 明示的な完了制御アクション、または session 終了。
+
+規範要件:
+
+- **closure は明示のみ**: 強制クラスのターンを中間の監査フックで閉じない。閉じたターンでは変異系を拒否したままにする。
+- **バインディング不能時は fail-closed**: 当該タスクに seed が存在する場合、契約へバインドできない tool call の変異系を拒否する。ターン未登録を「未強制」として扱わない。
+- **seed 検証失敗も fail-closed**: seed の実体検証に失敗したターンは「変異拒否のまま存在する」状態とし、未強制へ落とさない。
+
+**5. 契約が運ぶ権限（分類器フラグに依存しない）**
+
+git 書込その他の副作用を許すかどうかは **locked 契約のフィールド**で表す。分類器が推定したフラグの既定値に依存させない。許可内容そのものの決定は D-S3-1..3 の決定（第一層・第二層）に従い、本項が定めるのは「その出所が契約であること」だけである。
+
+**6. スキーマと配線**
+
+- artifact-change の lock は、write scope を含むスキーマ妥当な契約を生成する唯一の経路である。契約スキーマ側の必須指定・上限反映と、lock 制御ハンドラで write scope（`write_paths` / `test_paths` / `execution` を含む）をロック関数へ渡す配線は、本改訂と同一の変更で入れる。
+- 契約の出所フィールドを追加するため、契約スキーマの追加プロパティ許可範囲も同時に更新する。
+
+**7. 本決定に伴う M1 実装チェックリスト追加分**
+
+- `lock` のクラス分岐を変更する前に、closeout 専用ガードの回帰テストを先行追加する。
+- admission を task class の dispatch テーブルへ一般化し、G3 の「既に契約が許可している」判定も同じ dispatch を用いる。
+- LLM 呼び出し後の監査フックの発火粒度が「ユーザーターン単位」か「LLM 呼び出し単位」かを、有効化前に synthetic payload で確認する。ターン単位でない場合も第4項の closure 規範で閉じられることを受入テストで示す。この前提は S1（closeout）が既に依存しているものであり、artifact-change 固有の新規リスクではないが、反復回数が多いクラスでは露出が大きい。
+- 敵対系受入テスト: lock 未了での変異拒否、seed を超える自己 lock の拒否、lock 後の対象・write scope 追加の拒否、seed 検証失敗時の変異拒否、閉じたターンでの変異拒否、バインディング不能時の変異拒否。
+
+**8. D-S3-6（オーナー判断）の両分岐での適用範囲**
+
+- worker 適用を M1 に保つ場合: seed 記録の呼び出し側（割当経路）も M1 の成果物に含める。
+- M2 へ付け替える場合: ゲート側の seed API と lock 前段の既定拒否は M1 で入れるが、自律 worker レーンでの artifact-change 強制は seed が配線されるまで有効化しない。
+- いずれの分岐でも「seed 無しで自律レーンを強制する」構成は採らない。
+
+##### M2 への残余（本設計で明示的に先送り）
+
+- judge の実接続、artifact-change 用 discovery 段、実トラフィックからの S3 exit 用 gold set、pre_llm_call のクラス別 policy 注入の拡充、verification 契約（検証者ハンドオフ）との統合、第二層の隔離実行と収集経路の静的検査。
+- worker profile への配線と有効化は本節で先送りしない。帰属は D-S3-6（オーナー判断）の決定に従う。
+
+#### S3-M1 未解決の設計判断（2026-08-22 反証レビュー結果、2026-08-23 に D-S3-1・2・3 決定）
+
+上記ドラフトは実装着手前の並列反証レビュー（運用細則2）を通し、確証欠陥 20 件（blocker 6 / major 7 / minor 7）が返った。各欠陥の根拠と対応方針、および欠陥 ID（R-01〜R-20）の採番対応表は `docs/status/restricted-s3-write-scope-review-2026-08-22.md` にある。同ファイルは迂回手法の具体形を含み Fable セッションでは直接読まない扱いのため、対応は Opus のサブエージェントへ委譲する。
+
+- **D-S3-1（検証実行の位置づけ）— 決定済み（2026-08-23）**: 実行を伴う検証は許可するが、契約単位の明示 opt-in を必須とする。実行中のプロセス副作用は write 境界の保証対象外であることを脅威モデルとして明文化し、名前空間の隔離と収集経路の静的検査を M2 の必須要件として固定する。テスト資産の新規作成・編集は、テストディレクトリ全体の無条件免除ではなく `targets.test_paths` の閉集合として許可する。詳細は上記「契約の拡張」「第二層」。
+- **D-S3-2（引数検査の水準）— 決定済み（2026-08-23）**: 許可コマンドの引数検査を closeout の既存実装と同水準（全トークン走査、安全な指定の明示 allowlist、未知の指定は即 deny）へ揃える。パス照合の健全性（正規化基準の一元化、glob のセグメント境界扱い、実体解決、書込先フィールドの網羅）を同じ改訂で扱う。詳細は上記「第一層」「第二層」。
+- **D-S3-3（ローカルコミットの扱い）— 決定済み（2026-08-23）**: worker のローカルコミットを決定論 allowlist へ含める。ステージ範囲は write scope へ従属させ、一括ステージ系の指定は許可しない。push は承認後の別契約に残す。詳細は上記「第一層」。
+- **D-S3-4 / D-S3-5（lock 前の既定・lock 到達性）— 決定済み（2026-08-23）**: 契約ライフサイクルは上記「S3-M1 契約ライフサイクル」で決定した。lock 前の無制限許可を廃し bounded な既定拒否段に置き換え、`locked` への到達は「割当由来の seed 契約（正規経路・自律 worker レーンは必須）」と「seed が無いターンでの自己 lock（縮小のみ）」の二経路とする。
 - **D-S3-6（M1/M2 の境界。オーナー判断事項）**: ドラフトは S3 の worker 配線を M2 へ先送りしたが、ADR D2 と goal M1 はこれを M1 の成果物と規定している。M1 として実装するか、ADR 改訂（＝オーナー承認）を経て M2 へ付け替えるかを決める。設計側で一方的に格下げしない。
 
-実装チェックリストへ回す項目: 期待審査経路（G3）の実効性の再確認、契約スキーマの必須指定漏れと上限反映、runtime ハンドラでの write scope 配線漏れ。
+決定間の整合（D-S3-1..3 が置いた前提の充足状況）:
+
+- 契約の作成主体: 自律 worker レーンは割当 seed（契約が worker の外で作成・注入される）で充足。自己 lock レーン（対話ターン）では `execution` opt-in と `test_paths` の幅が実行主体の宣言に残るため、契約出所フィールドにより監査上の弱い保証として明示する。これは対話ターン限定の宣言済み残余である。
+- lock 前の既定と lock 到達経路: 「S3-M1 契約ライフサイクル」で決定済み。第一層の硬い保証は locked 状態で発効し、lock 前は bounded な既定拒否段が覆う。
+- ブランチ束縛と drift 再検査: lock 時のリポジトリ実体検証（branch 取得・detached HEAD 拒否・seed branch 不一致 fail-closed）が束縛を供給し、git 書込前の drift 再検査はこれを参照する。
+- lock 時のシンボリックリンク不在検査: lock 機構側の検査として「lock（artifact-change）」節に含めた。
+- M1 exit gate の主張範囲（第一層に限る旨）は D-S3-6 のオーナー判断に含める。
+
+実装チェックリストへ回す項目: 期待審査経路（G3）の実効性の再確認、契約スキーマの必須指定漏れと上限反映、runtime ハンドラでの write scope 配線漏れ（新設 `test_paths` / `execution` を含む）、judge 接続時の自己申告フィールドに対する M2 受入テストの先行定義。
 
 ## 12. Metrics and review triggers
 
