@@ -197,3 +197,116 @@ cd /Users/fox4foofighter/dev/pda/.claude/worktrees/m1-resume-classifier-fix-da21
 ```
 
 `./tmp/` 配下と OS 一時ディレクトリのみを使用。`continuity/autonomous-improvement.json` および実機状態には触れていない。
+
+---
+
+# WV 処置の焦点再検証（2026-08-23、`a91a2a7`）
+
+- 対象コミット: `a91a2a7`（基準点 `312b1f4`、13 ファイル）。範囲は本差分に限定。
+- 検証対象: WV-01〜04 の反転、実効照合が持ち込む非決定性・false deny、admission / closeout / 計上集合の不変、全ローカルテスト。
+- 再現環境: `./tmp/verify-wv2/`（`q1_ast.py`〜`q8_router.py`）。`./tmp/verify-w/` の harness / stub を再利用。実行は `./tmp/venv-scope/bin/python`。合成リポジトリは OS 一時ディレクトリ配下。`continuity/autonomous-improvement.json` および実機状態には触れていない。
+- **本書は取扱制限。迂回手法の具体形を含む。** 親セッションへの戻り値には ID と抽象名のみを返す。
+
+修正者の自己申告は根拠にしていない。フェンスごとに負の対照（当該機構のみを無効化した同一コードパス）を取り、拒否がその機構に帰属することを確認した。
+
+## 8. 反転を実測で確認した 4 件
+
+| 欠陥 | 実測 | 負の対照 |
+| --- | --- | --- |
+| WV-01 | `.Git` / `.GIT` / `.gIt` が書込カタログ 9 tool 全件で `write-git-metadata`、ステージ 4 綴りで `stage-git-metadata`。`src/app.py` は admit のまま。carve-out 述語を直接呼ぶと 3 変種すべて `True` | 実体同一性の段のみを処置前の本体（綴り照合のみ）へ戻すと、case 変種が `write-in-scope-change` / `stage-in-scope-change` で admit へ戻る。字面 `.git` は対照下でも拒否のまま |
+| WV-01 連鎖 | §5 の end-to-end 連鎖は**1 手目**（別綴りでの pointer file 削除）で `write-git-metadata`。2〜4 手目も同様に拒否。連鎖後も pointer file は `gitdir:` のまま無変化。`git add` / `git commit` は admit のまま（通常作業を狭めていない） | ― |
+| WV-02 | §5 が ACCEPTED と記録した 8 綴りすべてと追加 2 綴り（`?[a-z]*/**`・`*[!x]/**`）が `invalid-scope-declaration`。プライマリリポジトリのツリーに対しても同一。ルータ経由でも当該カードが `refused` へ移り worktree を残さず、後続カードは割当される | 実効幅測定を no-op 化すると当該綴り族が受理へ戻る |
+| WV-02 統治面 | `operations/improvement/*.py`・`integrations/hermes-scope-gate/**`・`conftest.py`・`docs/design/task-scope-admission-gate.md`・`continuity/*.json` が拒否。3 実装（`scope_seed.py` / `operations/improvement/install.py` / `plugin_api.py`）の `GOVERNANCE_PATHS` は 16 件で**タプル一致**、突き合わせテストは実在し green | ― |
+| WV-03 | `workspace-collision` で `ok: true`（seed flag ON / OFF 双方）。運用手順・設計本文・台帳の記述がこの範囲へ改まっている | ― |
+| WV-04 | 拒否段の分岐を実測。宣言なし・幅超過・統治面の 3 段は worktree を残さない。未登録実行テンプレート（宣言は解析可・ゲートが拒否）は `scope-seed-rejected` で worktree を**残す**。縮小後の記述と一致 | ― |
+
+false deny の非導入も確認した。`.gitignore` / `.gitattributes` / `.github/workflows/ci.yml` / `docs/.gitkeep` / `src/.gitignore` / `vendor/x.git/y` / `a/.gitmodules` / `tools/git/helper.py` / `git/config` / `gitlab/ci.yml` / `.gitkeep` は書込・ステージとも admit。字面照合段は空セグメント除去の追加後も処置前と論理同値（13 入力で差分なし）。宣言側は運用手順の新例（`src/pda/backup/*.py` ＋ `tests/backup/test_local_snapshot.py`）・`src/**`・`src/**`＋`tests/**`・`docs/status/*.md`・同一最上位内の複数ディレクトリがいずれも受理。
+
+上限の設定経路も実測した。`scope_seed.max_top_level_entries` はルータへ届き境界で効く（4 件被覆に対し 3 で拒否・4 で受理）。非整数・0 以下は `invalid-config` で `ok: false`（割当ループ外の失敗として従来どおり）。測定不能（ツリー不在・ディレクトリでない）は `scope-breadth-unmeasured` で fail closed。ツリー内の symlink は追跡しない。
+
+## 9. 非決定性・冪等性
+
+payload は測定に依存しない。同一 body を内容の異なる 3 ツリー（合成 2 種＋本リポジトリ）へ通しても payload はバイト同一。宣言範囲内へのファイル追加、宣言範囲外の最上位エントリ新設のいずれの後でも同一。測定量が「被覆する最上位エントリ数」であるため、深さ方向の書込では増えない。割当前検査（プライマリリポジトリ）と seed 記録（worktree）の payload も同一で、前者は未追跡最上位を多く含むため測定値は後者以上、すなわち近似は拒否側にのみ振れる。
+
+台帳 15 節 2 の「測定が worker の書込後のツリーを見ることはない」根拠を確認した。`_eligible_tasks` は `status == ready` かつ `assignee is None` に限り、`_ensure_worktree` は `_record_scope_seed` より前に `git status --porcelain` の clean を要求する（dirty なら `dirty-worktree`）。
+
+## 10. 不変の確認
+
+`scope_gate.py` の AST 比較（docstring 除去後）:
+
+- 追加・削除関数: 0 件。変更関数 3 件（`artifact_path_is_git_metadata`、`_artifact_stage_targets`、`_admit_artifact_change_locked`）はすべて artifact-change クラス局所。
+- closeout 名を含む関数の変更: 0 件。artifact 名を含まない関数の変更: 0 件。モジュール定数の変更・追加・削除: 0 件。
+- 理由コード集合（`GateDecision(False, …)` / `PathRejected(…)`）は 72 件で処置前と一致（増減 0）。`ARTIFACT_DEVIATION_DENY_ACTIONS` は 26 件でタプル一致。計上集合・litmus は無改訂。
+- `GateDecision(True` 28 件 / `GateDecision(False` 80 件がいずれも処置前後で同数。新規 admit 分岐は無い。WV-01 は既存の拒否分岐の到達範囲を広げる変更のみ。
+- 新規理由種別 `scope-breadth-unmeasured` はルータ側（`scope_seed.py`）にのみ存在し、ゲートには 0 件。計上集合の要素ではない。
+- ルータ側差分に closeout の言及は 0 件。`derive_seed_payload` / `record_seed` の呼び出し元は `pda_improvement_cycle.py` の 2 箇所のみで、いずれも `tree_root` を明示的に渡す。
+
+## 11. 回帰とフェンス実効性
+
+- `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **598 passed**。台帳の申告値と一致。
+- 負の対照（実体同一性の段と実効幅測定の両方を無効化）で **19 failed / 579 passed**。台帳の申告値（19 失敗）と一致。落ちた 19 件は WV-01 の 2 件と WV-02 の 17 件で、内訳も申告どおり。対照解除後に 598 passed へ復帰、`git status` clean。
+- `operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発 PC で実行不能（`hermes_cli` / `fastapi` 不在）。ルータ経由の新規挙動は本書 §8 の `q8_router.py`（実モジュール＋stub Kanban）で等価再現した。ミニPC でのスイート実行は親セッションが行う。
+
+## 12. 確証した新規欠陥
+
+### WV2-01（minor）宣言段の統治面ガードが字面照合であり、未作成の統治面あて宛先を覆えない
+
+`_pattern_names_governance` は `GOVERNANCE_PATHS` の各エントリに対する `str.startswith`（ディレクトリ形）または完全一致（ファイル形）と、`Path(text).name == "conftest.py"` である。ツリー走査側（`_is_governance_path`）は**実在するファイル**のみを見る。したがって「統治ディレクトリ配下のまだ存在しないファイル」は、パターンの字面が統治面の接頭辞を綴っているときにのみ捕まる。
+
+実測（`./tmp/verify-wv2/q6_newdefect.py`、`q7_reach.py`）:
+
+```
+  ['operations/improvement/newname.py']  literal, file absent      -> REFUSED
+  ['operations/*/newname.py']            wildcard mid, absent      -> ACCEPTED
+  ['operations/improve*/newname.py']     wildcard tail, absent     -> ACCEPTED
+  ['operations/**/newname.py']           recursive wildcard        -> ACCEPTED
+  ['integrations/*/newmodule.py']        wildcard mid, absent      -> ACCEPTED
+  ['profiles/pda/skills/*/NEW.md']       wildcard mid, absent      -> ACCEPTED
+  ['infra/*/pda.service']                wildcard over systemd     -> ACCEPTED
+  ['tests/*/conftest.py']                conftest by name          -> REFUSED
+  ['tests/*/conftes?.py']                同一実名に一致する別綴り  -> ACCEPTED
+```
+
+受理された宣言に対し第一層は当該宛先を admit する（`write-in-scope-change`）。`conftes?.py` は `fnmatch` 上 `conftest.py` に一致するため、`tests/<dir>/conftest.py` の新設が admit される。
+
+**より一般形でも成立する。** 字面が統治面を綴らない通常宣言でも、統治名のファイルがツリーに未実在であれば受理され、その宛先の新設が admit される:
+
+```
+  ツリーに conftest.py なし: ['tests/**'] -> ACCEPTED  → write tests/unit/conftest.py  allowed=True
+                             ['src/**']   -> ACCEPTED  → write src/conftest.py        allowed=True
+  ツリーに conftest.py あり: ['tests/**'] -> REFUSED（走査側が捕らえる）
+```
+
+すなわち判定はツリーの現状に依存し、「常に拒否」ではない。
+
+**主張との不一致が本欠陥である。** (1) `_pattern_names_governance` の docstring は「ツリー走査が見られない未作成ファイルあてのパターンを本判定が捕らえる」と述べるが、字面が統治接頭辞を綴る場合に限られる。(2) 設計本文は「**統治面の被覆は常に拒否する**」と無条件に述べる。(3) これは同一リポジトリが既に名指している失敗形（開いた引数空間は綴りの列挙では閉じない）の反復であり、WV-02 の処置が測定側へ移した保証を、統治面判定については字面側に残している。
+
+**severity を minor とする根拠（後段の backstop は健全）。** 最終化側は 2 実装とも intact で、`GOVERNANCE_PATHS` は 3 実装タプル一致。`changed_files` に統治面が入る契約は無条件に拒否される（`install.py:388`、`plugin_api.py:324`）。未追跡のまま残す経路も閉じている: 活性化前に `git status --porcelain` の clean を要求する（`install.py:654`、`plugin_api.py:489`）ため、commit すれば差分で拒否、しなければ clean 検査で拒否となる。したがって統治面の変更が live へ届く経路は無い。実害は「最終化できない作業を買う 1 ターン」と「当該ターン内で自らのテスト証跡を改変しうること（最終化はできない）」に限られる。
+
+**批准への影響。** 修正報告の判断事項 1（統治面被覆を宣言段で拒否する範囲の批准）は、拒否範囲が「常に」であることを前提に「実質的な縮小は無い」と述べている。実際の範囲は上記のとおり字面依存であるため、批准の前提が実態と異なる。
+
+**処置の方向（判断が必要）。** 字面の照合を綴りの前方一致から性質へ改める形が候補である。統治面の各エントリについて「そのエントリ配下に到達しうるパターンか」をパターン言語の意味で判定する（各統治ディレクトリを 1 本の代表パスとして被覆判定にかける、あるいは統治ディレクトリの実在するセグメントまでを被覆判定で照合する）。いずれもルータ側に置ける。あるいは主張の側を実態へ縮小する（WV-04 と同じ処置形）。
+
+## 13. 欠陥としない観察（前提が到達不能・仕様の意図どおり）
+
+1. **pointer file への深い hard link は実体同一性の段を通る。** 判定は「候補と同一親ディレクトリの `.git`」のみを比較するため、`<root>/sub/alias` を `<root>/.git` の hard link にすると carve-out は `False` を返し、書込が admit される。ただしこの前提を作る呼び出しが無い: `ln` / `cp -al` は `execution-not-opted-in`、実行テンプレートを宣言しても `execution-template` で拒否される。実行テンプレートは閉じたレジストリ（`focused-test` / `syntax-check` の 2 件のみ）であり、任意コマンドは opt-in できない。`git worktree add` は `git-subcommand`。前提付きの観察として記録する。
+2. **実体同一性の段は対象実体の実在を要する。** `<root>/.git` が不在なら別綴りは検出できない。ただし削除自体が拒否（§8 の連鎖 1 手目）であり、`.git` を欠く worktree では `seed-verification-failed` で fail closed する。字面照合の段は実在に依存せず常に成立する。
+3. **保証の性質が「全域不可」から「被覆最上位 N 件以下」へ変わった。** 最上位エントリが上限以下のツリーでは、先頭セグメントに名前内ワイルドカードを持つ宣言が全域へ届く（空ツリーでは `?*` / `?*/**` が受理される）。本リポジトリの最上位は 20 件であり、また測定は常にリポジトリ／worktree のツリーに対して行われるため到達しない。設計本文が測定量を明記しているとおりの意図された性質である。
+4. **再導出は同一 body でも拒否へ振れうる。** 先頭セグメントに名前内ワイルドカードを持つ宣言（例 `s?c/**`）は、一致する最上位エントリが増えると測定値が増える。§9 の 2 経路（`_eligible_tasks` の絞り込みと `_ensure_worktree` の clean 要求）が通常の再導出を塞ぐが、worker の commit 後にカードが ready へ戻され worktree が残る経路は覆われない（`status --porcelain` は clean のままツリーは変化している）。拒否側のみで許可は広がらず、必要な前提が 3 つ重なるため観察として記録する。台帳 15 節 2 の当該文は保証よりわずかに強い。
+5. **reconciler prompt の `integrations/hermes-*/` 表記は現ツリーでは正確。** `integrations/` 配下の `hermes-*` は 3 件で、いずれも `GOVERNANCE_PATHS` に含まれる。`openwebui-hermes-progress` は当該綴りに一致しない。文書上のずれは無い。
+
+## 14. 再現手順
+
+```
+cd /Users/fox4foofighter/dev/pda/.claude/worktrees/m1-resume-classifier-fix-da21a3
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q1_ast.py         # §10 AST・定数・理由コードの不変
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q2_wv01.py        # WV-01 反転・負の対照・false deny
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q3_wv01_e2e.py    # WV-01 連鎖と残余
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q4_wv02.py        # WV-02 反転・床の性質・false deny
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q5_idem.py        # §9 冪等性
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q6_newdefect.py   # WV2-01・観察 1/2/5
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q7_reach.py       # WV2-01 到達範囲と backstop
+./tmp/venv-scope/bin/python ./tmp/verify-wv2/q8_router.py      # WV-03 / WV-04 / ルータ経由の WV-02
+```
+
+負の対照は `scope_gate.py` の実体同一性段と `scope_seed.py` の `_reject_overbroad_scope` を一時的に無効化して測る（実施後は `git checkout --` で復元し 598 passed と `git status` clean を確認済み）。`./tmp/` 配下と OS 一時ディレクトリのみを使用。
