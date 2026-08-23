@@ -132,6 +132,18 @@
         "prerequisite": {
           "$ref": "#/$defs/uniqueStrings"
         },
+        "git_write": {
+          "description": "Which Git writes this contract carries. The permission comes from the contract, not from the task class, so an assignment can grant writes without granting staging or committing. Omitted is not the same as unrestricted: admission denies a Git write when the field is absent.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 2,
+          "items": {
+            "enum": [
+              "stage",
+              "commit"
+            ]
+          }
+        },
         "verification": {
           "$ref": "#/$defs/uniqueStrings"
         },
@@ -217,8 +229,16 @@
         ]
       },
       "then": {
+        "required": [
+          "budget"
+        ],
         "properties": {
           "budget": {
+            "required": [
+              "max_wall_seconds",
+              "max_tool_calls",
+              "max_expansions"
+            ],
             "properties": {
               "max_wall_seconds": {
                 "maximum": 900
@@ -299,12 +319,29 @@
           "budget",
           "targets",
           "execution",
-          "origin"
+          "origin",
+          "actions"
         ],
         "properties": {
           "targets": {
             "required": [
               "write_paths"
+            ],
+            "properties": {
+              "repositories": {
+                "maxItems": 1
+              },
+              "worktrees": {
+                "maxItems": 1
+              },
+              "branches": {
+                "maxItems": 1
+              }
+            }
+          },
+          "actions": {
+            "required": [
+              "git_write"
             ]
           },
           "budget": {

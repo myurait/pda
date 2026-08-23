@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
@@ -38,6 +39,27 @@ verification hooks, broad test runs, delegation, background work, and any write 
 are denied. Call scope_gate action=complete when the change is done or blocked."""
 
 
+PRELOCK_ENFORCEMENT_ENV = "PDA_SCOPE_GATE_ARTIFACT_PRELOCK"
+_TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
+_FALSE_VALUES = frozenset({"0", "false", "no", "off"})
+
+
+def prelock_enforcement_setting() -> bool | None:
+    """Read the pre-lock default-deny switch from the environment.
+
+    Without a configuration path the stage could only be turned on by
+    editing a module constant, which also left operators with no way to read
+    back which lanes it is in force for.
+    """
+
+    raw = os.environ.get(PRELOCK_ENFORCEMENT_ENV, "").strip().lower()
+    if raw in _TRUE_VALUES:
+        return True
+    if raw in _FALSE_VALUES:
+        return False
+    return None
+
+
 class ScopeGatePluginRuntime:
     def __init__(self, state_path: str | Path | None = None) -> None:
         if state_path is None:
@@ -46,23 +68,35 @@ class ScopeGatePluginRuntime:
                 state_path = default_state_path(get_hermes_home())
             except (AttributeError, ImportError):
                 state_path = default_state_path()
-        self.store = GateStore(state_path)
+        self.store = GateStore(
+            state_path,
+            enforce_artifact_change_pre_lock=prelock_enforcement_setting(),
+        )
 
     def pre_llm_call(self, **kwargs: Any) -> dict[str, str] | None:
         turn_id = self._turn_key(kwargs)
         if not turn_id:
             return None
-        intent = self.store.start_turn(
-            turn_id=turn_id,
-            session_id=str(kwargs.get("session_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            user_message=str(kwargs.get("user_message") or ""),
-        )
+        try:
+            intent = self.store.start_turn(
+                turn_id=turn_id,
+                session_id=str(kwargs.get("session_id") or ""),
+                task_id=str(kwargs.get("task_id") or ""),
+                user_message=str(kwargs.get("user_message") or ""),
+            )
+        except Exception:  # noqa: BLE001 -- registration failure must not
+            # take the hook down. No turn row means later tool calls take the
+            # unbound path, which is fail-closed wherever a contract exists.
+            return None
         if intent.task_class == "repository-closeout":
             return {"context": _CLOSEOUT_CONTEXT}
         if intent.task_class == "artifact-change":
             turn = self.store.get_turn(turn_id)
-            if turn is not None and str(turn["state"]) in ARTIFACT_ENFORCED_STATES:
+            if (
+                turn is not None
+                and str(turn["state"]) in ARTIFACT_ENFORCED_STATES
+                and str(turn["state"]) != "completed"
+            ):
                 return {"context": _ARTIFACT_CHANGE_CONTEXT}
         return None
 
@@ -77,31 +111,39 @@ class ScopeGatePluginRuntime:
         return self.store.record_contract_seed(**kwargs)
 
     def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
-        turn_id = self.store.resolve_turn_id(
-            turn_id=str(kwargs.get("turn_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            session_id=str(kwargs.get("session_id") or ""),
-        )
-        if not turn_id:
-            unbound = self.store.admit_without_turn(
-                task_id=str(kwargs.get("task_id") or ""),
-                session_id=str(kwargs.get("session_id") or ""),
-                tool_name=str(kwargs.get("tool_name") or ""),
+        task_id = str(kwargs.get("task_id") or "")
+        session_id = str(kwargs.get("session_id") or "")
+        try:
+            turn_id = self.store.resolve_turn_id(
+                turn_id=str(kwargs.get("turn_id") or ""),
+                task_id=task_id,
+                session_id=session_id,
             )
-            if unbound.allowed:
-                return None
+            if not turn_id:
+                decision = self.store.admit_without_turn(
+                    task_id=task_id,
+                    session_id=session_id,
+                    tool_name=str(kwargs.get("tool_name") or ""),
+                )
+            else:
+                raw_args = kwargs.get("args")
+                args = raw_args if isinstance(raw_args, dict) else {}
+                decision = self.store.admit_tool(
+                    turn_id=turn_id,
+                    tool_call_id=str(kwargs.get("tool_call_id") or ""),
+                    tool_name=str(kwargs.get("tool_name") or ""),
+                    args=args,
+                    task_id=task_id,
+                    session_id=session_id,
+                )
+        except Exception as exc:  # noqa: BLE001 -- this boundary must fail closed.
             return {
                 "action": "block",
-                "message": f"PDA scope gate [{unbound.action}]: {unbound.reason}",
+                "message": (
+                    "PDA scope gate [admission-validator-error]: "
+                    f"{type(exc).__name__}: {exc}"
+                ),
             }
-        raw_args = kwargs.get("args")
-        args = raw_args if isinstance(raw_args, dict) else {}
-        decision = self.store.admit_tool(
-            turn_id=turn_id,
-            tool_call_id=str(kwargs.get("tool_call_id") or ""),
-            tool_name=str(kwargs.get("tool_name") or ""),
-            args=args,
-        )
         if decision.allowed:
             return None
         return {
@@ -141,6 +183,8 @@ class ScopeGatePluginRuntime:
                 tool_call_id=str(kwargs.get("tool_call_id") or ""),
                 tool_name=tool_name,
                 args=args,
+                task_id=str(kwargs.get("task_id") or ""),
+                session_id=str(kwargs.get("session_id") or ""),
             )
         except Exception as exc:  # noqa: BLE001 -- this boundary must fail closed.
             return {
@@ -156,15 +200,18 @@ class ScopeGatePluginRuntime:
         return next_call(args)
 
     def handle_scope_gate(self, params: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
-        turn_id = self.store.resolve_turn_id(
-            turn_id=str(kwargs.get("turn_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            session_id=str(kwargs.get("session_id") or ""),
-        )
-        if not turn_id:
-            return {"ok": False, "error": "No active scope turn is bound to this call."}
         action = str(params.get("action") or "")
         try:
+            turn_id = self.store.resolve_turn_id(
+                turn_id=str(kwargs.get("turn_id") or ""),
+                task_id=str(kwargs.get("task_id") or ""),
+                session_id=str(kwargs.get("session_id") or ""),
+            )
+            if not turn_id:
+                return {
+                    "ok": False,
+                    "error": "No active scope turn is bound to this call.",
+                }
             if action == "lock":
                 targets = params.get("targets")
                 if not isinstance(targets, dict):
@@ -206,6 +253,10 @@ class ScopeGatePluginRuntime:
             raise ValueError("action must be lock, review, or complete")
         except (TypeError, ValueError) as exc:
             return {"ok": False, "error": str(exc)}
+        except Exception as exc:  # noqa: BLE001 -- a control call must not
+            # escape as an exception: the caller would see a tool crash
+            # rather than a refused transition.
+            return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
     def post_tool_call(self, **kwargs: Any) -> None:
         """Record bounded execution evidence and explicit worktree inventory."""
@@ -255,6 +306,12 @@ class ScopeGatePluginRuntime:
             self.store.record_worktree_candidates(turn_id=turn_id, paths=paths)
 
     def post_llm_call(self, **kwargs: Any) -> None:
+        try:
+            self._close_at_audit_hook(**kwargs)
+        except Exception:  # noqa: BLE001 -- a bookkeeping hook must not raise.
+            return
+
+    def _close_at_audit_hook(self, **kwargs: Any) -> None:
         turn_id = self.store.resolve_turn_id(
             turn_id=str(kwargs.get("turn_id") or ""),
             task_id=str(kwargs.get("task_id") or ""),
@@ -278,29 +335,58 @@ class ScopeGatePluginRuntime:
             self.store.complete_turn(turn_id=turn_id, status=status)
 
     def on_session_end(self, **kwargs: Any) -> None:
-        if kwargs.get("completed") and not kwargs.get("failed") and not kwargs.get("interrupted"):
-            return
-        turn_id = self.store.resolve_turn_id(
-            turn_id=str(kwargs.get("turn_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            session_id=str(kwargs.get("session_id") or ""),
+        """Close the bound turn when the session ends.
+
+        Session end is one of the two closure triggers, alongside the
+        explicit completion control. It is not the intermediate audit hook
+        the closure norm excludes, so a clean exit closes the turn too: a
+        turn left open keeps binding later calls and eventually refuses them
+        on a wall-clock budget that started in a session already over.
+        """
+
+        clean_exit = bool(
+            kwargs.get("completed")
+            and not kwargs.get("failed")
+            and not kwargs.get("interrupted")
         )
-        if turn_id:
-            status = "interrupted" if kwargs.get("interrupted") else "failed"
+        try:
+            turn_id = self.store.resolve_turn_id(
+                turn_id=str(kwargs.get("turn_id") or ""),
+                task_id=str(kwargs.get("task_id") or ""),
+                session_id=str(kwargs.get("session_id") or ""),
+            )
+            if not turn_id:
+                return
+            if clean_exit:
+                status = "success"
+            elif kwargs.get("interrupted"):
+                status = "interrupted"
+            else:
+                status = "failed"
             self.store.complete_turn(turn_id=turn_id, status=status)
+        except Exception:  # noqa: BLE001 -- a bookkeeping hook must not raise.
+            return
 
     @staticmethod
     def _turn_key(kwargs: dict[str, Any]) -> str:
-        direct = str(kwargs.get("turn_id") or kwargs.get("task_id") or "")
+        """Identity of the turn being started.
+
+        A task id alone is not a turn key: every message of the task would
+        collapse into one row, so the first message's classification, wall
+        clock, and budgets would stand for the whole task and no later turn
+        would exist for the state machine to act on.
+        """
+
+        direct = str(kwargs.get("turn_id") or "")
         if direct:
             return direct
-        session_id = str(kwargs.get("session_id") or "")
-        if not session_id:
+        scope = str(kwargs.get("task_id") or "") or str(kwargs.get("session_id") or "")
+        if not scope:
             return ""
         digest = hashlib.sha256(
             str(kwargs.get("user_message") or "").encode("utf-8")
         ).hexdigest()[:16]
-        return f"{session_id}:{digest}"
+        return f"{scope}:{digest}"
 
 
 def _string_list(value: Any) -> list[str]:

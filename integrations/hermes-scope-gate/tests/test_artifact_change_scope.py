@@ -11,8 +11,10 @@ property being enforced, not a technique for defeating it.
 
 from __future__ import annotations
 
+import ast
 import itertools
 import json
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -22,22 +24,55 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from plugin_runtime import ScopeGatePluginRuntime
+from plugin_runtime import (
+    PRELOCK_ENFORCEMENT_ENV,
+    ScopeGatePluginRuntime,
+    prelock_enforcement_setting,
+)
 from scope_gate import (
+    ARTIFACT_READ_TOOLS,
     ARTIFACT_WRITE_TOOL_CATALOG,
     EXECUTION_TEMPLATES,
     GateStore,
     PathRejected,
+    classify_task,
     collect_write_targets,
+    decision_for,
     locked_admission_for,
     normalize_repo_relative_path,
     normalize_scope_patterns,
-    resolve_existing_ancestor,
     scope_pattern_matches,
     validate_shell_payload,
 )
 
 CHANGE_MESSAGE = "ログイン画面のバグを修正して"
+
+# The running tool vocabulary, read from the progress pipe's activity groups
+# so the gate's allowlist and the tool names in use cannot drift apart
+# silently.
+_TOOL_VOCABULARY_SOURCE = (
+    ROOT.parents[1]
+    / "integrations"
+    / "openwebui-hermes-progress"
+    / "functions"
+    / "hermes_progress_pipe.py"
+)
+
+
+def _hermes_tool_vocabulary() -> frozenset[str]:
+    tree = ast.parse(_TOOL_VOCABULARY_SOURCE.read_text(encoding="utf-8"))
+    names: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        targets = [t.id for t in node.targets if isinstance(t, ast.Name)]
+        if "_PROGRESS_TOOL_ACTIVITY_GROUPS" not in targets:
+            continue
+        for literal in ast.walk(node.value):
+            if isinstance(literal, ast.Constant) and isinstance(literal.value, str):
+                names.add(literal.value)
+    assert "read_file" in names, "tool vocabulary source did not parse as expected"
+    return frozenset(names)
 
 
 def _init_git_repo(path: Path, branch: str = "main") -> None:
@@ -71,9 +106,11 @@ def _seeded_store(
     write_paths: list[str] | None = None,
     test_paths: list[str] | None = None,
     execution: list[str] | None = None,
+    git_write: list[str] | None = None,
     branch: str = "main",
     repo: Path | None = None,
 ) -> tuple[GateStore, Path]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
     target = repo if repo is not None else _repo(tmp_path)
     store = GateStore(tmp_path / "scope.db")
     store.record_contract_seed(
@@ -84,6 +121,7 @@ def _seeded_store(
         write_paths=write_paths if write_paths is not None else ["src/*.py"],
         test_paths=test_paths if test_paths is not None else ["tests/test_app.py"],
         execution=execution or [],
+        git_write=git_write,
     )
     store.start_turn(
         turn_id="turn-change",
@@ -191,13 +229,66 @@ def test_write_target_entity_resolution_stays_inside_the_locked_root(
     outside.mkdir()
     (repo / "linked").symlink_to(outside, target_is_directory=True)
 
-    _, inside = normalize_repo_relative_path("src/new.py", root=str(repo))
-    _, escaping = normalize_repo_relative_path("linked/new.py", root=str(repo))
+    relative, inside = normalize_repo_relative_path("src/new.py", root=str(repo))
 
-    assert resolve_existing_ancestor(inside, root=str(repo))
+    assert relative == "src/new.py"
+    assert inside == repo.resolve() / "src" / "new.py"
     with pytest.raises(PathRejected) as exc:
-        resolve_existing_ancestor(escaping, root=str(repo))
+        normalize_repo_relative_path("linked/new.py", root=str(repo))
     assert exc.value.code == "target-escape"
+
+
+@pytest.mark.parametrize("depth", [1, 2])
+def test_an_upward_reference_after_a_link_element_cannot_relocate_the_target(
+    tmp_path: Path, depth: int
+) -> None:
+    # The check has to run on the raw argument: folding the notation first
+    # would erase the upward reference and resolve a different path than the
+    # one the tool is handed.
+    repo = _repo(tmp_path)
+    outside = tmp_path / "outside" / "deep"
+    outside.mkdir(parents=True)
+    (repo / "src" / "link").symlink_to(outside, target_is_directory=True)
+    notation = "src/link/" + "../" * depth + "escaped.py"
+
+    with pytest.raises(PathRejected) as exc:
+        normalize_repo_relative_path(notation, root=str(repo))
+
+    assert exc.value.code == "target-traversal"
+
+
+def test_the_scope_match_uses_the_resolved_destination_not_the_notation(
+    tmp_path: Path,
+) -> None:
+    # An in-scope name that resolves to an out-of-scope location inside the
+    # same worktree must be matched at its resolved location.
+    repo = _repo(tmp_path)
+    (repo / "src" / "alias.py").symlink_to(repo / "secrets.txt")
+
+    relative, resolved = normalize_repo_relative_path("src/alias.py", root=str(repo))
+
+    assert relative == "secrets.txt"
+    assert resolved == repo.resolve() / "secrets.txt"
+
+
+def test_equivalent_spellings_of_the_locked_root_resolve_alike(
+    tmp_path: Path,
+) -> None:
+    # Membership of the locked root is a property of the location, not of the
+    # notation: a link component in the argument must not close the gate.
+    repo = _repo(tmp_path)
+    alias = tmp_path / "alias"
+    alias.symlink_to(repo, target_is_directory=True)
+
+    through_alias, _ = normalize_repo_relative_path(
+        str(alias / "src" / "app.py"), root=str(repo)
+    )
+    direct, _ = normalize_repo_relative_path(
+        str(repo / "src" / "app.py"), root=str(alias)
+    )
+
+    assert through_alias == "src/app.py"
+    assert direct == "src/app.py"
 
 
 @pytest.mark.parametrize(
@@ -524,6 +615,662 @@ def test_a_seedless_turn_without_a_lock_stays_audit_only(tmp_path: Path) -> None
     assert decision.action == "not-enforced"
 
 
+@pytest.mark.parametrize(
+    ("message", "classified"),
+    [
+        ("現状を調査してレポートして", "audit-only"),
+        ("全面的に見直して", "audit-only"),
+        ("この設計はどうなっていますか？", "audit-only"),
+        ("gateway サービスを再起動して", "bounded-operation"),
+        ("この差分をcommitしてpushしてください", "repository-closeout"),
+    ],
+)
+def test_a_seeded_task_is_enforced_whatever_the_message_classifies_as(
+    tmp_path: Path, message: str, classified: str
+) -> None:
+    # The seed is the authority. A later message of the same task must not be
+    # able to move the turn into a class that enforces less, and the closeout
+    # class in particular carries permissions the seed does not.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db")
+    store.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    intent = store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=message,
+    )
+
+    turn = store.get_turn("turn-change")
+    write = _admit(store, "write_file", {"path": "secrets.txt", "content": "x"})
+    push = _admit(
+        store, "terminal", {"command": "git push origin main", "workdir": str(repo)}
+    )
+
+    assert classify_task(message).task_class == classified
+    assert intent.task_class == "artifact-change"
+    assert turn is not None
+    assert turn["state"] == "locked"
+    assert turn["classified_class"] == classified
+    assert turn["allow_push"] == 0
+    assert write.allowed is False
+    assert write.action == "write-scope"
+    assert push.allowed is False
+
+
+def test_every_message_of_a_task_gets_its_own_turn(tmp_path: Path) -> None:
+    # A turn key that is only the task id collapses the task into one row:
+    # the first message's class, wall clock, and budgets would then stand for
+    # the whole task and no later turn would exist to enforce.
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    runtime.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    common = {"task_id": "task-change", "session_id": "session-change"}
+
+    runtime.pre_llm_call(**common, user_message="現状を調査して")
+    runtime.pre_llm_call(**common, user_message=CHANGE_MESSAGE)
+    with runtime.store._connect() as connection:
+        rows = connection.execute(
+            "SELECT turn_id, state FROM turns WHERE task_id = 'task-change'"
+        ).fetchall()
+    blocked = runtime.pre_tool_call(
+        **common,
+        tool_call_id="write-out",
+        tool_name="write_file",
+        args={"path": str(repo / "secrets.txt"), "content": "x"},
+    )
+
+    assert len(rows) == 2
+    assert {str(row["state"]) for row in rows} == {"locked"}
+    assert blocked is not None
+    assert blocked["action"] == "block"
+    uses = runtime.store.contract_scope_uses("task-change")
+    assert len(uses) == 2
+
+
+def test_an_open_enforced_turn_is_not_shadowed_by_a_later_unenforced_turn(
+    tmp_path: Path,
+) -> None:
+    # A contract that is still in force must keep binding the calls of its
+    # session. Otherwise a following message that classifies as something
+    # narrower silently ends enforcement without closing anything.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db")
+    store.record_contract_seed(
+        task_id="task-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=CHANGE_MESSAGE,
+    )
+    store.start_turn(
+        turn_id="turn-later",
+        session_id="session-change",
+        task_id="task-unrelated",
+        user_message="現状を調査して",
+    )
+
+    later = store.get_turn("turn-later")
+    bound = store.resolve_turn_id(session_id="session-change")
+    decision = store.admit_tool(
+        turn_id=bound,
+        tool_call_id="shadowed-write",
+        tool_name="write_file",
+        args={"path": str(repo / "secrets.txt"), "content": "x"},
+        session_id="session-change",
+    )
+
+    assert later is not None
+    assert later["task_class"] == "audit-only"
+    assert bound == "turn-change"
+    assert decision.allowed is False
+    assert decision.action == "write-scope"
+
+
+def test_the_latest_turn_binds_a_call_even_after_it_closed(tmp_path: Path) -> None:
+    store, _ = _seeded_store(tmp_path)
+    store.start_turn(
+        turn_id="turn-earlier",
+        session_id="session-change",
+        task_id="task-unrelated",
+        user_message="現状を調査して",
+    )
+    store.finalize_turn(turn_id="turn-change", status="success")
+
+    bound = store.resolve_turn_id(task_id="task-change")
+
+    assert bound == "turn-change"
+
+
+def test_a_closed_turn_keeps_denying_mutation_without_an_explicit_turn_id(
+    tmp_path: Path,
+) -> None:
+    # The refusal of a closed turn only holds if the closed turn stays
+    # reachable: falling back to an older open turn, or to no turn at all,
+    # turns explicit completion into a way back to unenforced.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db", enforce_artifact_change_pre_lock=True)
+    store.start_turn(
+        turn_id="turn-old",
+        session_id="session-change",
+        task_id="task-change",
+        user_message="現状を調査して",
+    )
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=CHANGE_MESSAGE,
+    )
+    store.lock_turn(
+        turn_id="turn-change",
+        repositories=[],
+        worktrees=[str(repo)],
+        branches=["main"],
+        write_paths=["src/*.py"],
+    )
+    store.finalize_turn(turn_id="turn-change", status="success")
+
+    bound = store.resolve_turn_id(task_id="task-change", session_id="session-change")
+    decision = store.admit_tool(
+        turn_id=bound,
+        tool_call_id="after-close",
+        tool_name="write_file",
+        args={"path": str(repo / "secrets.txt"), "content": "x"},
+        task_id="task-change",
+        session_id="session-change",
+    )
+
+    assert bound == "turn-change"
+    assert decision.allowed is False
+    assert decision.action == "turn-closed"
+
+
+def test_a_self_lock_keeps_enforcing_the_next_turn_of_the_same_task(
+    tmp_path: Path,
+) -> None:
+    # The audit hooks can fire per LLM call rather than per user turn, so a
+    # lock that expired with its turn would leave the next call unenforced.
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    common = {"task_id": "task-self", "session_id": "session-self"}
+    runtime.pre_llm_call(**common, turn_id="turn-one", user_message=CHANGE_MESSAGE)
+    runtime.handle_scope_gate(
+        {
+            "action": "lock",
+            "targets": {"worktrees": [str(repo)], "write_paths": ["src/*.py"]},
+        },
+        **common,
+        turn_id="turn-one",
+    )
+
+    runtime.pre_llm_call(**common, turn_id="turn-two", user_message=CHANGE_MESSAGE)
+    second = runtime.store.get_turn("turn-two")
+    blocked = runtime.pre_tool_call(
+        **common,
+        turn_id="turn-two",
+        tool_call_id="write-out",
+        tool_name="write_file",
+        args={"path": str(repo / "secrets.txt"), "content": "x"},
+    )
+    allowed = runtime.pre_tool_call(
+        **common,
+        turn_id="turn-two",
+        tool_call_id="write-in",
+        tool_name="write_file",
+        args={"path": str(repo / "src" / "app.py"), "content": "x"},
+    )
+
+    assert second is not None
+    assert second["state"] == "locked"
+    assert second["contract_origin"] == "self"
+    assert blocked is not None
+    assert allowed is None
+
+
+def test_an_unbindable_call_is_fail_closed_without_a_task_id(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db")
+    store.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+
+    by_session = store.admit_without_turn(
+        task_id="", session_id="session-change", tool_name="write_file"
+    )
+    unknown_turn = store.admit_tool(
+        turn_id="never-registered",
+        tool_call_id="ghost",
+        tool_name="write_file",
+        args={"path": "src/app.py", "content": "x"},
+        session_id="session-change",
+    )
+    unrelated = store.admit_without_turn(
+        task_id="", session_id="other-session", tool_name="write_file"
+    )
+
+    assert by_session.allowed is False
+    assert by_session.action == "contract-unbound"
+    assert unknown_turn.allowed is False
+    assert unknown_turn.action == "contract-unbound"
+    assert unrelated.allowed is True
+
+
+def test_a_clean_session_end_closes_an_enforced_turn(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    runtime.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    common = {
+        "turn_id": "turn-change",
+        "task_id": "task-change",
+        "session_id": "session-change",
+    }
+    runtime.pre_llm_call(**common, user_message=CHANGE_MESSAGE)
+
+    runtime.post_llm_call(**common)
+    open_turn = runtime.store.get_turn("turn-change")
+    runtime.on_session_end(**common, completed=True, failed=False, interrupted=False)
+    closed = runtime.store.get_turn("turn-change")
+    blocked = runtime.pre_tool_call(
+        **common,
+        tool_call_id="write-after-end",
+        tool_name="write_file",
+        args={"path": str(repo / "src" / "app.py"), "content": "x"},
+    )
+
+    assert open_turn is not None
+    assert open_turn["completion_status"] is None
+    assert closed is not None
+    assert closed["state"] == "completed"
+    assert closed["completion_status"] == "success"
+    assert blocked is not None
+    assert "turn-closed" in blocked["message"]
+
+
+def test_the_unlocked_stages_are_bounded_by_the_class_budget(tmp_path: Path) -> None:
+    # Replacing unlimited pre-lock access with a default deny is only a
+    # bounded stage if the stage carries the class ceilings too.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db", enforce_artifact_change_pre_lock=True)
+    for turn_id, message in (("turn-pre", CHANGE_MESSAGE),):
+        store.start_turn(
+            turn_id=turn_id,
+            session_id="s",
+            task_id="task-pre",
+            user_message=message,
+        )
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET started_at = 1.0 WHERE turn_id = 'turn-pre'"
+        )
+
+    pre_lock = _admit(
+        store, "read_file", {"path": str(repo / "src" / "app.py")}, turn_id="turn-pre"
+    )
+
+    store_denied, denied_repo = _seeded_store(
+        tmp_path / "denied", branch="not-the-checked-out-branch"
+    )
+    with store_denied._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET tool_count = 999 WHERE turn_id = 'turn-change'"
+        )
+    mutation_denied = _admit(
+        store_denied, "read_file", {"path": str(denied_repo / "src" / "app.py")}
+    )
+
+    assert pre_lock.allowed is False
+    assert pre_lock.action == "wall-budget"
+    assert mutation_denied.allowed is False
+    assert mutation_denied.action == "tool-budget"
+
+
+def test_a_transient_repository_probe_failure_stays_retryable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A verification that could not run is not a verification that failed:
+    # pinning the turn would make one timeout unrecoverable.
+    import scope_gate
+
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db")
+    store.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    calls: list[int] = []
+    real = scope_gate._validated_worktree_branches
+
+    def flaky(worktrees: list[str]) -> dict[str, str]:
+        calls.append(1)
+        if len(calls) == 1:
+            raise scope_gate.WorktreeProbeError("probe timed out")
+        return real(worktrees)
+
+    monkeypatch.setattr(scope_gate, "_validated_worktree_branches", flaky)
+
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=CHANGE_MESSAGE,
+    )
+    unregistered = store.get_turn("turn-change")
+    unbound = store.admit_without_turn(
+        task_id="task-change", session_id="session-change", tool_name="write_file"
+    )
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=CHANGE_MESSAGE,
+    )
+    recovered = store.get_turn("turn-change")
+
+    assert unregistered is None
+    assert unbound.allowed is False
+    assert recovered is not None
+    assert recovered["state"] == "locked"
+
+
+def test_a_self_lock_is_refused_while_the_task_carries_a_seed(tmp_path: Path) -> None:
+    # The ceiling must be checked where the lock happens, not inferred from
+    # the turn already being locked: that inference rests on the host wiring
+    # an identifier and on the order the records were written.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db", enforce_artifact_change_pre_lock=True)
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-change",
+        user_message=CHANGE_MESSAGE,
+    )
+    store.record_contract_seed(
+        task_id="task-change",
+        session_id="session-change",
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/app.py"],
+    )
+
+    with pytest.raises(ValueError, match="assigned contract seed"):
+        store.lock_turn(
+            turn_id="turn-change",
+            repositories=[],
+            worktrees=[str(repo)],
+            branches=["main"],
+            write_paths=["**"],
+            test_paths=["tests/**"],
+            execution=["focused-test"],
+        )
+
+
+def test_the_contract_carries_git_write_permission(tmp_path: Path) -> None:
+    store, repo = _seeded_store(tmp_path, git_write=[])
+    full_store, full_repo = _seeded_store(tmp_path / "full")
+
+    stage = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+    commit = _admit(
+        store, "terminal", {"command": "git commit -m msg", "workdir": str(repo)}
+    )
+    default_stage = _admit(
+        full_store,
+        "terminal",
+        {"command": "git add src/app.py", "workdir": str(full_repo)},
+    )
+
+    assert stage.allowed is False
+    assert stage.action == "git-write-forbidden"
+    assert commit.allowed is False
+    assert commit.action == "git-write-forbidden"
+    assert default_stage.allowed is True
+
+
+def test_a_contract_without_the_git_write_field_denies_git_writes(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+    with store._connect() as connection:
+        row = connection.execute(
+            "SELECT contract_json FROM turns WHERE turn_id = 'turn-change'"
+        ).fetchone()
+        contract = json.loads(row["contract_json"])
+        contract["actions"].pop("git_write")
+        connection.execute(
+            "UPDATE turns SET contract_json = ? WHERE turn_id = 'turn-change'",
+            (json.dumps(contract),),
+        )
+
+    decision = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+
+    assert decision.allowed is False
+    assert decision.action == "git-write-unspecified"
+
+
+def test_the_self_lock_target_list_is_derived_not_declared(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db", enforce_artifact_change_pre_lock=True)
+    store.start_turn(
+        turn_id="turn-change",
+        session_id="s",
+        task_id="task-self",
+        user_message=CHANGE_MESSAGE,
+    )
+
+    contract = store.lock_turn(
+        turn_id="turn-change",
+        repositories=["/somewhere/else", "/another/place"],
+        worktrees=[str(repo)],
+        branches=["main"],
+        write_paths=["src/*.py"],
+    )
+
+    assert contract["targets"]["repositories"] == [str(repo.resolve())]
+
+
+def test_expansion_review_of_an_already_permitted_action_costs_no_budget(
+    tmp_path: Path,
+) -> None:
+    store, _ = _seeded_store(tmp_path)
+    for index in range(3):
+        already = store.request_expansion(
+            turn_id="turn-change",
+            tool_name="write_file",
+            args={"path": "src/app.py", "content": str(index)},
+            reason="the normalizer did not recognize this write",
+        )
+        assert already["ok"] is True
+        assert already["reviewer"] == "deterministic-allow"
+
+    def approve(payload: dict[str, object]) -> dict[str, object]:
+        return {"allow": True, "reason": "indispensable"}
+
+    outside = store.request_expansion(
+        turn_id="turn-change",
+        tool_name="write_file",
+        args={"path": "docs/other.md", "content": "x"},
+        reason="a genuine expansion",
+        judge=approve,
+    )
+
+    assert outside["ok"] is True
+    assert outside["reviewer"] == "judge"
+
+
+def test_expired_contract_records_and_permits_are_purged(tmp_path: Path) -> None:
+    store, repo = _seeded_store(tmp_path)
+    store.request_expansion(
+        turn_id="turn-change",
+        tool_name="write_file",
+        args={"path": "docs/other.md", "content": "x"},
+        reason="r",
+    )
+    with store._connect() as connection:
+        connection.execute("UPDATE turns SET started_at = 1.0")
+        connection.execute("UPDATE contract_seeds SET created_at = 1.0")
+
+    store.purge_expired(now=31 * 24 * 60 * 60 + 1, retention_days=30)
+
+    with store._connect() as connection:
+        remaining = {
+            table: connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            for table in ("turns", "contract_seeds", "expansion_permits")
+        }
+
+    assert remaining == {"turns": 0, "contract_seeds": 0, "expansion_permits": 0}
+
+
+def test_a_declared_nested_container_is_never_skipped(tmp_path: Path) -> None:
+    listed = collect_write_targets(
+        "multi_edit", {"path": "src/a.py", "edits": [{"path": "src/b.py"}]}
+    )
+
+    assert set(listed) == {"src/a.py", "src/b.py"}
+    for args in (
+        {"path": "src/a.py", "edits": {"0": {"path": "secrets.txt"}}},
+        {"path": "src/a.py", "edits": ["secrets.txt"]},
+        {"path": "src/a.py", "edits": [{"content": "x"}]},
+    ):
+        with pytest.raises(PathRejected) as exc:
+            collect_write_targets("multi_edit", args)
+        assert exc.value.code in {"target-shape", "target-missing"}
+
+
+def test_the_read_tool_allowlist_matches_the_running_tool_vocabulary() -> None:
+    # A name that no tool answers to is not a widening, but it reads as
+    # coverage that does not exist; a real read tool that is missing is a
+    # false deny in a class that must have none.
+    vocabulary = _hermes_tool_vocabulary()
+
+    assert ARTIFACT_READ_TOOLS <= vocabulary
+    assert {"read_file", "search_files", "session_search"} <= ARTIFACT_READ_TOOLS
+
+
+def test_the_admission_dispatch_is_the_only_class_branch() -> None:
+    assert decision_for("artifact-change") is not None
+    assert decision_for("repository-closeout") is not None
+    assert decision_for("audit-only") is None
+    assert locked_admission_for("artifact-change") is not None
+
+
+def test_the_prelock_stage_has_a_configuration_path(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv(PRELOCK_ENFORCEMENT_ENV, "1")
+    enabled = ScopeGatePluginRuntime(tmp_path / "on.db")
+    monkeypatch.setenv(PRELOCK_ENFORCEMENT_ENV, "0")
+    disabled = ScopeGatePluginRuntime(tmp_path / "off.db")
+    monkeypatch.delenv(PRELOCK_ENFORCEMENT_ENV)
+    default = ScopeGatePluginRuntime(tmp_path / "default.db")
+
+    assert prelock_enforcement_setting() is None
+    assert enabled.store.enforce_artifact_change_pre_lock is True
+    assert disabled.store.enforce_artifact_change_pre_lock is False
+    assert default.store.enforce_artifact_change_pre_lock is False
+
+
+def test_admission_under_write_contention_returns_a_decision(tmp_path: Path) -> None:
+    # Admission holds the write lock across the repository probe, so a
+    # concurrent call has to wait rather than surface a store error: an
+    # exception here is not a verdict, and only one of the two hook paths
+    # has a fail-closed boundary of its own.
+    import threading
+
+    store, repo = _seeded_store(tmp_path)
+    holder_ready = threading.Event()
+    release = threading.Event()
+
+    def hold_write_lock() -> None:
+        with store._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "UPDATE turns SET tool_count = tool_count WHERE turn_id = 'turn-change'"
+            )
+            holder_ready.set()
+            release.wait(5)
+            connection.commit()
+
+    holder = threading.Thread(target=hold_write_lock)
+    holder.start()
+    try:
+        holder_ready.wait(5)
+        release.set()
+        decision = _admit(
+            store,
+            "terminal",
+            {"command": "git commit -m msg", "workdir": str(repo)},
+        )
+    finally:
+        release.set()
+        holder.join(10)
+
+    assert decision.allowed is True, decision
+
+
+def test_the_admission_boundary_blocks_when_the_gate_itself_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+
+    def broken(**kwargs: object) -> None:
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(runtime.store, "resolve_turn_id", broken)
+    blocked = runtime.pre_tool_call(
+        turn_id="turn-change",
+        task_id="task-change",
+        session_id="session-change",
+        tool_call_id="write",
+        tool_name="write_file",
+        args={"path": str(repo / "src" / "app.py"), "content": "x"},
+    )
+    control = runtime.handle_scope_gate(
+        {"action": "lock", "targets": {"worktrees": [str(repo)]}},
+        task_id="task-change",
+        session_id="session-change",
+    )
+
+    assert blocked is not None
+    assert blocked["action"] == "block"
+    assert "admission-validator-error" in blocked["message"]
+    assert control["ok"] is False
+
+
 def test_a_locked_turn_survives_an_intermediate_audit_hook(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
@@ -654,6 +1401,130 @@ def test_writes_outside_the_locked_scope_are_denied(
 
     assert decision.allowed is False
     assert decision.action in {"write-scope", "target-closed", "target-escape"}
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "args_template"),
+    [
+        ("write_file", {"path": "src/alias.py", "content": "x"}),
+        ("terminal", {"command": "git add src/alias.py"}),
+        ("terminal", {"command": "pytest src/alias.py"}),
+    ],
+)
+def test_an_in_scope_name_resolving_out_of_scope_is_denied_on_every_layer(
+    tmp_path: Path, tool_name: str, args_template: dict[str, object]
+) -> None:
+    # The first-layer write catalogue, the staging range, and the
+    # second-layer verification target all have to match on the resolved
+    # destination, not on the notation that was written.
+    store, repo = _seeded_store(tmp_path, execution=["focused-test"])
+    (repo / "src" / "alias.py").symlink_to(repo / "secrets.txt")
+    args = dict(args_template)
+    if tool_name == "terminal":
+        args["workdir"] = str(repo)
+
+    decision = _admit(store, tool_name, args)
+
+    assert decision.allowed is False, (tool_name, args, decision)
+    assert decision.action in {"write-scope", "stage-scope", "execution-target"}
+
+
+def test_a_name_resolving_outside_the_worktree_is_denied_on_every_layer(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path, execution=["focused-test"])
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "escaped.py").write_text("x\n", encoding="utf-8")
+    (repo / "src" / "away.py").symlink_to(outside / "escaped.py")
+
+    write = _admit(store, "write_file", {"path": "src/away.py", "content": "x"})
+    stage = _admit(
+        store, "terminal", {"command": "git add src/away.py", "workdir": str(repo)}
+    )
+    verify = _admit(
+        store, "terminal", {"command": "pytest src/away.py", "workdir": str(repo)}
+    )
+
+    for decision in (write, stage, verify):
+        assert decision.allowed is False, decision
+        assert decision.action == "target-escape"
+
+
+def test_an_equivalent_spelling_of_the_locked_worktree_is_not_falsely_denied(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+    alias = tmp_path / "alias"
+    alias.symlink_to(repo, target_is_directory=True)
+
+    write = _admit(store, "write_file", {"path": str(alias / "src" / "app.py"), "content": "x"})
+    stage = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(alias)}
+    )
+
+    assert write.allowed is True, write
+    assert write.action == "write-in-scope-change"
+    assert stage.allowed is True, stage
+
+
+def test_staging_a_directory_is_denied_even_when_a_pattern_matches_its_name(
+    tmp_path: Path,
+) -> None:
+    # A pattern can match a directory name while rejecting the files beneath
+    # it, so a directory pathspec would stage what the write layer denies.
+    store, repo = _seeded_store(
+        tmp_path, write_paths=["**/tests", "src/*.py"], test_paths=[]
+    )
+
+    directory = _admit(
+        store, "terminal", {"command": "git add tests", "workdir": str(repo)}
+    )
+    contained = _admit(
+        store,
+        "terminal",
+        {"command": "git add tests/test_app.py", "workdir": str(repo)},
+    )
+    subtree = _admit(
+        store, "terminal", {"command": "git add src", "workdir": str(repo)}
+    )
+
+    assert directory.allowed is False
+    assert directory.action == "stage-directory"
+    assert contained.allowed is False
+    assert subtree.allowed is False
+    assert subtree.action == "stage-directory"
+
+
+def test_staging_a_deletion_of_an_in_scope_file_is_not_falsely_denied(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+    (repo / "src" / "app.py").unlink()
+
+    decision = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+
+    assert decision.allowed is True, decision
+    assert decision.action == "stage-in-scope-change"
+
+
+def test_unlisted_terminal_argument_fields_are_denied(tmp_path: Path) -> None:
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(
+        store,
+        "terminal",
+        {
+            "command": "git commit -m msg",
+            "workdir": str(repo),
+            "environment": {"PATH": "/elsewhere"},
+        },
+    )
+
+    assert decision.allowed is False
+    assert decision.action == "terminal-argument-unlisted"
 
 
 def test_the_ordinary_change_then_verify_then_commit_flow_is_not_blocked(

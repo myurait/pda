@@ -1,0 +1,111 @@
+# S3-M1 実装 反証レビュー 確証欠陥の処置台帳（2026-08-23）
+
+- Status: closed（コード側の処置完了。司令塔判断へ回した項目のみ open）
+- 読み取り方針: **`restricted-` 接頭辞の対象。個別の再現条件に触れるため Fable モデルのセッションでは直接読まない**。抽象名のみの一覧は `docs/operations/adversarial-suite.md` にある。
+- 対象レビュー: `restricted-s3-impl-review-2026-08-23-{correctness,bypass,compat,fidelity}.md`（確証欠陥 37 件 + 判断 1 件）
+- 正本設計: `docs/design/task-scope-admission-gate.md`「S3-M1」節（本処置に伴う改訂を含む）
+- ローカルテスト: `./tmp/venv-scope/bin/python -m pytest integrations/hermes-scope-gate/tests -q --ignore=integrations/hermes-scope-gate/tests/test_hermes_integration.py -p no:cacheprovider` → 237 passed（処置前 199）。新規 38 件。
+- レビュー時の再現プローブ（`tmp/` 配下、git 管理外）を再実行し、脆弱側の観測がすべて拒否側へ反転したことを確認した。反転しなかったものは下記の「司令塔判断」「明示済み残余」に対応する。
+
+## 処置の分類
+
+- **修正**: 実装を変更し、回帰テストで固定した。
+- **部分修正**: 事実の不整合や計上誤りは直したが、許可集合そのものの変更を含む部分は設計判断として保留した。
+- **文書対応**: 実装は設計どおりで、設計本文・README・台帳側の整合が処置。
+- **判断へ回付**: 許可集合または既定値の変更を伴うため実装を変えていない。
+
+## 1. 修正した欠陥
+
+### パス基盤（照合入力の統一）
+
+| ID | 処置 | 回帰テスト |
+| --- | --- | --- |
+| I-BYP-01 [blocker] | 正規化関数を作り直し、生引数に対する上位参照検査を折り畳みの前に置き、照合入力を実体解決後のパスへ統一した。root 側も実体解決する。監査記録の資源名も解決後の相対パスになる。 | `test_an_upward_reference_after_a_link_element_cannot_relocate_the_target`（1段/2段のパラメタ）、`test_a_name_resolving_outside_the_worktree_is_denied_on_every_layer` |
+| I-COR-02 [blocker] | 同上。glob 照合が解決後の相対パスに対して行われるため、ロック済み root 内部でも閉集合になる。第一層の書込カタログ経路・ステージ経路・第二層の検証対象経路の3箇所が同一関数を通る。 | `test_the_scope_match_uses_the_resolved_destination_not_the_notation`、`test_an_in_scope_name_resolving_out_of_scope_is_denied_on_every_layer`（write / stage / verify の3経路） |
+| I-COR-11 [minor] | 帰属判定を表記依存から場所依存へ変更（安全側の誤りの解消）。 | `test_equivalent_spellings_of_the_locked_root_resolve_alike` |
+| I-COM-02 [major] | 同上。terminal の workdir 判定も独自の文字列比較を撤去し、実体解決の比較へ寄せた。 | `test_an_equivalent_spelling_of_the_locked_worktree_is_not_falsely_denied` |
+
+補足: 単独で呼ばれていた祖先解決関数は削除し、正規化関数へ統合した（設計「パス正規化は単一の決定論関数へ集約する」）。既存テスト `test_write_target_entity_resolution_stays_inside_the_locked_root` は新しい呼び出し形へ更新した。
+
+### 契約バインドと強制の持続
+
+| ID | 処置 | 回帰テスト |
+| --- | --- | --- |
+| I-COR-01 [blocker] / I-BYP-02 [blocker] | `start_turn` の契約記録照会を分類結果から切り離した。記録があるタスクは分類に関わらず `artifact-change` として登録し、closeout 由来のフラグ（commit/push 許可）を持ち込まない。分類器の出力は `turns.classified_class` へ監査保存する。 | `test_a_seeded_task_is_enforced_whatever_the_message_classifies_as`（audit-only / bounded-operation / 疑問形 / closeout の5パラメタ。closeout パラメタで `allow_push == 0` と push 拒否を固定） |
+| I-COR-03 [major] | ターンキーのフォールバックにメッセージ由来の識別子を必ず含めるようにした（task_id 単独をキーにしない）。 | `test_every_message_of_a_task_gets_its_own_turn` |
+| I-COR-04 [major] / I-BYP-04 [major] | 未バインド判定を「task_id の seed のみ」から「task_id または session_id の契約記録、または当該 task/session の強制ターン履歴」へ拡張。未知の turn_id も同じ判定へ委譲した。 | `test_an_unbindable_call_is_fail_closed_without_a_task_id` |
+| I-COR-05 [major] | ターン束縛の優先順位を「未完了の強制ターン → 直近のターン（完了済み含む）」に変更。より古い未完了ターンへ遡らない。 | `test_the_latest_turn_binds_a_call_even_after_it_closed`、`test_a_closed_turn_keeps_denying_mutation_without_an_explicit_turn_id` |
+| I-COR-06 [major] / I-COM-05 [major] | session 正常終了でも強制ターンを閉じる。閉じたターンは per-turn policy 注入の対象外にした。 | `test_a_clean_session_end_closes_an_enforced_turn` |
+| I-COM-03 [major] / I-FID-02 [major] | 上記の束縛順位と未バインド判定の両方で解消。閉鎖後に未強制へ戻る経路が無くなった。 | 同上 + `test_a_closed_turn_keeps_denying_mutation_without_an_explicit_turn_id` |
+| I-COM-04 [major] / I-FID-03 [major] | 自己 lock を `self_scope_locks` へタスク単位（task_id、無い場合は session）で永続化し、後続ターンを `locked` として作る。未完了の強制ターンが後続の未強制ターンに遮蔽されない束縛順位も併せて入れた。 | `test_a_self_lock_keeps_enforcing_the_next_turn_of_the_same_task`、`test_an_open_enforced_turn_is_not_shadowed_by_a_later_unenforced_turn` |
+| I-FID-04 [major] | 自己 lock の入口で契約 seed を照会し、seed があるタスクでの宣言 lock を拒否する（ターン state に依存しない）。 | `test_a_self_lock_is_refused_while_the_task_carries_a_seed` |
+
+### 既定拒否段・予算・境界
+
+| ID | 処置 | 回帰テスト |
+| --- | --- | --- |
+| I-FID-01 [major] | lock 前段と契約検証失敗段に、locked 段と同じ順序（wall → tool → deny）でクラス予算を適用した。予算値は locked 契約があればその契約から、無ければクラス既定から引く。 | `test_the_unlocked_stages_are_bounded_by_the_class_budget` |
+| I-BYP-03 [major] | ステージ対象の実体解決後にディレクトリ指定を拒否する（`stage-directory`）。削除ステージ（存在しない in-scope パス）は許可のまま。 | `test_staging_a_directory_is_denied_even_when_a_pattern_matches_its_name`、false deny 側の対照 `test_staging_a_deletion_of_an_in_scope_file_is_not_falsely_denied` |
+| I-FID-05 [major] | 宣言済み入れ子コンテナを listed 分岐と同じ規則へ揃えた（形状違い・要素型違い・書込先ゼロを拒否）。 | `test_a_declared_nested_container_is_never_skipped` |
+| I-BYP-07 [minor] | terminal の引数キーを明示 allowlist にし、未列挙キーを `terminal-argument-unlisted` で拒否。 | `test_unlisted_terminal_argument_fields_are_denied` |
+| I-BYP-09 [minor] | 拡張審査の第二段（契約が既に許可している判定）は permit 行を作らず予算を消費しない。 | `test_expansion_review_of_an_already_permitted_action_costs_no_budget` |
+| I-COR-07 [major] | admission を呼ぶ全経路に fail-closed の例外境界を置いた（pre フック、制御ハンドラ、記録専用フックは飲むが外へ出さない）。書込競合については、admission が保持しうる時間（外部プロセス検証の timeout 合計）を上回る待ち時間へ変更し、競合が例外ではなく判定になるようにした。 | `test_the_admission_boundary_blocks_when_the_gate_itself_fails`、`test_admission_under_write_contention_returns_a_decision` |
+| I-COM-10 [minor] | 検証の「不一致」と「実行失敗」を別扱いにした。実行失敗ではターンを登録せず、呼び出しは未バインド経路で fail-closed のまま次のフックで再試行できる。契約スキーマの読込と検証器のコンパイルはプロセス内で1回に変更。 | `test_a_transient_repository_probe_failure_stays_retryable` |
+| I-COR-08 [minor] / I-COM-07 [minor] | 保持期間 purge の対象に拡張 permit・契約 seed・自己 lock・使用履歴を追加。 | `test_expired_contract_records_and_permits_are_purged` |
+
+### 契約が運ぶ権限と監査面
+
+| ID | 処置 | 回帰テスト |
+| --- | --- | --- |
+| I-BYP-06 [minor] | 契約に `actions.git_write`（`stage` / `commit`）を追加し、スキーマ側で artifact-change の必須項目にした。admission はこの欄を引き、欄が無い契約は git 書込を拒否する。seed API から縮小できる。 | `test_the_contract_carries_git_write_permission`、`test_a_contract_without_the_git_write_field_denies_git_writes` |
+| I-COR-09 [minor] | artifact-change の対象欄は検証済み worktree から導出し、自由入力を受けない。スキーマに件数上限を追加。 | `test_the_self_lock_target_list_is_derived_not_declared` |
+| I-FID-06 [minor] | admission 本体の class 分岐を dispatch テーブル参照へ置き換え、G3 第二段と同じ表を引く。 | `test_the_admission_dispatch_is_the_only_class_branch` |
+| I-FID-07 [minor] | 契約スキーマの closeout 条件節に必須キー宣言を追加し、3分岐の記述形を揃えた。 | 既存 `test_generated_contract_validates_against_draft_2020_12_schema` + `tmp/verify_fidelity.py::probe_schema_gaps` で3分岐の宣言状態を確認 |
+| I-BYP-08 [minor] | lock 前段の有効化を環境変数 `PDA_SCOPE_GATE_ARTIFACT_PRELOCK` から読む経路を追加（既定は変更せず無効）。 | `test_the_prelock_stage_has_a_configuration_path` |
+| I-COM-08 [minor] | 制御ツールスキーマの `targets` 必須指定をクラス別（closeout 3キー / artifact-change は worktrees + write_paths）の選択形に戻した。 | 既存 `test_plugin_registers_one_control_tool_and_enforcement_hooks` と `test_the_seed_api_is_not_part_of_the_agent_facing_control_tool` が同スキーマを読む |
+
+## 2. 部分修正（残りは司令塔判断）
+
+### I-COM-01 [blocker] 強制ターンでの必須ツール群の拒否と拒否予算の枯渇
+
+修正した部分:
+
+- `ARTIFACT_READ_TOOLS` を実行中のツール語彙へ合わせた。実在しない名前（見かけの網羅）を削除し、実在する読み取り系ツールを追加した。語彙の一致は自動テストで固定した（`test_the_read_tool_allowlist_matches_the_running_tool_vocabulary`。語彙の正本は progress pipe の活動グループを解析して読む）。
+- 予算値の参照元を、モジュール定数の直読みから locked 契約の `budget`（無ければクラス既定）へ揃えた。
+
+保留した部分（D-S3-7）: リポジトリ境界の外側にしか作用しないツール群を第一層の判定対象外カテゴリにするか、読み取り専用 git を第一層へ加えるか、拒否上限を write 境界の逸脱試行に限定するか。いずれも許可集合または計上規則の変更であり、設計判断として実装を変えていない。処置後の実測では、当該ツール群の拒否は依然として拒否上限を消費する（上限直前までは write scope 内の作業が続行でき、`scope_gate` の lock / complete は上限後も到達可能）。
+
+## 3. 文書対応のみ
+
+| ID | 処置 |
+| --- | --- |
+| I-COR-10 [minor] / I-BYP-05 [minor] | commit の admission は引数構文を検査し index の内容を照合しない。設計 §11 に第9項「第一層で明文化する残余」を新設し、脅威モデルとして明記した。実装で閉じる場合は admission に別の外部プロセス検査が増えるため、帰属を D-S3-7 に含めた。README の限界節にも記載。 |
+| I-COM-09 [minor] | README の「seed は turn 開始時に消費される」表現を持続的上限の実装に合わせて書き換えた。契約記録の使用履歴をターン単位で記録するテーブルを追加し、どのターンが記録を使ったかが残るようにした（`contract_scope_uses`、`test_every_message_of_a_task_gets_its_own_turn` で件数を固定）。常時注入の system prompt section に artifact-change の二層契約と lock 手順の要約を追加した。 |
+| I-FID 判断1 相当（lock 前段の既定値の適用範囲） | 設計へ D-S3-8 として起票。実装は既定値を変更せず、設定経路のみ追加。 |
+
+## 4. 判断へ回付（実装を変えていない）
+
+| ID | 理由 |
+| --- | --- |
+| I-COM-06 [major] | 読み取り専用 git を第一層へ加えることは許可集合の拡大であり設計判断。§10 の受入項目一覧は closeout 事例を前提としているため、artifact-change 版の受入項目（強制状態を通す replay fixture）の新設も同じ判断に含める。D-S3-7 として起票した。 |
+| J-FID-01 [judgment] | I-COM-06 と同一の判断（読み取り専用 git の deny と拒否上限の相互作用）。D-S3-7 に統合した。 |
+| I-COM-01 の残余 | 上記 2 節のとおり。 |
+| I-BYP-08 の既定値 | 有効化経路は入れたが、どのレーンで既定 on にするかは D-S3-8。 |
+
+## 5. 誤検知（0 件）
+
+再検証の結果、確証欠陥として計上されていた 37 件すべてについて、記載された性質が処置前のコードで成立することを確認した。誤検知として棄却したものは無い。
+
+処置後に残る「反転しなかった観測」は次の2つで、いずれも誤検知ではなく残余である。
+
+1. lock 前段の既定拒否が既定 off であること（D-S3-8）。
+2. task_id も session_id も伴わないターンに対して、後から記録された seed の上限が効かないこと。契約記録の照会には識別子が必要で、両方が欠けたターンには照会対象が存在しない。運用条件として「強制クラスでは task_id か session_id のいずれかが必ず配線されていること」を設計 §11 第9項に明記し、第7項の synthetic payload 確認に含めた。
+
+## 6. 設計文書への改訂（本処置と同一変更に含む）
+
+- 契約の拡張: `actions.git_write` を追記。
+- 契約ライフサイクル 第1項: seed を持続的上限として記述。自己 lock のタスク単位持続、分類器出力を admission 入力にしないこと、ターン識別子がメッセージ単位であることを追記。
+- 第2項: クラス予算を lock 前段と契約検証失敗段にも適用すること、有効化が設定から到達できることを追記。
+- 第4項規範要件: session 終了を閉鎖契機として明記、閉じたターンの到達可能性とターン束縛の優先順位、検証の「不一致」と「実行失敗」の区別を追記。
+- 第9項（新設）: 第一層で明文化する残余（index 内容、terminal 引数フィールドの閉鎖、host 識別子の配線前提、ゲート自身の失敗の fail-closed、保持期間）。
+- 未解決の設計判断: D-S3-7 / D-S3-8 を起票。

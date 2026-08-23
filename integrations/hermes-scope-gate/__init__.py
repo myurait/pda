@@ -16,7 +16,11 @@ _SYSTEM_POLICY = """PDA task scope admission is enforced at the tool boundary. P
 confidence-improving work is not scope. For a repository-closeout turn, lock one explicit target,
 perform only bounded status/diff/integrity checks, the requested commit/push, and direct ref
 verification. Never repair content, conflicts, tests, branches, worktrees, deployments, or unrelated
-processes in that turn. Completion closes execution; report blockers instead of expanding the task."""
+processes in that turn. For an artifact-change turn, write permission and execution permission are
+separate contract layers and mutation needs a locked contract: either the assignment already locked
+the turn, or you lock one worktree and the write scope you need through `scope_gate`. A lock only
+narrows; the target and write scope cannot be extended afterwards. The per-turn contract details are
+supplied with the turn. Completion closes execution; report blockers instead of expanding the task."""
 
 _SCOPE_GATE_SCHEMA = {
     "name": "scope_gate",
@@ -55,6 +59,14 @@ _SCOPE_GATE_SCHEMA = {
                     },
                 },
                 "required": ["worktrees"],
+                # The required set is per class, so it has to be declared per
+                # class. A single relaxed list moved the check off the tool
+                # boundary and into a runtime error that still spent the
+                # turn's budget.
+                "anyOf": [
+                    {"required": ["repositories", "worktrees", "branches"]},
+                    {"required": ["worktrees", "write_paths"]},
+                ],
                 "additionalProperties": False,
             },
             "execution": {

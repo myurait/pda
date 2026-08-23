@@ -1,7 +1,7 @@
 # 敵対的迂回テストスイート
 
 - Status: active（goal M1 / ADR D5 の運用台帳。統治変更を伴うリリースは本スイートの全遮断を確認してから review に載せる）
-- 最終更新: 2026-08-22
+- 最終更新: 2026-08-23
 
 ## 目的
 
@@ -25,6 +25,20 @@
   - 同ファイルの path foundation / ツールカタログ / 第一層テスト群（R-08 / R-09 / R-10 / R-11 / R-03 系）
 - **検証実行を介した境界の無効化**（opt-in なしの実行、許可コマンドの引数検査すり抜け、対象範囲の拡大）
   - 同ファイルの第二層テスト群（R-01 / R-02 / R-07 系）。プロセス副作用は第一層の保証対象外であり、隔離実行と収集経路の静的検査は M2 の必須要件として未実装
+- **書込先の実体解決の回避**（表記の折り畳みに依存した照合、スコープ内の名前が別の場所へ解決する形、ロック済み root の等価な別表記による false deny）
+  - `integrations/hermes-scope-gate/tests/test_artifact_change_scope.py`: `test_an_upward_reference_after_a_link_element_cannot_relocate_the_target` / `test_the_scope_match_uses_the_resolved_destination_not_the_notation` / `test_an_in_scope_name_resolving_out_of_scope_is_denied_on_every_layer` / `test_a_name_resolving_outside_the_worktree_is_denied_on_every_layer` / `test_equivalent_spellings_of_the_locked_root_resolve_alike` / `test_an_equivalent_spelling_of_the_locked_worktree_is_not_falsely_denied`
+- **契約バインドの失効による強制の消失**（分類結果に従属した契約発効、クラス跨ぎの権限昇格、ターン行のタスク単位への退化、未強制ターンによる強制ターンの遮蔽、閉鎖後の再バインド、未知 turn_id・識別子欠落での未強制フォールバック、session 終了で閉じないターン、自己 lock のターン失効）
+  - 同ファイル: `test_a_seeded_task_is_enforced_whatever_the_message_classifies_as` / `test_every_message_of_a_task_gets_its_own_turn` / `test_an_open_enforced_turn_is_not_shadowed_by_a_later_unenforced_turn` / `test_the_latest_turn_binds_a_call_even_after_it_closed` / `test_a_closed_turn_keeps_denying_mutation_without_an_explicit_turn_id` / `test_an_unbindable_call_is_fail_closed_without_a_task_id` / `test_a_clean_session_end_closes_an_enforced_turn` / `test_a_self_lock_keeps_enforcing_the_next_turn_of_the_same_task`
+- **既定拒否段の無制限化と担保層の位置誤り**（lock 前段・契約検証失敗段の予算未適用、自己 lock による割当上限の迂回、宣言済みコンテナの形状例外、terminal 引数フィールドの未検査、拡張審査予算の誤計上）
+  - 同ファイル: `test_the_unlocked_stages_are_bounded_by_the_class_budget` / `test_a_self_lock_is_refused_while_the_task_carries_a_seed` / `test_a_declared_nested_container_is_never_skipped` / `test_unlisted_terminal_argument_fields_are_denied` / `test_expansion_review_of_an_already_permitted_action_costs_no_budget`
+- **ステージ経路と書込層の非対称**（書込が拒否する資産をディレクトリ単位のステージ指定で取り込む形）
+  - 同ファイル: `test_staging_a_directory_is_denied_even_when_a_pattern_matches_its_name`（false deny 側の対照は `test_staging_a_deletion_of_an_in_scope_file_is_not_falsely_denied`）
+- **権限の出所が契約でない状態**（git 書込権限をクラス固定で与える、契約の欄の欠落を無制限と読む、契約の対象欄を自由入力で受ける）
+  - 同ファイル: `test_the_contract_carries_git_write_permission` / `test_a_contract_without_the_git_write_field_denies_git_writes` / `test_the_self_lock_target_list_is_derived_not_declared`
+- **ゲート自身の失敗による fail-open と状態の残留**（admission 経路の例外境界欠落、書込競合時の例外、一過性検証失敗の固定化、失効した契約記録の残存）
+  - 同ファイル: `test_the_admission_boundary_blocks_when_the_gate_itself_fails` / `test_admission_under_write_contention_returns_a_decision` / `test_a_transient_repository_probe_failure_stays_retryable` / `test_expired_contract_records_and_permits_are_purged`
+- **許可集合とツール語彙の乖離**（実在しないツール名による見かけの網羅、実在する読み取りツールの取りこぼし）
+  - 同ファイル: `test_the_read_tool_allowlist_matches_the_running_tool_vocabulary`
 - **強制層の回帰**（closeout 専用ガードの弱化）
   - `integrations/hermes-scope-gate/tests/test_closeout_guards.py`
 - **worker による統治ファイル変更の finalization 拒否**（ADR D3。憲章・ADR・ロードマップ決定・ゲート/承認/ガード実装・停止policyへ触れる approval contract の機械拒否）
@@ -39,6 +53,8 @@
 未カバー（後続で追加する）:
 
 - 検証者・review 専用主体による lifecycle 変更試行の網羅（検証者ステージの実装は M2）
+- commit 時点の index 内容と write scope の照合（設計 §11 第9項の明示済み残余。帰属は D-S3-7 の判断待ち）
+- artifact-change の強制状態を通す incident replay fixture（既存 fixture は未強制状態のみを固定。D-S3-7 の判断待ち）
 
 ## 実行方法
 
