@@ -1,6 +1,6 @@
 # S3-M1 実装 反証レビュー 確証欠陥の処置台帳（2026-08-23）
 
-- Status: closed（コード側の処置完了。司令塔判断へ回した項目のみ open）
+- Status: closed（確証欠陥 37 件の処置完了。司令塔判断へ回した 4 項目も 2026-08-23 の決定で解決済み＝7 節。残余は 8 節の 1 項目のみ）
 - 読み取り方針: **`restricted-` 接頭辞の対象。個別の再現条件に触れるため Fable モデルのセッションでは直接読まない**。抽象名のみの一覧は `docs/operations/adversarial-suite.md` にある。
 - 対象レビュー: `restricted-s3-impl-review-2026-08-23-{correctness,bypass,compat,fidelity}.md`（確証欠陥 37 件 + 判断 1 件）
 - 正本設計: `docs/design/task-scope-admission-gate.md`「S3-M1」節（本処置に伴う改訂を含む）
@@ -75,22 +75,26 @@
 
 保留した部分（D-S3-7）: リポジトリ境界の外側にしか作用しないツール群を第一層の判定対象外カテゴリにするか、読み取り専用 git を第一層へ加えるか、拒否上限を write 境界の逸脱試行に限定するか。いずれも許可集合または計上規則の変更であり、設計判断として実装を変えていない。処置後の実測では、当該ツール群の拒否は依然として拒否上限を消費する（上限直前までは write scope 内の作業が続行でき、`scope_gate` の lock / complete は上限後も到達可能）。
 
+**→ 解決済み（2026-08-23 の司令塔決定、コミット `e98b219`）。下記 7 節を参照。上記「保留した部分」の記述は起票時点の状態である。**
+
 ## 3. 文書対応のみ
 
 | ID | 処置 |
 | --- | --- |
-| I-COR-10 [minor] / I-BYP-05 [minor] | commit の admission は引数構文を検査し index の内容を照合しない。設計 §11 に第9項「第一層で明文化する残余」を新設し、脅威モデルとして明記した。実装で閉じる場合は admission に別の外部プロセス検査が増えるため、帰属を D-S3-7 に含めた。README の限界節にも記載。 |
+| I-COR-10 [minor] / I-BYP-05 [minor] | commit の admission は引数構文を検査し index の内容を照合しない。設計 §11 に第9項「第一層で明文化する残余」を新設し、脅威モデルとして明記した。実装で閉じる場合は admission に別の外部プロセス検査が増えるため、帰属を D-S3-7 に含めた。README の限界節にも記載。**D-S3-7 の決定 4 点には含まれなかったため残余のまま open（8 節）。** |
 | I-COM-09 [minor] | README の「seed は turn 開始時に消費される」表現を持続的上限の実装に合わせて書き換えた。契約記録の使用履歴をターン単位で記録するテーブルを追加し、どのターンが記録を使ったかが残るようにした（`contract_scope_uses`、`test_every_message_of_a_task_gets_its_own_turn` で件数を固定）。常時注入の system prompt section に artifact-change の二層契約と lock 手順の要約を追加した。 |
 | I-FID 判断1 相当（lock 前段の既定値の適用範囲） | 設計へ D-S3-8 として起票。実装は既定値を変更せず、設定経路のみ追加。 |
 
-## 4. 判断へ回付（実装を変えていない）
+## 4. 判断へ回付（起票時点では実装を変えていない）
 
-| ID | 理由 |
-| --- | --- |
-| I-COM-06 [major] | 読み取り専用 git を第一層へ加えることは許可集合の拡大であり設計判断。§10 の受入項目一覧は closeout 事例を前提としているため、artifact-change 版の受入項目（強制状態を通す replay fixture）の新設も同じ判断に含める。D-S3-7 として起票した。 |
-| J-FID-01 [judgment] | I-COM-06 と同一の判断（読み取り専用 git の deny と拒否上限の相互作用）。D-S3-7 に統合した。 |
-| I-COM-01 の残余 | 上記 2 節のとおり。 |
-| I-BYP-08 の既定値 | 有効化経路は入れたが、どのレーンで既定 on にするかは D-S3-8。 |
+**この節の 4 項目はすべて 2026-08-23 の司令塔決定で解決し、コミット `e98b219` で実装・文書化した。下記 7 節を参照。**
+
+| ID | 理由 | 決定後の状態 |
+| --- | --- | --- |
+| I-COM-06 [major] | 読み取り専用 git を第一層へ加えることは許可集合の拡大であり設計判断。§10 の受入項目一覧は closeout 事例を前提としているため、artifact-change 版の受入項目（強制状態を通す replay fixture）の新設も同じ判断に含める。D-S3-7 として起票した。 | 解決（7 節 1・4） |
+| J-FID-01 [judgment] | I-COM-06 と同一の判断（読み取り専用 git の deny と拒否上限の相互作用）。D-S3-7 に統合した。 | 解決（7 節 3） |
+| I-COM-01 の残余 | 上記 2 節のとおり。 | 解決（7 節 1・2・3） |
+| I-BYP-08 の既定値 | 有効化経路は入れたが、どのレーンで既定 on にするかは D-S3-8。 | 決定（7 節 5。既定 off を批准） |
 
 ## 5. 誤検知（0 件）
 
@@ -109,3 +113,70 @@
 - 第4項規範要件: session 終了を閉鎖契機として明記、閉じたターンの到達可能性とターン束縛の優先順位、検証の「不一致」と「実行失敗」の区別を追記。
 - 第9項（新設）: 第一層で明文化する残余（index 内容、terminal 引数フィールドの閉鎖、host 識別子の配線前提、ゲート自身の失敗の fail-closed、保持期間）。
 - 未解決の設計判断: D-S3-7 / D-S3-8 を起票。
+
+## 7. D-S3-7 / D-S3-8 の決定による解決（2026-08-23、コミット `e98b219`）
+
+- ローカルテスト: 237 passed（本節の処置前）→ **293 passed**。新規 57 パラメタ、既存パラメタ 1 件削除（下記 6 参照）。
+- Status 更新: 本台帳の 2 節「保留した部分」と 4 節「判断へ回付」は解決済み。**未解決のまま残るのは 8 節の 1 項目のみ**。
+
+### 1. 読み取り専用 git を第一層へ（I-COM-06 / I-COM-01 の一部）
+
+`status` / `diff` / `rev-parse` / `branch` を locked 段の terminal admission へ追加した。引数検査は closeout の既存実装（トークナイザ、境界付き pathspec 検査、検証用引数 allowlist）をそのまま経由し、本クラス用の第二のパーサーを作っていない。当該共有関数を artifact-change のために拡張することもしていない（拡張は closeout の受入集合も広げるため）。
+
+closeout の読み取り集合より狭い 2 点（いずれも意図した縮小、設計本文へ明記）:
+
+- ネットワーク越しの読み取り（remote ref 照会系）は push に奉仕するものであり、push を持たない本クラスでは対象外。
+- `log` は closeout 側に境界付き引数検査の実装が無く、追加すれば「新しいパーサー」に当たるため除外。commit id は `rev-parse HEAD` が供給する。
+
+読み取りは `actions.git_write` の検査より前に判定する（書込権限を持たない契約でも状態は見られる必要がある）。drift 再検査は読み取りには適用しない。
+
+回帰テスト: `test_read_only_git_is_admitted_inside_the_locked_worktree`（9 パラメタ）、`test_read_only_git_arguments_outside_the_admitted_form_are_denied`（6 パラメタ）、`test_read_only_git_reads_outside_the_locked_worktree_are_denied`、`test_read_only_git_needs_no_git_write_permission`、`test_push_stays_outside_the_first_layer`、`test_the_read_only_git_subset_is_a_closed_set`。
+
+### 2. 作業記録系カテゴリの新設（I-COM-01 の残余）
+
+`ARTIFACT_WORK_RECORD_TOOLS` を**閉じた明示カタログ**（13 名: `todo` と kanban 系 12 名）として追加し、locked 段・lock 前段・契約検証失敗段で許可（audit 記録のみ）した。capability 推論やツール引数の形状ヒューリスティックは用いていない（R-11 と同型の欠陥を新設しないため）。未列挙ツールの default deny for mutation は不変。
+
+明示的な除外と理由: 別エージェント起動系（クラス予算 `subagents` は 0、設計 §10 項目 5 でも拒否）、外部情報取得系（依頼外の調査＝expansion）、スキル定義を書き得るもの（リポジトリのファイル書込に当たる）、ターン契約外の永続状態を書くもの。
+
+lock 前段・契約検証失敗段でも許可した点は「第一層で許可」の拡張である。作業管理平面には逸脱しうるスコープが無く、また座礁したターンに対して INV-S6 が求める行動（blocked として記録する）がこのカテゴリで行われるため、記録手段を閉じると規範自体が実行不能になる。設計本文に明記した。
+
+回帰テスト: `test_work_record_tools_are_admitted_in_a_locked_turn`（5 パラメタ）、`test_work_record_tools_are_admitted_before_lock_and_after_a_failed_seed`、`test_the_work_record_catalogue_is_a_closed_explicit_set`、`test_tools_outside_the_work_record_catalogue_stay_denied`（3 パラメタ）。
+
+### 3. 拒否上限の計上限定（J-FID-01 / I-COM-01 の残余）
+
+`artifact_deny_counter(action)` を追加し、計上先を拒否理由コードごとに決める閉じた表にした。上限値（6）は維持。
+
+- 逸脱試行（write 境界・実行境界）→ `denied_count`。**未分類の理由コードもここに落ちる**（免除は明示列挙によってのみ与える）。
+- 読み取り境界の拒否 → `tool_count`。計上されない拒否が無償にならないようにした結果、計上されない経路もクラス予算で有界である。
+- 予算枯渇そのものの拒否（wall / tool / deny）→ いずれの計数も消費しない。
+
+計上規則は artifact-change に限定し、closeout の計上は変更していない。
+
+**解釈を要した点**: 決定文の「読み取り系の拒否は計上しない」と「計上を逸脱試行に限定する」は、許可された読み取り subcommand が admit 範囲外の引数を伴う場合に衝突する。免除を「逸脱しえない subcommand」に限り、「逸脱を試みる引数」は計上する側へ寄せた（当該拒否はロック済み worktree 外への読み取りか、読み取り形だけが許可された subcommand の書込形のいずれかであり、後者は write 境界への試行そのものである）。設計本文へ明記した。
+
+回帰テスト: `test_the_deny_ceiling_counts_only_boundary_deviations`（11 パラメタ）、`test_read_refusals_do_not_strand_a_turn_that_keeps_working`、`test_boundary_deviations_still_exhaust_the_deny_ceiling`、`test_uncounted_denials_stay_bounded_by_the_class_budget`、`test_recognized_read_only_git_subcommands_are_refused_without_counting`（9 パラメタ）、`test_unrecognized_git_subcommands_still_count_as_deviations`、`test_closeout_deny_counting_is_unchanged`。
+
+### 4. §10 受入項目の新設（I-COM-06 の一部）
+
+設計 §10 へ artifact-change 版の受入項目 15〜17 を別立てで新設した。既存項目 1〜14 は改訂していない。`push` が S3 第一層の対象外である旨を明記した。
+
+回帰テスト: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`（13 手順の通常フロー、拒否 0 件で完走）、`test_replay_the_worker_flow_survives_one_unadmitted_read_attempt`、`test_replay_the_enforced_flow_still_refuses_the_incident_expansions`。
+
+### 5. D-S3-8（lock 前段の既定値）
+
+既定 off を批准。既定値・設定経路は変更していない（文書対応のみ）。設計本文へ「既定 off は INV-S8 の恒久緩和ではなく S1 と同じ段階的 rollout 方針の適用であり、自己 lock レーンの有効化は S3 rollout の実運用評価、自律 worker レーンの有効化は seed 配線と同時（D-S3-6 に従属）」を明記した。
+
+### 6. 既存テストの変更（1 件）
+
+`test_commit_arguments_and_other_git_writes_are_bounded` のパラメタから読み取り形の拒否を固定していた 1 件を削除した。D-S3-7 が当該挙動を反転させたためであり、読み取り形は上記 1 の新規テスト群へ移した。他の既存テストは無改変。
+
+### 7. 併せて更新した文書
+
+- `docs/design/task-scope-admission-gate.md`: Status 行、§10 の新設節、第一層（読み取り系・作業記録系・読み取り専用 git・計上規則・コードパス共有の範囲）、契約ライフサイクル第2項、D-S3-7 / D-S3-8 の項（起票 → 司令塔決定 → M1 exit gate で批准対象という出所が読める形へ改訂）。
+- `docs/operations/adversarial-suite.md`: 新カテゴリ 4 件を「カバー済み」へ追加。「未カバー」から artifact-change の強制状態 replay を削除。
+- `integrations/hermes-scope-gate/README.md`: 第一層の記述と限界節。
+- `integrations/hermes-scope-gate/plugin_runtime.py`: per-turn の artifact-change policy 文面（許可される読み取り手段を明示。`log` が非許可であることと commit id の取得手段を含む）。
+
+## 8. 本決定後も未解決の残余
+
+- **commit 時点の index 内容と write scope の照合**（I-COR-10 / I-BYP-05。設計 §11 第9項の明示済み残余）。D-S3-7 の決定 4 点に含まれなかったため、帰属先を失ったまま残余として open。閉じる場合は admission 内で staged パス集合の照合が必要になる。`docs/operations/adversarial-suite.md` の「未カバー」に同じ扱いで記載している。
