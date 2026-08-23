@@ -79,6 +79,12 @@
   - `integrations/hermes-pda-approvals/tests/test_plugin_api.py::test_gate_derived_identity_refuses_a_workspace_that_carries_its_own_repository`（解決先が workspace 配下に入る構成を承認不可とし、identity を導出しない fail-closed を固定）
 - **カード宣言経由の書込上限の全域化**（AI が書くカード本文で上限の幅を決められる状態。設計 §3.2 が tenant 既定値を退けた理由と同じ盤面へ到達する経路）
   - `integrations/hermes-scope-gate/tests/test_scope_seed_wiring.py::test_a_declaration_cannot_stand_in_for_the_whole_tree` / `test_the_same_limit_applies_to_declared_test_assets`（先頭ワイルドカードセグメントの機械的拒否。`test_an_anchored_pattern_of_any_depth_is_still_accepted` が通常形の非拒否を固定）
+- **綴りの列挙を回避した同幅の宣言**（上限の判定が綴りの照合であるとき、パターン言語が同じ幅を別の綴りで書ける形。計上規則で確証した「開いた引数空間は綴りの列挙では閉じない」と同型）
+  - 同ファイル: `test_a_spelling_that_evades_the_floor_is_still_measured` / `test_the_measured_breadth_is_the_union_of_both_declared_fields` / `test_the_limit_is_configurable_without_changing_the_measurement`（実ツリーへの照合で被覆最上位エントリ数を測る形。綴りではなく測定量に上限を課す）
+- **最終化できない面への宣言**（宣言の段では通り、最終承認の段で無条件に拒否される面を対象に作業させる形。上限の幅とは独立に、統治規則の書き換えへ到達する入口）
+  - 同ファイル: `test_a_declaration_covering_a_governance_surface_is_refused` / `test_a_governance_file_reached_by_a_wide_pattern_is_refused` / `test_the_governance_surfaces_match_the_activation_gate`（字面と実照合の 2 経路で拒否し、承認側実装との集合一致を突き合わせで固定）
+- **メタデータ実体を指す別綴りの書込先**（carve-out の判定が綴りの一致であるとき、ファイルシステムが同一実体として扱う別名が通過する形。名前の綴りは実体の同一性ではない）
+  - `integrations/hermes-scope-gate/tests/test_artifact_change_scope.py::test_a_metadata_name_the_filesystem_folds_is_still_refused` / `test_an_alias_of_the_metadata_pointer_is_refused`（実体同一性での照合。前者は FS の実挙動を検出して両方向を固定し、後者は FS 非依存に当該分岐を固定。`test_an_ordinary_file_beside_the_metadata_pointer_is_not_refused` が false deny 側を固定）
 - **Markdown 上の不活性領域を実効宣言に変える形**（図解として書かれたテキストが上限になる方向と、実宣言と図解の併記が曖昧として拒否される方向の両方）
   - 同ファイル: `test_an_indented_example_is_not_a_live_declaration` / `test_a_declaration_shown_inside_an_example_block_is_inert` / `test_a_real_declaration_beside_a_worked_example_is_not_ambiguous` / `test_two_live_declarations_are_still_refused` / `test_the_documented_declaration_example_is_the_accepted_form`（正本手順の例が受理形であることを固定）
 - **強制スイッチの省略による fail-open**（強制の有無を決める引数を呼び出し側が省略でき、seed なしで割当が成功する形）

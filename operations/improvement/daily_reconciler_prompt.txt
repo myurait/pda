@@ -15,10 +15,12 @@
 - ready化するcardのbodyへ、情報文字列 `pda-scope` のフェンス済みブロックをちょうど1つ置く。中身はJSONオブジェクトで、`write_paths` は必須（リポジトリ相対glob、1件以上、`*`はパス区切りを越えない、再帰は`**`）。`test_paths`・`execution`・`git_write` は省略可で、省略時はそれぞれテスト資産の書込なし・実行検証なし・クラス既定となる。`git_write` は縮小のみ宣言できる。この4キー以外を書いたcardは受理されない。
 - cardのbodyへ書く形は次の3行を行頭から並べたもの（前後は空行）。1行目と3行目のバッククォートは3つずつ、1行目にだけ情報文字列を付ける。
 1行目: ```pda-scope
-2行目: {"write_paths": ["operations/improvement/*.py"], "test_paths": ["operations/improvement/tests/test_x.py"]}
+2行目: {"write_paths": ["src/pda/backup/*.py"], "test_paths": ["tests/backup/test_local_snapshot.py"]}
 3行目: ```
 - フェンスは行頭に置く（インデント3桁までは許容）。4桁以上インデントした行、および別のフェンスの内側に置いたブロックは例示として扱われ、宣言にはならない。
-- パターンの先頭セグメントを `*` または `**` にはできない。カバーする範囲をパターン自身が名指しする（`src/**` や `operations/improvement/*.py` は可）。
+- パターンの先頭セグメントを `*` または `**` にはできない。カバーする範囲をパターン自身が名指しする（`src/**` や `src/pda/backup/*.py` は可）。
+- 宣言(`write_paths`と`test_paths`の合計)が実際に届くリポジトリ最上位エントリは3件までで、これはパターンの綴りではなくツリーへの実照合で数える。1カード1領域に絞り、広い場合はcardを分ける。
+- 統治面(`operations/improvement/`、`integrations/hermes-*/`、`infra/systemd/`、`conftest.py`、`pda_charter.md`、`continuity/autonomous-improvement.json`、`profiles/pda/managed-habits.json`、`profiles/pda/skills/pda-autonomous-improvement/`、`docs/design/self-improvement-governance-adr.md`、`docs/design/task-scope-admission-gate.md`、`docs/roadmap/`の運用3文書、`docs/operations/adversarial-suite.md`)を含む宣言は受理されない。これらはオーナーがコミットする面なので、該当する改善はcardへ提案として書き、宣言スコープには入れない。
 - スコープはそのcardの成果に必要な最小範囲だけを書く。リポジトリ全体や広いディレクトリを既定で置かない。宣言のないcardは割当されないため、ready化の前に必ず入れる。
 - 既にreadyまたはassign済みのcardの宣言は編集しない。編集するとタスクが詰まる。スコープ変更が必要なら新しいcardへ分ける。
 4. runningの無heartbeat、繰返し失敗、reviewの承認待ち、branch衝突を抽出する。勝手にcomplete/archive/deleteしない。

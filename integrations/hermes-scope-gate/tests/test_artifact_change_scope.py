@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import itertools
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
@@ -3452,6 +3453,101 @@ def test_no_write_catalogue_tool_reaches_git_metadata(
 
     assert decision.allowed is False, tool_name
     assert decision.action == "write-git-metadata", tool_name
+
+
+def _filesystem_folds_case(root: Path) -> bool:
+    probe = root / "case-probe-directory"
+    probe.mkdir()
+    try:
+        return (root / "CASE-PROBE-DIRECTORY").is_dir()
+    finally:
+        probe.rmdir()
+
+
+def test_a_metadata_name_the_filesystem_folds_is_still_refused(tmp_path: Path) -> None:
+    """The identity of the destination decides, not the spelling of the name.
+
+    On a filesystem that folds case, a differently cased spelling of the
+    metadata directory opens the same storage: the segment differs, the entity
+    does not. Where case is significant it is a genuinely different directory
+    and writing to it has to stay admitted, so both directions are asserted
+    against what the filesystem under the fixture actually does.
+    """
+
+    store, repo = _seeded_store(tmp_path, write_paths=["**"], test_paths=[])
+    folds = _filesystem_folds_case(repo)
+
+    decision = _admit(store, "write_file", {"path": ".Git/config", "content": "x"})
+
+    if folds:
+        assert decision.allowed is False
+        assert decision.action == "write-git-metadata"
+        assert artifact_deny_counter(decision.action) == "denied_count"
+    else:
+        # The false-denial side: a distinct directory that merely resembles the
+        # metadata name is an ordinary destination.
+        assert decision.allowed is True
+        assert decision.action == "write-in-scope-change"
+
+
+def test_an_alias_of_the_metadata_pointer_is_refused(tmp_path: Path) -> None:
+    """A second name for the same entity, on every filesystem.
+
+    A linked worktree's ``.git`` is a pointer file, so a hard link to it is
+    the same inode under a different name and path resolution does not fold
+    it away. Writing through that name rewrites where discovery from the
+    locked root goes, which is the premise the contract's own guarantees rest
+    on -- and it carries no ``.git`` segment, so only the identity comparison
+    reaches it.
+    """
+
+    _, worktree, branch = _linked_worktree(tmp_path)
+    pointer = worktree / ".git"
+    assert pointer.is_file(), "a linked worktree carries a pointer file"
+    alias = worktree / "repo-pointer"
+    os.link(pointer, alias)
+    store, _ = _seeded_store(
+        tmp_path / "state",
+        write_paths=["**"],
+        test_paths=[],
+        branch=branch,
+        repo=worktree,
+    )
+
+    decision = _admit(store, "write_file", {"path": "repo-pointer", "content": "x"})
+
+    assert decision.allowed is False
+    assert decision.action == "write-git-metadata"
+    assert artifact_deny_counter(decision.action) == "denied_count"
+
+    # The same identity comparison on the staging path.
+    staged = _admit(
+        store,
+        "terminal",
+        {"command": "git add repo-pointer", "workdir": str(worktree)},
+    )
+    assert staged.allowed is False
+    assert staged.action == "stage-git-metadata"
+
+
+def test_an_ordinary_file_beside_the_metadata_pointer_is_not_refused(
+    tmp_path: Path,
+) -> None:
+    # The companion to the alias refusal: the comparison must not deny a file
+    # that merely lives beside the pointer.
+    _, worktree, branch = _linked_worktree(tmp_path)
+    store, _ = _seeded_store(
+        tmp_path / "state",
+        write_paths=["**"],
+        test_paths=[],
+        branch=branch,
+        repo=worktree,
+    )
+
+    decision = _admit(store, "write_file", {"path": "notes.md", "content": "x"})
+
+    assert decision.allowed is True
+    assert decision.action == "write-in-scope-change"
 
 
 def test_staging_refuses_gits_own_metadata(tmp_path: Path) -> None:

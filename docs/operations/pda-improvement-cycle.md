@@ -49,13 +49,13 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 ### Ready化条件としての書込スコープ宣言
 
-`scope_seed.enabled`が有効な間、Readyカードは本文に機械可読な書込スコープ宣言を1つだけ持つ。宣言はオーケストレーターが読み、割当時にスコープ審査ゲートの契約seedとして記録される。宣言のないカードは割当されず、理由がカードへ1件コメントされる。tenant全体の既定スコープは置かない。宣言不備のカードは当該カードのみ割当対象から外れ、後続の適格カードはそのまま割当される。周期の戻り値は`refused`にカードIDと理由種別を並べる。
+`scope_seed.enabled`が有効な間、Readyカードは本文に機械可読な書込スコープ宣言を1つだけ持つ。宣言はオーケストレーターが読み、割当時にスコープ審査ゲートの契約seedとして記録される。宣言のないカードは割当されず、理由がカードへ1件コメントされる。tenant全体の既定スコープは置かない。宣言不備のカードは当該カードのみ割当対象から外れ、後続の適格カードはそのまま割当される。周期の戻り値は`refused`にカードIDと理由種別を並べる。カード単位の拒否は宣言不備に限らず適用される（`workspace-collision`・`dirty-worktree`・`claim-race`も同様）ため、カード単位の拒否がある周期でも戻り値の`ok`は`true`になる。監視は`ok`だけでなく`refused`を読む。`ok`が`false`になるのは設定不正や方針ファイル読取不能など、割当ループの外側で周期そのものが失敗した場合である。
 
 宣言は情報文字列`pda-scope`のフェンス済みブロックへJSONオブジェクトで書く。次は実際に受理される形をそのまま示したものである（外側の4バッククォートは例示のための囲みなので、カードへ写すときは内側の3バッククォートのブロックだけを書く）。
 
 ````
 ```pda-scope
-{"write_paths": ["operations/improvement/*.py"], "test_paths": ["operations/improvement/tests/test_x.py"]}
+{"write_paths": ["src/pda/backup/*.py"], "test_paths": ["tests/backup/test_local_snapshot.py"]}
 ```
 ````
 
@@ -67,10 +67,12 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 宣言の書き方には次の制約がある。
 
-- パターンの先頭セグメントを`*`または`**`にはできない。カバーする範囲をパターン自身が名指しする必要がある。`src/**`や`operations/improvement/*.py`のような形は使える。
+- パターンの先頭セグメントを`*`または`**`にはできない。カバーする範囲をパターン自身が名指しする必要がある。`src/**`や`src/pda/backup/*.py`のような形は使える。
+- 宣言（`write_paths`と`test_paths`の合計）が実際に届くリポジトリ最上位ディレクトリ・ファイルの数には上限がある（既定3件）。この判定はパターンの綴りではなく、worktreeのツリーへ実際に照合して数える。上限を超えるカードは割当されないので、必要な範囲だけを書くか、カードを分ける。上限値は`continuity/autonomous-improvement.json`の`scope_seed.max_top_level_entries`で変更できる。
+- 統治面（`operations/improvement/`、`integrations/hermes-scope-gate/`、`integrations/hermes-pda-approvals/`、`integrations/hermes-kanban-governance/`、`infra/systemd/`、`conftest.py`、`pda_charter.md`、`continuity/autonomous-improvement.json`、`profiles/pda/managed-habits.json`、`profiles/pda/skills/pda-autonomous-improvement/`、`docs/design/self-improvement-governance-adr.md`、`docs/design/task-scope-admission-gate.md`、`docs/roadmap/`の運用3文書、`docs/operations/adversarial-suite.md`）を含む宣言は受理されない。これらはオーナーがコミットする面であり、最終承認の段でも差分が拒否されるため、宣言の段で止める。
 - フェンスは行頭（インデント3桁まで）に置く。4桁以上インデントした行はMarkdown上の逐語テキストなので宣言として読まれない。
 - 別のフェンスの内側に置いたブロックは例示として扱われ、宣言にはならない。上の例のように囲めば、実際の宣言と併記しても曖昧扱いにならない。
-- `.git`を含むパスは、宣言の幅にかかわらず書込・ステージのいずれも許可されない。Gitのメタデータはどの契約の対象にもならない。
+- `.git`を含むパス、およびファイルシステムが`.git`と同一実体として扱う別綴りのパスは、宣言の幅にかかわらず書込・ステージのいずれも許可されない。Gitのメタデータはどの契約の対象にもならない。
 
 宣言はタスク単位の上限であり、割当後の編集はできない。編集された状態で次周期に入るとカードが詰まり、理由がコメントされる。スコープを変える場合は新しいカードへ分ける。
 

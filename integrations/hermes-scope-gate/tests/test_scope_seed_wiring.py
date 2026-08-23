@@ -14,6 +14,7 @@ ordering test installs a minimal stub for it.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import shutil
@@ -105,31 +106,75 @@ def _repo_with_worktree(tmp_path: Path) -> tuple[Path, Path, str]:
 # Declaration parsing and payload derivation
 # --------------------------------------------------------------------------
 
+def _measure_tree(root: Path) -> Path:
+    """A small working tree for the breadth measurement to be taken against.
 
-def test_a_card_without_a_declaration_is_not_routable() -> None:
+    More top-level entries than one card's declared scope may cover, so the
+    limit is exercised rather than being unreachable, and enough depth that a
+    recursive pattern and a single-segment pattern reach different amounts.
+    """
+
+    for relative in (
+        "src/app.py",
+        "src/sub/deep.py",
+        "tests/test_app.py",
+        "docs/note.md",
+        "docs/design/spec.md",
+        "schemas/thing.json",
+        "README.md",
+        "Makefile",
+    ):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x\n", encoding="utf-8")
+    return root
+
+
+@pytest.fixture(scope="session")
+def tree(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    return _measure_tree(tmp_path_factory.mktemp("measure-tree"))
+
+
+def _derive(body: object, tree_root: Path, *, task_id: str = "t_1", **kwargs):
+    """Derive against a real tree, with the matcher read from this checkout.
+
+    ``tree_root`` is required by the derivation, so the tests pass one too:
+    a helper that defaulted it would hide the argument the fence depends on.
+    """
+
+    return scope_seed.derive_seed_payload(
+        task_id=task_id,
+        body=body,
+        tree_root=tree_root,
+        gate_root=REPO_ROOT,
+        **kwargs,
+    )
+
+
+def test_a_card_without_a_declaration_is_not_routable(tree: Path) -> None:
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t_1", body="目的: 何か\n受入条件: X\n")
+        _derive("目的: 何か\n受入条件: X\n", tree)
     assert excinfo.value.kind == "missing-scope-declaration"
 
 
 @pytest.mark.parametrize("body", [None, "", 17, []])
-def test_a_non_string_body_is_treated_as_undeclared(body: object) -> None:
+def test_a_non_string_body_is_treated_as_undeclared(body: object, tree: Path) -> None:
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t_1", body=body)
+        _derive(body, tree)
     assert excinfo.value.kind == "missing-scope-declaration"
 
 
-def test_two_declarations_are_refused_rather_than_resolved() -> None:
+def test_two_declarations_are_refused_rather_than_resolved(tree: Path) -> None:
     body = _card_body(write_paths=["src/*.py"]) + _card_body(write_paths=["docs/*.md"])
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t_1", body=body)
+        _derive(body, tree)
     assert excinfo.value.kind == "invalid-scope-declaration"
 
 
-def test_an_ordinary_json_block_is_not_mistaken_for_a_declaration() -> None:
+def test_an_ordinary_json_block_is_not_mistaken_for_a_declaration(tree: Path) -> None:
     body = '目的: X\n\n```json\n{"write_paths": ["src/*.py"]}\n```\n'
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t_1", body=body)
+        _derive(body, tree)
     assert excinfo.value.kind == "missing-scope-declaration"
 
 
@@ -145,48 +190,45 @@ def test_an_ordinary_json_block_is_not_mistaken_for_a_declaration() -> None:
         {"write_paths": ["src/*.py"], "unexpected": True},
     ],
 )
-def test_malformed_declarations_are_refused(declaration: dict) -> None:
+def test_malformed_declarations_are_refused(declaration: dict, tree: Path) -> None:
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t_1", body=_card_body(**declaration))
+        _derive(_card_body(**declaration), tree)
     assert excinfo.value.kind == "invalid-scope-declaration"
 
 
-def test_the_defaults_grant_no_test_writes_and_no_execution() -> None:
-    payload = scope_seed.derive_seed_payload(
-        task_id="t_1", body=_card_body(write_paths=["src/*.py"])
-    )
+def test_the_defaults_grant_no_test_writes_and_no_execution(tree: Path) -> None:
+    payload = _derive(_card_body(write_paths=["src/*.py"]), tree)
     assert payload["test_paths"] == []
     assert payload["execution"] == []
     # Omitted git_write means the class default, applied by the gate.
     assert payload["git_write"] is None
 
 
-def test_git_write_may_narrow_the_class_default() -> None:
-    payload = scope_seed.derive_seed_payload(
-        task_id="t_1", body=_card_body(write_paths=["src/*.py"], git_write=["stage"])
+def test_git_write_may_narrow_the_class_default(tree: Path) -> None:
+    payload = _derive(
+        _card_body(write_paths=["src/*.py"], git_write=["stage"]), tree
     )
     assert payload["git_write"] == ["stage"]
 
 
 @pytest.mark.parametrize("git_write", [["push"], ["stage", "push"], ["merge"]])
-def test_git_write_cannot_widen_the_class_default(git_write: list[str]) -> None:
+def test_git_write_cannot_widen_the_class_default(
+    git_write: list[str], tree: Path
+) -> None:
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(
-            task_id="t_1",
-            body=_card_body(write_paths=["src/*.py"], git_write=git_write),
-        )
+        _derive(_card_body(write_paths=["src/*.py"], git_write=git_write), tree)
     assert excinfo.value.kind == "invalid-scope-declaration"
 
 
-def test_derivation_is_deterministic_for_an_unchanged_card() -> None:
+def test_derivation_is_deterministic_for_an_unchanged_card(tree: Path) -> None:
     """The gate refuses a second seed with a different payload, so re-deriving
     from the same card must not reorder or rewrite anything."""
 
     body = _card_body(
         write_paths=["src/b.py", "src/a.py"], test_paths=["tests/t_b.py", "tests/t_a.py"]
     )
-    first = scope_seed.derive_seed_payload(task_id="t_1", body=body)
-    second = scope_seed.derive_seed_payload(task_id="t_1", body=body)
+    first = _derive(body, tree)
+    second = _derive(body, tree)
     assert first == second
     # Ordering is left to the gate's normaliser, not re-sorted here.
     assert first["write_paths"] == ["src/b.py", "src/a.py"]
@@ -569,7 +611,9 @@ def test_the_committed_policy_default_keeps_the_seed_path_off() -> None:
     "pattern",
     ["**", "**/*", "*", "*/**", "*/src/*.py", " ** ", "**/*.py"],
 )
-def test_a_declaration_cannot_stand_in_for_the_whole_tree(pattern: str) -> None:
+def test_a_declaration_cannot_stand_in_for_the_whole_tree(
+    pattern: str, tree: Path
+) -> None:
     """The declared ceiling must name what it covers.
 
     Design §3.2 declined a tenant-wide default because a broad ceiling makes
@@ -579,18 +623,17 @@ def test_a_declaration_cannot_stand_in_for_the_whole_tree(pattern: str) -> None:
     """
 
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(
-            task_id="t1", body=_card_body(write_paths=[pattern])
-        )
+        _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
 
     assert excinfo.value.kind == "invalid-scope-declaration"
 
 
-def test_the_same_limit_applies_to_declared_test_assets() -> None:
+def test_the_same_limit_applies_to_declared_test_assets(tree: Path) -> None:
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(
+        _derive(
+            _card_body(write_paths=["src/*.py"], test_paths=["**"]),
+            tree,
             task_id="t1",
-            body=_card_body(write_paths=["src/*.py"], test_paths=["**"]),
         )
 
     assert excinfo.value.kind == "invalid-scope-declaration"
@@ -601,28 +644,199 @@ def test_the_same_limit_applies_to_declared_test_assets() -> None:
     [
         "src/**",
         "src/*.py",
-        "operations/improvement/*.py",
+        "src/sub/*.py",
         "README.md",
         "src*/**",
         "*.py",
     ],
 )
-def test_an_anchored_pattern_of_any_depth_is_still_accepted(pattern: str) -> None:
-    # The companion to the refusal above: the limit rejects one shape, not
+def test_an_anchored_pattern_of_any_depth_is_still_accepted(
+    pattern: str, tree: Path
+) -> None:
+    # The companion to the refusal above: the limit rejects breadth, not
     # recursion, prefixes, or single-segment globs. A class that requires no
     # false denial cannot afford a limit that narrows the ordinary forms.
-    payload = scope_seed.derive_seed_payload(
-        task_id="t1", body=_card_body(write_paths=[pattern])
-    )
+    payload = _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
 
     assert payload["write_paths"] == [pattern]
+
+
+# --------------------------------------------------------------------------
+# The breadth the declaration actually buys, measured against the tree
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "?*",
+        "?*/**",
+        "?**",
+        "*?",
+        "*?/**",
+        "??*/**",
+        "[a-zA-Z0-9._-]*/**",
+    ],
+)
+def test_a_spelling_that_evades_the_floor_is_still_measured(
+    pattern: str, tree: Path
+) -> None:
+    """The property the spelling rule was standing in for.
+
+    Two literal spellings are what the floor compares, and the pattern
+    language writes the same breadth many other ways. What has to hold is a
+    bound on the breadth itself, so it is measured against the tree the
+    worktree is a checkout of and stated on a quantity no spelling changes.
+    """
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_the_measured_breadth_is_the_union_of_both_declared_fields(
+    tree: Path,
+) -> None:
+    """The gate matches a write against write_paths and test_paths together.
+
+    Measuring the fields separately would let two halves that each pass the
+    limit add up to a ceiling that does not.
+    """
+
+    within = _derive(
+        _card_body(write_paths=["src/**"], test_paths=["tests/**"]), tree, task_id="t1"
+    )
+    assert within["write_paths"] == ["src/**"]
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(
+            _card_body(
+                write_paths=["src/**", "docs/**"],
+                test_paths=["tests/**", "schemas/**"],
+            ),
+            tree,
+            task_id="t1",
+        )
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_the_limit_is_configurable_without_changing_the_measurement(
+    tree: Path,
+) -> None:
+    # A lane that needs a wider ceiling raises the limit in the committed
+    # policy; the measurement itself does not move.
+    declaration = _card_body(
+        write_paths=["src/**", "docs/**"], test_paths=["tests/**", "schemas/**"]
+    )
+
+    with pytest.raises(scope_seed.ScopeSeedError):
+        _derive(declaration, tree, task_id="t1", max_top_level_entries=3)
+
+    payload = _derive(declaration, tree, task_id="t1", max_top_level_entries=4)
+
+    assert payload["test_paths"] == ["tests/**", "schemas/**"]
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        # A pattern whose text places it on a governance surface, including a
+        # destination that does not exist yet and so matches nothing.
+        "operations/improvement/*.py",
+        "operations/improvement/brand_new_module.py",
+        "integrations/hermes-scope-gate/**",
+        "docs/design/task-scope-admission-gate.md",
+        "conftest.py",
+        "src/**/conftest.py",
+        "infra/systemd/*.service",
+    ],
+)
+def test_a_declaration_covering_a_governance_surface_is_refused(
+    pattern: str, tree: Path
+) -> None:
+    """The refusal that finalization would make anyway, moved to the front.
+
+    ``install.py`` refuses an approval contract whose diff touches a
+    governance path outright, so a card that declares one buys work that can
+    never be finalized. Refusing at declaration time is the same rule applied
+    where the card can still be corrected.
+    """
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_a_governance_file_reached_by_a_wide_pattern_is_refused(
+    tmp_path: Path,
+) -> None:
+    # The measurement side of the same rule: the pattern's own text names no
+    # governance path, but what it covers in the tree does.
+    root = tmp_path / "governed"
+    for relative in ("docs/note.md", "docs/roadmap/current-priority.md"):
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("x\n", encoding="utf-8")
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=["docs/**"]), root, task_id="t1")
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_the_governance_surfaces_match_the_activation_gate() -> None:
+    """Two implementations of one rule, pinned by comparison.
+
+    The declaration-time refusal and the activation-time refusal have to name
+    the same surfaces, or a card is accepted for work the activation path will
+    reject.
+    """
+
+    # Read rather than imported: ``install.py`` carries the Hermes runtime
+    # dependency this suite runs without, and the value being compared is a
+    # tuple of string literals, so reading the assignment is a faithful
+    # reading of it here.
+    source = (REPO_ROOT / "operations" / "improvement" / "install.py").read_text(
+        encoding="utf-8"
+    )
+    declared: tuple[str, ...] | None = None
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, ast.Assign):
+            continue
+        if not any(
+            isinstance(target, ast.Name) and target.id == "GOVERNANCE_PATHS"
+            for target in node.targets
+        ):
+            continue
+        assert isinstance(node.value, ast.Tuple)
+        entries = []
+        for element in node.value.elts:
+            assert isinstance(element, ast.Constant) and isinstance(element.value, str)
+            entries.append(element.value)
+        declared = tuple(entries)
+    assert declared is not None, "install.py no longer declares GOVERNANCE_PATHS"
+
+    assert scope_seed.GOVERNANCE_PATHS == declared
+
+
+def test_an_unmeasurable_tree_refuses_rather_than_assuming_narrowness(
+    tmp_path: Path,
+) -> None:
+    # Fail closed: without a tree there is no measured breadth, and an
+    # unmeasured ceiling is not evidence of a narrow one.
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=["src/**"]), tmp_path / "absent", task_id="t1")
+
+    assert excinfo.value.kind == "scope-breadth-unmeasured"
 
 
 def _wrapped(inner: str) -> str:
     return "目的: 直す\n\n" + inner + "\n受入条件: X\n"
 
 
-def test_an_indented_example_is_not_a_live_declaration() -> None:
+def test_an_indented_example_is_not_a_live_declaration(tree: Path) -> None:
     """Four columns of indentation is literal text in Markdown.
 
     Reading it as a declaration lets prose written for a human reader decide
@@ -637,7 +851,7 @@ def test_an_indented_example_is_not_a_live_declaration() -> None:
 
     assert scope_seed.scope_declaration_blocks(body) == []
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t1", body=body)
+        _derive(body, tree, task_id="t1")
     assert excinfo.value.kind == "missing-scope-declaration"
 
 
@@ -654,7 +868,9 @@ def test_a_declaration_shown_inside_an_example_block_is_inert(outer: str) -> Non
     assert scope_seed.scope_declaration_blocks(body) == []
 
 
-def test_a_real_declaration_beside_a_worked_example_is_not_ambiguous() -> None:
+def test_a_real_declaration_beside_a_worked_example_is_not_ambiguous(
+    tree: Path,
+) -> None:
     """The other direction of the same defect.
 
     Documenting the form next to the real declaration used to make the card
@@ -673,12 +889,12 @@ def test_a_real_declaration_beside_a_worked_example_is_not_ambiguous() -> None:
         "```\n"
     )
 
-    payload = scope_seed.derive_seed_payload(task_id="t1", body=body)
+    payload = _derive(body, tree, task_id="t1")
 
     assert payload["write_paths"] == ["src/*.py"]
 
 
-def test_two_live_declarations_are_still_refused() -> None:
+def test_two_live_declarations_are_still_refused(tree: Path) -> None:
     # The ambiguity refusal has to survive the inert-region handling.
     body = _wrapped(
         "```pda-scope\n"
@@ -690,12 +906,12 @@ def test_two_live_declarations_are_still_refused() -> None:
     )
 
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
-        scope_seed.derive_seed_payload(task_id="t1", body=body)
+        _derive(body, tree, task_id="t1")
 
     assert excinfo.value.kind == "invalid-scope-declaration"
 
 
-def test_the_documented_declaration_example_is_the_accepted_form() -> None:
+def test_the_documented_declaration_example_is_the_accepted_form(tree: Path) -> None:
     """The operations runbook is the form a specifier copies.
 
     An example that the parser does not recognise makes the runbook a source
@@ -710,7 +926,7 @@ def test_the_documented_declaration_example_is_the_accepted_form() -> None:
     end = runbook.index("````", start)
     shown = runbook[start:end]
 
-    payload = scope_seed.derive_seed_payload(task_id="t1", body=shown)
+    payload = _derive(shown, tree, task_id="t1")
 
     assert payload["write_paths"]
 

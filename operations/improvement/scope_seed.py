@@ -21,6 +21,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -46,6 +47,56 @@ _FENCE_RE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$"
 # pattern cannot match a nested path at all, and a prefixed segment is
 # bounded by its prefix.
 _UNANCHORED_FIRST_SEGMENTS = frozenset({"*", "**"})
+
+# How many top-level entries of the real tree one card's declaration may reach.
+# This is the mechanical limit on the limit. The spelling rule above is a
+# tree-independent floor and no more than that: an open argument space cannot
+# be closed by enumerating spellings, and a pattern language with in-segment
+# wildcards and character classes can express the same breadth many ways. So
+# the breadth a declaration actually buys is measured instead of parsed --
+# matched against the tree the worktree is made from -- and the count of
+# distinct top-level entries it covers is what the limit is stated on. That
+# quantity is what design §3.2 was protecting when it declined a tenant-wide
+# default, and it is invariant under how the patterns are written.
+#
+# The default is conservative rather than fitted: the cards this lane routes
+# name one area plus its tests, and a card that genuinely needs more is a card
+# that should be split. ``max_top_level_entries`` in the ``scope_seed`` policy
+# block raises it for a lane that needs to.
+MAX_DECLARED_TOP_LEVEL_ENTRIES = 3
+
+# Directory entries the walk never descends into. Git's own metadata is not a
+# declarable destination in any case (the gate refuses it whatever the
+# declaration says), and walking it would make the measured count depend on
+# repository internals rather than on the working tree.
+_UNWALKED_DIRECTORY_NAMES = frozenset({".git"})
+
+# Governance surfaces (ADR D3), duplicated from ``install.py`` on purpose: a
+# worker finalization may never change the rules that judge workers, and the
+# activation path refuses an approval contract whose diff touches these paths
+# outright. A declaration that covers them therefore buys work that can never
+# be finalized, so the refusal belongs at declaration time where the card can
+# still be fixed. The duplication is pinned by a cross-implementation equality
+# test, which is the discipline this repository already applies to the
+# approval-side copy.
+GOVERNANCE_PATHS = (
+    "pda_charter.md",
+    "conftest.py",
+    "continuity/autonomous-improvement.json",
+    "profiles/pda/managed-habits.json",
+    "profiles/pda/skills/pda-autonomous-improvement/",
+    "docs/design/self-improvement-governance-adr.md",
+    "docs/design/task-scope-admission-gate.md",
+    "docs/roadmap/autonomous-improvement-goal.md",
+    "docs/roadmap/autonomous-improvement-operating-rules.md",
+    "docs/roadmap/current-priority.md",
+    "docs/operations/adversarial-suite.md",
+    "integrations/hermes-kanban-governance/",
+    "integrations/hermes-scope-gate/",
+    "integrations/hermes-pda-approvals/",
+    "operations/improvement/",
+    "infra/systemd/",
+)
 
 # D-S3-3 class default. A card may narrow this set, never widen it.
 CLASS_DEFAULT_GIT_WRITE = ("stage", "commit")
@@ -166,14 +217,19 @@ def parse_scope_declaration(body: Any) -> dict[str, Any]:
 
 
 def _reject_unanchored_patterns(patterns: list[str], field: str) -> None:
-    """Refuse a declared ceiling whose breadth no card text bounds.
+    """Refuse the spellings that state whole-tree breadth outright.
 
-    This is the mechanical limit on the limit. Without it the widest possible
-    ceiling is expressible by the card body, and the card body is written by a
-    model: the narrowness the seed exists to supply would rest on prose in the
-    reconciler prompt rather than on anything checkable. The check lives here,
-    on the router side, so the gate's shared pattern normalisation stays free
-    of rules that belong to one task class (D-S3-7 決定 1).
+    A floor, not the guarantee. This rule compares two spellings, and a
+    pattern language with in-segment wildcards and character classes can write
+    the same breadth other ways, so what bounds the ceiling is the measured
+    breadth in ``_reject_overbroad_scope`` -- a quantity that does not depend
+    on the spelling. The floor is kept because it holds without a tree to
+    measure against, which keeps the plainest form of the defect refused
+    independently of how small a tree the measurement happens to see.
+
+    The check lives here, on the router side, so the gate's shared pattern
+    normalisation stays free of rules that belong to one task class
+    (D-S3-7 決定 1).
     """
 
     offenders = sorted(
@@ -191,14 +247,156 @@ def _reject_unanchored_patterns(patterns: list[str], field: str) -> None:
         )
 
 
-def derive_seed_payload(*, task_id: str, body: Any) -> dict[str, Any]:
+def _is_governance_path(path: str) -> bool:
+    """Mirror of ``install.py::_is_governance_path`` (pinned by an equality test)."""
+
+    normalized = path.strip()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
+    # Any conftest.py anywhere is part of the test-isolation guard (C7).
+    if Path(normalized).name == "conftest.py":
+        return True
+    for entry in GOVERNANCE_PATHS:
+        if entry.endswith("/"):
+            if normalized.startswith(entry):
+                return True
+        elif normalized == entry:
+            return True
+    return False
+
+
+def _pattern_names_governance(pattern: str) -> bool:
+    """True when a pattern's literal text places it on a governance surface.
+
+    The tree walk below catches a pattern that covers a governance file which
+    exists. This catches the same pattern aimed at a name that does not exist
+    yet: a new file under a governance directory matches nothing in the tree,
+    so measurement alone would let the declaration through and the refusal
+    would only arrive at finalization, after the work was done.
+    """
+
+    text = pattern.strip()
+    while text.startswith("./"):
+        text = text[2:]
+    if Path(text).name == "conftest.py":
+        return True
+    for entry in GOVERNANCE_PATHS:
+        if entry.endswith("/"):
+            if text.startswith(entry):
+                return True
+        elif text == entry:
+            return True
+    return False
+
+
+# The tree walk is bounded so a pathological worktree cannot make one routing
+# tick unbounded. Exhausting the budget means the breadth was not measured, and
+# an unmeasured ceiling is refused rather than assumed narrow.
+_MAX_TREE_ENTRIES_SCANNED = 200_000
+
+
+def _measure_declared_breadth(
+    patterns: list[str], *, tree_root: Path, matches
+) -> tuple[set[str], list[str]]:
+    """Match the declared patterns against the real tree.
+
+    Returns the set of top-level entries the declaration reaches and the
+    governance paths among the matches. Directories are matched as well as
+    files: a pattern that names only top-level files would otherwise reach the
+    floor of the tree without being counted.
+    """
+
+    covered: set[str] = set()
+    governance: list[str] = []
+    scanned = 0
+
+    def _consider(relative: str) -> None:
+        nonlocal governance
+        if not any(matches(pattern, relative) for pattern in patterns):
+            return
+        covered.add(relative.split("/", 1)[0])
+        if len(governance) < 3 and _is_governance_path(relative):
+            governance.append(relative)
+
+    for current, directory_names, file_names in os.walk(
+        str(tree_root), followlinks=False
+    ):
+        directory_names[:] = [
+            name for name in directory_names if name not in _UNWALKED_DIRECTORY_NAMES
+        ]
+        base = Path(current).relative_to(tree_root)
+        for name in list(directory_names) + file_names:
+            scanned += 1
+            if scanned > _MAX_TREE_ENTRIES_SCANNED:
+                raise ScopeSeedError(
+                    "scope-breadth-unmeasured",
+                    "the worktree is too large to measure the declared scope "
+                    f"against ({_MAX_TREE_ENTRIES_SCANNED} entries scanned)",
+                )
+            _consider((base / name).as_posix())
+    return covered, governance
+
+
+def _reject_overbroad_scope(
+    patterns: list[str], *, tree_root: Path, matches, limit: int
+) -> None:
+    """Refuse a declaration whose measured breadth exceeds the class ceiling.
+
+    Measured, not parsed. The spelling rule is a floor that holds without a
+    tree; this is the property the floor was standing in for, taken on the
+    tree the worktree is a checkout of, so it does not depend on how the
+    patterns are written.
+    """
+
+    for pattern in patterns:
+        if _pattern_names_governance(pattern):
+            raise ScopeSeedError(
+                "invalid-scope-declaration",
+                "the declared scope covers a governance surface, which only the "
+                f"owner commits: {pattern}",
+            )
+    covered, governance = _measure_declared_breadth(
+        patterns, tree_root=tree_root, matches=matches
+    )
+    if governance:
+        raise ScopeSeedError(
+            "invalid-scope-declaration",
+            "the declared scope covers governance surfaces, which only the "
+            "owner commits: " + ", ".join(governance),
+        )
+    if len(covered) > limit:
+        raise ScopeSeedError(
+            "invalid-scope-declaration",
+            f"the declared scope reaches {len(covered)} top-level entries of the "
+            f"repository ({', '.join(sorted(covered)[:6])}); at most {limit} are "
+            "allowed, so split the card or name the paths the work needs",
+        )
+
+
+def derive_seed_payload(
+    *,
+    task_id: str,
+    body: Any,
+    tree_root: Path | str,
+    gate_root: Path | str | None = None,
+    max_top_level_entries: int | None = None,
+) -> dict[str, Any]:
     """Turn a card body into the keyword arguments for a contract seed.
 
     The derivation is deterministic and performs no ordering or de-duplication
     of its own: pattern normalisation is the gate's single responsibility
     (``normalize_scope_patterns``).  Re-deriving from an unchanged card must
     produce a byte-identical payload, because the gate refuses a second seed
-    whose payload differs from the first.
+    whose payload differs from the first.  The breadth measurement decides
+    acceptance only; it never changes the payload, so the gate's idempotent
+    path is unaffected.
+
+    ``tree_root`` has no default. The declared ceiling is measured against a
+    real tree, and a caller that omits the tree would get the spelling floor
+    alone -- the state this argument exists to end. ``gate_root`` names the
+    checkout the pattern matcher is read from and defaults to ``tree_root``;
+    the router passes the primary repository so the matcher never comes from a
+    tree a worker can write to.
     """
 
     declaration = parse_scope_declaration(body)
@@ -214,6 +412,26 @@ def derive_seed_payload(*, task_id: str, body: Any) -> dict[str, Any]:
     test_paths = _string_list(declaration.get("test_paths", []), "test_paths")
     _reject_unanchored_patterns(test_paths, "test_paths")
     execution = _string_list(declaration.get("execution", []), "execution")
+
+    # The union, because the gate matches a write against both fields at once:
+    # the effective ceiling is what the two together reach, not either alone.
+    resolved_tree = Path(tree_root)
+    if not resolved_tree.is_dir():
+        raise ScopeSeedError(
+            "scope-breadth-unmeasured",
+            f"the tree to measure the declared scope against is missing: {resolved_tree}",
+        )
+    gate = load_scope_gate(Path(gate_root) if gate_root is not None else resolved_tree)
+    _reject_overbroad_scope(
+        write_paths + test_paths,
+        tree_root=resolved_tree,
+        matches=gate.scope_pattern_matches,
+        limit=(
+            MAX_DECLARED_TOP_LEVEL_ENTRIES
+            if max_top_level_entries is None
+            else int(max_top_level_entries)
+        ),
+    )
 
     if "git_write" in declaration:
         git_write: list[str] | None = _string_list(
@@ -288,6 +506,7 @@ def record_seed(
     worktree: Path | str,
     branch: str,
     state_path: Path | str | None = None,
+    max_top_level_entries: int | None = None,
 ) -> dict[str, Any]:
     """Record the assignment-time contract seed for one task.
 
@@ -296,9 +515,19 @@ def record_seed(
     the card's declaration changed while the task was in flight; the gate
     refuses it, and surfacing that as an error keeps the ceiling meaningful
     instead of silently accepting a new one.
+
+    The breadth is measured against the worktree this seed is being recorded
+    for -- the tree the ceiling will actually govern -- while the matcher is
+    read from the primary repository, which is outside every worker's ceiling.
     """
 
-    payload = derive_seed_payload(task_id=task_id, body=body)
+    payload = derive_seed_payload(
+        task_id=task_id,
+        body=body,
+        tree_root=Path(worktree),
+        gate_root=repo_root,
+        max_top_level_entries=max_top_level_entries,
+    )
     gate = load_scope_gate(repo_root)
     resolved_state = (
         Path(state_path) if state_path is not None else gate.default_state_path()

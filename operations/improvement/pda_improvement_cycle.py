@@ -232,7 +232,13 @@ def _comment_once(conn, task_id: str, author: str, body: str) -> None:
 
 
 def _record_scope_seed(
-    conn, task, path: Path, branch: str, repo: Path, state_path: Path | None
+    conn,
+    task,
+    path: Path,
+    branch: str,
+    repo: Path,
+    state_path: Path | None,
+    max_top_level_entries: int | None = None,
 ) -> None:
     """Record the assignment-time scope seed before the task is claimed.
 
@@ -258,6 +264,7 @@ def _record_scope_seed(
             worktree=path,
             branch=branch,
             state_path=state_path,
+            max_top_level_entries=max_top_level_entries,
         )
     except scope_seed.ScopeSeedError as exc:
         _refuse_for_scope(conn, task.id, scope_seed, exc)
@@ -284,18 +291,30 @@ def _refuse_for_scope(conn, task_id: str, scope_seed, exc) -> None:
     raise CycleError(exc.kind, str(exc)) from exc
 
 
-def _check_scope_declaration(conn, task, repo: Path) -> None:
-    """Refuse an undeclarable card before any workspace is created for it.
+def _check_scope_declaration(
+    conn, task, repo: Path, max_top_level_entries: int | None = None
+) -> None:
+    """Refuse an undeclarable or over-broad card before a workspace exists.
 
-    The derivation reads only the card body, so it can run before the worktree
-    exists. Doing it here keeps a card that will not be assigned from leaving a
-    branch and a worktree behind, and it bounds the cost of walking past
-    refusals to look for a routable card.
+    Running here keeps a card that will not be assigned from leaving a branch
+    and a worktree behind, and it bounds the cost of walking past refusals to
+    look for a routable card. The breadth is measured against the primary
+    repository, because the worktree this card would get is a checkout of it
+    and does not exist yet; ``record_seed`` re-measures against the worktree
+    itself once it does, and that later measurement is the one the recorded
+    ceiling is taken with. Both are refusal-side, so the earlier one being an
+    approximation cannot widen anything.
     """
 
     scope_seed = _load_scope_seed(repo)
     try:
-        scope_seed.derive_seed_payload(task_id=task.id, body=task.body)
+        scope_seed.derive_seed_payload(
+            task_id=task.id,
+            body=task.body,
+            tree_root=repo,
+            gate_root=repo,
+            max_top_level_entries=max_top_level_entries,
+        )
     except scope_seed.ScopeSeedError as exc:
         _refuse_for_scope(conn, task.id, scope_seed, exc)
 
@@ -310,6 +329,7 @@ def _route_task(
     scope_seed_enabled: bool,
     repo: Path | None = None,
     scope_seed_state_path: Path | None = None,
+    scope_max_top_level_entries: int | None = None,
 ) -> None:
     # ``scope_seed_enabled`` has no default on purpose. Whether this
     # assignment records the ceiling that puts the turn under hard enforcement
@@ -326,7 +346,15 @@ def _route_task(
             )
         # Seed -> assignment CAS -> notification. The notification is what wakes
         # the gateway's Kanban dispatcher, so it stays last.
-        _record_scope_seed(conn, current, path, branch, repo, scope_seed_state_path)
+        _record_scope_seed(
+            conn,
+            current,
+            path,
+            branch,
+            repo,
+            scope_seed_state_path,
+            scope_max_top_level_entries,
+        )
     forced_skills = list(current.skills or [])
     if "pda-autonomous-improvement" not in forced_skills:
         forced_skills.append("pda-autonomous-improvement")
@@ -413,6 +441,26 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
             isinstance(scope_seed_policy, dict)
             and scope_seed_policy.get("enabled", False)
         )
+        # How many top-level entries of the tree one card's declared scope may
+        # reach. Owner-committed for the same reason as the switch: it is the
+        # mechanical limit on the declared ceiling, so a lane cannot widen it
+        # from derived state. Absent means the module default.
+        scope_max_top_level_entries = None
+        if isinstance(scope_seed_policy, dict):
+            raw_limit = scope_seed_policy.get("max_top_level_entries")
+            if raw_limit is not None:
+                try:
+                    scope_max_top_level_entries = int(raw_limit)
+                except (TypeError, ValueError) as exc:
+                    raise CycleError(
+                        "invalid-config",
+                        "scope_seed.max_top_level_entries must be an integer",
+                    ) from exc
+                if scope_max_top_level_entries < 1:
+                    raise CycleError(
+                        "invalid-config",
+                        "scope_seed.max_top_level_entries must be positive",
+                    )
 
         tenant = str(config.get("tenant") or "").strip()
         assignee = str(config.get("assignee") or "").strip()
@@ -462,7 +510,9 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                         break
                     try:
                         if scope_seed_enabled:
-                            _check_scope_declaration(conn, task, repo)
+                            _check_scope_declaration(
+                                conn, task, repo, scope_max_top_level_entries
+                            )
                         path, branch = _ensure_worktree(
                             repo, root, task.id, base_branch
                         )
@@ -474,6 +524,7 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                             assignee,
                             repo=repo,
                             scope_seed_enabled=scope_seed_enabled,
+                            scope_max_top_level_entries=scope_max_top_level_entries,
                         )
                     except CycleError as exc:
                         refused.append({"task_id": task.id, "error_kind": exc.kind})

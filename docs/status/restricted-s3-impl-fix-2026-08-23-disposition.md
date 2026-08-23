@@ -1,6 +1,6 @@
 # S3-M1 実装 反証レビュー 確証欠陥の処置台帳（2026-08-23）
 
-- Status: closed（第1ラウンドの確証欠陥 37 件＝1〜6 節、司令塔判断 4 項目＝7 節、D-S3-7 実装の反証レビュー 14 件＝9〜10 節、V ラウンド 3 件＝11 節、V2 ラウンド 2 件＝12 節、いずれも処置完了。exit 条件 3 件はすべて closed＝10 節 3、J-FID-01 は 11 節 6 で再判定。残余は 8 節の 1 項目、10 節 4 の司令塔判断 2 項目、12 節 7 の批准確認 3 項目）
+- Status: closed（第1ラウンドの確証欠陥 37 件＝1〜6 節、司令塔判断 4 項目＝7 節、D-S3-7 実装の反証レビュー 14 件＝9〜10 節、V ラウンド 3 件＝11 節、V2 ラウンド 2 件＝12 節、V3 ラウンド 2 件＝13 節、W ラウンド 13 件＝14 節、w-verify ラウンド 4 件＝15 節、いずれも処置完了。exit 条件 3 件はすべて closed＝10 節 3、J-FID-01 は 11 節 6 で再判定・13 節 6 で維持。残余は 8 節の 1 項目、14 節 14 の批准・確認 4 項目、15 節 5 の 2 項目）
 - 読み取り方針: **`restricted-` 接頭辞の対象。個別の再現条件に触れるため Fable モデルのセッションでは直接読まない**。抽象名のみの一覧は `docs/operations/adversarial-suite.md` にある。
 - 対象レビュー: `restricted-s3-impl-review-2026-08-23-{correctness,bypass,compat,fidelity}.md`（確証欠陥 37 件 + 判断 1 件）
 - 正本設計: `docs/design/task-scope-admission-gate.md`「S3-M1」節（本処置に伴う改訂を含む）
@@ -543,7 +543,7 @@ Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verif
 
 ### 5. W-B-06 / W-C-02（minor / major）宣言不備 1 枚による割当 queue の停止
 
-処置は per-card 回復である。割当ループを try/except で囲み、拒否したカードを飛ばして次の候補へ進む。可視性はカードコメント（従来どおり 1 件）と戻り値の `refused`（カード ID と理由種別）の 2 経路で確保した。加えて宣言検査を `_ensure_worktree` より**前**に移し、割当されないカードに branch と worktree を残さないようにした（レビューが併記した副作用の解消と、拒否を飛ばす際の費用の有界化）。1 周期で飛ばす拒否件数にも上限（50）を置いた。拒否 1 件あたりの作業がカードコメントであるため、走査を盤面サイズに比例させない。上限値は本レーンの実際の盤面規模より十分大きく、病的な盤面で 1 周期が無界にならないことのみを担う。
+処置は per-card 回復である。割当ループを try/except で囲み、拒否したカードを飛ばして次の候補へ進む。可視性はカードコメント（従来どおり 1 件）と戻り値の `refused`（カード ID と理由種別）の 2 経路で確保した。加えて宣言検査を `_ensure_worktree` より**前**に移し、**宣言解析段および幅検査段で拒否されるカード**に branch と worktree を残さないようにした（レビューが併記した副作用の解消と、拒否を飛ばす際の費用の有界化）。**seed 記録段の拒否（宣言は解析できるがゲートが契約 seed を受理しない形）では worktree は残る。**記録は worktree の同一性を入力とするため事前検査へ移せない。残った worktree は次周期の `_ensure_worktree` が同一 branch の worktree として再利用する（WV-04 の訂正、2026-08-23。起票時点の記述は「割当されないカードに branch と worktree を残さない」であり、後段拒否を含む主張になっていた）。1 周期で飛ばす拒否件数にも上限（50）を置いた。拒否 1 件あたりの作業がカードコメントであるため、走査を盤面サイズに比例させない。上限値は本レーンの実際の盤面規模より十分大きく、病的な盤面で 1 周期が無界にならないことのみを担う。
 
 **司令塔判断に回す点（実装裁量で先に入れた形）**: 決定文面「宣言なしは割当せず CycleError＋カードコメント」は当該カードの扱いを定めるもので、周期全体を打ち切るかは定めていない（レビューも同旨）。したがって per-card 回復は決定の変更ではないと判断した。ただし周期の戻り値の `ok` が、宣言不備のみのときに `false` から `true` へ変わる（不備カードは盤面の状態であって周期の失敗ではないという解釈）。exit gate で批准対象とする。
 
@@ -612,7 +612,58 @@ Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verif
 
 ### 14. 本ラウンド後の残余（司令塔判断）
 
-1. **周期戻り値の `ok` 意味論の変更**（5 節）。宣言不備のみの周期が `ok: true` を返すようになった。exit gate で批准対象。
+1. **周期戻り値の `ok` 意味論の変更**（5 節）。**批准対象は「割当ループの失敗報告全体」である**（WV-03 の訂正、2026-08-23。起票時点は「宣言不備のみのとき」と書いていたが、per-card 回復は割当ループ内の `CycleError` を種別で選別せず捕らえる）。宣言不備に加えて `workspace-collision` / `dirty-worktree` / `claim-race` でも `ok` が false から true へ変わる。`scope_seed.enabled: false`（M1 exit 時点の live 構成）でも同様であり、seed 経路の有効化と独立に発効している。現行 live 構成への影響がこの点である。拒否は `refused` に必ず出るため不可視ではないが、周期の `ok` のみを見る監視から見える形は変わる。割当ループの外側の失敗（設定不正・方針ファイル読取不能など）は従来どおり `ok: false`。exit gate で批准対象。
 2. **未消費 v1 承認行の実在確認と処置方針**（8 節）。ミニPC の実機事実に依存する。
 3. **commit 時点の index 内容と write scope の照合**（既存残余、設計 §11 第 9 項）。本ラウンドの封じ込めは解決先の乗っ取りを閉じるが、ゲート外でステージされた内容がローカル commit に入る残余は変わらない。
 4. **`git-discovery-*` の計上**（1 節）。環境起因の拒否を拒否上限へ計上する点は `target-drift` と同じ扱いだが、レビューを経ていない新規判断である。
+
+## 15. w-verify ラウンドの確証欠陥 4 件の処置（2026-08-23、14 節の続き）
+
+- 入力: `docs/status/restricted-s3-impl-review-2026-08-23-w-verify.md`（`f7cfe0f..312b1f4` の独立検証。修正 12 件の反転を実測で確認、W-B-07 棄却は妥当、確証欠陥 4 件 / 誤検知 0 件）。
+- 対象: WV-01 は第一層の carve-out の照合方法、WV-02 はルータ側の宣言幅検査の機構、WV-03 / WV-04 は本台帳と設計本文の記述。
+- **admission は広げていない。** WV-01 は拒否の到達範囲を広げる変更（同一実体を指す別綴りを拒否側へ）であり、WV-02 はルータ側の受理条件を狭める変更である。closeout 共有実装は無改訂、計上規則（litmus・計上集合）も無改訂。
+- 全数: **598 passed**（本節前 576。新規 22 パラメタ、既存 1 パラメタを差し替え）。加えてミニPC 実行のルータテストを 2 パラメタ追加。
+- 再現確認: 検証者のプローブを実行して修正前の状態を再確認したうえで処置し、反転を実測した（下記各項）。
+- フェンス実効性: WV-01 の実体同一性判定と WV-02 の実効幅測定をそれぞれ無効化した負の対照で新規テストを実行し、**19 失敗**を確認した（残る 3 件は false deny 側の対照とクロス実装の突き合わせであり、フェンス無効化では落ちないことが正しい）。
+
+### 1. WV-01（case を畳む FS では blocker、本番の ext4 では不成立）メタデータ carve-out が綴りの完全一致のみで判定
+
+- 再現（処置前）: 検証者のプローブ `./tmp/verify-w/p1g_casefold.py` を実行し、綴り変種が carve-out を通過して実体側の内容が書き換わることを再確認した。
+- 処置: 判定を 2 段にした。(a) 相対パスが `.git` セグメントを含むこと（従来の判定。ツリーに依存せず成立し、未作成の書込先と入れ子リポジトリを覆う）、(b) 解決後パスの各前置部が、その親ディレクトリの `.git` と**同一のファイルシステム実体**であること（`os.path.samefile`）。`root` は必須引数とし、省略時に綴り照合へ静かに退行する形を作らない。理由コードは `write-git-metadata` / `stage-git-metadata` のまま（計上集合と litmus は無改訂）。
+- 司令塔決定どおり、フェンス 2（解決先の封じ込め）の通常リポジトリ許容を狭める案は採っていない。carve-out 側で連鎖が閉じるため。
+- 反転の実測: `./tmp/verify-w/p3b_purewrite.py`（end-to-end のプローブ）が 1 手目で `allowed=False action=write-git-metadata` となり、以降の連鎖に到達しない。**`p1g_casefold.py` は処置後は再実行できない**（carve-out 関数を直接呼ぶプローブであり、`root` を必須引数にしたため呼び出し形が変わった）。同関数の両方向は下記の回帰テストで固定してある。
+- 併せて `scope_gate.py` のコメントと拒否理由文から無条件の主張（「which no contract admits」）を外し、実体同一性による照合であることを明示した。検証者が指摘した 3 点のうち残る 2 点（本番形が Linux に限る保証が無い、新設テストに当該事例が無い）は下記テストで閉じた。
+- 回帰テスト: `test_a_metadata_name_the_filesystem_folds_is_still_refused`（FS の実挙動を検出し、畳む環境では拒否、畳まない環境では別ディレクトリとして許可＝false deny 側を固定）、`test_an_alias_of_the_metadata_pointer_is_refused`（**FS 非依存**。linked worktree の `.git` は pointer file であり、その hard link は同一実体で別名になる。書込とステージの双方を固定）、`test_an_ordinary_file_beside_the_metadata_pointer_is_not_refused`（false deny 側の対照）。
+
+### 2. WV-02（major）宣言由来上限の「機械的上限」が綴りの列挙
+
+- 再現: `./tmp/verify-w/p4_anchor.py` を実行し、綴りを変えた全域相当の宣言が受理され、ロック済み契約で全域の書込が admit されることを再確認した。
+- 処置（司令塔決定どおり、綴りの列挙をやめ実効照合で測る）:
+  1. **綴りの規則は床として残した。** 先頭セグメント `*` / `**` の拒否は、ツリーを要さずに成立する点で価値があるため撤去しない。ただし**保証を負うのは測定側**であることを実装 docstring と設計本文へ明記した。撤去して測定のみにすると、判定が対象ツリーの規模に依存し、小さなツリーでは最も素朴な形が通ってしまう（W-B-01 の確証済み反転を退行させる）。
+  2. **実効幅の測定を追加した。** 宣言（`write_paths` と `test_paths` の**和**。ゲートは書込 admission で両者を合わせて照合するため実効上限は和である）を実ツリーへ照合し、被覆する最上位エントリ数を測る。上限は既定 3 で、所有者コミットの方針ファイル `scope_seed.max_top_level_entries` から変更できる。測定は導出の 2 箇所（割当前検査＝プライマリリポジトリのツリー、seed 記録＝対象 worktree のツリー）で行う。ツリーが測定できない場合は拒否する（未測定の上限を狭いと仮定しない）。照合はゲートの `scope_pattern_matches` を**読み取りで利用**し、共有実装を拡張していない（D-S3-7 決定 1）。
+  3. **統治面の被覆は常に拒否する。** 判定は字面（未作成のファイル名を名指す形を含む）と実照合の 2 経路。`install.py` の `GOVERNANCE_PATHS` と同一集合をルータ側に持ち、突き合わせテストで固定した（承認側の複製に既に適用している規律に合わせた）。
+- 反転の実測: `./tmp/fix-wv/p4_breadth_after.py`（本リポジトリのツリーに対して）で、検証者が ACCEPTED と記録した 8 形すべてと組み合わせ形が拒否側へ移り、通常形（`src/**` / `src/pda/backup/*.py` / `src*/**` / `docs/status/*.md` / `src/**/*.py` / 和の形）は受理のまま。ルータ経由は `./tmp/verify-w/p10_router.py` P10e（当該カードが `refused` へ移り worktree を残さない）と `./tmp/fix-wv/router_equiv.py`（ミニPC テストの等価再現）で確認した。
+- **測定は割当時のみで、進行中のタスクを座礁させない。** 導出が走るのは `_eligible_tasks`（`status == ready` かつ未割当）に載るカードだけであり、割当済みのタスクは再導出の対象にならない。claim race の残留 worktree に対して再導出が起こる場合も、`_ensure_worktree` が `record_seed` より前に `git status --porcelain` の clean を要求する（dirty なら `dirty-worktree` で拒否。基準点から不変の挙動）ため、測定が worker の書込後のツリーを見ることはない。payload は測定に依存しないため、ゲートの seed 冪等経路（異 payload の二度目を拒否する）にも影響しない。
+- **解釈を要した点（判断へ回付済み。下記 5）**: 司令塔決定の 2 条件が現行の文書上で衝突していた。「統治パスへの被覆は常に拒否」と「運用手順の宣言例が通ることをテストで固定」の両方を満たすには、手順書の例（`operations/improvement/*.py`）が統治面を名指していることを解消する必要がある。当該例は `install.py` が最終承認の段で無条件に拒否する面を対象にしており、写したカードは最終化できない作業を買う。したがって**例を非統治面へ改める**方向で解消した（`docs/operations/pda-improvement-cycle.md`、`operations/improvement/daily_reconciler_prompt.txt`）。`test_the_documented_declaration_example_is_the_accepted_form` は手順書を読む形のまま維持しており、例と実装の乖離は引き続き自動検出される。
+- **既存テストの差し替え（1 パラメタ）**: `test_an_anchored_pattern_of_any_depth_is_still_accepted` の `operations/improvement/*.py` を `src/sub/*.py` へ替え、当該形は `test_a_declaration_covering_a_governance_surface_is_refused` の側へ移した。
+- 回帰テスト: `test_a_spelling_that_evades_the_floor_is_still_measured`（7 パラメタ。検証者が挙げた綴り族）、`test_the_measured_breadth_is_the_union_of_both_declared_fields`、`test_the_limit_is_configurable_without_changing_the_measurement`、`test_a_declaration_covering_a_governance_surface_is_refused`（7 パラメタ。字面判定側。未作成ファイル名を含む）、`test_a_governance_file_reached_by_a_wide_pattern_is_refused`（実照合側）、`test_the_governance_surfaces_match_the_activation_gate`（承認側実装との集合一致）、`test_an_unmeasurable_tree_refuses_rather_than_assuming_narrowness`（fail closed）。ミニPC 側に `test_an_overbroad_declaration_is_refused_before_a_workspace_exists`（2 パラメタ。ルータ経由で `refused` と worktree 非作成、後続カードの割当を固定）。
+
+### 3. WV-03（minor）周期戻り値 `ok` の意味論変更が批准項目より広い
+
+- 挙動は変えていない。記述を実測どおりの範囲へ広げた。14 節 14 項 1 を「割当ループの失敗報告全体」へ改め、該当理由種別（`workspace-collision` / `dirty-worktree` / `claim-race`）と、`scope_seed.enabled: false` の現行 live 構成でも発効している点を明記した。設計本文（第一層 worker 配線 2 項）と運用手順にも同じ範囲を書き、監視は `ok` だけでなく `refused` を読むことを明記した。
+
+### 4. WV-04（minor）「割当されないカードに worktree を残さない」の主張範囲
+
+- 司令塔決定の「安い方」に従い、主張を実態へ縮小した（後段拒否時のクリーンアップは追加していない。既存の衝突 worktree を消す経路になり得るため、費用も危険も高い）。14 節 5 と設計本文へ「宣言解析段・幅検査段の拒否では残さない、seed 記録段の拒否では残る」と、残った worktree が次周期に同一 branch の worktree として再利用されることを明記した。
+
+### 5. 本ラウンド後の残余（司令塔判断）
+
+14 節 14 の 4 項目のうち 1（`ok` 意味論）と 4（`git-discovery-*` の計上）は引き続き exit gate の批准対象、2（未消費 v1 承認行）と 3（index 内容の照合）は不変。本節で新たに増えた判断事項は次の 2 点である。
+
+1. **統治面の被覆を宣言段で拒否する範囲の批准。** 最終承認の段で無条件に拒否される面であるため実質的な縮小は無いが、自律レーンが宣言できる面が明示的に狭まる（`operations/improvement/`・`integrations/hermes-*/`・`infra/systemd/`・`conftest.py` ほか）。手順書・reconciler prompt の宣言例を非統治面へ改めた点も同じ判断に属する。
+2. **既存 Ready カードの宣言に対する false deny の実地確認。** 実効幅の測定と統治面拒否は既存カードの宣言を拒否しうる。live 盤面のカード本文は開発 PC から確認できないため、有効化前に既存 Ready カードの宣言を本測定へ通す確認が必要である（ミニPC 側の事実）。`scope_seed.enabled` が false の現構成では影響は発生しない。
+
+### 6. 実行結果
+
+- `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **598 passed**。
+- `operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発 PC で実行不能（`hermes_cli` / `fastapi` 不在）。ルータ経由の新規テストは等価再現（`./tmp/fix-wv/router_equiv.py`）で確認した。ミニPC でのスイート実行は親セッションが行う。

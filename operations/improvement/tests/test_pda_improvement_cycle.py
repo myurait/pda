@@ -485,3 +485,47 @@ def test_a_refusal_after_an_assignment_still_reports_the_assignment(
         {"task_id": second, "error_kind": "missing-scope-declaration"}
     ]
     assert result["wip"] == 2
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        # Breadth written in a spelling the leading-wildcard rule does not
+        # compare, measured against the tree instead.
+        "?*/**",
+        # A governance surface, which the activation path refuses outright.
+        "operations/improvement/*.py",
+    ],
+)
+def test_an_overbroad_declaration_is_refused_before_a_workspace_exists(
+    tmp_path, monkeypatch, pattern
+):
+    """The measured ceiling is enforced where the card can still be fixed.
+
+    Both refusals happen in the pre-check, so the card leaves no branch and no
+    worktree behind, and the card behind it is still routed.
+    """
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=True)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        wide = _task(conn, "広すぎる宣言のカード", priority=100)
+        _declare(
+            conn,
+            wide,
+            '目的: 直す\n\n```pda-scope\n{"write_paths": ["' + pattern + '"]}\n```\n',
+        )
+        routable = _task(conn, "宣言済みカード", priority=50)
+        _declare(conn, routable)
+
+    result = run_cycle(config)
+
+    assert result["ok"] is True
+    assert result["assigned"] == [routable]
+    assert result["refused"] == [
+        {"task_id": wide, "error_kind": "invalid-scope-declaration"}
+    ]
+    assert not (tmp_path / "worktrees" / wide).exists()

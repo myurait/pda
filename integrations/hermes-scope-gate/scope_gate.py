@@ -3057,8 +3057,8 @@ def _admit_artifact_change_pre_lock(
     return GateDecision(False, action, reason)
 
 
-# Git's own metadata directory name. A repository-relative target that carries
-# this segment is refused for artifact-change regardless of what the locked
+# Git's own metadata directory name. A repository-relative target that names
+# this entity is refused for artifact-change regardless of what the locked
 # contract declares, because the contract's own guarantees are stated in terms
 # of Git's repository discovery from the locked root: the workdir binding, the
 # branch-drift check, and the read boundary all resolve through the metadata
@@ -3071,13 +3071,46 @@ def _admit_artifact_change_pre_lock(
 ARTIFACT_GIT_METADATA_SEGMENT = ".git"
 
 
-def artifact_path_is_git_metadata(relative: str) -> bool:
-    """True when a repository-relative path names Git's own metadata."""
+def artifact_path_is_git_metadata(relative: str, *, root: str) -> bool:
+    """True when a repository-relative path names Git's own metadata.
 
-    return any(
-        part == ARTIFACT_GIT_METADATA_SEGMENT
-        for part in str(relative).split("/")
-    )
+    Two matches, because the spelling of a name is not the identity of the
+    entity it opens. The literal segment is the tree-independent one: it holds
+    for a destination that does not exist yet, and for a nested repository's
+    metadata anywhere under the root. The second walks the prefixes of the
+    resolved path and asks the filesystem whether the entity there is the same
+    entity as the ``.git`` beside it, which is the comparison every other
+    check in this class already makes (``_artifact_git_discovery_verdict``
+    compares resolved locations, and ``normalize_repo_relative_path`` decides
+    membership by location rather than notation). A spelling the filesystem
+    accepts as an alias of the metadata -- a name whose case the filesystem
+    folds, a hard link to the pointer file of a linked worktree -- opens the
+    same storage while carrying a different segment, so a check that compares
+    only the segment refuses one spelling of a destination and admits another
+    spelling of the same destination.
+
+    ``root`` has no default. The identity comparison needs the locked root to
+    resolve against, and a fence that silently degrades to spelling-only when
+    the argument is omitted is the failure this function exists to remove.
+    """
+
+    parts = tuple(part for part in str(relative).split("/") if part)
+    if ARTIFACT_GIT_METADATA_SEGMENT in parts:
+        return True
+    base = Path(os.path.realpath(str(root)))
+    for depth in range(1, len(parts) + 1):
+        candidate = base.joinpath(*parts[:depth])
+        try:
+            if os.path.samefile(
+                str(candidate), str(candidate.parent / ARTIFACT_GIT_METADATA_SEGMENT)
+            ):
+                return True
+        except OSError:
+            # Either name is absent on this filesystem, so this prefix is not
+            # an alias of the metadata. A destination that does not exist yet
+            # is the ordinary case for a write.
+            continue
+    return False
 
 
 def _artifact_git_discovery_verdict(root: str) -> GateDecision | None:
@@ -3156,10 +3189,10 @@ def _artifact_stage_targets(
                 "stage-unbounded", "bulk or wildcard staging is not admitted"
             )
         relative, absolute = normalize_repo_relative_path(token, root=root)
-        if artifact_path_is_git_metadata(relative):
+        if artifact_path_is_git_metadata(relative, root=root):
             raise PathRejected(
                 "stage-git-metadata",
-                f"{relative} names Git's own metadata, which is never staged",
+                f"{relative} resolves to Git's own metadata, which is never staged",
             )
         if absolute.is_dir():
             # A directory pathspec stages its whole subtree, which is the
@@ -3759,11 +3792,12 @@ def _admit_artifact_change_locked(
                 return GateDecision(False, exc.code, str(exc))
             # Checked before the pattern match so the refusal never depends on
             # how broad the declared ceiling happens to be.
-            if artifact_path_is_git_metadata(relative):
+            if artifact_path_is_git_metadata(relative, root=root):
                 return GateDecision(
                     False,
                     "write-git-metadata",
-                    f"{relative} names Git's own metadata, which no contract admits",
+                    f"{relative} resolves to Git's own metadata, which is not a "
+                    "write destination for this class",
                 )
             if not scope_patterns_match(patterns, relative):
                 return GateDecision(
