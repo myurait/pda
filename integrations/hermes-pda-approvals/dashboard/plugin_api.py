@@ -408,6 +408,13 @@ def _git(path: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def _resolves_inside(candidate: Path, root: Path) -> bool:
+    """True when ``candidate`` is ``root`` itself or lies beneath it."""
+
+    resolved_root = Path(os.path.realpath(root))
+    return candidate == resolved_root or resolved_root in candidate.parents
+
+
 @dataclass(frozen=True)
 class WorkspaceCheck:
     """Outcome of one workspace verification pass.
@@ -453,11 +460,22 @@ def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> Workspac
         ).resolve()
         if resolved_git_dir == resolved_common_dir:
             errors.append("workspace is not a linked worktree")
+        elif _resolves_inside(resolved_git_dir, path) or _resolves_inside(
+            resolved_common_dir, path
+        ):
+            # Deriving the identities here rather than trusting a declared
+            # value only moves the trust root if the derivation's own input is
+            # out of the executing agent's reach. A linked worktree resolves
+            # both directories into the primary repository, which is outside
+            # every task ceiling; a repository that resolves inside the
+            # workspace is storage the agent could have written, so the
+            # derivation would be reading a statement the agent authored.
+            errors.append("workspace Git directories resolve inside the workspace")
         else:
             # Judgment A: this derivation is the sole source of the canonical
             # identities. The substantive property (the target is a linked
             # worktree, i.e. not the primary repository) is decided by the
-            # comparison above and never consulted a declared value.
+            # comparisons above and never consulted a declared value.
             identities = {
                 "git_dir": str(resolved_git_dir),
                 "git_common_dir": str(resolved_common_dir),

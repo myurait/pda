@@ -49,18 +49,28 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 ### Ready化条件としての書込スコープ宣言
 
-`scope_seed.enabled`が有効な間、Readyカードは本文に機械可読な書込スコープ宣言を1つだけ持つ。宣言はオーケストレーターが読み、割当時にスコープ審査ゲートの契約seedとして記録される。宣言のないカードは割当されず、理由がカードへ1件コメントされる。tenant全体の既定スコープは置かない。
+`scope_seed.enabled`が有効な間、Readyカードは本文に機械可読な書込スコープ宣言を1つだけ持つ。宣言はオーケストレーターが読み、割当時にスコープ審査ゲートの契約seedとして記録される。宣言のないカードは割当されず、理由がカードへ1件コメントされる。tenant全体の既定スコープは置かない。宣言不備のカードは当該カードのみ割当対象から外れ、後続の適格カードはそのまま割当される。周期の戻り値は`refused`にカードIDと理由種別を並べる。
 
-宣言は情報文字列`pda-scope`のフェンス済みブロックへJSONオブジェクトで書く。
+宣言は情報文字列`pda-scope`のフェンス済みブロックへJSONオブジェクトで書く。次は実際に受理される形をそのまま示したものである（外側の4バッククォートは例示のための囲みなので、カードへ写すときは内側の3バッククォートのブロックだけを書く）。
 
-```
+````
+```pda-scope
 {"write_paths": ["operations/improvement/*.py"], "test_paths": ["operations/improvement/tests/test_x.py"]}
 ```
+````
 
 - `write_paths`は必須で、リポジトリ相対のglobパターンを1件以上。`*`はパス区切りを越えず、再帰は`**`で表す。
 - `test_paths`は省略可。省略時はテスト資産の書込を許可しない。
 - `execution`は省略可。省略時は実行を伴う検証を一切許可しない。許可する場合は検証テンプレートIDのみを書く。
 - `git_write`は省略可。省略時はクラス既定（`stage`と`commit`）で、宣言できるのは縮小のみ。
+- 上記4キー以外を書いたカードは受理されない。
+
+宣言の書き方には次の制約がある。
+
+- パターンの先頭セグメントを`*`または`**`にはできない。カバーする範囲をパターン自身が名指しする必要がある。`src/**`や`operations/improvement/*.py`のような形は使える。
+- フェンスは行頭（インデント3桁まで）に置く。4桁以上インデントした行はMarkdown上の逐語テキストなので宣言として読まれない。
+- 別のフェンスの内側に置いたブロックは例示として扱われ、宣言にはならない。上の例のように囲めば、実際の宣言と併記しても曖昧扱いにならない。
+- `.git`を含むパスは、宣言の幅にかかわらず書込・ステージのいずれも許可されない。Gitのメタデータはどの契約の対象にもならない。
 
 宣言はタスク単位の上限であり、割当後の編集はできない。編集された状態で次周期に入るとカードが詰まり、理由がコメントされる。スコープを変える場合は新しいカードへ分ける。
 
@@ -78,6 +88,8 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 - Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
 - APIは現在のbasic-auth owner sessionだけに承認・差戻しを許し、最新review handoffのcanonical SHA-256 digest、task ID、full approval contract、exact non-symlink linked-worktree path、`pda-auto/<task_id>` branch、base/diff、cleanな実Git HEADをtransaction内でも再照合する。不一致ならfail closedでカードを動かさない。canonical Git common/worktree identityはこの再照合の中でAPI自身がworkspaceから導出する（workerの申告値ではない。申告されていれば拒否する）。
+- canonical Git identityの導出元は隔離worktree自身のGit解決である。解決先がworkspace配下に入る構成は、導出元がworker書込可能な保管場所になるため承認不可として扱う。
+- 承認metadataのスキーマは、canonical Git identity 2項をworker申告から外した時点で版が上がっている。**この変更より前に作られ、まだ消費されていない承認行は、消費も再承認も受理されない。** 該当行がある場合は新しいreview handoffを出し直してオーナー承認を取り直す。旧行は未消費のまま残るがdigestが異なるので新しい経路と衝突しない。有効化の前に未消費行の有無を確認する。
 - 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、workspace path/branch、および**ゲート自身が導出した**worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。以後の同一性のdriftは、消費時の実地再導出とこのledger行の比較で検査する（承認digestはこの2項を含まない）。installerは汎用commentを承認証拠として受理しない。activationは事前生成nonceでledger rowを排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。rollbackまたはclaim解放の競合時はtimerを再停止してclaimを保持し、15分経過後の明示recoveryだけを許す。
 - 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -36,7 +37,22 @@ def _repo(tmp_path: Path) -> Path:
     (repo / "continuity" / "autonomous-improvement.json").write_text(
         json.dumps({"schema_version": 1, "enabled": True}), encoding="utf-8"
     )
-    _git(repo, "add", "README.md", "continuity")
+    # The router resolves both the scope gate and the seed helper from the
+    # repository root it was configured with, so a fixture repository that
+    # lacks them cannot exercise the seeded assignment path at all. The files
+    # are copied from this repository rather than stubbed: a stub would let the
+    # cycle-level test agree with a gate that no longer exists.
+    for relative in (
+        Path("integrations") / "hermes-scope-gate" / "scope_gate.py",
+        Path("operations") / "improvement" / "scope_seed.py",
+    ):
+        destination = repo / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((REPO_ROOT / relative).read_bytes())
+    # The gate resolves its contract schema relative to its own module file.
+    schemas = REPO_ROOT / "integrations" / "hermes-scope-gate" / "schemas"
+    shutil.copytree(schemas, repo / "integrations" / "hermes-scope-gate" / "schemas")
+    _git(repo, "add", "README.md", "continuity", "integrations", "operations")
     _git(repo, "commit", "-m", "base")
     return repo
 
@@ -52,7 +68,14 @@ def _set_committed_policy(
     )
 
 
-def _config(tmp_path: Path, repo: Path, *, enabled: bool = True, max_wip: int = 1) -> Path:
+def _config(
+    tmp_path: Path,
+    repo: Path,
+    *,
+    enabled: bool = True,
+    max_wip: int = 1,
+    per_tick: int = 1,
+) -> Path:
     path = tmp_path / "cycle.json"
     path.write_text(
         json.dumps(
@@ -65,7 +88,7 @@ def _config(tmp_path: Path, repo: Path, *, enabled: bool = True, max_wip: int = 
                 "worktrees_root": str(tmp_path / "worktrees"),
                 "base_branch": "main",
                 "max_wip": max_wip,
-                "max_assignments_per_tick": 1,
+                "max_assignments_per_tick": per_tick,
                 "require_profile_on_disk": False,
             }
         ),
@@ -207,6 +230,7 @@ def test_atomic_route_never_overwrites_a_concurrent_assignment(tmp_path, monkeyp
                 tmp_path / "isolated",
                 f"pda-auto/{task_id}",
                 "default",
+                scope_seed_enabled=False,
             )
         assert raised.value.kind == "claim-race"
 
@@ -327,9 +351,15 @@ def test_an_enabled_seed_policy_refuses_a_card_without_a_scope_declaration(
 
     result = run_cycle(config)
 
-    assert result["ok"] is False
-    assert result["error_kind"] == "missing-scope-declaration"
+    assert result["ok"] is True
     assert result["assigned"] == []
+    assert result["refused"] == [
+        {"task_id": task_id, "error_kind": "missing-scope-declaration"}
+    ]
+    assert result["reason"] == "no-routable-task"
+    # The card is refused before a workspace is created for it, so an
+    # unassignable card leaves no branch or worktree behind.
+    assert not (tmp_path / "worktrees" / task_id).exists()
     with kanban_db.connect() as conn:
         assert kanban_db.get_task(conn, task_id).assignee is None
         comments = conn.execute(
@@ -384,3 +414,74 @@ def _load_scope_gate(repo: Path):
     _sys.modules["cycle_test_scope_gate"] = module
     spec.loader.exec_module(module)
     return module
+
+
+_DECLARED_BODY = '目的: 直す\n\n```pda-scope\n{"write_paths": ["src/*.py"]}\n```\n'
+
+
+def _declare(conn, task_id: str, body: str = _DECLARED_BODY) -> None:
+    conn.execute("UPDATE tasks SET body = ? WHERE id = ?", (body, task_id))
+
+
+def test_an_undeclared_card_does_not_block_the_cards_behind_it(tmp_path, monkeypatch):
+    """A card that cannot be routed must not become a queue-wide outage.
+
+    The eligible list is priority-ordered and the same card leads it every
+    tick, so ending the tick on the first refusal would let one unqualified
+    card hold every other eligible card indefinitely. That is the shape the
+    first day of activation would produce, because no card carried the
+    declaration field before it existed.
+    """
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=True)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        blocked = _task(conn, "宣言のないカード", priority=100)
+        routable = _task(conn, "宣言済みカード", priority=50)
+        _declare(conn, routable)
+
+    result = run_cycle(config)
+
+    assert result["ok"] is True
+    assert result["assigned"] == [routable]
+    assert result["refused"] == [
+        {"task_id": blocked, "error_kind": "missing-scope-declaration"}
+    ]
+    with kanban_db.connect() as conn:
+        assert kanban_db.get_task(conn, routable).assignee == "default"
+        assert kanban_db.get_task(conn, blocked).assignee is None
+
+
+def test_a_refusal_after_an_assignment_still_reports_the_assignment(
+    tmp_path, monkeypatch
+):
+    """Work already committed to the board must appear in the result.
+
+    Discarding the accumulated list on the way out reported "nothing was
+    assigned" for a tick whose assignment had in fact been made, notified, and
+    seeded, which is the one thing the return value exists to state.
+    """
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=True)
+    config = _config(tmp_path, repo, max_wip=3, per_tick=2)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        first = _task(conn, "宣言済みカード", priority=100)
+        _declare(conn, first)
+        second = _task(conn, "宣言のないカード", priority=50)
+        third = _task(conn, "二枚目の宣言済みカード", priority=10)
+        _declare(conn, third)
+
+    result = run_cycle(config)
+
+    assert result["ok"] is True
+    assert result["assigned"] == [first, third]
+    assert result["refused"] == [
+        {"task_id": second, "error_kind": "missing-scope-declaration"}
+    ]
+    assert result["wip"] == 2

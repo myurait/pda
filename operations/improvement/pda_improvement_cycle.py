@@ -162,6 +162,14 @@ def _ensure_worktree(repo: Path, root: Path, task_id: str, base_branch: str) -> 
 
 SCOPE_SEED_AUTHOR = "pda-improvement-cycle"
 
+# How many refused cards one tick will walk past looking for a routable one.
+# Skipping refusals is what keeps a single unqualified card from blocking the
+# queue, but the work per refusal is a card comment, so the scan is bounded
+# rather than proportional to the board. The bound is far above the size this
+# lane runs at; it exists so a pathological board cannot make one tick
+# unbounded.
+MAX_REFUSALS_PER_TICK = 50
+
 
 def _load_scope_seed(repo: Path):
     """Load the scope seed helper, anchored at the repository root.
@@ -252,22 +260,44 @@ def _record_scope_seed(
             state_path=state_path,
         )
     except scope_seed.ScopeSeedError as exc:
-        if exc.kind == "missing-scope-declaration":
-            body = (
-                "自動改善サイクルはこのカードを割り当てませんでした。"
-                "機械可読な書込スコープ宣言が本文にありません。"
-                f"```{scope_seed.SCOPE_BLOCK_INFO}``` ブロックへ write_paths を宣言してください"
-                "（必要なら test_paths / execution / git_write も宣言できます。"
-                "git_write はクラス既定からの縮小のみ可能です）。"
-            )
-        else:
-            body = (
-                "自動改善サイクルはこのカードを割り当てませんでした。"
-                f"書込スコープ宣言をゲートが受理しませんでした: {exc}"
-                "宣言を修正するか、スコープを変更する場合は新しいカードへ分けてください。"
-            )
-        _comment_once(conn, task.id, SCOPE_SEED_AUTHOR, body)
-        raise CycleError(exc.kind, str(exc)) from exc
+        _refuse_for_scope(conn, task.id, scope_seed, exc)
+
+
+def _refuse_for_scope(conn, task_id: str, scope_seed, exc) -> None:
+    """Comment the reason once, then raise the routing refusal."""
+
+    if exc.kind == "missing-scope-declaration":
+        body = (
+            "自動改善サイクルはこのカードを割り当てませんでした。"
+            "機械可読な書込スコープ宣言が本文にありません。"
+            f"```{scope_seed.SCOPE_BLOCK_INFO}``` ブロックへ write_paths を宣言してください"
+            "（必要なら test_paths / execution / git_write も宣言できます。"
+            "git_write はクラス既定からの縮小のみ可能です）。"
+        )
+    else:
+        body = (
+            "自動改善サイクルはこのカードを割り当てませんでした。"
+            f"書込スコープ宣言をゲートが受理しませんでした: {exc}"
+            "宣言を修正するか、スコープを変更する場合は新しいカードへ分けてください。"
+        )
+    _comment_once(conn, task_id, SCOPE_SEED_AUTHOR, body)
+    raise CycleError(exc.kind, str(exc)) from exc
+
+
+def _check_scope_declaration(conn, task, repo: Path) -> None:
+    """Refuse an undeclarable card before any workspace is created for it.
+
+    The derivation reads only the card body, so it can run before the worktree
+    exists. Doing it here keeps a card that will not be assigned from leaving a
+    branch and a worktree behind, and it bounds the cost of walking past
+    refusals to look for a routable card.
+    """
+
+    scope_seed = _load_scope_seed(repo)
+    try:
+        scope_seed.derive_seed_payload(task_id=task.id, body=task.body)
+    except scope_seed.ScopeSeedError as exc:
+        _refuse_for_scope(conn, task.id, scope_seed, exc)
 
 
 def _route_task(
@@ -277,10 +307,15 @@ def _route_task(
     branch: str,
     assignee: str,
     *,
+    scope_seed_enabled: bool,
     repo: Path | None = None,
-    scope_seed_enabled: bool = False,
     scope_seed_state_path: Path | None = None,
 ) -> None:
+    # ``scope_seed_enabled`` has no default on purpose. Whether this
+    # assignment records the ceiling that puts the turn under hard enforcement
+    # is not a detail a caller may leave out: an omitted keyword would route
+    # the task unenforced and report success. Without a default the omission
+    # is a loud failure at the call instead of a silent unenforced assignment.
     current = kanban_db.get_task(conn, task.id)
     if current is None or current.status != "ready" or current.assignee is not None:
         raise CycleError("claim-race", "task changed before routing")
@@ -411,23 +446,51 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                         "wip": wip,
                     }
                 capacity = min(max_wip - wip, per_tick)
-                for task in _eligible_tasks(conn, tenant)[:capacity]:
-                    path, branch = _ensure_worktree(repo, root, task.id, base_branch)
-                    _route_task(
-                        conn,
-                        task,
-                        path,
-                        branch,
-                        assignee,
-                        repo=repo,
-                        scope_seed_enabled=scope_seed_enabled,
-                    )
+                # Per-card recovery. A card that fails its own admission is a
+                # fact about that card, not about the cycle: letting it end the
+                # tick would let the highest-priority unqualified card block
+                # every other eligible card indefinitely, since the queue is
+                # priority-ordered and the same card leads it next tick. The
+                # refusal stays visible in two places -- the one-time card
+                # comment the router writes, and ``refused`` below -- so
+                # continuing past it is not the same as ignoring it.
+                refused: list[dict[str, str]] = []
+                for task in _eligible_tasks(conn, tenant):
+                    if len(assigned) >= capacity:
+                        break
+                    if len(refused) >= MAX_REFUSALS_PER_TICK:
+                        break
+                    try:
+                        if scope_seed_enabled:
+                            _check_scope_declaration(conn, task, repo)
+                        path, branch = _ensure_worktree(
+                            repo, root, task.id, base_branch
+                        )
+                        _route_task(
+                            conn,
+                            task,
+                            path,
+                            branch,
+                            assignee,
+                            repo=repo,
+                            scope_seed_enabled=scope_seed_enabled,
+                        )
+                    except CycleError as exc:
+                        refused.append({"task_id": task.id, "error_kind": exc.kind})
+                        continue
                     assigned.append(task.id)
+                if assigned:
+                    reason = "assigned"
+                elif refused:
+                    reason = "no-routable-task"
+                else:
+                    reason = "no-eligible-task"
                 return {
                     "ok": True,
                     "enabled": True,
                     "assigned": assigned,
-                    "reason": "assigned" if assigned else "no-eligible-task",
+                    "refused": refused,
+                    "reason": reason,
                     "wip": wip + len(assigned),
                 }
     except CycleError as exc:

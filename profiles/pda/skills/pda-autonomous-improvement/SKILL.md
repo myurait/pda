@@ -27,6 +27,7 @@ Use this phase unless a latest `pda-owner-approval` notification provides task I
 5. Commit only the card's files on its task branch. Do not merge, push, deploy, restart services, alter runtime/profile state outside the worktree, send externally, change credentials, delete durable data, or perform an irreversible operation.
    - Under a seeded scope contract the admitted read-only Git forms are exactly `git status`, bounded `git diff`, `git rev-parse HEAD` (also `--verify HEAD` / `--abbrev-ref HEAD`), and `git branch --show-current`, inside the assigned worktree. Read the commit id with `rev-parse HEAD`; `git log` and remote-ref reads are not admitted. Other read-only Git forms are refused without counting against the deny ceiling, so a refused read never strands the card — take the admitted form instead of retrying variants.
    - Stage by naming paths inside the card's write scope. A whole-tree stage with no path arguments is not admitted for this class.
+   - Never write to or stage anything under `.git`, and never create a repository inside the worktree. Git's own metadata is outside every scope contract however wide the card's write scope is, and both refusals count against the deny ceiling. Let Git manage its own directory.
 6. Build a `pda_approval` metadata object with:
    - `schema_version: 2` and the exact `task_id`;
    - owner outcome, impact, risk class, base SHA, head SHA, changed files;

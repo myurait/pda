@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -996,3 +997,47 @@ def test_renaming_a_tracked_file_cannot_hide_the_old_path_from_the_diff(
 
     pending = client.get("/pending").json()["items"][0]
     assert pending["eligible"] is True, pending["errors"]
+
+
+def test_gate_derived_identity_refuses_a_workspace_that_carries_its_own_repository(
+    tmp_path, monkeypatch
+):
+    """The identities the gate derives must not come from agent-writable storage.
+
+    Judgment A moved the canonical Git identities from a declared value to a
+    derivation the approval gate performs. That only relocates the trust root
+    if the derivation's input is out of the executing agent's reach: a
+    repository that resolves inside the workspace is inside the very ceiling
+    the task was granted, so a self-consistent substitute placed there would
+    make the derived identities agent-authored.
+    """
+
+    module, client, task_id, workspace, payload = _review_task(tmp_path, monkeypatch)
+    primary = tmp_path / "repo"
+    substitute = workspace / "vendor" / "substitute.git"
+    substitute.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(
+        primary / ".git", substitute, ignore=shutil.ignore_patterns("worktrees")
+    )
+    linked = substitute / "worktrees" / "w1"
+    linked.mkdir(parents=True)
+    for name in ("HEAD", "index"):
+        source = primary / ".git" / "worktrees" / workspace.name / name
+        if source.exists():
+            shutil.copy2(source, linked / name)
+    (linked / "commondir").write_text("../..\n", encoding="utf-8")
+    (linked / "gitdir").write_text(str(workspace / ".git") + "\n", encoding="utf-8")
+    (workspace / ".git").write_text(f"gitdir: {linked}\n", encoding="utf-8")
+
+    with kanban_db.connect() as conn:
+        task = kanban_db.get_task(conn, task_id)
+    check = module.verify_workspace(task, payload)
+    response = client.post(
+        f"/tasks/{task_id}/approve",
+        json={"digest": module.approval_digest(payload)},
+    )
+
+    assert any("resolve inside the workspace" in error for error in check.errors)
+    # Fail closed: no identity is offered to the ledger from this derivation.
+    assert check.identities is None
+    assert response.status_code == 409

@@ -505,3 +505,114 @@ litmus を唯一の規範へ格上げした結果、指摘箇所（§11 の確�
 10 節 4 の 2 項目は、いずれも 2026-08-23 の司令塔決定（Judgment A / Judgment B）で閉じた（10 節 4 に解決内容を追記済み）。12 節 7 の 4 項目は本節 1 の決定により閉じた。本節で新たに増えた判断事項は次の 1 点である。
 
 1. **実行テンプレート不一致系の非計上により、実行境界への反復試行のうち「起動形に一致しない形」が tool 予算（96）でのみ有界となった。** 一致後の引数形は拒否上限（6）で有界のまま、admission は全形で拒否のままである。認識外 subcommand・認識外ツールの非計上（本節 1 の帰属 1）と同じ性質の緩和であり、litmus の適用として一貫している。M1 exit gate では、この緩和の受容が帰属 1 の批准と同一の判断であることを確認事項とする。
+
+## 14. W ラウンド（worker 配線 `f7cfe0f`）の確証欠陥の処置（2026-08-23、13 節の続き）
+
+対象レビュー: `restricted-s3-impl-review-2026-08-23-w-bypass.md`（W-B-01〜07）、`restricted-s3-impl-review-2026-08-23-w-correctness.md`（W-C-01〜06）。**本節は取扱制限。迂回の具体形へ言及する。**
+
+### 1. W-B-02（blocker）許可済み書込からのリポジトリ解決の乗っ取り
+
+再現を再確認した。第一層が許可する worktree 内のファイル書込のみで、ロック済み root からの Git リポジトリ探索を agent 作成物へ向け替えられ、契約が admit する Git 書込動作がフック経路で任意実行に至る。破られる性質はレビュー記載どおり 5 点（第二層の既定閉鎖、契約の禁止項、第一層の書込上限、`--no-verify` 拒否によりフック実行が「強制」であること、README の探索前提）。
+
+処置は 2 系統の独立した検査である。
+
+1. **書込形の carve-out（クラス局所）**: ロック済み root への相対パスに `.git` セグメントを含む書込先・ステージ対象を、`write_paths` の幅によらず拒否する。`_admit_artifact_change_locked` の write カタログ分岐と `_artifact_stage_targets` に置き、共有のパス正規化・pathspec 実装は変更していない（D-S3-7 決定 1）。パターン照合より**前**に判定するため、宣言の幅が結論を変えない。
+2. **解決先の封じ込め（書込形と独立）**: `add` / `commit` の admission 直前に、ロック済み root から解決した git-dir / git-common-dir が root 配下に入らないことを検査する（root 直下の `.git` 自身は通常リポジトリ形として名指しで許容）。linked worktree は両者が primary repository へ解決するため本番形に false deny を追加しない。1 の carve-out だけでは「別経路で解決先が変わった場合」を覆えないため独立に持つ。
+
+Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verify_workspace` は解決先が workspace 配下に入る構成をエラーとし、`identities` を `None` のまま返す（台帳へ値を提供しない fail closed）。消費側（`install.py::_verify_approved_artifact`）にも同じ検査を局所に置いた。台帳行との比較は承認後の向け替えを捕らえるが承認時点で既に存在した向け替えは捕らえず、かつ消費側は共有状態へ変更を適用する経路であるため、性質を各実装で述べる（独立実装の突き合わせ規律に合わせる）。予測どおり `rev-parse --show-toplevel` は向け替え後も不変であり、既存検査では捕らえられないことを確認した（`./tmp/fix-w/installer_containment.py`）。レビューの指摘（導出主体の移動だけでは信頼の根が移らない）はそのとおりであり、導出の入力を worker の上限外へ置くことで初めて Judgment A の狙いが成立する。
+
+新設した理由コードは `write-git-metadata` / `stage-git-metadata` / `git-discovery-redirected` / `git-discovery-unverified` の 4 件で、いずれも litmus（読み取り目的の呼び出しが到達しうるか）に照らして計上対象である。前 2 者は write カタログ／`git add` からのみ到達し、後 2 者は `add` / `commit` からのみ到達する。`git-discovery-unverified` は環境起因だが、既に計上対象である `target-drift` が同じ性質（worktree probe 由来）を持つため、扱いを一致させた。
+
+フェンス実効性: 両検査を無効化した負の対照（`./tmp/fix-w/negctl.py`）で、メタデータ書込と向け替え後の `add` / `commit` がいずれも admit されることを確認した。有効時は 3 者とも拒否される。
+
+### 2. W-B-01（major）宣言由来の書込上限に機械的な上限が無い
+
+確証部分（上限に機械的上限が無い、全域パターンがそのまま契約になる）を再確認した。最悪形（メタデータ面）は 1 節の carve-out が宣言の幅と無関係に閉じる。breadth 自体には**ルータ側**で機械的上限を課した: パターンの先頭セグメントが `*` または `**` である宣言を拒否する（`write_paths` / `test_paths` の双方）。レビューが挙げた二択のうちゲート側案は共有実装に当たるため採らなかった。
+
+制限は 1 形のみに留めた。再帰形（`src/**`）・前方一致（`src*/**`）・単一セグメント glob（`*.py`）はいずれもパターン自身の字面で有界であり、false deny ゼロ要求クラスで通常形を狭めないことを非拒否側のテストで固定した。
+
+推測部分（コメント経由で specifier に広い宣言を写させる経路）は本ラウンドでも検証しておらず、確証として扱っていない。ただし `parse_scope_declaration` が読むのは body のみという事実は変わらず、先頭ワイルドカード拒否は body へ写された後の形にも効く。
+
+### 3. W-B-04（minor）Markdown 上の不活性領域の未区別
+
+正規表現を行走査へ置き換えた。fence は行頭〜インデント 3 桁のみを fence として扱い（4 桁以上は逐語テキスト）、別の fence が開いている間に現れた fence 行は外側ブロックの内容として扱う。fence 文字は バッククォートとチルダの双方を認識する。これで双方向が閉じる: 図解が実効宣言になる方向と、実宣言と図解の併記が「2 ブロック」として拒否される方向。実宣言 2 件の曖昧拒否は維持されることを別テストで固定した。
+
+### 4. W-B-05 / W-C-04（minor）運用手順の宣言例が受理形と一致しない
+
+`docs/operations/pda-improvement-cycle.md` の例を情報文字列付きの実形へ改めた。3 節の入れ子扱いにより、外側 4 バッククォートで囲めば文書内に実形を素朴に書ける（囲みの中は不活性）。手順書の当該例を実際に `derive_seed_payload` へ通すテストを追加し、正本手順と実装の乖離が再発したら落ちるようにした。`daily_reconciler_prompt.txt` 側も行単位の実形と、先頭ワイルドカード禁止・未知キー拒否・インデント制約を明記した。
+
+### 5. W-B-06 / W-C-02（minor / major）宣言不備 1 枚による割当 queue の停止
+
+処置は per-card 回復である。割当ループを try/except で囲み、拒否したカードを飛ばして次の候補へ進む。可視性はカードコメント（従来どおり 1 件）と戻り値の `refused`（カード ID と理由種別）の 2 経路で確保した。加えて宣言検査を `_ensure_worktree` より**前**に移し、割当されないカードに branch と worktree を残さないようにした（レビューが併記した副作用の解消と、拒否を飛ばす際の費用の有界化）。1 周期で飛ばす拒否件数にも上限（50）を置いた。拒否 1 件あたりの作業がカードコメントであるため、走査を盤面サイズに比例させない。上限値は本レーンの実際の盤面規模より十分大きく、病的な盤面で 1 周期が無界にならないことのみを担う。
+
+**司令塔判断に回す点（実装裁量で先に入れた形）**: 決定文面「宣言なしは割当せず CycleError＋カードコメント」は当該カードの扱いを定めるもので、周期全体を打ち切るかは定めていない（レビューも同旨）。したがって per-card 回復は決定の変更ではないと判断した。ただし周期の戻り値の `ok` が、宣言不備のみのときに `false` から `true` へ変わる（不備カードは盤面の状態であって周期の失敗ではないという解釈）。exit gate で批准対象とする。
+
+### 6. W-C-06（minor）一部割当成功後の失敗が「割当ゼロ」として報告される
+
+5 節の per-card 回復により、成立済みの割当は戻り値の `assigned` に残る。ローカル等価再現で、宣言済みカードが割当・seed 記録・通知まで完了した周期が `assigned: ['t_good']` を返すことを確認した（基準点および修正前は `[]`）。
+
+### 7. W-C-01（major）割当経路水準の正常系テストの fixture 不足
+
+`_repo()` fixture が `integrations/hermes-scope-gate/scope_gate.py`・`schemas/`・`operations/improvement/scope_seed.py` をこのリポジトリから複製するようにした。スタブではなく複製である（スタブは、存在しないゲートと cycle 側テストが合意する状態を作る）。開発 PC では当該スイートが実行不能なため、fixture と同形のリポジトリを組んで `record_seed` と `start_turn` まで通す等価再現（`./tmp/fix-w/fixture_equiv.py`）で確認した。当該テストの assert 対象（`write_paths` / `git_write` / `execution` / `test_paths`）はいずれも成立する。
+
+### 8. W-C-03（major）承認 metadata のスキーマ版上げに移行経路が無い
+
+互換分岐は置かない。v1 オブジェクトを受理する分岐は「検査主体がいなくなった欄を digest の中で通さない」という Judgment A の趣旨と衝突する。処置は文書化である: 有効化手順書へ「本変更以前の未消費承認は再ハンドオフとオーナー再承認が必要」「有効化前に未消費行の有無を確認する」を明記し、設計文書の Judgment A 節にも移行方針として記載した。
+
+**司令塔判断に回す点**: 台帳に未消費 v1 行が実在するか（実在件数）は開発 PC から確認できない。実在が判明した場合に (a) 再ハンドオフで処理するか (b) 消費経路へ限定的な互換分岐を置くかは、件数を見た上でのオーナー判断とする。本処置は (a) を前提に文書化した。
+
+### 9. W-B-03（minor）強制スイッチの既定値による fail-open
+
+`_route_task` の `scope_seed_enabled` から既定値を外し、キーワード必須にした。省略は呼び出し時エラーとなる。既定 false はコミット済み方針ファイル側の既定として残る（`run_cycle` が読む）。既存テストの 1 呼び出しを明示指定へ更新した。
+
+### 10. W-C-05（minor）クラス既定の定数の二重定義
+
+`scope_seed.CLASS_DEFAULT_GIT_WRITE` と `scope_gate.ARTIFACT_GIT_WRITE_ACTIONS` の等値を固定するテストを追加した。承認側で既に実施されている「独立実装を突き合わせで固定する」規律に揃えた。
+
+### 11. W-B-07（minor）誤検知として処置しない
+
+**判定: 誤検知（前提が事実と異なる）。** W-B-07 は「seed を書く実装と強制する実装が別コピーであり、正規化の意味論がずれうる」と述べるが、ゲートの installer はプラグインディレクトリを**リポジトリのソースへの symlink** として設置する（`install.py`: `plugin_path.is_symlink() and plugin_path.resolve() == source_path`、`--source` の既定は当該ディレクトリ自身）。したがって強制側が読むファイルとルータが `repo_root` 経由で読むファイルは同一ファイルであり、「別コピー」も「版ずれ」も成立しない。W-C レビューの被覆記録 4 が同じ事実を独立に確認しており、両レビューの記述が衝突している側のうち W-B-07 が誤りである。
+
+残るのは「cycle 設定の `repo_root` が installer の `--source` と別チェックアウトを指す場合」だが、これは W-B-07 の主張内容ではなく、worker から到達できる経路でもない（プライマリリポジトリは全 worker の上限外）。証拠として、installer のソース既定とルータが解決するゲートのパスが同一であることを固定するテストを追加した。
+
+### 12. 回帰テスト（新規 19 件 + 25 パラメタ、既存 4 件を改訂）
+
+新規（`integrations/hermes-scope-gate/tests/test_artifact_change_scope.py`）:
+- `test_the_widest_write_scope_still_refuses_gits_own_metadata`（4 パラメタ）/ `test_the_widest_write_scope_still_admits_ordinary_files` / `test_no_write_catalogue_tool_reaches_git_metadata`（7 パラメタ、対フィールドの source 側・destination 側を分けて固定）/ `test_staging_refuses_gits_own_metadata` / `test_a_linked_worktree_is_admitted_by_the_discovery_check` / `test_a_git_write_is_refused_when_discovery_resolves_inside_the_locked_root`
+
+新規（`integrations/hermes-scope-gate/tests/test_scope_seed_wiring.py`）:
+- `test_a_declaration_cannot_stand_in_for_the_whole_tree`（7 パラメタ）/ `test_the_same_limit_applies_to_declared_test_assets` / `test_an_anchored_pattern_of_any_depth_is_still_accepted`（6 パラメタ）/ `test_an_indented_example_is_not_a_live_declaration` / `test_a_declaration_shown_inside_an_example_block_is_inert`（2 パラメタ）/ `test_a_real_declaration_beside_a_worked_example_is_not_ambiguous` / `test_two_live_declarations_are_still_refused` / `test_the_documented_declaration_example_is_the_accepted_form` / `test_the_class_default_matches_the_gate_that_enforces_it` / `test_the_router_reads_the_gate_the_installer_deploys`
+
+新規（`operations/improvement/tests/test_pda_improvement_cycle.py`、ミニPC 実行）:
+- `test_an_undeclared_card_does_not_block_the_cards_behind_it` / `test_a_refusal_after_an_assignment_still_reports_the_assignment`
+
+新規（`integrations/hermes-pda-approvals/tests/test_plugin_api.py`、ミニPC 実行）:
+- `test_gate_derived_identity_refuses_a_workspace_that_carries_its_own_repository`
+
+拡張（`operations/improvement/tests/test_install.py`、ミニPC 実行）:
+- `test_activation_rechecks_latest_review_head_and_clean_workspace`（消費側の封じ込め拒否を既存の drift 検査群と同じ形で追加。向け替えを組んで拒否を確認し、元の状態へ戻す）
+
+改訂:
+- `test_the_counting_set_is_exactly_the_ratified_enumeration` の正本列挙 `_EXPECTED_DEVIATION_DENY_ACTIONS`（22 → 26。計上集合の**拡大**であり、litmus に照らした新たな確定事実の主張である。11 節 4 の一方向性規律に従い縮小とは混ぜていない）
+- `test_the_flag_defaults_off_and_records_nothing`（既定値依存を廃し明示指定へ）
+- `test_atomic_route_never_overwrites_a_concurrent_assignment`（同）
+- `test_an_enabled_seed_policy_refuses_a_card_without_a_scope_declaration`（`ok: true` + `refused` + worktree 非作成へ）
+- `_repo()` fixture / `_config()` helper（7 節、および per-tick の可変化）
+
+ローカル実行結果: `integrations/hermes-scope-gate/tests` は 576 passed（基準点 535 + 41）。`operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発 PC で実行不能（`hermes_cli` / `fastapi` 不在）のため、等価再現（`./tmp/fix-w/test_loop_after.py`、`./tmp/fix-w/verify_ws_probe.py`、`./tmp/fix-w/fixture_equiv.py`）で確認した。ミニPC での実行は親セッションが一括で行う。
+
+### 13. 併せて更新した文書
+
+- `docs/design/task-scope-admission-gate.md`: 第一層へ照合順序の改訂と「Git メタデータは宣言の対象外」項を新設。worker 配線 2 項へ per-card 拒否・worktree 作成前検査・breadth の機械的上限・宣言ブロックの不活性領域の 4 点を追記。4 項へ強制スイッチの既定値廃止を追記。Judgment A へ導出入力の上限外化とスキーマ移行を追記。
+- `integrations/hermes-scope-gate/README.md`: 探索前提の残余記述へ carve-out と封じ込めを追記。
+- `docs/operations/pda-improvement-cycle.md`: 宣言例を受理形へ、制約 4 点を追記、per-card 拒否と `refused` を明記、承認スキーマ移行の手順を追記。
+- `operations/improvement/daily_reconciler_prompt.txt`: 宣言の実形と制約を追記。
+- `profiles/pda/skills/pda-autonomous-improvement/SKILL.md`: `.git` への書込・ステージ禁止（計上対象である旨を含む）を追記。
+- `docs/operations/adversarial-suite.md`: 迂回 7 類型を抽象名とテスト所在で追記。
+
+### 14. 本ラウンド後の残余（司令塔判断）
+
+1. **周期戻り値の `ok` 意味論の変更**（5 節）。宣言不備のみの周期が `ok: true` を返すようになった。exit gate で批准対象。
+2. **未消費 v1 承認行の実在確認と処置方針**（8 節）。ミニPC の実機事実に依存する。
+3. **commit 時点の index 内容と write scope の照合**（既存残余、設計 §11 第 9 項）。本ラウンドの封じ込めは解決先の乗っ取りを閉じるが、ゲート外でステージされた内容がローカル commit に入る残余は変わらない。
+4. **`git-discovery-*` の計上**（1 節）。環境起因の拒否を拒否上限へ計上する点は `target-drift` と同じ扱いだが、レビューを経ていない新規判断である。

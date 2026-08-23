@@ -2895,10 +2895,14 @@ ARTIFACT_DEVIATION_DENY_ACTIONS = frozenset(
         "target-escape",
         "target-closed",
         "target-root",
+        "write-git-metadata",
         # Git write lane: only `git add` / `git commit` reach these.
         "git-write-unspecified",
         "git-write-forbidden",
         "target-drift",
+        "git-discovery-redirected",
+        "git-discovery-unverified",
+        "stage-git-metadata",
         "stage-unbounded",
         "stage-option",
         "stage-magic",
@@ -3053,6 +3057,84 @@ def _admit_artifact_change_pre_lock(
     return GateDecision(False, action, reason)
 
 
+# Git's own metadata directory name. A repository-relative target that carries
+# this segment is refused for artifact-change regardless of what the locked
+# contract declares, because the contract's own guarantees are stated in terms
+# of Git's repository discovery from the locked root: the workdir binding, the
+# branch-drift check, and the read boundary all resolve through the metadata
+# the target names. A write scope broad enough to reach it would let the turn
+# restate its own enforcement premises, so breadth must not decide this.
+#
+# The carve-out is class-local on purpose. D-S3-7 決定 1 keeps the shared
+# path-normalisation and pathspec implementations from growing artifact-change
+# specific rules, so the refusal lives in this class's admission functions.
+ARTIFACT_GIT_METADATA_SEGMENT = ".git"
+
+
+def artifact_path_is_git_metadata(relative: str) -> bool:
+    """True when a repository-relative path names Git's own metadata."""
+
+    return any(
+        part == ARTIFACT_GIT_METADATA_SEGMENT
+        for part in str(relative).split("/")
+    )
+
+
+def _artifact_git_discovery_verdict(root: str) -> GateDecision | None:
+    """Refuse a Git write when discovery from the locked root was redirected.
+
+    The metadata carve-out above closes the write form that repoints
+    discovery, and this is the independent positive check: whatever the route,
+    the directories Git actually resolves from the locked root must not live
+    inside that root. A linked worktree resolves both to the primary
+    repository, which is outside every worker's ceiling; an ordinary
+    repository resolves both to its own ``.git``, which is admitted by name so
+    the check adds no refusal for the shapes this class legitimately runs on.
+    Anything else inside the root is agent-writable storage standing in for
+    the repository, which is what makes hook execution and the identity
+    derivation the approval gate performs reachable from a file write.
+    """
+
+    real_root = Path(os.path.realpath(str(root)))
+    canonical = Path(os.path.realpath(str(real_root / ARTIFACT_GIT_METADATA_SEGMENT)))
+    for option, label in (("--git-dir", "git-dir"), ("--git-common-dir", "git-common-dir")):
+        try:
+            raw = subprocess.run(
+                ["git", "-C", str(root), "rev-parse", option],
+                check=True,
+                capture_output=True,
+                text=True,
+                timeout=3,
+            ).stdout.strip()
+        except (
+            subprocess.CalledProcessError,
+            OSError,
+            subprocess.SubprocessError,
+        ) as exc:
+            return GateDecision(
+                False,
+                "git-discovery-unverified",
+                f"the Git {label} probe for the locked worktree could not run: {exc}",
+            )
+        if not raw:
+            return GateDecision(
+                False,
+                "git-discovery-unverified",
+                f"Git reported no {label} for the locked worktree",
+            )
+        candidate = Path(raw)
+        if not candidate.is_absolute():
+            candidate = real_root / candidate
+        resolved = Path(os.path.realpath(str(candidate)))
+        if _is_inside(resolved, real_root) and resolved != canonical:
+            return GateDecision(
+                False,
+                "git-discovery-redirected",
+                f"the locked worktree's {label} resolves inside the locked root",
+            )
+    return None
+
+
 def _artifact_stage_targets(
     tail: list[str], *, root: str, patterns: tuple[str, ...]
 ) -> tuple[str, ...]:
@@ -3074,6 +3156,11 @@ def _artifact_stage_targets(
                 "stage-unbounded", "bulk or wildcard staging is not admitted"
             )
         relative, absolute = normalize_repo_relative_path(token, root=root)
+        if artifact_path_is_git_metadata(relative):
+            raise PathRejected(
+                "stage-git-metadata",
+                f"{relative} names Git's own metadata, which is never staged",
+            )
         if absolute.is_dir():
             # A directory pathspec stages its whole subtree, which is the
             # bulk form this class does not admit. The glob match below can
@@ -3406,6 +3493,9 @@ def _admit_artifact_change_git(
         return GateDecision(
             False, "target-drift", "the worktree branch changed after scope lock"
         )
+    redirected = _artifact_git_discovery_verdict(root)
+    if redirected is not None:
+        return redirected
     patterns = tuple(write_patterns) + tuple(test_patterns)
     if subcommand == "add":
         try:
@@ -3667,6 +3757,14 @@ def _admit_artifact_change_locked(
                 relative, _ = normalize_repo_relative_path(raw, root=root)
             except PathRejected as exc:
                 return GateDecision(False, exc.code, str(exc))
+            # Checked before the pattern match so the refusal never depends on
+            # how broad the declared ceiling happens to be.
+            if artifact_path_is_git_metadata(relative):
+                return GateDecision(
+                    False,
+                    "write-git-metadata",
+                    f"{relative} names Git's own metadata, which no contract admits",
+                )
             if not scope_patterns_match(patterns, relative):
                 return GateDecision(
                     False,

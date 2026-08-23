@@ -14,6 +14,7 @@ from __future__ import annotations
 import ast
 import itertools
 import json
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -2304,10 +2305,14 @@ _EXPECTED_DEVIATION_DENY_ACTIONS = frozenset(
         "target-escape",
         "target-closed",
         "target-root",
+        "write-git-metadata",
         # Git write lane.
         "git-write-unspecified",
         "git-write-forbidden",
         "target-drift",
+        "git-discovery-redirected",
+        "git-discovery-unverified",
+        "stage-git-metadata",
         "stage-unbounded",
         "stage-option",
         "stage-magic",
@@ -3362,3 +3367,161 @@ def test_read_admission_does_not_consult_the_branch_binding(
 
     assert first.allowed is second.allowed, command
     assert first.action == second.action, command
+
+
+# ---------------------------------------------------------------------------
+# Git metadata is outside every contract (W-B-01 breadth, W-B-02 blocker)
+# ---------------------------------------------------------------------------
+
+
+def _linked_worktree(tmp_path: Path) -> tuple[Path, Path, str]:
+    """A primary repository plus one linked worktree on its own branch."""
+
+    primary = tmp_path / "primary"
+    _init_git_repo(primary)
+    (primary / "src").mkdir()
+    (primary / "src" / "app.py").write_text("x = 1\n", encoding="utf-8")
+    for command in (
+        ["git", "-C", str(primary), "config", "user.email", "t@example.invalid"],
+        ["git", "-C", str(primary), "config", "user.name", "T"],
+        ["git", "-C", str(primary), "add", "-A"],
+        ["git", "-C", str(primary), "commit", "-q", "-m", "base"],
+    ):
+        subprocess.run(command, check=True, capture_output=True, text=True)
+    worktree = tmp_path / "wt"
+    branch = "pda-auto/t1"
+    subprocess.run(
+        ["git", "-C", str(primary), "worktree", "add", "-q", "-b", branch, str(worktree), "main"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return primary, worktree, branch
+
+
+@pytest.mark.parametrize(
+    "target",
+    [".git", ".git/config", ".git/hooks/pre-commit", "vendor/.git/config"],
+)
+def test_the_widest_write_scope_still_refuses_gits_own_metadata(
+    tmp_path: Path, target: str
+) -> None:
+    # The declared ceiling here matches everything, which is exactly the
+    # premise the refusal must not depend on: the contract's guarantees are
+    # stated through Git's discovery from the locked root, so the storage
+    # backing that discovery is never a write destination.
+    store, _ = _seeded_store(tmp_path, write_paths=["**"], test_paths=[])
+
+    decision = _admit(store, "write_file", {"path": target, "content": "x"})
+
+    assert decision.allowed is False, target
+    assert decision.action == "write-git-metadata"
+    assert artifact_deny_counter(decision.action) == "denied_count"
+
+
+def test_the_widest_write_scope_still_admits_ordinary_files(tmp_path: Path) -> None:
+    # The companion to the refusal above: the carve-out is a named exception,
+    # not a narrowing of what a broad declaration otherwise reaches.
+    store, _ = _seeded_store(tmp_path, write_paths=["**"], test_paths=[])
+
+    decision = _admit(store, "write_file", {"path": "src/app.py", "content": "x"})
+
+    assert decision.allowed is True
+
+
+@pytest.mark.parametrize(
+    ("tool_name", "args"),
+    [
+        ("delete_file", {"path": ".git/config"}),
+        ("append_file", {"path": ".git/config", "content": "x"}),
+        ("edit_file", {"file_path": ".git/hooks/pre-commit"}),
+        ("write_files", {"paths": ["src/app.py", ".git/config"]}),
+        ("multi_edit", {"edits": [{"path": "src/app.py"}, {"path": ".git/config"}]}),
+        # Only the destination names metadata: a pair-field tool must be
+        # refused on either end, not just the one that happens to be first.
+        ("move_file", {"source_path": "src/app.py", "destination_path": ".git/config"}),
+        ("copy_file", {"source_path": ".git/config", "destination_path": "src/app.py"}),
+    ],
+)
+def test_no_write_catalogue_tool_reaches_git_metadata(
+    tmp_path: Path, tool_name: str, args: dict[str, object]
+) -> None:
+    store, _ = _seeded_store(tmp_path, write_paths=["**"], test_paths=[])
+
+    decision = _admit(store, tool_name, dict(args))
+
+    assert decision.allowed is False, tool_name
+    assert decision.action == "write-git-metadata", tool_name
+
+
+def test_staging_refuses_gits_own_metadata(tmp_path: Path) -> None:
+    store, repo = _seeded_store(tmp_path, write_paths=["**"], test_paths=[])
+
+    decision = _admit(
+        store, "terminal", {"command": "git add .git/config", "workdir": str(repo)}
+    )
+
+    assert decision.allowed is False
+    assert decision.action == "stage-git-metadata"
+    assert artifact_deny_counter(decision.action) == "denied_count"
+
+
+def test_a_linked_worktree_is_admitted_by_the_discovery_check(tmp_path: Path) -> None:
+    # The production shape. Both resolved directories live in the primary
+    # repository, which is outside every worker ceiling, so the check adds no
+    # refusal here. Without this case the containment rule below could be
+    # satisfied by refusing everything.
+    _, worktree, branch = _linked_worktree(tmp_path)
+    store, _ = _seeded_store(
+        tmp_path / "state", write_paths=["src/*.py"], test_paths=[], branch=branch, repo=worktree
+    )
+
+    staged = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(worktree)}
+    )
+
+    assert staged.allowed is True
+    assert staged.action == "stage-in-scope-change"
+
+
+def test_a_git_write_is_refused_when_discovery_resolves_inside_the_locked_root(
+    tmp_path: Path,
+) -> None:
+    # Independent of the write-form refusal above: however the redirection was
+    # reached, a repository that lives inside the locked root is agent-writable
+    # storage standing in for the real one, and a Git write through it is what
+    # turns a file write into execution the contract never declared.
+    primary, worktree, branch = _linked_worktree(tmp_path)
+    store, _ = _seeded_store(
+        tmp_path / "state", write_paths=["**"], test_paths=[], branch=branch, repo=worktree
+    )
+    before = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(worktree)}
+    )
+    assert before.allowed is True
+
+    substitute = worktree / "vendor" / "substitute.git"
+    substitute.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(primary / ".git", substitute, ignore=shutil.ignore_patterns("worktrees"))
+    linked = substitute / "worktrees" / "w1"
+    linked.mkdir(parents=True)
+    for name in ("HEAD", "index"):
+        source = primary / ".git" / "worktrees" / worktree.name / name
+        if source.exists():
+            shutil.copy2(source, linked / name)
+    (linked / "commondir").write_text("../..\n", encoding="utf-8")
+    (linked / "gitdir").write_text(str(worktree / ".git") + "\n", encoding="utf-8")
+    (worktree / ".git").write_text(f"gitdir: {linked}\n", encoding="utf-8")
+
+    staged = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(worktree)}
+    )
+    committed = _admit(
+        store, "terminal", {"command": "git commit -m msg", "workdir": str(worktree)}
+    )
+
+    assert staged.allowed is False
+    assert staged.action == "git-discovery-redirected"
+    assert committed.allowed is False
+    assert committed.action == "git-discovery-redirected"
+    assert artifact_deny_counter(staged.action) == "denied_count"

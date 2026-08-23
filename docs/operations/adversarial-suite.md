@@ -73,6 +73,21 @@
 - **rename による統治ファイルの diff 隠蔽**（統治ファイルを非統治パスへ改名しつつ編集し、changed_files から旧パスを消す試み）
   - diff照合を `--no-renames` 化し旧パスを必ず diff に残す。`test_plugin_api.py::test_renaming_a_tracked_file_cannot_hide_the_old_path_from_the_diff`
 
+- **許可済み書込からのリポジトリ解決の乗っ取り**（第一層が許可した書込のみを使い、Git のリポジトリ解決先を agent 作成物へ向け替えて、許可済み Git 書込動作を任意実行の起点に変える経路。契約の第二層既定閉鎖・禁止項・第一層の書込上限が同時に無効化される）
+  - `integrations/hermes-scope-gate/tests/test_artifact_change_scope.py::test_the_widest_write_scope_still_refuses_gits_own_metadata` / `test_no_write_catalogue_tool_reaches_git_metadata` / `test_staging_refuses_gits_own_metadata` / `test_a_git_write_is_refused_when_discovery_resolves_inside_the_locked_root`（宣言の幅に依存しない carve-out と、書込形とは独立した解決先の封じ込め検査。`test_a_linked_worktree_is_admitted_by_the_discovery_check` が本番形の非拒否を固定）
+- **承認ゲート導出値の入力の乗っ取り**（ゲート側導出へ移した canonical Git 同一性の導出元を、worker 書込可能な保管場所へ差し替えて自己整合させる経路）
+  - `integrations/hermes-pda-approvals/tests/test_plugin_api.py::test_gate_derived_identity_refuses_a_workspace_that_carries_its_own_repository`（解決先が workspace 配下に入る構成を承認不可とし、identity を導出しない fail-closed を固定）
+- **カード宣言経由の書込上限の全域化**（AI が書くカード本文で上限の幅を決められる状態。設計 §3.2 が tenant 既定値を退けた理由と同じ盤面へ到達する経路）
+  - `integrations/hermes-scope-gate/tests/test_scope_seed_wiring.py::test_a_declaration_cannot_stand_in_for_the_whole_tree` / `test_the_same_limit_applies_to_declared_test_assets`（先頭ワイルドカードセグメントの機械的拒否。`test_an_anchored_pattern_of_any_depth_is_still_accepted` が通常形の非拒否を固定）
+- **Markdown 上の不活性領域を実効宣言に変える形**（図解として書かれたテキストが上限になる方向と、実宣言と図解の併記が曖昧として拒否される方向の両方）
+  - 同ファイル: `test_an_indented_example_is_not_a_live_declaration` / `test_a_declaration_shown_inside_an_example_block_is_inert` / `test_a_real_declaration_beside_a_worked_example_is_not_ambiguous` / `test_two_live_declarations_are_still_refused` / `test_the_documented_declaration_example_is_the_accepted_form`（正本手順の例が受理形であることを固定）
+- **強制スイッチの省略による fail-open**（強制の有無を決める引数を呼び出し側が省略でき、seed なしで割当が成功する形）
+  - 同ファイル: `test_the_flag_defaults_off_and_records_nothing`（既定値を廃し明示指定を必須化。省略は呼び出し時エラー）
+- **宣言不備1枚による割当queueの停止**（優先度先頭の不備カードが後続の適格カードを塞ぐ可用性の破れ。false deny ゼロ要求クラスの入口）
+  - `operations/improvement/tests/test_pda_improvement_cycle.py::test_an_undeclared_card_does_not_block_the_cards_behind_it` / `test_a_refusal_after_an_assignment_still_reports_the_assignment`
+- **seed 記録側と強制側の意味論の分離**（クラス既定・正規化の出所が別で、突き合わせが無い状態）
+  - `integrations/hermes-scope-gate/tests/test_scope_seed_wiring.py::test_the_class_default_matches_the_gate_that_enforces_it` / `test_the_router_reads_the_gate_the_installer_deploys`
+
 未カバー（後続で追加する）:
 
 - 検証者・review 専用主体による lifecycle 変更試行の網羅（検証者ステージの実装は M2）

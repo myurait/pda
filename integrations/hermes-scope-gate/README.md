@@ -190,6 +190,12 @@ against the installed Hermes runtime.
   at a worktree top level plus Git's own repository discovery from there; the workdir binding pins
   the working directory but does not by itself bound the arguments. `git status` arguments are
   bounded by Git's own pathspec resolution, matching the shared closeout implementation.
+- Because that discovery is a premise of the class's own guarantees, its storage is not a write
+  destination: a repository-relative path carrying a `.git` segment is refused for writes and for
+  staging whatever the declared write scope says, and a Git write is refused when the git-dir or
+  git-common-dir resolved from the locked root lands inside that root (the root's own `.git`
+  excepted, which is the ordinary-repository shape). The approval gate applies the same containment
+  to the workspace it derives the canonical Git identities from.
 - Commit admission inspects the command, not the index: content staged outside the gate still lands
   in the local commit. Push is denied, so this stays inside local history. Recorded as a first-layer
   residue in the design document.

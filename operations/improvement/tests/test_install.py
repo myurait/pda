@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -687,6 +688,32 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
         with pytest.raises(ValueError, match="branch"):
             _verify_approved_artifact(conn, task_id, marker)
         kanban_db.set_branch_name(conn, task_id, branch)
+
+        # Judgment A's derivation must not read storage the executing agent
+        # could have written. A repository standing in for the real one inside
+        # the workspace is exactly that, so finalization refuses it locally
+        # rather than relying on the ledger comparison that follows.
+        gitfile = workspace / ".git"
+        original_gitfile = gitfile.read_bytes()
+        substitute = workspace / "vendor" / "substitute.git"
+        substitute.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(
+            repo / ".git", substitute, ignore=shutil.ignore_patterns("worktrees")
+        )
+        linked = substitute / "worktrees" / "w1"
+        linked.mkdir(parents=True)
+        for name in ("HEAD", "index"):
+            source = repo / ".git" / "worktrees" / workspace.name / name
+            if source.exists():
+                shutil.copy2(source, linked / name)
+        (linked / "commondir").write_text("../..\n", encoding="utf-8")
+        (linked / "gitdir").write_text(str(gitfile) + "\n", encoding="utf-8")
+        gitfile.write_text(f"gitdir: {linked}\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="resolve inside the workspace"):
+            _verify_approved_artifact(conn, task_id, marker)
+        gitfile.write_bytes(original_gitfile)
+        shutil.rmtree(workspace / "vendor")
+
         relative_workspace = os.path.relpath(workspace, Path.cwd())
         kanban_db.set_workspace_path(conn, task_id, relative_workspace)
         with pytest.raises(ValueError, match="absolute"):

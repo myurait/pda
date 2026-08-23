@@ -536,8 +536,15 @@ def test_the_flag_defaults_off_and_records_nothing(tmp_path: Path) -> None:
         tmp_path, "目的: 宣言のないカード\n受入条件: X\n"
     )
     state = tmp_path / "scope.db"
-    # Default value of the keyword is the off position.
-    cycle._route_task(conn, kanban.task, worktree, branch, "default", repo=repo)
+    cycle._route_task(
+        conn,
+        kanban.task,
+        worktree,
+        branch,
+        "default",
+        repo=repo,
+        scope_seed_enabled=False,
+    )
     row = conn.execute("SELECT assignee FROM tasks").fetchone()
     assert row["assignee"] == "default"
     assert kanban.log[-1] == "notify"
@@ -551,3 +558,203 @@ def test_the_committed_policy_default_keeps_the_seed_path_off() -> None:
         )
     )
     assert policy["scope_seed"]["enabled"] is False
+
+
+# --------------------------------------------------------------------------
+# The ceiling on the ceiling, and which Markdown regions are live
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    ["**", "**/*", "*", "*/**", "*/src/*.py", " ** ", "**/*.py"],
+)
+def test_a_declaration_cannot_stand_in_for_the_whole_tree(pattern: str) -> None:
+    """The declared ceiling must name what it covers.
+
+    Design §3.2 declined a tenant-wide default because a broad ceiling makes
+    the seed path meaningless. A card body is written by a model, so without a
+    mechanical limit the same breadth is reachable through the declaration and
+    the only thing standing against it is prose in the reconciler prompt.
+    """
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.derive_seed_payload(
+            task_id="t1", body=_card_body(write_paths=[pattern])
+        )
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_the_same_limit_applies_to_declared_test_assets() -> None:
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.derive_seed_payload(
+            task_id="t1",
+            body=_card_body(write_paths=["src/*.py"], test_paths=["**"]),
+        )
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "src/**",
+        "src/*.py",
+        "operations/improvement/*.py",
+        "README.md",
+        "src*/**",
+        "*.py",
+    ],
+)
+def test_an_anchored_pattern_of_any_depth_is_still_accepted(pattern: str) -> None:
+    # The companion to the refusal above: the limit rejects one shape, not
+    # recursion, prefixes, or single-segment globs. A class that requires no
+    # false denial cannot afford a limit that narrows the ordinary forms.
+    payload = scope_seed.derive_seed_payload(
+        task_id="t1", body=_card_body(write_paths=[pattern])
+    )
+
+    assert payload["write_paths"] == [pattern]
+
+
+def _wrapped(inner: str) -> str:
+    return "目的: 直す\n\n" + inner + "\n受入条件: X\n"
+
+
+def test_an_indented_example_is_not_a_live_declaration() -> None:
+    """Four columns of indentation is literal text in Markdown.
+
+    Reading it as a declaration lets prose written for a human reader decide
+    the ceiling, which inverts the direction the field is supposed to work in.
+    """
+
+    body = _wrapped(
+        "    ```pda-scope\n"
+        '    {"write_paths": ["**"]}\n'
+        "    ```\n"
+    )
+
+    assert scope_seed.scope_declaration_blocks(body) == []
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.derive_seed_payload(task_id="t1", body=body)
+    assert excinfo.value.kind == "missing-scope-declaration"
+
+
+@pytest.mark.parametrize("outer", ["````", "~~~~"])
+def test_a_declaration_shown_inside_an_example_block_is_inert(outer: str) -> None:
+    body = _wrapped(
+        f"{outer}\n"
+        "```pda-scope\n"
+        '{"write_paths": ["**"]}\n'
+        "```\n"
+        f"{outer}\n"
+    )
+
+    assert scope_seed.scope_declaration_blocks(body) == []
+
+
+def test_a_real_declaration_beside_a_worked_example_is_not_ambiguous() -> None:
+    """The other direction of the same defect.
+
+    Documenting the form next to the real declaration used to make the card
+    look like it carried two ceilings, so the card was refused. Refusing a
+    correctly written card is the failure this field cannot have.
+    """
+
+    body = _wrapped(
+        "````\n"
+        "```pda-scope\n"
+        '{"write_paths": ["docs/**"]}\n'
+        "```\n"
+        "````\n\n"
+        "```pda-scope\n"
+        '{"write_paths": ["src/*.py"]}\n'
+        "```\n"
+    )
+
+    payload = scope_seed.derive_seed_payload(task_id="t1", body=body)
+
+    assert payload["write_paths"] == ["src/*.py"]
+
+
+def test_two_live_declarations_are_still_refused() -> None:
+    # The ambiguity refusal has to survive the inert-region handling.
+    body = _wrapped(
+        "```pda-scope\n"
+        '{"write_paths": ["docs/**"]}\n'
+        "```\n\n"
+        "```pda-scope\n"
+        '{"write_paths": ["src/*.py"]}\n'
+        "```\n"
+    )
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.derive_seed_payload(task_id="t1", body=body)
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+def test_the_documented_declaration_example_is_the_accepted_form() -> None:
+    """The operations runbook is the form a specifier copies.
+
+    An example that the parser does not recognise makes the runbook a source
+    of unroutable cards, which is the same outage as an undeclared card.
+    """
+
+    runbook = (REPO_ROOT / "docs" / "operations" / "pda-improvement-cycle.md").read_text(
+        encoding="utf-8"
+    )
+    marker = "````\n```" + scope_seed.SCOPE_BLOCK_INFO + "\n"
+    start = runbook.index(marker) + len("````\n")
+    end = runbook.index("````", start)
+    shown = runbook[start:end]
+
+    payload = scope_seed.derive_seed_payload(task_id="t1", body=shown)
+
+    assert payload["write_paths"]
+
+
+# --------------------------------------------------------------------------
+# Cross-implementation agreement
+# --------------------------------------------------------------------------
+
+
+def test_the_class_default_matches_the_gate_that_enforces_it(tmp_path: Path) -> None:
+    """Two independent literals, pinned equal.
+
+    The router decides "narrowing only" from its own copy of the class
+    default, and the gate decides what it will accept from its own. A drift
+    between them is either a card that cannot declare an action the gate
+    admits, or a declaration the router passes and the gate refuses at
+    assignment time.
+    """
+
+    repo, _, _ = _repo_with_worktree(tmp_path)
+    gate = scope_seed.load_scope_gate(repo)
+
+    assert tuple(scope_seed.CLASS_DEFAULT_GIT_WRITE) == tuple(
+        gate.ARTIFACT_GIT_WRITE_ACTIONS
+    )
+
+
+def test_the_router_reads_the_gate_the_installer_deploys() -> None:
+    """The seed writer and the enforcer must be the same implementation.
+
+    The installer publishes the gate as a symlink to this directory, so the
+    enforcing copy is this file. The router resolves its copy from the
+    repository root it was configured with. Pinning the two paths equal is
+    what makes the normalisation semantics behind a recorded ceiling and an
+    enforced ceiling the same semantics.
+    """
+
+    install = _load(
+        "scope_gate_install_under_test",
+        REPO_ROOT / "integrations" / "hermes-scope-gate" / "install.py",
+    )
+    installer_source = Path(install.__file__).resolve().parent
+    router_source = (
+        REPO_ROOT / "integrations" / "hermes-scope-gate" / "scope_gate.py"
+    ).resolve()
+
+    assert (installer_source / "scope_gate.py").resolve() == router_source

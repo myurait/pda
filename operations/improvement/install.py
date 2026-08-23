@@ -622,6 +622,18 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     ).resolve()
     if resolved_git_dir == resolved_common_dir:
         raise ValueError("approved workspace is not a linked worktree")
+    real_workspace = Path(os.path.realpath(workspace))
+    if any(
+        candidate == real_workspace or real_workspace in candidate.parents
+        for candidate in (resolved_git_dir, resolved_common_dir)
+    ):
+        # Stated locally rather than inferred from the ledger comparison below.
+        # A repository that resolves inside the workspace is inside the ceiling
+        # the task was granted, so the identities this re-derivation reads would
+        # be authored by the executing agent. The drift check would also catch a
+        # redirection introduced after approval, but not one that was already
+        # there, and this is the path that applies the change to shared state.
+        raise ValueError("approved workspace Git directories resolve inside the workspace")
     # Judgment A: the second point of the two-point drift check. The approval
     # gate derived these identities at approval time and wrote them to the
     # ledger row that `marker` is built from; this re-derivation at consume
