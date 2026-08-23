@@ -2693,10 +2693,11 @@ ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS = frozenset(
     }
 )
 
-# The write forms of subcommands whose refusal this class classifies, whether
-# it admits their read form or only recognizes it. Matching is exact or
-# `<marker>=<value>`, so a joined value is covered and a longer unrelated
-# option (`--output-indicator-new`) is not swept in with it.
+# The write and execution forms of subcommands whose refusal this class
+# classifies, whether it admits their read form or only recognizes it.
+# Matching covers the bare option, the joined value (`<marker>=<value>` and
+# `-X<value>`), and a value-taking short option packed onto the end of a
+# bundle; a longer unrelated option (`--output-indicator-new`) is not swept in.
 #
 # `git diff` is a read of the working tree that can nevertheless be told to
 # write its output to a file or to hand the comparison to an external
@@ -2707,15 +2708,89 @@ ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS = frozenset(
 # for them too even though their read form is not admitted at all.
 _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS = frozenset({"--output", "--ext-diff"})
 
+# The write boundary is not the only boundary a recognized read can name. A
+# network read can be told which program to run on the far side, and the
+# program is named by an argument rather than by the subcommand, so the
+# refusal is an attempt at the execution boundary. `--exec` is a synonym that
+# the installed Git accepts and actually hands the named program to the
+# transport (verified: it reaches a protocol error from the named program's
+# output). The single-dash spelling is rejected by the installed Git's parser
+# and is declared only so a parser that accepts it cannot reopen the lane --
+# over-declaring a marker moves an already-denied call onto the ceiling, which
+# is the conservative direction.
+_ARTIFACT_GIT_UPLOAD_PACK_EXEC_MARKERS = frozenset({"--upload-pack", "--exec", "-u"})
+
 # Subcommands that take the diff family's options, and therefore have a write
 # form regardless of whether this class admits their read form.
 ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS = frozenset(
     {"diff", "log", "show", "blame", "shortlog"}
 )
 
+# Total over the recognized set: every subcommand this class classifies has an
+# entry, and an empty entry is an explicit statement that the member was
+# audited and carries no write or execution form of its own. A member with no
+# entry at all is what let an execution-boundary option stay in the exempt
+# lane while the closed-set invariant was still green, so the invariant
+# requires this table to be total rather than merely a subset.
 ARTIFACT_GIT_WRITE_FORM_MARKERS: dict[str, frozenset[str]] = {
-    subcommand: _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS
-    for subcommand in sorted(ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS)
+    # Admitted read subset.
+    "status": frozenset(),
+    "diff": _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS,
+    "rev-parse": frozenset(),
+    # `branch` carries its write forms under the same subcommand name, so they
+    # are excluded by the read-form allowlist below rather than by markers.
+    "branch": frozenset(),
+    # Recognized but unadmitted.
+    "log": _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS,
+    "show": _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS,
+    "blame": _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS,
+    "shortlog": _ARTIFACT_GIT_DIFF_FAMILY_WRITE_MARKERS,
+    "describe": frozenset(),
+    "ls-files": frozenset(),
+    "ls-remote": _ARTIFACT_GIT_UPLOAD_PACK_EXEC_MARKERS,
+    "merge-base": frozenset(),
+}
+
+# Option spellings whose *value* names a filesystem path that Git opens, per
+# subcommand. Only these options make the value inside a token a path
+# candidate: the value of an option that takes a search pattern, a format
+# string, a display prefix, or a line range is not a path, and treating every
+# joined value as one moves pure reads onto the deny ceiling and strands the
+# turn on the sixth such read.
+#
+# The table is per subcommand because the same spelling means different things
+# in different members: the short option below that names a revision file for
+# line attribution is a pickaxe *string* in the history family, where a value
+# that looks like a path is an ordinary search for that string in the history.
+#
+# Every spelling here was checked against the installed Git by confirming the
+# invocation reaches the file open (an absolute value produces a read failure
+# naming that path) rather than being rejected during option parsing. The
+# output option is absent on purpose: it writes rather than reads, so it is a
+# write marker above and is classified before this table is consulted.
+_ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS = frozenset(
+    {"-O", "--relative", "--skip-to", "--rotate-to"}
+)
+
+ARTIFACT_GIT_PATH_OPTIONS: dict[str, frozenset[str]] = {
+    # Admitted read subset.
+    "status": frozenset(),
+    "diff": _ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS,
+    "rev-parse": frozenset({"--git-path", "--resolve-git-dir"}),
+    "branch": frozenset(),
+    # Recognized but unadmitted.
+    "log": _ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS,
+    "show": _ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS,
+    # Line attribution reads three files of its own on top of the diff
+    # family's options.
+    "blame": _ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS
+    | {"-S", "--contents", "--ignore-revs-file"},
+    "shortlog": _ARTIFACT_GIT_DIFF_FAMILY_PATH_OPTIONS,
+    "describe": frozenset(),
+    "ls-files": frozenset({"-X", "--exclude-from", "--exclude-per-directory"}),
+    # The far-side program is an execution form, declared as a marker above.
+    "ls-remote": frozenset(),
+    "merge-base": frozenset(),
 }
 
 # Read-form argument allowlist for an admitted subcommand that doubles as a
@@ -2998,26 +3073,69 @@ def _artifact_commit_verdict(tail: list[str]) -> tuple[bool, str, str]:
     return (True, "", "")
 
 
-def _git_token_path_candidates(token: str) -> tuple[str, ...]:
+def _git_token_invokes_option(
+    token: str, options: frozenset[str]
+) -> tuple[bool, str]:
+    """Does one Git argument token invoke one of `options`, and with what value?
+
+    Git's parse-options accepts three spellings for a value-taking option, and
+    a rule that reads only one of them leaves the others unclassified: the
+    bare option with its value in the next token, the joined value
+    (`--opt=<value>` or `-X<value>`), and a short option packed onto the end
+    of a bundle of valueless flags (`-abX<value>`), where the value does not
+    start at the third character.
+
+    The returned value is the inline one only. A value carried in the next
+    token needs no extraction: that token stands on its own and is examined on
+    its own.
+
+    The bundle scan stops at the first character that cannot be a flag letter,
+    so a letter appearing inside some other option's value cannot be mistaken
+    for a bundled option -- the false-deny direction of this widening.
+    """
+
+    if not token.startswith("-") or token in {"-", "--"}:
+        return (False, "")
+    name, separator, joined = token.partition("=")
+    if name in options:
+        return (True, joined if separator else "")
+    if token.startswith("--"):
+        return (False, "")
+    short = {option[1] for option in options if len(option) == 2}
+    if not short:
+        return (False, "")
+    for index in range(1, len(token)):
+        character = token[index]
+        if character in short:
+            return (True, token[index + 1 :])
+        if not character.isalnum():
+            break
+    return (False, "")
+
+
+def _git_token_path_candidates(subcommand: str, token: str) -> tuple[str, ...]:
     """The substrings of one Git argument token that could name a path.
 
-    A path is not always the whole token. An option can carry it as a joined
-    value (`--opt=<path>`) or packed onto a single-dash flag (`-X<path>`), and
-    an option that reads a file from an absolute path reaches outside the root
-    whatever the option itself is called.
+    A path is not always the whole token: an option can carry it as a joined
+    value or packed onto a single-dash flag. Which options do so is a property
+    of the option, not of the token's shape, so the value inside a token
+    becomes a candidate only for the options declared as taking a path. The
+    earlier shape-only rule -- treat every joined or bundled value as a path
+    candidate -- read a search pattern, a format string, a display prefix, and
+    a line range as boundary deviations, which put pure reads on the deny
+    ceiling and stranded the turn on the sixth one.
     """
 
     if not token.startswith("-"):
         return (token,)
-    _, separator, value = token.partition("=")
-    if separator and value:
+    options = ARTIFACT_GIT_PATH_OPTIONS.get(subcommand, frozenset())
+    matched, value = _git_token_invokes_option(token, options)
+    if matched and value:
         return (token, value)
-    if not token.startswith("--") and len(token) > 2:
-        return (token, token[2:])
     return (token,)
 
 
-def _git_token_reaches_outside(token: str) -> bool:
+def _git_token_reaches_outside(subcommand: str, token: str) -> bool:
     """Does one Git argument token name a path outside the locked root?
 
     Segment-based on purpose. A revision range carries `..` as an operator
@@ -3026,7 +3144,7 @@ def _git_token_reaches_outside(token: str) -> bool:
     classification exists to remove.
     """
 
-    for candidate in _git_token_path_candidates(token):
+    for candidate in _git_token_path_candidates(subcommand, token):
         path = Path(candidate)
         if path.is_absolute() or ".." in path.parts:
             return True
@@ -3034,9 +3152,15 @@ def _git_token_reaches_outside(token: str) -> bool:
 
 
 def _git_token_matches_marker(token: str, markers: frozenset[str]) -> bool:
-    return any(
-        token == marker or token.startswith(f"{marker}=") for marker in markers
-    )
+    """Does one token invoke a declared write or execution form?
+
+    Whether the marker's value is joined, separated, or packed onto a bundle
+    does not change that the form was named, so the same spelling rule the
+    path options use applies here.
+    """
+
+    matched, _ = _git_token_invokes_option(token, markers)
+    return matched
 
 
 def _artifact_git_deviation_action(subcommand: str, tail: list[str]) -> str | None:
@@ -3058,7 +3182,7 @@ def _artifact_git_deviation_action(subcommand: str, tail: list[str]) -> str | No
     if markers and any(_git_token_matches_marker(token, markers) for token in tail):
         return "git-write-form"
     for token in tail:
-        if _git_token_reaches_outside(token):
+        if _git_token_reaches_outside(subcommand, token):
             return "git-read-unsafe"
     read_forms = ARTIFACT_GIT_READ_FORM_FLAGS.get(subcommand)
     if read_forms is not None and any(token not in read_forms for token in tail):

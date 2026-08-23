@@ -32,6 +32,7 @@ from plugin_runtime import (
 from scope_gate import (
     ARTIFACT_CHANGE_CLASS_BUDGET,
     ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS,
+    ARTIFACT_GIT_PATH_OPTIONS,
     ARTIFACT_GIT_READ_FORM_FLAGS,
     ARTIFACT_GIT_READ_SUBCOMMANDS,
     ARTIFACT_GIT_READ_UNADMITTED,
@@ -2628,15 +2629,35 @@ def test_the_read_only_git_subset_is_a_closed_set() -> None:
     # the refusal is classified at all: the admitted subset or the recognized
     # unadmitted set. A marker declared for anything else is dead.
     recognized = ARTIFACT_GIT_READ_SUBCOMMANDS | ARTIFACT_GIT_READ_UNADMITTED
-    assert set(ARTIFACT_GIT_WRITE_FORM_MARKERS) <= recognized
+    # Both declaration tables are TOTAL over the recognized set, not merely
+    # contained in it. A member with no entry at all is the silence that let a
+    # member naming an external program to run stay in the exempt lane while
+    # this invariant was green: the obligation was written as a list of the one
+    # family that had been audited, so a family nobody had looked at could not
+    # fail it. Totality moves the obligation from "the families we listed" to
+    # "every family", and an empty entry is the explicit statement that the
+    # member was audited and has nothing to declare.
+    assert set(ARTIFACT_GIT_WRITE_FORM_MARKERS) == recognized
+    assert set(ARTIFACT_GIT_PATH_OPTIONS) == recognized
     # Membership in the unadmitted set is not the exemption. Every member that
     # takes the diff family's options can be told to write a file, so it has
     # to carry markers -- otherwise naming it here would exempt its write form
     # from the ceiling, which is the error this classification removed once at
     # the subcommand level and would otherwise re-open at the argument level.
     for subcommand in sorted(ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS):
-        assert subcommand in ARTIFACT_GIT_WRITE_FORM_MARKERS, subcommand
+        assert ARTIFACT_GIT_WRITE_FORM_MARKERS[subcommand], subcommand
+        assert ARTIFACT_GIT_PATH_OPTIONS[subcommand], subcommand
     assert ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS & ARTIFACT_GIT_READ_UNADMITTED
+    # The write boundary is not the only one an argument can name. A network
+    # read that takes the far-side program as an argument reaches the execution
+    # boundary, so its declaration is what keeps that probe on the ceiling.
+    for subcommand in sorted(recognized):
+        if subcommand.startswith("ls-remote"):
+            assert ARTIFACT_GIT_WRITE_FORM_MARKERS[subcommand], subcommand
+    # Non-vacuity for the totality asserts above: a table of nothing but empty
+    # entries would satisfy them while declaring nothing.
+    assert any(ARTIFACT_GIT_WRITE_FORM_MARKERS.values())
+    assert any(ARTIFACT_GIT_PATH_OPTIONS.values())
 
 
 @pytest.mark.parametrize(
@@ -2834,6 +2855,194 @@ def test_a_joined_value_without_a_path_stays_exempt(
 
     assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
     assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    "tail",
+    [
+        # The program to run on the far side is named by an argument, so an
+        # absolute program path is not the only spelling that reaches the
+        # execution boundary. A bare program name left to PATH resolution
+        # carries no path for the boundary check to see, which is how this
+        # family stayed exempt while the diff family's output form did not.
+        ["--upload-pack=/bin/echo", "origin"],
+        ["--upload-pack=echo", "origin"],
+        ["--upload-pack", "echo", "origin"],
+        ["--exec=echo", "origin"],
+        ["-uecho", "origin"],
+        ["-u", "echo", "origin"],
+        ["-quecho", "origin"],
+    ],
+)
+def test_an_execution_form_under_a_recognized_read_name_is_never_exempt(
+    tail: list[str],
+) -> None:
+    # Same structure as the write-form closure, one boundary over. Recognizing
+    # a subcommand as read-only exempts it from the ceiling, so a member that
+    # can name a program to run has to be classified by its whole invocation
+    # or the execution boundary becomes probeable against the far larger tool
+    # budget instead of the deny ceiling.
+    action = artifact_git_unadmitted_refusal_action("ls-remote", tail)
+
+    assert action not in ARTIFACT_READ_REFUSAL_ACTIONS, (tail, action)
+    assert artifact_deny_counter(action) == "denied_count", tail
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        # A value-taking short option may sit at the end of a bundle of
+        # valueless flags, so the value does not have to start at the third
+        # character. Reading only the third character onward left every
+        # bundled spelling unclassified.
+        ("diff", ["-pO/etc/passwd"]),
+        ("log", ["-pO/etc/passwd"]),
+        ("log", ["-pO../outside"]),
+        ("show", ["-pO/etc/passwd"]),
+        ("blame", ["-pO/etc/passwd", "src/app.py"]),
+        ("blame", ["-lS/etc/passwd", "src/app.py"]),
+        ("ls-files", ["-cX/etc/passwd"]),
+    ],
+)
+def test_a_path_packed_onto_a_flag_bundle_is_not_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
+        action = artifact_git_read_refusal_action(subcommand, tail)
+    else:
+        action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    assert action == "git-read-unsafe", (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+
+
+@pytest.mark.parametrize(
+    ("subcommand", "tail"),
+    [
+        # The false-deny side of looking inside a token, in the region the
+        # earlier guard never visited: values that DO carry path separators
+        # and are nevertheless not paths. Reading the value without reading
+        # the option name put each of these on the deny ceiling, where six of
+        # them stranded the turn.
+        ("log", ["--grep=/etc/passwd"]),
+        ("log", ["--grep=../old-api"]),
+        ("log", ["--author=../x"]),
+        ("log", ["--committer=/root"]),
+        ("log", ["--format=/%H"]),
+        ("log", ["--pretty=format:/%h %s"]),
+        ("diff", ["--src-prefix=/a/"]),
+        ("diff", ["--dst-prefix=../b/"]),
+        ("diff", ["--line-prefix=/x"]),
+        # Pickaxe: a search for a path-shaped string in the history is a read
+        # of the history, not a read of that path.
+        ("log", ["-S/usr/bin/env"]),
+        ("log", ["-G/api/v1"]),
+        ("log", ["-S../old/path"]),
+        # Line attribution given its range as a regular expression. The
+        # separators belong to the regex delimiters, and this is a common form
+        # of both members that accept it.
+        ("blame", ["-L/^def main/,+20", "src/app.py"]),
+        ("log", ["-L/^def main/,+20:src/app.py"]),
+    ],
+)
+def test_a_value_that_only_looks_like_a_path_stays_exempt(
+    subcommand: str, tail: list[str]
+) -> None:
+    if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
+        action = artifact_git_read_refusal_action(subcommand, tail)
+    else:
+        action = artifact_git_unadmitted_refusal_action(subcommand, tail)
+
+    assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
+
+
+def test_a_path_option_is_declared_per_subcommand_not_by_spelling() -> None:
+    # The same short spelling is a revision *file* for line attribution and a
+    # pickaxe *string* for the history family. A single table keyed by
+    # spelling alone has to be wrong in one direction or the other: either the
+    # file read stays exempt, or an ordinary history search lands on the
+    # ceiling and strands the turn.
+    packed = "-S/etc/passwd"
+
+    assert artifact_git_unadmitted_refusal_action("blame", [packed]) == (
+        "git-read-unsafe"
+    )
+    assert artifact_git_unadmitted_refusal_action("log", [packed]) == (
+        "git-read-unadmitted"
+    )
+    assert "-S" in ARTIFACT_GIT_PATH_OPTIONS["blame"]
+    assert "-S" not in ARTIFACT_GIT_PATH_OPTIONS["log"]
+
+
+def test_a_read_whose_value_looks_like_a_path_does_not_strand_the_turn(
+    tmp_path: Path,
+) -> None:
+    # End to end, the false-deny side. The stranding this reverses is the same
+    # failure mode the ceiling rule was rewritten to remove: repeating a pure
+    # read past the ceiling must leave the deny count at zero and the turn
+    # able to keep working.
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for index in range(ceiling + 2):
+        refused = _admit(
+            store,
+            "terminal",
+            {"command": "git log --grep=../old-api -1", "workdir": str(repo)},
+            call_id=f"looks-like-path-{index}",
+        )
+        assert refused.allowed is False, index
+        assert refused.action == "git-read-unadmitted", index
+
+    still_working = _admit(
+        store, "write_file", {"path": "src/app.py", "content": "fixed"}
+    )
+    reading = _admit(
+        store, "terminal", {"command": "git status --short", "workdir": str(repo)}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert still_working.allowed is True
+    assert still_working.action == "write-in-scope-change"
+    assert reading.allowed is True
+    assert turn is not None
+    assert turn["denied_count"] == 0
+
+
+@pytest.mark.parametrize(
+    ("command", "action"),
+    [
+        # Both newly classified boundaries, end to end: repeating either has
+        # to spend the ceiling rather than the tool budget.
+        ("git ls-remote --upload-pack=echo origin", "git-write-form"),
+        ("git log -pO/etc/passwd", "git-read-unsafe"),
+    ],
+)
+def test_probing_a_newly_classified_boundary_exhausts_the_ceiling(
+    tmp_path: Path, command: str, action: str
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for index in range(ceiling):
+        refused = _admit(
+            store,
+            "terminal",
+            {"command": command, "workdir": str(repo)},
+            call_id=f"boundary-{index}",
+        )
+        assert refused.allowed is False, index
+        assert refused.action == action, index
+
+    turn = store.get_turn("turn-change")
+    assert turn is not None
+    assert turn["denied_count"] == ceiling
+    exhausted = _admit(
+        store, "terminal", {"command": command, "workdir": str(repo)}
+    )
+
+    assert exhausted.action == "deny-budget"
 
 
 def test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling(

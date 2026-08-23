@@ -59,6 +59,12 @@
   - 同ファイル: `test_a_write_form_under_a_recognized_read_name_is_never_exempt` / `test_a_pure_read_of_a_recognized_read_name_stays_exempt` / `test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling` / `test_a_recognized_read_still_does_not_strand_the_required_flow` / `test_the_read_only_git_subset_is_a_closed_set`
 - **トークン内部に運ばれた境界外パス**（パスをトークン全体ではなく結合値やフラグに詰めた形で運び、境界外判定を素通りして免除側へ落ちる。逆側として、パスを含まない結合値・束ね形が計上側へ誤って落ちる false deny も対象）
   - 同ファイル: `test_a_path_inside_a_joined_option_value_is_not_exempt` / `test_a_joined_value_without_a_path_stays_exempt`
+- **束ねたフラグの末尾に置いた値取り形**（値の開始位置を固定位置と仮定した境界外判定を、値のない短縮フラグを前置することで素通りする）
+  - 同ファイル: `test_a_path_packed_onto_a_flag_bundle_is_not_exempt` / `test_probing_a_newly_classified_boundary_exhausts_the_ceiling`
+- **値の意味を見ない一律のパス候補化による座礁**（値がパスに見えるだけの純粋な読み取り＝検索パターン・書式文字列・表示接頭辞・行範囲の正規表現が計上側へ落ち、上限回数でターンが座礁する false deny。免除側の固定を「値にパス区切りを含まない形」だけで行うと回帰の住む区画を通らない）
+  - 同ファイル: `test_a_value_that_only_looks_like_a_path_stays_exempt` / `test_a_path_option_is_declared_per_subcommand_not_by_spelling` / `test_a_read_whose_value_looks_like_a_path_does_not_strand_the_turn`
+- **認識集合における宣言義務の欠落**（書込境界以外の境界＝実行境界を引数で名指す member が宣言されずに免除側へ残る。宣言義務を「既に監査した族の列挙」として書くと、監査されていない族は不変条件が緑でも原理的に検出されない）
+  - 同ファイル: `test_an_execution_form_under_a_recognized_read_name_is_never_exempt` / `test_the_read_only_git_subset_is_a_closed_set`（宣言表が認識集合上で全域であることと非空虚性を固定）
 - **受入項目の縮小による整合の空振り**（受入項目を必須手順ではなく実装の許可範囲へ合わせて書き、免除される形のみを固定する）
   - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`（承認 metadata 収集手順を列に含む）/ `test_replay_the_worker_flow_survives_one_refused_read`（未 admit subcommand と admit 済み subcommand の allowlist 外引数形の両類型）
 - **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、必須手順の拒否件数が上限を超えても非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜18）
