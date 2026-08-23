@@ -43,6 +43,13 @@
       "minLength": 1,
       "maxLength": 1000
     },
+    "origin": {
+      "description": "Where the contract's authority came from. 'assignment' contracts are injected outside the executing agent; 'self' contracts were declared by the executor and are a weaker audit guarantee.",
+      "enum": [
+        "assignment",
+        "self"
+      ]
+    },
     "targets": {
       "type": "object",
       "additionalProperties": false,
@@ -69,6 +76,42 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 512
+          }
+        },
+        "write_paths": {
+          "description": "Closed set of repository-relative glob patterns this turn may write. '*' never crosses a path segment; '**' is the recursive form.",
+          "allOf": [
+            {
+              "$ref": "#/$defs/scopePatterns"
+            },
+            {
+              "minItems": 1
+            }
+          ]
+        },
+        "test_paths": {
+          "description": "Closed set of repository-relative glob patterns for test assets. Omitted or empty means no test asset may be written.",
+          "$ref": "#/$defs/scopePatterns"
+        }
+      }
+    },
+    "execution": {
+      "description": "Second-layer opt-in. Only verification template ids are carried; the id to inspection-rule mapping lives in the gate's closed registry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "templates"
+      ],
+      "properties": {
+        "templates": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "focused-test",
+              "syntax-check"
+            ]
           }
         }
       }
@@ -209,14 +252,31 @@
         ]
       },
       "then": {
+        "required": [
+          "budget"
+        ],
         "properties": {
           "budget": {
+            "required": [
+              "max_wall_seconds",
+              "max_tool_calls",
+              "max_expansions"
+            ],
             "properties": {
-              "minutes": {
-                "maximum": 20
+              "max_wall_seconds": {
+                "maximum": 1200
               },
-              "tool_calls": {
+              "max_tool_calls": {
                 "maximum": 32
+              },
+              "max_expansions": {
+                "maximum": 1
+              },
+              "background_processes": {
+                "const": 0
+              },
+              "subagents": {
+                "const": 0
               }
             }
           }
@@ -235,14 +295,39 @@
         ]
       },
       "then": {
+        "required": [
+          "budget",
+          "targets",
+          "execution",
+          "origin"
+        ],
         "properties": {
+          "targets": {
+            "required": [
+              "write_paths"
+            ]
+          },
           "budget": {
+            "required": [
+              "max_wall_seconds",
+              "max_tool_calls",
+              "max_expansions"
+            ],
             "properties": {
-              "minutes": {
-                "maximum": 60
+              "max_wall_seconds": {
+                "maximum": 3600
               },
-              "tool_calls": {
+              "max_tool_calls": {
                 "maximum": 96
+              },
+              "max_expansions": {
+                "maximum": 2
+              },
+              "background_processes": {
+                "const": 0
+              },
+              "subagents": {
+                "const": 0
               }
             }
           }
@@ -269,6 +354,23 @@
         "maxLength": 4096
       },
       "uniqueItems": true
+    },
+    "scopePattern": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)[A-Za-z0-9._*?/\\[\\]-]+$",
+      "not": {
+        "pattern": "(?:^|/)\\.\\.(?:/|$)"
+      }
+    },
+    "scopePatterns": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/scopePattern"
+      }
     }
   }
 }

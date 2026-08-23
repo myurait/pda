@@ -37,9 +37,33 @@ _SCOPE_GATE_SCHEMA = {
                     "repositories": {"type": "array", "items": {"type": "string"}},
                     "worktrees": {"type": "array", "items": {"type": "string"}},
                     "branches": {"type": "array", "items": {"type": "string"}},
+                    "write_paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "artifact-change only: repository-relative glob patterns this turn may "
+                            "write. '*' stays inside one path segment; '**' is the recursive form."
+                        ),
+                    },
+                    "test_paths": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": (
+                            "artifact-change only: repository-relative glob patterns for test "
+                            "assets. Omitted means no test asset may be written."
+                        ),
+                    },
                 },
-                "required": ["repositories", "worktrees", "branches"],
+                "required": ["worktrees"],
                 "additionalProperties": False,
+            },
+            "execution": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["focused-test", "syntax-check"]},
+                "description": (
+                    "artifact-change only: verification templates this turn may actually run. "
+                    "Omitted means no execution-bearing verification is admitted."
+                ),
             },
             "status": {
                 "type": "string",

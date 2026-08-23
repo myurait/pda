@@ -19,6 +19,14 @@
   - `operations/improvement/tests/test_install.py::test_activation_is_refused_while_the_committed_policy_is_suspended`
 - **スコープ外 action の expansion 迂回**（審査なしの拡張、予算超過、審査者不在時の fail-open）
   - `integrations/hermes-scope-gate/tests/test_scope_gate.py` の G3 テスト群（zero-budget deny / fail-closed / one-use / TTL / 予算超過）
+- **write 境界の逸脱**（lock 未了での変異、割当契約を超える自己 lock、lock 後の対象・write scope 追加、契約検証失敗時の変異、閉じたターンでの変異、契約へバインドできない呼び出しでの変異）
+  - `integrations/hermes-scope-gate/tests/test_artifact_change_scope.py`（R-04 / R-06 / R-14 系。契約ライフサイクル節のテスト群）
+- **write 境界の照合すり抜け**（glob の区切り扱い、照合基準の不定、書込先の実体解決、書込先フィールドの取りこぼし、一括ステージ、履歴書換と検証フック迂回）
+  - 同ファイルの path foundation / ツールカタログ / 第一層テスト群（R-08 / R-09 / R-10 / R-11 / R-03 系）
+- **検証実行を介した境界の無効化**（opt-in なしの実行、許可コマンドの引数検査すり抜け、対象範囲の拡大）
+  - 同ファイルの第二層テスト群（R-01 / R-02 / R-07 系）。プロセス副作用は第一層の保証対象外であり、隔離実行と収集経路の静的検査は M2 の必須要件として未実装
+- **強制層の回帰**（closeout 専用ガードの弱化）
+  - `integrations/hermes-scope-gate/tests/test_closeout_guards.py`
 - **worker による統治ファイル変更の finalization 拒否**（ADR D3。憲章・ADR・ロードマップ決定・ゲート/承認/ガード実装・停止policyへ触れる approval contract の機械拒否）
   - `operations/improvement/tests/test_install.py::test_worker_finalization_touching_governance_paths_is_refused` ほか、`integrations/hermes-pda-approvals/tests/test_plugin_api.py::test_governance_path_changes_are_not_approvable`（plugin/installer の統治パス一覧の一致テストを含む）
 - **実装者の自己承認**（検証者なし・自己検証・検証対象の差し替え・task assigneeへのなりすまし）

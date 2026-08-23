@@ -10,9 +10,9 @@ from pathlib import Path
 from typing import Any
 
 try:  # Hermes loads the plugin as a namespaced package.
-    from .scope_gate import GateStore, default_state_path
+    from .scope_gate import ARTIFACT_ENFORCED_STATES, GateStore, default_state_path
 except ImportError:  # Direct unit-test/script import fallback.
-    from scope_gate import GateStore, default_state_path
+    from scope_gate import ARTIFACT_ENFORCED_STATES, GateStore, default_state_path
 
 
 _CLOSEOUT_CONTEXT = """PDA scope contract: repository-closeout (hard enforced).
@@ -25,6 +25,17 @@ smallest diff/integrity check, stage only explicit inspected paths, requested co
 inspect other branches/worktrees,
 delegate, use execute_code/background work, deploy, restart, or wait on unrelated work.
 Call scope_gate action=complete once the requested closeout predicate is established or blocked."""
+
+_ARTIFACT_CHANGE_CONTEXT = """PDA scope contract: artifact-change (hard enforced for this turn).
+Write permission and execution permission are separate contract layers. Before any mutation the
+turn must be locked: either the assignment already locked it, or you call `scope_gate` with
+action=lock, one absolute worktree, and the write scope you need (`write_paths`, plus `test_paths`
+for test assets and `execution` template ids only if verification must actually run). A lock can
+only narrow an assigned scope, never widen it, and the target and write scope cannot be extended
+afterwards. Once locked you may write inside the locked scope, stage explicitly named in-scope
+paths, and make one local commit with an explicit message. Pushing, history rewriting, bypassing
+verification hooks, broad test runs, delegation, background work, and any write outside the scope
+are denied. Call scope_gate action=complete when the change is done or blocked."""
 
 
 class ScopeGatePluginRuntime:
@@ -47,9 +58,23 @@ class ScopeGatePluginRuntime:
             task_id=str(kwargs.get("task_id") or ""),
             user_message=str(kwargs.get("user_message") or ""),
         )
-        if intent.task_class != "repository-closeout":
-            return None
-        return {"context": _CLOSEOUT_CONTEXT}
+        if intent.task_class == "repository-closeout":
+            return {"context": _CLOSEOUT_CONTEXT}
+        if intent.task_class == "artifact-change":
+            turn = self.store.get_turn(turn_id)
+            if turn is not None and str(turn["state"]) in ARTIFACT_ENFORCED_STATES:
+                return {"context": _ARTIFACT_CHANGE_CONTEXT}
+        return None
+
+    def record_contract_seed(self, **kwargs: Any) -> dict[str, Any]:
+        """Assignment-side seed recording.
+
+        Exposed on the runtime for the orchestrator's dispatch path only. It
+        is intentionally absent from the `scope_gate` tool surface so the
+        executing agent cannot seed or widen its own contract.
+        """
+
+        return self.store.record_contract_seed(**kwargs)
 
     def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
         turn_id = self.store.resolve_turn_id(
@@ -58,7 +83,17 @@ class ScopeGatePluginRuntime:
             session_id=str(kwargs.get("session_id") or ""),
         )
         if not turn_id:
-            return None
+            unbound = self.store.admit_without_turn(
+                task_id=str(kwargs.get("task_id") or ""),
+                session_id=str(kwargs.get("session_id") or ""),
+                tool_name=str(kwargs.get("tool_name") or ""),
+            )
+            if unbound.allowed:
+                return None
+            return {
+                "action": "block",
+                "message": f"PDA scope gate [{unbound.action}]: {unbound.reason}",
+            }
         raw_args = kwargs.get("args")
         args = raw_args if isinstance(raw_args, dict) else {}
         decision = self.store.admit_tool(
@@ -91,7 +126,16 @@ class ScopeGatePluginRuntime:
                 session_id=str(kwargs.get("session_id") or ""),
             )
             if not turn_id:
-                return next_call(args)
+                unbound = self.store.admit_without_turn(
+                    task_id=str(kwargs.get("task_id") or ""),
+                    session_id=str(kwargs.get("session_id") or ""),
+                    tool_name=tool_name,
+                )
+                if unbound.allowed:
+                    return next_call(args)
+                return {
+                    "error": f"PDA scope gate [{unbound.action}]: {unbound.reason}"
+                }
             decision = self.store.admit_tool(
                 turn_id=turn_id,
                 tool_call_id=str(kwargs.get("tool_call_id") or ""),
@@ -127,9 +171,12 @@ class ScopeGatePluginRuntime:
                     raise ValueError("lock requires targets")
                 contract = self.store.lock_turn(
                     turn_id=turn_id,
-                    repositories=_string_list(targets.get("repositories")),
+                    repositories=_optional_string_list(targets.get("repositories")),
                     worktrees=_string_list(targets.get("worktrees")),
-                    branches=_string_list(targets.get("branches")),
+                    branches=_optional_string_list(targets.get("branches")),
+                    write_paths=_optional_string_list(targets.get("write_paths")),
+                    test_paths=_optional_string_list(targets.get("test_paths")),
+                    execution=_optional_string_list(params.get("execution")),
                 )
                 return {"ok": True, "contract": contract}
             if action == "review":
@@ -217,6 +264,16 @@ class ScopeGatePluginRuntime:
             turn = self.store.get_turn(turn_id)
             if turn is None or turn["completion_status"] is not None:
                 return
+            if (
+                str(turn["task_class"]) == "artifact-change"
+                and str(turn["state"]) in ARTIFACT_ENFORCED_STATES
+            ):
+                # Closure of an enforced artifact-change turn is explicit
+                # only. This hook can fire per LLM call rather than per user
+                # turn, so closing here would strand a multi-step contract
+                # with every later mutation denied as "closed". Closeout keeps
+                # its existing S1 behaviour.
+                return
             status = "partial" if turn["task_class"] == "repository-closeout" else "success"
             self.store.complete_turn(turn_id=turn_id, status=status)
 
@@ -250,6 +307,12 @@ def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         raise ValueError("target fields must be arrays of strings")
     return value
+
+
+def _optional_string_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    return _string_list(value)
 
 
 def json_result(value: dict[str, Any]) -> str:

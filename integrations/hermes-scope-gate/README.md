@@ -3,9 +3,11 @@
 This directory is the canonical source for the PDA task-scope admission gate described in
 `docs/design/task-scope-admission-gate.md`.
 
-Rollout state: S0 + S1. `repository-closeout` turns are hard-enforced. Other task classes are
-recorded as audit-only so implementation and operational work are not accidentally blocked during
-the pilot.
+Rollout state: S0 + S1, plus the S3-M1 deterministic core for `artifact-change`.
+`repository-closeout` turns are hard-enforced. `artifact-change` enforcement is entered per turn:
+an assignment contract seed locks the turn before its first tool call, or the executor locks the
+turn itself. A turn with neither stays audit-only, so no lane is switched on by this change.
+`bounded-operation` and the remaining classes are still recorded as audit-only.
 
 ## What is enforced
 
@@ -29,6 +31,39 @@ tool calls.
 Successful completion is not accepted from pre-tool intent alone: the post-tool hook must record a
 successful requested commit/push and, after a push, a later ref verification. Failed terminal exit
 codes do not become completion evidence.
+
+For an enforced `artifact-change` turn, write permission and execution permission are separate
+contract layers.
+
+- First layer (hard, deterministic): known read/search/list tools are admitted with an audit record.
+  Write destinations are identified from an explicit tool-name-to-fields catalogue, so an unlisted
+  tool is treated as a mutation and a listed tool carrying none of its declared destination fields
+  is denied. Every destination is resolved through one normalizer (resolve to absolute, relativize
+  to the single locked worktree root, deny anything outside it, then match the repository-relative
+  globs), the nearest existing ancestor is entity-resolved so the real destination cannot leave the
+  worktree, and `*` never crosses a path segment (`**` is the recursive form). Staging is limited to
+  explicitly named paths that are themselves inside the write scope — bulk, wildcard, and
+  pathspec-magic forms are rejected, which is narrower than closeout. One local commit with an
+  explicit message is admitted; pushing, history rewriting, and verification-hook bypass are not.
+  The branch binding fixed at lock is rechecked before every Git write.
+- Second layer (opt-in, not covered by the write-boundary guarantee): with no `execution` opt-in,
+  every execution-bearing call is denied. An opted-in contract carries verification template ids
+  only; the id to inspection-rule mapping is a closed registry in the gate. Arguments are scanned in
+  full against an explicit allowlist with immediate deny for anything unknown, targets are matched
+  file by file against the write and test scope, and directory-wide, target-less, and
+  standard-input target forms are rejected. The process side effects of an admitted command are
+  outside the first layer's guarantee — the gate inspects arguments only. Namespace-isolated
+  execution and static inspection of collection paths are fixed M2 requirements, so until they land
+  the second layer is declared but not enforced.
+
+Contract lifecycle: an assignment seed is recorded through a store/runtime API that is deliberately
+absent from the agent-facing control tool, is consumed at turn start, and locks the turn before its
+first tool call. A turn with a seed whose repository verification fails exists with mutation denied
+rather than falling back to unenforced, and a tool call that cannot be bound to a turn of a seeded
+task is denied the same way. A seedless turn may self-lock (narrowing only, one worktree); before
+the lock only reads are admitted. Closure is explicit: the intermediate audit hook does not close an
+enforced turn, and a closed turn keeps denying mutation. The contract records its origin, so a
+self-declared write scope is auditable as the weaker guarantee.
 
 ## Architecture
 
@@ -82,8 +117,15 @@ against the installed Hermes runtime.
 
 ## Current limitations
 
-- Only repository closeout is hard-enforced in S1. Bounded operations and artifact changes remain
-  audit-only until pilot evidence supports S2/S3.
+- Bounded operations remain audit-only until pilot evidence supports S2.
+- `artifact-change` enforcement is per turn and is not switched on for any lane by default: with no
+  assignment seed and no self lock, a turn stays audit-only. Wiring the assignment path for the
+  autonomous lane is an owner decision (D-S3-6), not a property of this component.
+- The second contract layer is declared but not enforced until namespace-isolated execution and
+  static inspection of collection paths land. The first layer's guarantee does not extend to the
+  process side effects of an admitted verification command.
+- No independent scope reviewer is connected, so every G3 expansion that the contract does not
+  already permit fails closed. Expansion budget values cannot be calibrated until it is.
 - Classification is deliberately high precision. An ambiguous request stays audit-only rather than
   receiving an overly broad or incorrectly narrow hard contract.
 - A successful Git command is evidence of execution, not proof of semantic review quality. The gate

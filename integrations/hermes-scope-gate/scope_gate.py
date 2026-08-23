@@ -7,8 +7,10 @@ fail-closed shell hook.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import json
+import os
 import re
 import shlex
 import sqlite3
@@ -201,6 +203,439 @@ EXPANSION_REVIEW_BUDGET = {
 EXPANSION_PERMIT_TTL_SECONDS = 300.0
 
 
+# ---------------------------------------------------------------------------
+# S3-M1 artifact-change: path foundation.
+#
+# Every path decision for the artifact-change class goes through the single
+# deterministic normalizer below. Rejection is expressed as "this path does
+# not belong to the locked worktree root", never as "the argument looked
+# absolute": the existing read and terminal tools require absolute notation,
+# so a notation-based rule would contradict the surrounding convention.
+# ---------------------------------------------------------------------------
+
+MAX_SCOPE_PATTERNS = 32
+MAX_SCOPE_PATTERN_LENGTH = 256
+_SCOPE_PATTERN_CHARS_RE = re.compile(r"^[A-Za-z0-9._*?/\[\]-]+$")
+
+
+class PathRejected(ValueError):
+    """A path argument or scope pattern failed deterministic normalization."""
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+def _has_control_characters(text: str) -> bool:
+    return any(ord(character) < 32 or ord(character) == 127 for character in text)
+
+
+def normalize_scope_pattern(raw: Any) -> str:
+    """Validate one repository-relative scope glob pattern."""
+
+    value = str(raw or "").strip()
+    if not value:
+        raise PathRejected("pattern-empty", "scope patterns must not be empty")
+    if _has_control_characters(value):
+        raise PathRejected(
+            "pattern-control", "scope patterns must not contain control characters"
+        )
+    if len(value) > MAX_SCOPE_PATTERN_LENGTH:
+        raise PathRejected("pattern-length", "scope pattern is too long")
+    if not _SCOPE_PATTERN_CHARS_RE.fullmatch(value):
+        raise PathRejected(
+            "pattern-syntax", "scope pattern uses characters outside the allowed set"
+        )
+    if value.startswith("/"):
+        raise PathRejected("pattern-absolute", "scope patterns are repository relative")
+    if any(segment in {"", ".", ".."} for segment in value.split("/")):
+        raise PathRejected(
+            "pattern-traversal",
+            "scope patterns must not contain empty, '.' or '..' segments",
+        )
+    return value
+
+
+def normalize_scope_patterns(raw: Any, *, field: str) -> tuple[str, ...]:
+    """Validate a closed set of scope patterns (order-normalized, deduplicated)."""
+
+    if raw is None:
+        return ()
+    if isinstance(raw, str) or not isinstance(raw, (list, tuple)):
+        raise PathRejected("pattern-shape", f"{field} must be an array of patterns")
+    patterns = [normalize_scope_pattern(item) for item in raw]
+    if len(patterns) > MAX_SCOPE_PATTERNS:
+        raise PathRejected(
+            "pattern-count", f"{field} exceeds the {MAX_SCOPE_PATTERNS} pattern limit"
+        )
+    return tuple(sorted(set(patterns)))
+
+
+def _segment_matches(pattern_segment: str, name: str) -> bool:
+    # A single segment never contains "/", so in-segment wildcards cannot
+    # cross a path boundary.
+    return fnmatch.fnmatchcase(name, pattern_segment)
+
+
+def _match_segments(
+    pattern_parts: tuple[str, ...], path_parts: tuple[str, ...]
+) -> bool:
+    if not pattern_parts:
+        return not path_parts
+    head = pattern_parts[0]
+    if head == "**":
+        remainder = pattern_parts[1:]
+        if not remainder:
+            return True
+        return any(
+            _match_segments(remainder, path_parts[index:])
+            for index in range(len(path_parts) + 1)
+        )
+    if not path_parts:
+        return False
+    if not _segment_matches(head, path_parts[0]):
+        return False
+    return _match_segments(pattern_parts[1:], path_parts[1:])
+
+
+def scope_pattern_matches(pattern: str, relative_path: str) -> bool:
+    """Segment-aware glob: ``*`` stays inside one segment, ``**`` recurses.
+
+    The standard-library pattern matchers translate ``*`` to a wildcard that
+    crosses ``/``, which would make an approved pattern permit far more than
+    its reviewed text suggests. Example: ``docs/design/*.md`` matches
+    ``docs/design/a.md`` but not ``docs/design/sub/a.md``; the recursive form
+    is written ``docs/design/**/*.md``.
+    """
+
+    return _match_segments(
+        tuple(pattern.split("/")), tuple(relative_path.split("/"))
+    )
+
+
+def scope_patterns_match(patterns: tuple[str, ...], relative_path: str) -> bool:
+    return any(scope_pattern_matches(pattern, relative_path) for pattern in patterns)
+
+
+def normalize_repo_relative_path(
+    raw: Any,
+    *,
+    root: str,
+    workdir: str | None = None,
+) -> tuple[str, Path]:
+    """Resolve one path argument against the locked root.
+
+    Returns ``(relative_posix_path, absolute_path)``. Absolute and relative
+    notations are both accepted; a tool call without its own working
+    directory resolves against the locked root.
+    """
+
+    value = str(raw or "")
+    if not value.strip():
+        raise PathRejected("target-missing", "the target path is empty")
+    if _has_control_characters(value):
+        raise PathRejected(
+            "target-control", "the target path contains control characters"
+        )
+    candidate = Path(value)
+    if not candidate.is_absolute():
+        base = Path(str(workdir)) if workdir else Path(root)
+        if not base.is_absolute():
+            raise PathRejected(
+                "target-base", "a relative path needs an absolute resolution base"
+            )
+        candidate = base / candidate
+    lexical = Path(os.path.normpath(str(candidate)))
+    if ".." in lexical.parts:
+        raise PathRejected("target-traversal", "the target path escapes its base")
+    locked_root = Path(os.path.normpath(str(root)))
+    try:
+        relative = lexical.relative_to(locked_root)
+    except ValueError:
+        raise PathRejected(
+            "target-closed", "the target path is outside the locked worktree"
+        ) from None
+    if not relative.parts:
+        raise PathRejected(
+            "target-root", "the locked worktree root itself is not a write target"
+        )
+    return relative.as_posix(), lexical
+
+
+def resolve_existing_ancestor(absolute_target: Path, *, root: str) -> str:
+    """Entity-resolve the nearest existing ancestor of a write target.
+
+    Lexical matching alone would let a link placed anywhere on the path move
+    the real write destination outside the locked worktree, so the resolved
+    ancestor (and the target itself when it already exists) must still be
+    inside the locked root.
+    """
+
+    real_root = Path(os.path.realpath(str(root)))
+    probe = absolute_target
+    while True:
+        if probe.exists() or probe.is_symlink():
+            break
+        parent = probe.parent
+        if parent == probe:
+            break
+        probe = parent
+    real_ancestor = Path(os.path.realpath(str(probe)))
+    if real_ancestor != real_root and real_root not in real_ancestor.parents:
+        raise PathRejected(
+            "target-escape",
+            "the target's resolved location is outside the locked worktree",
+        )
+    if absolute_target.exists() or absolute_target.is_symlink():
+        real_target = Path(os.path.realpath(str(absolute_target)))
+        if real_root not in real_target.parents:
+            raise PathRejected(
+                "target-escape",
+                "the target's resolved location is outside the locked worktree",
+            )
+    return str(real_ancestor)
+
+
+def _static_pattern_prefix(pattern: str) -> tuple[str, ...]:
+    prefix: list[str] = []
+    for segment in pattern.split("/"):
+        if any(character in segment for character in "*?["):
+            break
+        prefix.append(segment)
+    return tuple(prefix)
+
+
+def verify_scope_prefixes_are_inside_root(
+    patterns: tuple[str, ...], *, root: str
+) -> None:
+    """Reject scope patterns whose existing ancestors leave the locked root."""
+
+    real_root = Path(os.path.realpath(str(root)))
+    for pattern in patterns:
+        current = Path(str(root))
+        for segment in _static_pattern_prefix(pattern):
+            current = current / segment
+            if not (current.exists() or current.is_symlink()):
+                break
+            resolved = Path(os.path.realpath(str(current)))
+            if resolved != real_root and real_root not in resolved.parents:
+                raise PathRejected(
+                    "scope-escape",
+                    f"scope pattern {pattern!r} resolves outside the locked worktree",
+                )
+
+
+# ---------------------------------------------------------------------------
+# S3-M1 artifact-change: explicit tool catalogue.
+#
+# Write destinations are identified from a name-to-fields table, not from the
+# shape of the arguments. A tool that is not listed here is treated as a
+# mutation and falls through to G3 (default deny for mutation); a listed tool
+# that carries none of its declared destination fields is denied rather than
+# silently admitted.
+# ---------------------------------------------------------------------------
+
+ARTIFACT_READ_TOOLS = frozenset(
+    {
+        "read_file",
+        "read_files",
+        "search_files",
+        "search",
+        "grep_files",
+        "glob_files",
+        "list_files",
+        "list_directory",
+        "file_info",
+    }
+)
+
+_PATH_PAIR_FIELDS = (
+    "path",
+    "file_path",
+    "source",
+    "source_path",
+    "src",
+    "destination",
+    "destination_path",
+    "dst",
+    "from",
+    "to",
+)
+
+
+@dataclass(frozen=True)
+class WriteTargetFields:
+    """Every argument field of one tool that can name a write destination."""
+
+    single: tuple[str, ...] = ()
+    listed: tuple[str, ...] = ()
+    nested: tuple[tuple[str, str], ...] = ()
+
+
+ARTIFACT_WRITE_TOOL_CATALOG: dict[str, WriteTargetFields] = {
+    "write_file": WriteTargetFields(single=("path", "file_path")),
+    "create_file": WriteTargetFields(single=("path", "file_path")),
+    "append_file": WriteTargetFields(single=("path", "file_path")),
+    "patch": WriteTargetFields(single=("path", "file_path")),
+    "edit_file": WriteTargetFields(single=("path", "file_path")),
+    "notebook_edit": WriteTargetFields(single=("path", "notebook_path")),
+    "multi_edit": WriteTargetFields(
+        single=("path", "file_path"),
+        nested=(("edits", "path"), ("edits", "file_path")),
+    ),
+    "write_files": WriteTargetFields(listed=("paths", "files")),
+    "delete_file": WriteTargetFields(single=("path", "file_path")),
+    "move_file": WriteTargetFields(single=_PATH_PAIR_FIELDS),
+    "rename_file": WriteTargetFields(single=_PATH_PAIR_FIELDS),
+    "copy_file": WriteTargetFields(single=_PATH_PAIR_FIELDS),
+}
+
+
+def _path_string(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise PathRejected("target-shape", f"{field} must be a non-empty path string")
+    return value
+
+
+def _paths_from_listed_item(item: Any, field: str) -> list[str]:
+    if isinstance(item, str):
+        return [_path_string(item, field)]
+    if isinstance(item, dict):
+        found = [
+            _path_string(item[name], name)
+            for name in ("path", "file_path")
+            if name in item
+        ]
+        if not found:
+            raise PathRejected(
+                "target-missing", f"an entry of {field} carried no write destination"
+            )
+        return found
+    raise PathRejected("target-shape", f"{field} entries must be paths or objects")
+
+
+def collect_write_targets(tool_name: str, args: dict[str, Any]) -> tuple[str, ...]:
+    """All write destinations a catalogued tool call can reach."""
+
+    spec = ARTIFACT_WRITE_TOOL_CATALOG.get(tool_name)
+    if spec is None:
+        raise PathRejected(
+            "tool-unlisted",
+            f"{tool_name} is not in the artifact-change write catalogue",
+        )
+    found: list[str] = []
+    for field in spec.single:
+        if field in args:
+            found.append(_path_string(args[field], field))
+    for field in spec.listed:
+        value = args.get(field)
+        if value is None:
+            continue
+        if isinstance(value, str) or not isinstance(value, (list, tuple)):
+            raise PathRejected("target-shape", f"{field} must be an array")
+        for item in value:
+            found.extend(_paths_from_listed_item(item, field))
+    for container, item_field in spec.nested:
+        value = args.get(container)
+        if isinstance(value, str) or not isinstance(value, (list, tuple)):
+            continue
+        for item in value:
+            if isinstance(item, dict) and item_field in item:
+                found.append(_path_string(item[item_field], item_field))
+    if not found:
+        raise PathRejected(
+            "target-missing",
+            f"{tool_name} carried none of its declared write destination fields",
+        )
+    return tuple(found)
+
+
+# ---------------------------------------------------------------------------
+# S3-M1 artifact-change: second-layer verification template registry.
+#
+# The contract carries template ids only. The mapping from id to inspection
+# rule stays here, in a closed registry, so a contract can never carry a
+# free-form command string. Argument inspection scans every token, admits
+# only an explicit allowlist, and denies anything unknown immediately.
+#
+# Threat model: the process side effects of an admitted command are outside
+# the first layer's write-boundary guarantee. The gate inspects arguments
+# only. Namespace-isolated execution and static inspection of collection
+# paths are fixed M2 requirements.
+# ---------------------------------------------------------------------------
+
+_TEMPLATE_VALUE_RE = re.compile(r"^[A-Za-z0-9._-]{1,32}$")
+
+
+@dataclass(frozen=True)
+class ExecutionTemplate:
+    template_id: str
+    action: str
+    heads: tuple[tuple[str, ...], ...]
+    boolean_flags: frozenset[str]
+    valued_flags: frozenset[str]
+
+
+EXECUTION_TEMPLATES: dict[str, ExecutionTemplate] = {
+    "focused-test": ExecutionTemplate(
+        template_id="focused-test",
+        action="run-focused-test",
+        heads=(
+            ("pytest",),
+            ("python", "-m", "pytest"),
+            ("python3", "-m", "pytest"),
+        ),
+        boolean_flags=frozenset(
+            {"-x", "-q", "-v", "--quiet", "--exitfirst", "--no-header", "--strict-markers"}
+        ),
+        valued_flags=frozenset({"--maxfail", "--tb", "--color"}),
+    ),
+    "syntax-check": ExecutionTemplate(
+        template_id="syntax-check",
+        action="check-target-syntax",
+        heads=(
+            ("python", "-m", "py_compile"),
+            ("python3", "-m", "py_compile"),
+        ),
+        boolean_flags=frozenset({"-q", "--quiet"}),
+        valued_flags=frozenset(),
+    ),
+}
+
+
+def normalize_execution_templates(raw: Any) -> tuple[str, ...]:
+    """Validate the second-layer opt-in set against the closed registry."""
+
+    if raw is None:
+        return ()
+    if isinstance(raw, dict):
+        raw = raw.get("templates")
+    if raw is None:
+        return ()
+    if isinstance(raw, str) or not isinstance(raw, (list, tuple)):
+        raise PathRejected("execution-shape", "execution templates must be an array")
+    identifiers = []
+    for item in raw:
+        value = str(item or "").strip()
+        if value not in EXECUTION_TEMPLATES:
+            raise PathRejected(
+                "execution-unknown", f"{value!r} is not a registered verification template"
+            )
+        identifiers.append(value)
+    if len(identifiers) > 8:
+        raise PathRejected("execution-count", "too many verification templates")
+    return tuple(sorted(set(identifiers)))
+
+
+def _template_head_tail(
+    template: ExecutionTemplate, tokens: list[str]
+) -> list[str] | None:
+    for head in sorted(template.heads, key=len, reverse=True):
+        if tuple(tokens[: len(head)]) == head:
+            return tokens[len(head) :]
+    return None
+
+
 def action_fingerprint(tool_name: str, args: dict[str, Any]) -> str:
     """Canonical sha256 fingerprint of a tool action (name + arguments)."""
     return hashlib.sha256(
@@ -219,9 +654,19 @@ class GateDecision:
 class GateStore:
     """SQLite-backed, process-safe scope state and budget reservation."""
 
-    def __init__(self, path: str | Path) -> None:
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        enforce_artifact_change_pre_lock: bool | None = None,
+    ) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.enforce_artifact_change_pre_lock = (
+            ARTIFACT_CHANGE_PRELOCK_ENFORCED
+            if enforce_artifact_change_pre_lock is None
+            else bool(enforce_artifact_change_pre_lock)
+        )
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
@@ -271,6 +716,19 @@ class GateStore:
                     source TEXT NOT NULL,
                     PRIMARY KEY (turn_id, path)
                 );
+                CREATE TABLE IF NOT EXISTS contract_seeds (
+                    task_id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL DEFAULT '',
+                    task_class TEXT NOT NULL,
+                    worktree TEXT NOT NULL,
+                    branch TEXT NOT NULL,
+                    write_paths_json TEXT NOT NULL,
+                    test_paths_json TEXT NOT NULL,
+                    execution_json TEXT NOT NULL,
+                    created_at REAL NOT NULL,
+                    consumed_at REAL,
+                    consumed_turn_id TEXT
+                );
                 CREATE TABLE IF NOT EXISTS expansion_permits (
                     turn_id TEXT NOT NULL,
                     action_fingerprint TEXT NOT NULL,
@@ -294,6 +752,10 @@ class GateStore:
             if "task_id" not in columns:
                 connection.execute(
                     "ALTER TABLE turns ADD COLUMN task_id TEXT NOT NULL DEFAULT ''"
+                )
+            if "contract_origin" not in columns:
+                connection.execute(
+                    "ALTER TABLE turns ADD COLUMN contract_origin TEXT NOT NULL DEFAULT ''"
                 )
             decision_columns = {
                 row[1] for row in connection.execute("PRAGMA table_info(decisions)").fetchall()
@@ -343,6 +805,123 @@ class GateStore:
             connection.commit()
         return len(turn_ids)
 
+    def record_contract_seed(
+        self,
+        *,
+        task_id: str,
+        worktree: str,
+        branch: str,
+        write_paths: Any,
+        test_paths: Any = (),
+        execution: Any = (),
+        session_id: str = "",
+        task_class: str = "artifact-change",
+    ) -> dict[str, Any]:
+        """Record an assignment-time contract seed (orchestrator-side only).
+
+        This API is deliberately not reachable through the worker-facing
+        ``scope_gate`` control tool: the executing agent must not be able to
+        create or widen its own seed. The seed is the authoritative ceiling
+        for every turn of the task; a self lock can only stay inside it.
+        """
+
+        if task_class != "artifact-change":
+            raise ValueError("only artifact-change contracts are seeded in this stage")
+        clean_task_id = str(task_id or "").strip()
+        if not clean_task_id:
+            raise ValueError("a contract seed requires a task id")
+        roots = self._canonical_targets([worktree])
+        if len(roots) != 1:
+            raise ValueError("a contract seed names exactly one worktree")
+        clean_branch = str(branch or "").strip()
+        if (
+            not clean_branch
+            or clean_branch.startswith("-")
+            or any(character.isspace() for character in clean_branch)
+        ):
+            raise ValueError("branch names must be concrete, non-option tokens")
+        write = normalize_scope_patterns(write_paths, field="write_paths")
+        if not write:
+            raise ValueError("artifact-change seeds require a non-empty write scope")
+        test = normalize_scope_patterns(test_paths, field="test_paths")
+        templates = normalize_execution_templates(execution)
+        payload = {
+            "task_id": clean_task_id,
+            "session_id": str(session_id or ""),
+            "task_class": task_class,
+            "worktree": roots[0],
+            "branch": clean_branch,
+            "write_paths": list(write),
+            "test_paths": list(test),
+            "execution": list(templates),
+        }
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            existing = connection.execute(
+                "SELECT * FROM contract_seeds WHERE task_id = ?", (clean_task_id,)
+            ).fetchone()
+            if existing is not None:
+                current = {
+                    "task_id": str(existing["task_id"]),
+                    "session_id": str(existing["session_id"]),
+                    "task_class": str(existing["task_class"]),
+                    "worktree": str(existing["worktree"]),
+                    "branch": str(existing["branch"]),
+                    "write_paths": json.loads(existing["write_paths_json"]),
+                    "test_paths": json.loads(existing["test_paths_json"]),
+                    "execution": json.loads(existing["execution_json"]),
+                }
+                connection.commit()
+                if current != payload:
+                    raise ValueError(
+                        "a different contract seed already exists for this task"
+                    )
+                return current
+            connection.execute(
+                """
+                INSERT INTO contract_seeds (
+                    task_id, session_id, task_class, worktree, branch,
+                    write_paths_json, test_paths_json, execution_json, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    clean_task_id,
+                    payload["session_id"],
+                    task_class,
+                    payload["worktree"],
+                    clean_branch,
+                    json.dumps(list(write)),
+                    json.dumps(list(test)),
+                    json.dumps(list(templates)),
+                    time.time(),
+                ),
+            )
+            connection.commit()
+        return payload
+
+    def get_contract_seed(self, task_id: str) -> dict[str, Any] | None:
+        clean = str(task_id or "").strip()
+        if not clean:
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM contract_seeds WHERE task_id = ?", (clean,)
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "task_id": str(row["task_id"]),
+            "session_id": str(row["session_id"]),
+            "task_class": str(row["task_class"]),
+            "worktree": str(row["worktree"]),
+            "branch": str(row["branch"]),
+            "write_paths": json.loads(row["write_paths_json"]),
+            "test_paths": json.loads(row["test_paths_json"]),
+            "execution": json.loads(row["execution_json"]),
+            "consumed_at": row["consumed_at"],
+            "consumed_turn_id": row["consumed_turn_id"],
+        }
+
     def start_turn(
         self,
         *,
@@ -355,13 +934,50 @@ class GateStore:
         intent = classify_task(user_message)
         state = "discovering" if intent.task_class == "repository-closeout" else "audit"
         digest = hashlib.sha256(user_message.encode("utf-8")).hexdigest()
+        origin = ""
+        contract_json: str | None = None
+        seed = (
+            self.get_contract_seed(task_id)
+            if intent.task_class == "artifact-change"
+            else None
+        )
+        if intent.task_class == "artifact-change":
+            if seed is not None:
+                # Assignment path: the turn is locked before its first tool
+                # call, without any action by the executing agent.
+                origin = "assignment"
+                try:
+                    contract = self._build_artifact_change_contract(
+                        turn_id=turn_id,
+                        origin_sha256=digest,
+                        origin="assignment",
+                        root=seed["worktree"],
+                        branch=seed["branch"],
+                        write_paths=seed["write_paths"],
+                        test_paths=seed["test_paths"],
+                        templates=seed["execution"],
+                    )
+                except (ValueError, PathRejected):
+                    # Seed verification failure stays fail-closed: the turn
+                    # exists with mutation denied, it never falls back to
+                    # not-enforced.
+                    state = "mutation-denied"
+                else:
+                    state = "locked"
+                    contract_json = json.dumps(
+                        contract, ensure_ascii=False, sort_keys=True
+                    )
+            elif self.enforce_artifact_change_pre_lock:
+                state = "pre-lock"
         with self._connect() as connection:
-            connection.execute(
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
                 """
                 INSERT INTO turns (
                     turn_id, session_id, task_id, origin_sha256, task_class, state,
-                    started_at, allow_commit, allow_push, explicit_global
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    started_at, allow_commit, allow_push, explicit_global,
+                    contract_json, contract_origin
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(turn_id) DO NOTHING
                 """,
                 (
@@ -375,8 +991,21 @@ class GateStore:
                     int(intent.allow_commit),
                     int(intent.allow_push),
                     int(intent.explicit_global),
+                    contract_json,
+                    origin,
                 ),
             )
+            if cursor.rowcount == 1 and seed is not None:
+                connection.execute(
+                    """
+                    UPDATE contract_seeds
+                       SET consumed_at = COALESCE(consumed_at, ?),
+                           consumed_turn_id = COALESCE(consumed_turn_id, ?)
+                     WHERE task_id = ?
+                    """,
+                    (time.time(), turn_id, str(task_id).strip()),
+                )
+            connection.commit()
         return intent
 
     def get_turn(self, turn_id: str) -> dict[str, Any] | None:
@@ -431,7 +1060,68 @@ class GateStore:
         repositories: list[str],
         worktrees: list[str],
         branches: list[str],
+        write_paths: Any = None,
+        test_paths: Any = None,
+        execution: Any = None,
     ) -> dict[str, Any]:
+        """Atomically lock the turn's contract, dispatched by task class.
+
+        The atomic lock path is shared, the per-class contract construction
+        and validation are not: closeout keeps its bounded-discovery
+        candidate requirement, artifact-change gets repository entity
+        verification plus write-scope validation.
+        """
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            turn = connection.execute(
+                "SELECT * FROM turns WHERE turn_id = ?", (turn_id,)
+            ).fetchone()
+            if turn is None:
+                raise ValueError("unknown scope turn")
+            task_class = str(turn["task_class"])
+            if task_class == "repository-closeout":
+                contract = self._lock_closeout(
+                    connection,
+                    turn,
+                    repositories=repositories,
+                    worktrees=worktrees,
+                    branches=branches,
+                    write_paths=write_paths,
+                    test_paths=test_paths,
+                    execution=execution,
+                )
+            elif task_class == "artifact-change":
+                contract = self._lock_artifact_change(
+                    connection,
+                    turn,
+                    repositories=repositories,
+                    worktrees=worktrees,
+                    branches=branches,
+                    write_paths=write_paths,
+                    test_paths=test_paths,
+                    execution=execution,
+                )
+            else:
+                raise ValueError(f"{task_class} turns cannot lock a scope contract")
+            connection.commit()
+            return contract
+
+    def _lock_closeout(
+        self,
+        connection: sqlite3.Connection,
+        turn: sqlite3.Row,
+        *,
+        repositories: list[str],
+        worktrees: list[str],
+        branches: list[str],
+        write_paths: Any,
+        test_paths: Any,
+        execution: Any,
+    ) -> dict[str, Any]:
+        if write_paths or test_paths or execution:
+            raise ValueError("repository-closeout contracts carry no write scope")
+        turn_id = str(turn["turn_id"])
         canonical_repositories = self._canonical_targets(repositories)
         canonical_worktrees = self._canonical_targets(worktrees)
         clean_branches = sorted({str(branch).strip() for branch in branches if str(branch).strip()})
@@ -440,101 +1130,255 @@ class GateStore:
         if any(branch.startswith("-") or any(ch.isspace() for ch in branch) for branch in clean_branches):
             raise ValueError("branch names must be concrete, non-option tokens")
 
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            turn = connection.execute(
-                "SELECT * FROM turns WHERE turn_id = ?", (turn_id,)
-            ).fetchone()
-            if turn is None or turn["task_class"] != "repository-closeout":
-                raise ValueError("turn is not a repository-closeout")
-            if turn["state"] == "locked" and turn["contract_json"]:
-                connection.commit()
-                return json.loads(turn["contract_json"])
-            if turn["state"] != "discovering":
-                raise ValueError(f"turn cannot lock from state {turn['state']!r}")
-            candidate_rows = connection.execute(
-                "SELECT path FROM candidates WHERE turn_id = ?", (turn_id,)
-            ).fetchall()
-            candidates = {row["path"] for row in candidate_rows}
-            requested = set(canonical_repositories) | set(canonical_worktrees)
-            if not requested.issubset(candidates):
-                raise ValueError("targets must come from this turn's bounded discovery")
-            if not turn["explicit_global"] and len(canonical_worktrees) != 1:
-                raise ValueError("non-global closeout can lock exactly one worktree")
-            worktree_branches = _validated_worktree_branches(canonical_worktrees)
-            actual_branches = sorted(set(worktree_branches.values()))
-            if set(clean_branches) != set(actual_branches):
-                raise ValueError(
-                    "locked branches must exactly match current worktree branches: "
-                    + ", ".join(actual_branches)
-                )
-
-            target_count = len(canonical_worktrees)
-            max_calls = min(32, 8 + 3 * target_count)
-            required = []
-            if turn["allow_commit"]:
-                required.append("commit-existing-content")
-            if turn["allow_push"]:
-                required.append("push-requested-commit")
-            contract: dict[str, Any] = {
-                "schema": "pda.scope-contract/v1",
-                "turn_id": turn_id,
-                "origin_message_sha256": turn["origin_sha256"],
-                "task_class": "repository-closeout",
-                "objective": "save only existing commit-ready repository content as requested",
-                "targets": {
-                    "repositories": canonical_repositories,
-                    "worktrees": canonical_worktrees,
-                    "branches": clean_branches,
-                    "worktree_branches": worktree_branches,
-                },
-                "actions": {
-                    "required": required,
-                    "prerequisite": [
-                        "inventory-status",
-                        "inspect-candidate-diff",
-                        "targeted-integrity-check",
-                    ],
-                    "verification": ["remote-ref-equals-local-head"] if turn["allow_push"] else ["commit-created"],
-                    "forbidden": [
-                        "edit-content",
-                        "resolve-conflict",
-                        "run-broad-tests",
-                        "create-or-delete-worktree",
-                        "wait-unrelated-process",
-                        "deploy-or-restart",
-                        "delegate-or-background",
-                    ],
-                },
-                "completion": {
-                    "all": [
-                        "every commit-ready target has the requested commit",
-                        *(
-                            ["every pushed commit is reachable from its intended remote ref"]
-                            if turn["allow_push"]
-                            else []
-                        ),
-                    ],
-                    "blocked_targets_may_be_reported": True,
-                },
-                "budget": {
-                    "max_wall_seconds": 900,
-                    "max_tool_calls": max_calls,
-                    "max_denied_calls": 3,
-                    "max_expansions": 0,
-                    "background_processes": 0,
-                    "subagents": 0,
-                },
-                "state": "locked",
-            }
-            _validate_contract_against_schema(contract)
-            encoded = json.dumps(contract, ensure_ascii=False, sort_keys=True)
-            connection.execute(
-                "UPDATE turns SET state = 'locked', contract_json = ? WHERE turn_id = ?",
-                (encoded, turn_id),
+        if turn["state"] == "locked" and turn["contract_json"]:
+            return json.loads(turn["contract_json"])
+        if turn["state"] != "discovering":
+            raise ValueError(f"turn cannot lock from state {turn['state']!r}")
+        candidate_rows = connection.execute(
+            "SELECT path FROM candidates WHERE turn_id = ?", (turn_id,)
+        ).fetchall()
+        candidates = {row["path"] for row in candidate_rows}
+        requested = set(canonical_repositories) | set(canonical_worktrees)
+        if not requested.issubset(candidates):
+            raise ValueError("targets must come from this turn's bounded discovery")
+        if not turn["explicit_global"] and len(canonical_worktrees) != 1:
+            raise ValueError("non-global closeout can lock exactly one worktree")
+        worktree_branches = _validated_worktree_branches(canonical_worktrees)
+        actual_branches = sorted(set(worktree_branches.values()))
+        if set(clean_branches) != set(actual_branches):
+            raise ValueError(
+                "locked branches must exactly match current worktree branches: "
+                + ", ".join(actual_branches)
             )
-            connection.commit()
+
+        target_count = len(canonical_worktrees)
+        max_calls = min(32, 8 + 3 * target_count)
+        required = []
+        if turn["allow_commit"]:
+            required.append("commit-existing-content")
+        if turn["allow_push"]:
+            required.append("push-requested-commit")
+        contract: dict[str, Any] = {
+            "schema": "pda.scope-contract/v1",
+            "turn_id": turn_id,
+            "origin_message_sha256": turn["origin_sha256"],
+            "task_class": "repository-closeout",
+            "objective": "save only existing commit-ready repository content as requested",
+            "targets": {
+                "repositories": canonical_repositories,
+                "worktrees": canonical_worktrees,
+                "branches": clean_branches,
+                "worktree_branches": worktree_branches,
+            },
+            "actions": {
+                "required": required,
+                "prerequisite": [
+                    "inventory-status",
+                    "inspect-candidate-diff",
+                    "targeted-integrity-check",
+                ],
+                "verification": ["remote-ref-equals-local-head"] if turn["allow_push"] else ["commit-created"],
+                "forbidden": [
+                    "edit-content",
+                    "resolve-conflict",
+                    "run-broad-tests",
+                    "create-or-delete-worktree",
+                    "wait-unrelated-process",
+                    "deploy-or-restart",
+                    "delegate-or-background",
+                ],
+            },
+            "completion": {
+                "all": [
+                    "every commit-ready target has the requested commit",
+                    *(
+                        ["every pushed commit is reachable from its intended remote ref"]
+                        if turn["allow_push"]
+                        else []
+                    ),
+                ],
+                "blocked_targets_may_be_reported": True,
+            },
+            "budget": {
+                "max_wall_seconds": 900,
+                "max_tool_calls": max_calls,
+                "max_denied_calls": 3,
+                "max_expansions": 0,
+                "background_processes": 0,
+                "subagents": 0,
+            },
+            "state": "locked",
+        }
+        _validate_contract_against_schema(contract)
+        encoded = json.dumps(contract, ensure_ascii=False, sort_keys=True)
+        connection.execute(
+            "UPDATE turns SET state = 'locked', contract_json = ? WHERE turn_id = ?",
+            (encoded, turn_id),
+        )
+        return contract
+
+    def _lock_artifact_change(
+        self,
+        connection: sqlite3.Connection,
+        turn: sqlite3.Row,
+        *,
+        repositories: list[str],
+        worktrees: list[str],
+        branches: list[str],
+        write_paths: Any,
+        test_paths: Any,
+        execution: Any,
+    ) -> dict[str, Any]:
+        """Self lock for a turn with no assignment seed (narrowing only)."""
+
+        turn_id = str(turn["turn_id"])
+        canonical_worktrees = self._canonical_targets(worktrees)
+        if len(canonical_worktrees) != 1:
+            raise ValueError("artifact-change can lock exactly one worktree")
+        root = canonical_worktrees[0]
+        canonical_repositories = (
+            self._canonical_targets(repositories) if repositories else [root]
+        )
+        write = normalize_scope_patterns(write_paths, field="write_paths")
+        test = normalize_scope_patterns(test_paths, field="test_paths")
+        templates = normalize_execution_templates(execution)
+        state = str(turn["state"])
+
+        if state == "locked" and turn["contract_json"]:
+            # A seeded turn is already locked. Re-locking returns the same
+            # contract idempotently; a declaration that exceeds it is denied.
+            contract = json.loads(turn["contract_json"])
+            _, existing_write, existing_test, existing_templates = (
+                artifact_contract_scope(contract)
+            )
+            exceeds = (
+                not set(write).issubset(set(existing_write))
+                or not set(test).issubset(set(existing_test))
+                or not set(templates).issubset(set(existing_templates))
+                or canonical_worktrees != list(contract["targets"]["worktrees"])
+            )
+            if exceeds:
+                raise ValueError(
+                    "the declared scope exceeds the assigned contract seed"
+                )
             return contract
+        if state == "mutation-denied":
+            raise ValueError(
+                "the assigned contract seed failed verification; this turn cannot lock"
+            )
+        if state not in {"audit", "pre-lock"}:
+            raise ValueError(f"turn cannot lock from state {state!r}")
+        if not write:
+            raise ValueError("artifact-change lock requires a non-empty write scope")
+        requested_branches = sorted(
+            {str(branch).strip() for branch in (branches or []) if str(branch).strip()}
+        )
+        if len(requested_branches) > 1:
+            raise ValueError("artifact-change can lock exactly one branch")
+        contract = self._build_artifact_change_contract(
+            turn_id=turn_id,
+            origin_sha256=str(turn["origin_sha256"]),
+            origin="self",
+            root=root,
+            branch=requested_branches[0] if requested_branches else "",
+            write_paths=write,
+            test_paths=test,
+            templates=templates,
+            repositories=canonical_repositories,
+        )
+        encoded = json.dumps(contract, ensure_ascii=False, sort_keys=True)
+        connection.execute(
+            """
+            UPDATE turns
+               SET state = 'locked', contract_json = ?, contract_origin = 'self'
+             WHERE turn_id = ?
+            """,
+            (encoded, turn_id),
+        )
+        return contract
+
+    @staticmethod
+    def _build_artifact_change_contract(
+        *,
+        turn_id: str,
+        origin_sha256: str,
+        origin: str,
+        root: str,
+        branch: str,
+        write_paths: Any,
+        test_paths: Any,
+        templates: Any,
+        repositories: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Build and validate one locked artifact-change contract.
+
+        Repository entity verification (worktree root identity, current
+        branch, no detached HEAD) uses the same verifier as closeout, and a
+        seed branch that does not match the checked-out branch is
+        fail-closed.
+        """
+
+        write = normalize_scope_patterns(write_paths, field="write_paths")
+        test = normalize_scope_patterns(test_paths, field="test_paths")
+        opted_in = normalize_execution_templates(templates)
+        if not write:
+            raise ValueError("artifact-change contracts require a non-empty write scope")
+        worktree_branches = _validated_worktree_branches([str(root)])
+        resolved_root = next(iter(worktree_branches))
+        actual_branch = worktree_branches[resolved_root]
+        if branch and branch != actual_branch:
+            raise ValueError(
+                "the assigned branch does not match the current worktree branch"
+            )
+        verify_scope_prefixes_are_inside_root(write + test, root=resolved_root)
+        contract: dict[str, Any] = {
+            "schema": "pda.scope-contract/v1",
+            "turn_id": turn_id,
+            "origin_message_sha256": origin_sha256,
+            "task_class": "artifact-change",
+            "objective": (
+                "change only the artifacts inside the locked write scope and "
+                "verify them with the opted-in templates"
+            ),
+            "origin": origin,
+            "targets": {
+                "repositories": list(repositories or [resolved_root]),
+                "worktrees": [resolved_root],
+                "branches": [actual_branch],
+                "worktree_branches": {resolved_root: actual_branch},
+                "write_paths": list(write),
+                "test_paths": list(test),
+            },
+            "execution": {"templates": list(opted_in)},
+            "actions": {
+                "required": ["change-artifacts-in-scope"],
+                "prerequisite": ["inspect-locked-target"],
+                "verification": (
+                    ["focused-verification-of-changed-files"] if opted_in else []
+                ),
+                "forbidden": [
+                    "write-outside-scope",
+                    "push-to-remote",
+                    "rewrite-history",
+                    "bypass-verification-hooks",
+                    "run-broad-tests",
+                    "create-or-delete-worktree",
+                    "deploy-or-restart",
+                    "delegate-or-background",
+                ],
+            },
+            "completion": {
+                "all": [
+                    "every change stays inside the locked write scope",
+                    "the requested change is either complete or reported as blocked",
+                ],
+                "blocked_targets_may_be_reported": True,
+            },
+            "budget": dict(ARTIFACT_CHANGE_CLASS_BUDGET),
+            "state": "locked",
+        }
+        _validate_contract_against_schema(contract)
+        return contract
 
     @staticmethod
     def _canonical_targets(targets: list[str]) -> list[str]:
@@ -670,10 +1514,13 @@ class GateStore:
                     f"expansion review budget exhausted ({reviews_used}/{budget})"
                 )
             else:
-                # Stage 2 deterministic allow: only meaningful for classes
-                # whose admission is enforced (locked closeout today).
-                if task_class == "repository-closeout" and turn["state"] == "locked":
-                    admitted = self._admit_closeout_locked(turn, tool_name, args)
+                # Stage 2 deterministic allow: looked up through the same
+                # per-class dispatch table admission uses, so a class whose
+                # contract already permits an action never burns review
+                # budget on it.
+                locked_admission = locked_admission_for(task_class)
+                if locked_admission is not None and turn["state"] == "locked":
+                    admitted = locked_admission(turn, tool_name, args)
                     if admitted.allowed:
                         verdict = "allow"
                         reviewer = "deterministic-allow"
@@ -837,7 +1684,15 @@ class GateStore:
                     raise ValueError(
                         "missing successful completion evidence: " + ", ".join(missing)
                     )
-            next_state = "completed" if turn["task_class"] == "repository-closeout" else turn["state"]
+            next_state = (
+                "completed"
+                if turn["task_class"] == "repository-closeout"
+                or (
+                    turn["task_class"] == "artifact-change"
+                    and str(turn["state"]) in ARTIFACT_ENFORCED_STATES
+                )
+                else turn["state"]
+            )
             connection.execute(
                 "UPDATE turns SET state = ?, completion_status = ? WHERE turn_id = ?",
                 (next_state, status, turn_id),
@@ -861,7 +1716,13 @@ class GateStore:
             if turn["completion_status"] is not None:
                 connection.commit()
                 return dict(turn)
-            if turn["task_class"] == "repository-closeout":
+            if (
+                turn["task_class"] == "repository-closeout"
+                or (
+                    turn["task_class"] == "artifact-change"
+                    and str(turn["state"]) in ARTIFACT_ENFORCED_STATES
+                )
+            ):
                 connection.execute(
                     "UPDATE turns SET state = 'completed', completion_status = ? WHERE turn_id = ?",
                     (status, turn_id),
@@ -915,49 +1776,24 @@ class GateStore:
             turn = connection.execute(
                 "SELECT * FROM turns WHERE turn_id = ?", (turn_id,)
             ).fetchone()
-            if turn is None or turn["task_class"] != "repository-closeout":
+            if turn is None:
                 connection.commit()
                 return GateDecision(True, "not-enforced", "initial rollout audits this task class")
-
-            if tool_name == "scope_gate":
-                control_action = str(args.get("action") or "")
-                if turn["denied_count"] >= 3 and control_action != "complete":
-                    decision = GateDecision(
-                        False,
-                        "deny-budget",
-                        "only scope completion is allowed after three denials",
-                    )
-                elif control_action in {"lock", "review", "complete"}:
-                    decision = GateDecision(
-                        True,
-                        f"scope-{control_action}",
-                        "scope control transition",
-                    )
-                else:
-                    decision = GateDecision(
-                        False,
-                        "scope-control-invalid",
-                        "scope_gate action must be lock, review, or complete",
-                    )
-            elif turn["state"] == "discovering":
-                decision = self._admit_closeout_discovery(turn, tool_name, args)
-            elif turn["state"] == "locked":
-                decision = self._admit_closeout_locked(turn, tool_name, args)
-                if not decision.allowed and self._consume_permit_locked(
-                    connection, turn_id, fingerprint
-                ):
-                    decision = GateDecision(
-                        True,
-                        "expansion-permit",
-                        "one-use expansion permit approved for this exact action",
-                        decision.resource,
-                    )
-            else:
-                decision = GateDecision(
-                    False,
-                    "turn-closed",
-                    "scope contract is closed; report the result without more tools",
+            task_class = str(turn["task_class"])
+            if task_class == "repository-closeout":
+                decision = self._closeout_decision(
+                    connection, turn, tool_name, args, fingerprint
                 )
+            elif (
+                task_class == "artifact-change"
+                and str(turn["state"]) in ARTIFACT_ENFORCED_STATES
+            ):
+                decision = self._artifact_change_decision(
+                    connection, turn, tool_name, args, fingerprint
+                )
+            else:
+                connection.commit()
+                return GateDecision(True, "not-enforced", "initial rollout audits this task class")
             connection.execute(
                 """
                 INSERT INTO decisions (
@@ -988,6 +1824,160 @@ class GateStore:
                 )
             connection.commit()
             return decision
+
+    def _closeout_decision(
+        self,
+        connection: sqlite3.Connection,
+        turn: sqlite3.Row,
+        tool_name: str,
+        args: dict[str, Any],
+        fingerprint: str,
+    ) -> GateDecision:
+        turn_id = str(turn["turn_id"])
+        if tool_name == "scope_gate":
+            control_action = str(args.get("action") or "")
+            if turn["denied_count"] >= 3 and control_action != "complete":
+                return GateDecision(
+                    False,
+                    "deny-budget",
+                    "only scope completion is allowed after three denials",
+                )
+            if control_action in {"lock", "review", "complete"}:
+                return GateDecision(
+                    True,
+                    f"scope-{control_action}",
+                    "scope control transition",
+                )
+            return GateDecision(
+                False,
+                "scope-control-invalid",
+                "scope_gate action must be lock, review, or complete",
+            )
+        if turn["state"] == "discovering":
+            return self._admit_closeout_discovery(turn, tool_name, args)
+        if turn["state"] == "locked":
+            decision = self._admit_closeout_locked(turn, tool_name, args)
+            if not decision.allowed and self._consume_permit_locked(
+                connection, turn_id, fingerprint
+            ):
+                return GateDecision(
+                    True,
+                    "expansion-permit",
+                    "one-use expansion permit approved for this exact action",
+                    decision.resource,
+                )
+            return decision
+        return GateDecision(
+            False,
+            "turn-closed",
+            "scope contract is closed; report the result without more tools",
+        )
+
+    def _artifact_change_decision(
+        self,
+        connection: sqlite3.Connection,
+        turn: sqlite3.Row,
+        tool_name: str,
+        args: dict[str, Any],
+        fingerprint: str,
+    ) -> GateDecision:
+        """Enforced admission for one artifact-change turn.
+
+        Independent of the closeout decision path: state semantics, control
+        allowances, and every argument rule are written for this class.
+        """
+
+        turn_id = str(turn["turn_id"])
+        state = str(turn["state"])
+        deny_ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+        if tool_name == "scope_gate":
+            control_action = str(args.get("action") or "")
+            if control_action not in {"lock", "review", "complete"}:
+                return GateDecision(
+                    False,
+                    "scope-control-invalid",
+                    "scope_gate action must be lock, review, or complete",
+                )
+            if (
+                int(turn["denied_count"]) >= deny_ceiling
+                and control_action not in {"complete", "lock"}
+            ):
+                # Narrowing the scope and reporting must stay reachable so a
+                # turn cannot be stranded by its own denied attempts.
+                return GateDecision(
+                    False,
+                    "deny-budget",
+                    "only scope lock and completion remain after repeated denials",
+                )
+            return GateDecision(
+                True, f"scope-{control_action}", "scope control transition"
+            )
+        if state == "locked":
+            decision = _admit_artifact_change_locked(turn, tool_name, args)
+            if not decision.allowed and self._consume_permit_locked(
+                connection, turn_id, fingerprint
+            ):
+                return GateDecision(
+                    True,
+                    "expansion-permit",
+                    "one-use expansion permit approved for this exact action",
+                    decision.resource,
+                )
+            return decision
+        if state == "pre-lock":
+            if int(turn["denied_count"]) >= deny_ceiling:
+                return GateDecision(
+                    False,
+                    "deny-budget",
+                    "too many denied attempts before the scope was locked",
+                )
+            return _admit_artifact_change_pre_lock(
+                tool_name,
+                action="lock-pending",
+                reason="the scope contract is not locked yet; only reading is allowed",
+            )
+        if state == "mutation-denied":
+            return _admit_artifact_change_pre_lock(
+                tool_name,
+                action="seed-verification-failed",
+                reason=(
+                    "the assigned contract could not be verified; "
+                    "mutation stays denied for this turn"
+                ),
+            )
+        return GateDecision(
+            False,
+            "turn-closed",
+            "scope contract is closed; report the result without more tools",
+        )
+
+    def admit_without_turn(
+        self,
+        *,
+        task_id: str,
+        session_id: str,
+        tool_name: str,
+    ) -> GateDecision:
+        """Fail-closed admission when no turn could be bound to a tool call.
+
+        If the task has an assignment seed, an unbindable call must not be
+        treated as an unenforced turn: only known read tools stay allowed.
+        """
+
+        seed = self.get_contract_seed(task_id)
+        if seed is None:
+            return GateDecision(
+                True, "not-enforced", "initial rollout audits this task class"
+            )
+        if tool_name in ARTIFACT_READ_TOOLS:
+            return GateDecision(
+                True, "inspect-unbound", "read-only inspection without a bound turn"
+            )
+        return GateDecision(
+            False,
+            "contract-unbound",
+            "this task has an assigned scope contract but the call cannot be bound to a turn",
+        )
 
     @staticmethod
     def _admit_closeout_discovery(
@@ -1150,6 +2140,485 @@ class GateStore:
                 return GateDecision(False, "push-target", "push must name origin and only locked branches")
             return GateDecision(True, "push-requested-commit", "push requested locked-target ref", resolved_workdir)
         return GateDecision(False, "git-subcommand", f"git {subcommand} is outside repository-closeout scope")
+
+
+# ---------------------------------------------------------------------------
+# S3-M1 artifact-change admission (independent of the closeout code path).
+#
+# Nothing below is shared with the closeout admission functions. Closeout is
+# the reference for how strict the argument inspection has to be, not a
+# source of shared helpers, and the artifact-change staging range is
+# deliberately narrower than closeout's.
+# ---------------------------------------------------------------------------
+
+ARTIFACT_CHANGE_CLASS_BUDGET: dict[str, int] = {
+    "max_wall_seconds": 3600,
+    "max_tool_calls": 96,
+    "max_denied_calls": 6,
+    "max_expansions": 2,
+    "background_processes": 0,
+    "subagents": 0,
+}
+
+ARTIFACT_ENFORCED_STATES = frozenset(
+    {"pre-lock", "locked", "mutation-denied", "completed"}
+)
+
+# Set to True only when the assignment path is wired for the lane being
+# enforced. The gate-side pre-lock default deny and the seed API ship in M1
+# regardless; turning this on makes seedless artifact-change turns start in
+# the bounded default-deny stage instead of staying audit-only.
+ARTIFACT_CHANGE_PRELOCK_ENFORCED = False
+
+_ARTIFACT_COMMIT_REWRITE_TOKENS = frozenset(
+    {
+        "--amend",
+        "--fixup",
+        "--squash",
+        "--no-verify",
+        "-n",
+        "-C",
+        "-c",
+        "--reuse-message",
+        "--reedit-message",
+        "--interactive",
+        "-i",
+        "--all",
+        "-a",
+        "--patch",
+        "-p",
+    }
+)
+_ARTIFACT_COMMIT_SAFE_FLAGS = frozenset({"-q", "--quiet", "-s", "--signoff"})
+
+
+def _artifact_short_bundle_contains(token: str, forbidden: set[str]) -> bool:
+    return (
+        token.startswith("-")
+        and not token.startswith("--")
+        and len(token) > 1
+        and any(character in forbidden for character in token[1:])
+    )
+
+
+def artifact_contract_scope(
+    contract: dict[str, Any],
+) -> tuple[str, tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+    """Locked root, write patterns, test patterns, opted-in template ids."""
+
+    targets = contract.get("targets") or {}
+    worktrees = targets.get("worktrees") or [""]
+    root = str(worktrees[0])
+    write = tuple(targets.get("write_paths") or ())
+    test = tuple(targets.get("test_paths") or ())
+    templates = tuple((contract.get("execution") or {}).get("templates") or ())
+    return root, write, test, templates
+
+
+def _admit_artifact_change_pre_lock(
+    tool_name: str,
+    *,
+    action: str,
+    reason: str,
+) -> GateDecision:
+    """Bounded default deny before the contract is locked.
+
+    Known read/search/list tools are admitted with an audit record only.
+    Structured writes, execution-bearing tools, and unknown tools are denied.
+    """
+
+    if tool_name in ARTIFACT_READ_TOOLS:
+        return GateDecision(
+            True, "inspect-before-lock", "read-only inspection before scope lock"
+        )
+    return GateDecision(False, action, reason)
+
+
+def _artifact_stage_targets(
+    tail: list[str], *, root: str, patterns: tuple[str, ...]
+) -> tuple[str, ...]:
+    tokens = list(tail)
+    if tokens and tokens[0] == "--":
+        tokens = tokens[1:]
+    if not tokens:
+        raise PathRejected(
+            "stage-unbounded", "staging must name explicit paths inside the write scope"
+        )
+    resolved: list[str] = []
+    for token in tokens:
+        if token.startswith("-"):
+            raise PathRejected("stage-option", "staging options are not admitted")
+        if token.startswith(":"):
+            raise PathRejected("stage-magic", "pathspec magic is not admitted")
+        if token in {".", "./"} or any(character in token for character in "*?["):
+            raise PathRejected(
+                "stage-unbounded", "bulk or wildcard staging is not admitted"
+            )
+        relative, absolute = normalize_repo_relative_path(token, root=root)
+        resolve_existing_ancestor(absolute, root=root)
+        if not scope_patterns_match(patterns, relative):
+            raise PathRejected(
+                "stage-scope", f"{relative} is outside the locked write scope"
+            )
+        resolved.append(relative)
+    return tuple(resolved)
+
+
+def _artifact_commit_verdict(tail: list[str]) -> tuple[bool, str, str]:
+    if not tail:
+        return (
+            False,
+            "commit-unsafe",
+            "artifact-change commits require an explicit message",
+        )
+    for token in tail:
+        if (
+            token in _ARTIFACT_COMMIT_REWRITE_TOKENS
+            or token.startswith(
+                ("--fixup=", "--squash=", "--reuse-message=", "--reedit-message=")
+            )
+            or _artifact_short_bundle_contains(token, {"n", "C", "c", "i", "a", "p"})
+        ):
+            return (
+                False,
+                "commit-rewrite",
+                "history rewrite, bulk staging, or verification bypass is outside artifact-change scope",
+            )
+    index = 0
+    has_message = False
+    while index < len(tail):
+        token = tail[index]
+        if token == "-m":
+            if index + 1 >= len(tail) or not str(tail[index + 1]).strip():
+                return (False, "commit-unsafe", "the commit message is missing")
+            has_message = True
+            index += 2
+            continue
+        if token.startswith("--message=") and len(token) > len("--message="):
+            has_message = True
+            index += 1
+            continue
+        if token in _ARTIFACT_COMMIT_SAFE_FLAGS:
+            index += 1
+            continue
+        return (
+            False,
+            "commit-unsafe",
+            "commit arguments exceed the bounded artifact-change syntax",
+        )
+    if not has_message:
+        return (
+            False,
+            "commit-unsafe",
+            "artifact-change commits require an explicit message",
+        )
+    return (True, "", "")
+
+
+def _admit_artifact_change_git(
+    contract: dict[str, Any],
+    tokens: list[str],
+    *,
+    root: str,
+    write_patterns: tuple[str, ...],
+    test_patterns: tuple[str, ...],
+) -> GateDecision:
+    if len(tokens) < 2:
+        return GateDecision(False, "git-subcommand", "git needs a concrete subcommand")
+    subcommand = tokens[1]
+    tail = list(tokens[2:])
+    if subcommand not in {"add", "commit"}:
+        return GateDecision(
+            False,
+            "git-subcommand",
+            f"git {subcommand} is outside the locked artifact-change scope",
+        )
+    bindings = (contract.get("targets") or {}).get("worktree_branches") or {}
+    expected_branch = str(bindings.get(root) or "")
+    if not expected_branch:
+        return GateDecision(
+            False, "target-closed", "the locked worktree has no branch binding"
+        )
+    try:
+        current = _validated_worktree_branches([root])[str(Path(root).resolve())]
+    except (ValueError, KeyError) as exc:
+        return GateDecision(False, "target-drift", str(exc))
+    if current != expected_branch:
+        return GateDecision(
+            False, "target-drift", "the worktree branch changed after scope lock"
+        )
+    patterns = tuple(write_patterns) + tuple(test_patterns)
+    if subcommand == "add":
+        try:
+            staged = _artifact_stage_targets(tail, root=root, patterns=patterns)
+        except PathRejected as exc:
+            return GateDecision(False, exc.code, str(exc))
+        return GateDecision(
+            True,
+            "stage-in-scope-change",
+            "stage paths inside the locked write scope",
+            ",".join(sorted(staged))[:400],
+        )
+    allowed, action, reason = _artifact_commit_verdict(tail)
+    if not allowed:
+        return GateDecision(False, action, reason)
+    return GateDecision(
+        True, "commit-in-scope-change", "create the local commit for this turn", root
+    )
+
+
+def _scan_template_tokens(
+    template: ExecutionTemplate,
+    tail: list[str],
+    *,
+    root: str,
+    patterns: tuple[str, ...],
+) -> GateDecision:
+    """Full-token inspection: explicit allowlist, unknown is denied at once."""
+
+    unsafe = GateDecision(
+        False, "execution-option", "an unknown or unsafe verification option was given"
+    )
+    stdin_form = GateDecision(
+        False,
+        "execution-stdin",
+        "taking verification targets from standard input is not admitted",
+    )
+    targets: list[str] = []
+    index = 0
+    target_mode = False
+    while index < len(tail):
+        token = tail[index]
+        if token == "-":
+            return stdin_form
+        if not target_mode and token == "--":
+            target_mode = True
+            index += 1
+            continue
+        if not target_mode and token.startswith("-"):
+            name, separator, value = token.partition("=")
+            if separator:
+                if name not in template.valued_flags or not _TEMPLATE_VALUE_RE.fullmatch(
+                    value
+                ):
+                    return unsafe
+                index += 1
+                continue
+            if token in template.boolean_flags:
+                index += 1
+                continue
+            if token in template.valued_flags:
+                if index + 1 >= len(tail) or not _TEMPLATE_VALUE_RE.fullmatch(
+                    tail[index + 1]
+                ):
+                    return unsafe
+                index += 2
+                continue
+            return unsafe
+        if any(character in token for character in "*?["):
+            return GateDecision(
+                False, "execution-target", "verification targets must be named files"
+            )
+        try:
+            relative, absolute = normalize_repo_relative_path(token, root=root)
+            resolve_existing_ancestor(absolute, root=root)
+        except PathRejected as exc:
+            return GateDecision(False, exc.code, str(exc))
+        if absolute.is_dir():
+            return GateDecision(
+                False,
+                "execution-target",
+                "directory-wide verification targets are not admitted",
+            )
+        if not scope_patterns_match(patterns, relative):
+            return GateDecision(
+                False,
+                "execution-target",
+                f"{relative} is outside the locked verification scope",
+            )
+        targets.append(relative)
+        index += 1
+    if not targets:
+        return GateDecision(
+            False, "execution-target", "verification requires explicit file targets"
+        )
+    return GateDecision(
+        True,
+        template.action,
+        f"opted-in {template.template_id} on locked file targets",
+        ",".join(sorted(targets))[:400],
+    )
+
+
+def _admit_artifact_change_execution(
+    tokens: list[str],
+    *,
+    root: str,
+    write_patterns: tuple[str, ...],
+    test_patterns: tuple[str, ...],
+    templates: tuple[str, ...],
+) -> GateDecision:
+    if not templates:
+        return GateDecision(
+            False,
+            "execution-not-opted-in",
+            "this contract did not opt in to execution-bearing verification",
+        )
+    patterns = tuple(write_patterns) + tuple(test_patterns)
+    for template_id in templates:
+        template = EXECUTION_TEMPLATES[template_id]
+        tail = _template_head_tail(template, tokens)
+        if tail is None:
+            continue
+        return _scan_template_tokens(template, tail, root=root, patterns=patterns)
+    return GateDecision(
+        False,
+        "execution-template",
+        "the command matches no opted-in verification template",
+    )
+
+
+def _admit_artifact_change_terminal(
+    contract: dict[str, Any],
+    args: dict[str, Any],
+    *,
+    root: str,
+    write_patterns: tuple[str, ...],
+    test_patterns: tuple[str, ...],
+    templates: tuple[str, ...],
+) -> GateDecision:
+    if bool(args.get("background")) or bool(args.get("pty")):
+        return GateDecision(
+            False,
+            "background-forbidden",
+            "background and interactive commands are not allowed",
+        )
+    command = str(args.get("command") or "").strip()
+    workdir = str(args.get("workdir") or "").strip()
+    if not workdir or not Path(workdir).is_absolute():
+        return GateDecision(
+            False, "target-missing", "terminal commands require an absolute workdir"
+        )
+    if str(Path(os.path.normpath(workdir))) != str(Path(os.path.normpath(root))):
+        return GateDecision(
+            False, "target-closed", "the terminal workdir is outside the locked worktree"
+        )
+    try:
+        tokens = _tokenize_single_shell_command(command)
+    except PermissionError:
+        return GateDecision(
+            False,
+            "compound-command",
+            "compound or shell-composed commands are not admitted",
+        )
+    except ValueError:
+        return GateDecision(
+            False, "command-parse", "the terminal command could not be parsed"
+        )
+    if not tokens:
+        return GateDecision(False, "command-parse", "the terminal command was empty")
+    if tokens[0] == "git":
+        return _admit_artifact_change_git(
+            contract,
+            tokens,
+            root=root,
+            write_patterns=write_patterns,
+            test_patterns=test_patterns,
+        )
+    return _admit_artifact_change_execution(
+        tokens,
+        root=root,
+        write_patterns=write_patterns,
+        test_patterns=test_patterns,
+        templates=templates,
+    )
+
+
+def _admit_artifact_change_locked(
+    turn: sqlite3.Row,
+    tool_name: str,
+    args: dict[str, Any],
+) -> GateDecision:
+    """Locked admission for artifact-change (first layer plus opted-in second)."""
+
+    contract = json.loads(turn["contract_json"] or "{}")
+    budget = contract.get("budget") or {}
+    if time.time() - float(turn["started_at"]) > int(budget.get("max_wall_seconds", 0)):
+        return GateDecision(
+            False, "wall-budget", "the artifact-change wall-clock budget is exhausted"
+        )
+    if int(turn["tool_count"]) >= int(budget.get("max_tool_calls", 0)):
+        return GateDecision(
+            False, "tool-budget", "the artifact-change tool budget is exhausted"
+        )
+    if int(turn["denied_count"]) >= int(budget.get("max_denied_calls", 0)):
+        return GateDecision(
+            False, "deny-budget", "too many denied out-of-scope attempts"
+        )
+    root, write_patterns, test_patterns, templates = artifact_contract_scope(contract)
+    if not root or not write_patterns:
+        return GateDecision(
+            False, "contract-invalid", "the locked contract carries no write scope"
+        )
+    if tool_name in ARTIFACT_READ_TOOLS:
+        return GateDecision(
+            True, "inspect-locked-target", "read-only inspection inside a locked turn"
+        )
+    if tool_name == "terminal":
+        return _admit_artifact_change_terminal(
+            contract,
+            args,
+            root=root,
+            write_patterns=write_patterns,
+            test_patterns=test_patterns,
+            templates=templates,
+        )
+    if tool_name in ARTIFACT_WRITE_TOOL_CATALOG:
+        try:
+            raw_targets = collect_write_targets(tool_name, args)
+        except PathRejected as exc:
+            return GateDecision(False, exc.code, str(exc))
+        patterns = tuple(write_patterns) + tuple(test_patterns)
+        resolved: list[str] = []
+        for raw in raw_targets:
+            try:
+                relative, absolute = normalize_repo_relative_path(raw, root=root)
+                resolve_existing_ancestor(absolute, root=root)
+            except PathRejected as exc:
+                return GateDecision(False, exc.code, str(exc))
+            if not scope_patterns_match(patterns, relative):
+                return GateDecision(
+                    False,
+                    "write-scope",
+                    f"{relative} is outside the locked write scope",
+                )
+            resolved.append(relative)
+        return GateDecision(
+            True,
+            "write-in-scope-change",
+            "write inside the locked write scope",
+            ",".join(sorted(resolved))[:400],
+        )
+    return GateDecision(
+        False,
+        "expansion-required",
+        f"{tool_name} is outside the locked artifact-change scope",
+    )
+
+
+# Task class -> locked admission function. Both admission and the G3
+# "the contract already permits this" stage read this single table, so a
+# newly enforced class never needs a hardcoded branch in either place.
+_LOCKED_ADMISSION_DISPATCH: dict[str, Any] = {
+    "repository-closeout": GateStore._admit_closeout_locked,
+    "artifact-change": _admit_artifact_change_locked,
+}
+
+
+def locked_admission_for(task_class: str) -> Any | None:
+    """The locked admission function for a task class, or None if unenforced."""
+
+    return _LOCKED_ADMISSION_DISPATCH.get(task_class)
 
 
 def _validate_contract_against_schema(contract: dict[str, Any]) -> None:
@@ -1434,7 +2903,17 @@ def validate_shell_payload(
         session_id=str(payload.get("session_id") or ""),
     )
     if not resolved_turn:
-        return {}
+        unbound = store.admit_without_turn(
+            task_id=str(extra.get("task_id") or ""),
+            session_id=str(payload.get("session_id") or ""),
+            tool_name=tool_name,
+        )
+        if unbound.allowed:
+            return {}
+        return {
+            "action": "block",
+            "message": f"PDA scope gate [{unbound.action}]: {unbound.reason}",
+        }
     decision = store.admit_tool(
         turn_id=resolved_turn,
         tool_call_id=str(extra.get("tool_call_id") or ""),
