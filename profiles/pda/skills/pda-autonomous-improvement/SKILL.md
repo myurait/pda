@@ -25,10 +25,12 @@ Use this phase unless a latest `pda-owner-approval` notification provides task I
 3. Convert the stated outcome into bounded acceptance criteria yourself. Record them on the card; do not ask the owner about reversible implementation details.
 4. Implement directly in the assigned worktree using focused TDD and bounded checks. A reasoning delegate is optional, never the execution owner. After two failed or non-progressing delegate attempts, continue directly; an exhausted `delegate_task` allowance is not a reason to stop the card.
 5. Commit only the card's files on its task branch. Do not merge, push, deploy, restart services, alter runtime/profile state outside the worktree, send externally, change credentials, delete durable data, or perform an irreversible operation.
+   - Under a seeded scope contract the admitted read-only Git forms are exactly `git status`, bounded `git diff`, `git rev-parse HEAD` (also `--verify HEAD` / `--abbrev-ref HEAD`), and `git branch --show-current`, inside the assigned worktree. Read the commit id with `rev-parse HEAD`; `git log` and remote-ref reads are not admitted. Other read-only Git forms are refused without counting against the deny ceiling, so a refused read never strands the card — take the admitted form instead of retrying variants.
+   - Stage by naming paths inside the card's write scope. A whole-tree stage with no path arguments is not admitted for this class.
 6. Build a `pda_approval` metadata object with:
-   - `schema_version: 1` and the exact `task_id`;
+   - `schema_version: 2` and the exact `task_id`;
    - owner outcome, impact, risk class, base SHA, head SHA, changed files;
-   - the exact absolute non-symlink linked-worktree root, canonical Git common-dir/worktree git-dir identities, and exact `pda-auto/<task_id>` branch;
+   - the exact absolute non-symlink linked-worktree root and exact `pda-auto/<task_id>` branch. Do **not** declare `git_dir` or `git_common_dir`: the approval gate derives those two canonical Git identities from the workspace itself and records them on the approval ledger, and a declared value is refused;
    - every verification command with `outcome=passed` and a short result;
    - residual risks;
    - an `independent_verification` report (schema: `schemas/verification-report-v1.schema.json`) produced by a verifier that is not the implementer — self-verification is never approvable (governance ADR D2; applies to every change per the 2026-08-22 owner decision). Interim honesty note: until the M2 verifier stage exists, enforcement checks label consistency (verifier ≠ implementer ≠ task assignee, `verified_head_sha` bound to the real Git HEAD); it does not yet prove a separate principal executed the verification;

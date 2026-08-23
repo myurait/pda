@@ -11,9 +11,12 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
+import importlib.util
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -157,10 +160,138 @@ def _ensure_worktree(repo: Path, root: Path, task_id: str, base_branch: str) -> 
     return path, branch
 
 
-def _route_task(conn, task, path: Path, branch: str, assignee: str) -> None:
+SCOPE_SEED_AUTHOR = "pda-improvement-cycle"
+
+
+def _load_scope_seed(repo: Path):
+    """Load the scope seed helper, anchored at the repository root.
+
+    The installer deploys this router as a standalone script into
+    ``~/.local/libexec/pda``, so a package-relative import would resolve during
+    tests and fail at runtime.  The repository is the anchor the router already
+    trusts for the committed activation policy, so the helper is loaded from
+    there by path.  When the repository copy is absent — running from a source
+    checkout as a package — the package import is used instead.
+    """
+
+    module_path = repo / "operations" / "improvement" / "scope_seed.py"
+    if module_path.is_file():
+        # Keyed by resolved path: two repository roots in one process must not
+        # share the first one's module object.
+        name = "pda_scope_seed_" + hashlib.sha256(
+            str(module_path.resolve()).encode("utf-8")
+        ).hexdigest()[:16]
+        cached = sys.modules.get(name)
+        if cached is not None:
+            return cached
+        spec = importlib.util.spec_from_file_location(name, module_path)
+        if spec is None or spec.loader is None:
+            raise CycleError(
+                "invalid-config", f"scope seed helper is not importable: {module_path}"
+            )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        except Exception as exc:
+            sys.modules.pop(name, None)
+            raise CycleError("invalid-config", f"scope seed helper failed to load: {exc}") from exc
+        return module
+    try:
+        from operations.improvement import scope_seed as module  # noqa: PLC0415
+    except ImportError as exc:
+        raise CycleError(
+            "invalid-config", f"scope seed helper not found: {module_path}"
+        ) from exc
+    return module
+
+
+def _comment_once(conn, task_id: str, author: str, body: str) -> None:
+    """Leave a card comment unless an identical one is already present.
+
+    The router runs on a timer, so a card that stays unroutable would collect
+    one copy of the same diagnostic per tick without this guard.
+    """
+
+    with kanban_db.write_txn(conn):
+        existing = conn.execute(
+            "SELECT 1 FROM task_comments WHERE task_id = ? AND author = ? "
+            "AND body = ? LIMIT 1",
+            (task_id, author, body),
+        ).fetchone()
+        if existing is None:
+            kanban_db.add_comment(conn, task_id, author, body)
+
+
+def _record_scope_seed(
+    conn, task, path: Path, branch: str, repo: Path, state_path: Path | None
+) -> None:
+    """Record the assignment-time scope seed before the task is claimed.
+
+    Ordering rationale: the seed store and the Kanban board are separate
+    databases and cannot share a transaction, so the failure mode is handled by
+    ordering instead.  The seed is written first, so a worker can never be
+    started by the assignment notification without its ceiling already in
+    place.  The converse ordering would allow a seedless worker on the
+    autonomous lane, which is the configuration this wiring exists to prevent.
+
+    A seed left behind by a later claim race is harmless: it is a ceiling keyed
+    by task id, an unassigned task having a ceiling constrains nothing, and the
+    next tick re-derives the identical payload and passes the gate's idempotent
+    path.
+    """
+
+    scope_seed = _load_scope_seed(repo)
+    try:
+        scope_seed.record_seed(
+            repo_root=repo,
+            task_id=task.id,
+            body=task.body,
+            worktree=path,
+            branch=branch,
+            state_path=state_path,
+        )
+    except scope_seed.ScopeSeedError as exc:
+        if exc.kind == "missing-scope-declaration":
+            body = (
+                "自動改善サイクルはこのカードを割り当てませんでした。"
+                "機械可読な書込スコープ宣言が本文にありません。"
+                f"```{scope_seed.SCOPE_BLOCK_INFO}``` ブロックへ write_paths を宣言してください"
+                "（必要なら test_paths / execution / git_write も宣言できます。"
+                "git_write はクラス既定からの縮小のみ可能です）。"
+            )
+        else:
+            body = (
+                "自動改善サイクルはこのカードを割り当てませんでした。"
+                f"書込スコープ宣言をゲートが受理しませんでした: {exc}"
+                "宣言を修正するか、スコープを変更する場合は新しいカードへ分けてください。"
+            )
+        _comment_once(conn, task.id, SCOPE_SEED_AUTHOR, body)
+        raise CycleError(exc.kind, str(exc)) from exc
+
+
+def _route_task(
+    conn,
+    task,
+    path: Path,
+    branch: str,
+    assignee: str,
+    *,
+    repo: Path | None = None,
+    scope_seed_enabled: bool = False,
+    scope_seed_state_path: Path | None = None,
+) -> None:
     current = kanban_db.get_task(conn, task.id)
     if current is None or current.status != "ready" or current.assignee is not None:
         raise CycleError("claim-race", "task changed before routing")
+    if scope_seed_enabled:
+        if repo is None:
+            raise CycleError(
+                "invalid-config", "scope seed recording requires the repository root"
+            )
+        # Seed -> assignment CAS -> notification. The notification is what wakes
+        # the gateway's Kanban dispatcher, so it stays last.
+        _record_scope_seed(conn, current, path, branch, repo, scope_seed_state_path)
     forced_skills = list(current.skills or [])
     if "pda-autonomous-improvement" not in forced_skills:
         forced_skills.append("pda-autonomous-improvement")
@@ -235,6 +366,19 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                 "reason": "disabled-by-committed-policy",
             }
 
+        # The seed switch is read from the committed policy, not the rendered
+        # runtime config, for the same reason the activation gate above is:
+        # recording a seed is what puts the autonomous lane under hard
+        # enforcement (D-S3-8), so the decision must live in an owner-committed
+        # file rather than in derived state that can be edited in place.
+        # Default false: this wiring ships inert, and turning it on is the next
+        # gate's approval.
+        scope_seed_policy = policy.get("scope_seed")
+        scope_seed_enabled = bool(
+            isinstance(scope_seed_policy, dict)
+            and scope_seed_policy.get("enabled", False)
+        )
+
         tenant = str(config.get("tenant") or "").strip()
         assignee = str(config.get("assignee") or "").strip()
         if not tenant or not assignee:
@@ -269,7 +413,15 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                 capacity = min(max_wip - wip, per_tick)
                 for task in _eligible_tasks(conn, tenant)[:capacity]:
                     path, branch = _ensure_worktree(repo, root, task.id, base_branch)
-                    _route_task(conn, task, path, branch, assignee)
+                    _route_task(
+                        conn,
+                        task,
+                        path,
+                        branch,
+                        assignee,
+                        repo=repo,
+                        scope_seed_enabled=scope_seed_enabled,
+                    )
                     assigned.append(task.id)
                 return {
                     "ok": True,

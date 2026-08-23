@@ -11,6 +11,8 @@ from hermes_cli import kanban_db
 import operations.improvement.pda_improvement_cycle as cycle_module
 from operations.improvement.pda_improvement_cycle import CycleError, _route_task, run_cycle
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
 
 def _git(repo: Path, *args: str) -> str:
     result = subprocess.run(
@@ -39,9 +41,14 @@ def _repo(tmp_path: Path) -> Path:
     return repo
 
 
-def _set_committed_policy(repo: Path, *, enabled: bool) -> None:
+def _set_committed_policy(
+    repo: Path, *, enabled: bool, scope_seed: bool | None = None
+) -> None:
+    policy: dict = {"schema_version": 1, "enabled": enabled}
+    if scope_seed is not None:
+        policy["scope_seed"] = {"enabled": scope_seed}
     (repo / "continuity" / "autonomous-improvement.json").write_text(
-        json.dumps({"schema_version": 1, "enabled": enabled}), encoding="utf-8"
+        json.dumps(policy), encoding="utf-8"
     )
 
 
@@ -257,3 +264,123 @@ def test_stopped_or_non_ready_cards_are_never_routed(tmp_path, monkeypatch):
     with kanban_db.connect() as conn:
         assert kanban_db.get_task(conn, stopped).assignee is None
         assert kanban_db.get_task(conn, todo).assignee is None
+
+
+def _scope_state(tmp_path: Path) -> Path:
+    return (
+        tmp_path
+        / "home"
+        / "plugin-data"
+        / "pda-scope-gate"
+        / "scope-gate.db"
+    )
+
+
+def test_the_seed_path_is_inert_while_the_committed_policy_omits_it(
+    tmp_path, monkeypatch
+):
+    """Default false: a card with no scope declaration still routes, and no
+    seed store is created (D-S3-8; activation is the next gate's decision)."""
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        task_id = _task(conn, "宣言のないカード", priority=100)
+
+    result = run_cycle(config)
+
+    assert result["assigned"] == [task_id]
+    assert not _scope_state(tmp_path).exists()
+
+
+def test_an_explicitly_disabled_seed_policy_records_nothing(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=False)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        task_id = _task(conn, "宣言のないカード", priority=100)
+
+    result = run_cycle(config)
+
+    assert result["assigned"] == [task_id]
+    assert not _scope_state(tmp_path).exists()
+
+
+def test_an_enabled_seed_policy_refuses_a_card_without_a_scope_declaration(
+    tmp_path, monkeypatch
+):
+    """With the switch on, a machine-readable write scope is a Ready-condition:
+    an undeclared card is left unassigned with a card comment, rather than
+    being handed to a worker under a ceiling nobody chose."""
+
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=True)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        task_id = _task(conn, "宣言のないカード", priority=100)
+
+    result = run_cycle(config)
+
+    assert result["ok"] is False
+    assert result["error_kind"] == "missing-scope-declaration"
+    assert result["assigned"] == []
+    with kanban_db.connect() as conn:
+        assert kanban_db.get_task(conn, task_id).assignee is None
+        comments = conn.execute(
+            "SELECT body FROM task_comments WHERE task_id = ? AND author = ?",
+            (task_id, "pda-improvement-cycle"),
+        ).fetchall()
+        assert len(comments) == 1
+        assert "pda-scope" in comments[0]["body"]
+
+
+def test_an_enabled_seed_policy_seeds_a_declared_card(tmp_path, monkeypatch):
+    monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
+    repo = _repo(tmp_path)
+    _set_committed_policy(repo, enabled=True, scope_seed=True)
+    config = _config(tmp_path, repo)
+    kanban_db.init_db()
+    with kanban_db.connect() as conn:
+        task_id = _task(conn, "宣言済みカード", priority=100)
+        conn.execute(
+            "UPDATE tasks SET body = ? WHERE id = ?",
+            (
+                "目的: 直す\n\n```pda-scope\n"
+                '{"write_paths": ["src/*.py"]}\n```\n',
+                task_id,
+            ),
+        )
+        conn.commit()
+
+    result = run_cycle(config)
+
+    assert result["assigned"] == [task_id]
+    scope_gate = _load_scope_gate(repo)
+    seed = scope_gate.GateStore(_scope_state(tmp_path)).get_contract_seed(task_id)
+    assert seed is not None
+    assert seed["write_paths"] == ["src/*.py"]
+    assert seed["branch"] == f"pda-auto/{task_id}"
+    assert seed["git_write"] == ["stage", "commit"]
+    # Second layer stays shut and test assets are not writable by default.
+    assert seed["execution"] == []
+    assert seed["test_paths"] == []
+
+
+def _load_scope_gate(repo: Path):
+    import importlib.util
+
+    path = REPO_ROOT / "integrations" / "hermes-scope-gate" / "scope_gate.py"
+    spec = importlib.util.spec_from_file_location("cycle_test_scope_gate", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    import sys as _sys
+
+    _sys.modules["cycle_test_scope_gate"] = module
+    spec.loader.exec_module(module)
+    return module

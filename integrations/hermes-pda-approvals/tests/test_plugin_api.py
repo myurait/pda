@@ -65,16 +65,17 @@ def _approval(
     workspace: Path,
     branch: str,
 ) -> dict:
+    # Judgment A (2026-08-23): git_common_dir / git_dir left this object. The
+    # approval gate derives them from the workspace and stores them on the
+    # ledger row, so a worker that still declares them is refused.
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "task_id": task_id,
         "owner_outcome": "PDA改善が検証済み成果として反映可能になる",
         "base_sha": base,
         "head_sha": head,
         "workspace_path": str(workspace.resolve()),
         "branch_name": branch,
-        "git_common_dir": _git_path(workspace, "--git-common-dir"),
-        "git_dir": _git_path(workspace, "--git-dir"),
         "changed_files": ["change.txt"],
         "verification": [
             {"command": "pytest -q", "outcome": "passed", "summary": "1 passed"}
@@ -321,9 +322,14 @@ def test_symlinked_workspace_path_is_not_approvable(tmp_path, monkeypatch):
     assert any("symlink" in error for error in pending["errors"])
 
 
-def test_git_worktree_identity_is_digest_bound(tmp_path, monkeypatch):
+@pytest.mark.parametrize("key", ["git_dir", "git_common_dir"])
+def test_a_declared_gate_derived_identity_is_refused(tmp_path, monkeypatch, key):
+    """Judgment A: these two values are the gate's to derive, not the worker's
+    to declare. Nothing downstream validates a declaration, so one must not be
+    allowed to travel inside the approved digest."""
+
     module, client, task_id, _workspace, payload = _review_task(tmp_path, monkeypatch)
-    payload["git_dir"] = str((tmp_path / "different-git-dir").resolve())
+    payload[key] = str((tmp_path / "declared-by-the-worker").resolve())
     with kanban_db.connect() as conn:
         conn.execute(
             "UPDATE task_runs SET metadata = ? WHERE task_id = ? AND outcome = 'review_requested'",
@@ -334,7 +340,10 @@ def test_git_worktree_identity_is_digest_bound(tmp_path, monkeypatch):
     pending = client.get("/pending").json()["items"][0]
 
     assert pending["eligible"] is False
-    assert any("git_dir" in error for error in pending["errors"])
+    assert any(
+        key in error and "must not be declared" in error
+        for error in pending["errors"]
+    )
 
 
 def test_primary_checkout_is_not_an_isolated_task_worktree(tmp_path, monkeypatch):
@@ -438,7 +447,7 @@ def test_approve_is_fail_closed_on_digest_or_git_head_drift(tmp_path, monkeypatc
 
 
 def test_approve_records_control_owned_marker_then_reopens_for_finalization(tmp_path, monkeypatch):
-    module, client, task_id, _repo_path, payload = _review_task(tmp_path, monkeypatch)
+    module, client, task_id, workspace, payload = _review_task(tmp_path, monkeypatch)
     digest = module.approval_digest(payload)
 
     response = client.post(f"/tasks/{task_id}/approve", json={"digest": digest})
@@ -468,8 +477,12 @@ def test_approve_records_control_owned_marker_then_reopens_for_finalization(tmp_
         assert ledger["head_sha"] == payload["head_sha"]
         assert ledger["workspace_path"] == payload["workspace_path"]
         assert ledger["branch_name"] == payload["branch_name"]
-        assert ledger["git_common_dir"] == payload["git_common_dir"]
-        assert ledger["git_dir"] == payload["git_dir"]
+        # Judgment A: the ledger carries the gate's own derivation, so it must
+        # equal what Git reports for the workspace, not anything the worker said.
+        assert ledger["git_common_dir"] == _git_path(workspace, "--git-common-dir")
+        assert ledger["git_dir"] == _git_path(workspace, "--git-dir")
+        assert "git_common_dir" not in payload
+        assert "git_dir" not in payload
         assert ledger["approved_by_provider"] == "basic"
         assert ledger["approved_by_user_id"] == "owner"
         assert ledger["revoked_at"] is None
@@ -695,8 +708,10 @@ def test_failed_request_changes_cas_rolls_back_revocation_and_comment(
                 payload["head_sha"],
                 payload["workspace_path"],
                 payload["branch_name"],
-                payload["git_common_dir"],
-                payload["git_dir"],
+                # The ledger carries the gate's derivation (Judgment A), so a
+                # pre-seeded row has to agree with what Git reports now.
+                _git_path(_workspace, "--git-common-dir"),
+                _git_path(_workspace, "--git-dir"),
                 int(run["id"]),
                 1,
                 "basic",
@@ -803,7 +818,7 @@ def test_non_pda_or_non_review_tasks_are_not_approvable(tmp_path, monkeypatch):
 
 def _contract_for_unit_tests(task_id: str = "t_unit0001") -> dict:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "task_id": task_id,
         "owner_outcome": "unit outcome",
         "impact": "unit impact",
@@ -811,8 +826,6 @@ def _contract_for_unit_tests(task_id: str = "t_unit0001") -> dict:
         "head_sha": "b" * 40,
         "workspace_path": "/x/worktree",
         "branch_name": f"pda-auto/{task_id}",
-        "git_common_dir": "/x/repo/.git",
-        "git_dir": "/x/repo/.git/worktrees/task",
         "changed_files": ["src/app.py"],
         "verification": [
             {"command": "pytest -q", "outcome": "passed", "summary": "ok"}

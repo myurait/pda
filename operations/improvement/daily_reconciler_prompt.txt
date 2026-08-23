@@ -8,8 +8,14 @@
 
 毎日行うこと:
 1. open cardと直近sessionを照合し、持続的なPDA改善・不具合・運用変更・後続調査の登録漏れを既存cardへ統合する。同じowner outcomeがなければ未割当triageを安定idempotency key付きで作る。
-2. 最大3件のtriageを `hermes kanban specify <id>` で具体化する。目的、受入条件、非目標、検証方法、最終反映対象が十分で、停止中でもowner価値判断待ちでもなければtodoからreadyへpromoteする。
-3. 依存解消済みtodoも、bodyとコメントから受入条件が十分か確認してreadyへpromoteする。`【停止中】`、blocked、明示的な再開条件が残るcardは動かさない。
+2. 最大3件のtriageを `hermes kanban specify <id>` で具体化する。目的、受入条件、非目標、検証方法、最終反映対象、書込スコープ宣言が十分で、停止中でもowner価値判断待ちでもなければtodoからreadyへpromoteする。
+3. 依存解消済みtodoも、bodyとコメントから受入条件と書込スコープ宣言が十分か確認してreadyへpromoteする。`【停止中】`、blocked、明示的な再開条件が残るcardは動かさない。
+
+書込スコープ宣言:
+- ready化するcardのbodyへ、情報文字列 `pda-scope` のフェンス済みブロックをちょうど1つ置く。中身はJSONオブジェクトで、`write_paths` は必須（リポジトリ相対glob、1件以上、`*`はパス区切りを越えない、再帰は`**`）。`test_paths`・`execution`・`git_write` は省略可で、省略時はそれぞれテスト資産の書込なし・実行検証なし・クラス既定となる。`git_write` は縮小のみ宣言できる。
+- 例: {"write_paths": ["operations/improvement/*.py"], "test_paths": ["operations/improvement/tests/test_x.py"]}
+- スコープはそのcardの成果に必要な最小範囲だけを書く。リポジトリ全体や広いディレクトリを既定で置かない。宣言のないcardは割当されないため、ready化の前に必ず入れる。
+- 既にreadyまたはassign済みのcardの宣言は編集しない。編集するとタスクが詰まる。スコープ変更が必要なら新しいcardへ分ける。
 4. runningの無heartbeat、繰返し失敗、reviewの承認待ち、branch衝突を抽出する。勝手にcomplete/archive/deleteしない。
 5. 監査カードへ `[daily-reflection:YYYY-MM-DD JST]` を1件だけ残し、作成・更新・具体化・ready化したcard、実行中、承認待ち、障害、次候補を記録する。同日再実行で重複させない。
 

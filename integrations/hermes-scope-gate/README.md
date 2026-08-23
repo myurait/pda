@@ -160,18 +160,32 @@ against the installed Hermes runtime.
 - Bounded operations remain audit-only until pilot evidence supports S2.
 - `artifact-change` enforcement is not switched on for any lane by default: with no assignment seed
   and no self lock, a turn stays audit-only. The pre-lock default-deny stage can be turned on with
-  `PDA_SCOPE_GATE_ARTIFACT_PRELOCK=1` and is off otherwise. Wiring the assignment path for the
-  autonomous lane is an owner decision (D-S3-6), and whether the default-deny stage should already
-  apply to the interactive lane is D-S3-8.
+  `PDA_SCOPE_GATE_ARTIFACT_PRELOCK=1` and is off otherwise. The assignment path for the autonomous
+  lane is wired (D-S3-6 case A) but ships inert: recording a seed is what makes the lane enforced,
+  and the router only records one when `scope_seed.enabled` is true in the committed improvement
+  policy, which defaults to false. Turning it on is a separate owner decision. Whether the
+  default-deny stage should already apply to the interactive lane is D-S3-8 (default off).
+- A seeded card must carry a machine-readable write scope declaration; the router refuses to assign
+  a card without one rather than supplying a tenant-wide default. The seed is a standing per-task
+  ceiling, so editing the declaration after assignment makes the card stall instead of installing a
+  wider ceiling.
 - The read-only Git subset is narrower than closeout's on purpose (D-S3-7): remote-ref reads serve
   push, which this class does not have, and `log` has no bounded-argument implementation to reuse, so
   `rev-parse HEAD` is the admitted way to read the commit id.
 - The canonical Git directory identities the approval metadata asks for (`git_dir`,
-  `git_common_dir`) have no admitted form inside the contract. Attempting them is refused without
-  spending the deny ceiling, so the turn is not stranded, but the values themselves have to come
-  from somewhere other than the worker's own reads. Open in the design document.
+  `git_common_dir`) still have no admitted form inside the contract, and attempting them is refused
+  without spending the deny ceiling. They are no longer the worker's to supply: the approval gate
+  derives them from the workspace and records them on its ledger, and the approval metadata schema
+  (now version 2) refuses them if declared. Resolved as Judgment A in the design document; the
+  admitted set here is unchanged.
 - Read/search tools carry no path bound in this class: the first layer's guarantee is about the
-  write boundary, and the read-only Git subset, not about every read. Recorded as a residue.
+  write boundary — the mutating side — and about the read-only Git subset, not about every read.
+  This is a confidentiality residue rather than a write-boundary one, because what it exposes is
+  content outside the locked worktree (other tasks' working areas, session records) rather than
+  local history. Judgment B merged the fix into the second layer's M2 requirement for
+  namespace-isolated execution, which bounds every stage and every tool at the OS level instead of
+  by argument inspection. With the seed switch off by default, the exposure does not arise in
+  operation at M1 exit.
 - What holds read-only Git inside the locked worktree is the seed check that fixed the locked root
   at a worktree top level plus Git's own repository discovery from there; the workdir binding pins
   the working directory but does not by itself bound the arguments. `git status` arguments are

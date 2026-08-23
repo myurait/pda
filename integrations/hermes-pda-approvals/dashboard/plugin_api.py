@@ -16,6 +16,7 @@ import re
 import secrets
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
@@ -31,6 +32,18 @@ TENANT = "pda-improvement"
 OWNER_APPROVAL_AUTHOR = "pda-owner-approval"
 OWNER_CHANGES_AUTHOR = "pda-owner-changes"
 APPROVAL_SCHEMA = "PDA_OWNER_APPROVAL_V1"
+
+# Bumped to 2 by Judgment A (2026-08-23): the canonical Git directory
+# identities left the worker-authored metadata object and are now derived by
+# the approval gate. Old workers still emitting version 1 fail validation
+# instead of silently having their declarations ignored.
+APPROVAL_METADATA_SCHEMA_VERSION = 2
+
+# Keys the gate derives from the workspace. They are stored on the approval
+# ledger row and reproduced in the owner marker, but they never appear in the
+# worker-authored metadata object, so they are outside the approved digest.
+GATE_DERIVED_IDENTITY_KEYS = ("git_common_dir", "git_dir")
+
 _ALLOWED_RISK_CLASSES = {
     "local-reversible",
     "service-restart",
@@ -263,8 +276,10 @@ def validate_approval(task_id: str, value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["pda_approval metadata is missing"]
-    if value.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    if value.get("schema_version") != APPROVAL_METADATA_SCHEMA_VERSION:
+        errors.append(
+            f"schema_version must be {APPROVAL_METADATA_SCHEMA_VERSION}"
+        )
     if value.get("task_id") != task_id:
         errors.append("task_id does not match the review card")
     expected_branch = f"pda-auto/{task_id}"
@@ -276,15 +291,16 @@ def validate_approval(task_id: str, value: Any) -> list[str]:
         or not Path(str(declared_workspace)).expanduser().is_absolute()
     ):
         errors.append("workspace_path must be an absolute path")
-    for key in ("git_common_dir", "git_dir"):
-        value_path = value.get(key)
-        if (
-            not _nonempty_string(value_path)
-            or not Path(str(value_path)).expanduser().is_absolute()
-        ):
-            errors.append(f"{key} must be an absolute path")
-    if value.get("git_common_dir") == value.get("git_dir"):
-        errors.append("git_dir must identify a linked worktree")
+    # Judgment A (2026-08-23): the canonical Git identities are derived by the
+    # approval gate from the workspace itself, never declared by the worker.
+    # There is no admitted form inside the first-layer contract for the worker
+    # to read them, and a declared value would only be compared against a
+    # derivation the gate already performs. Rejecting them when present keeps
+    # the audit surface honest: nothing downstream validates these keys any
+    # more, so a stale declaration must not travel inside the digest.
+    for key in GATE_DERIVED_IDENTITY_KEYS:
+        if key in value:
+            errors.append(f"{key} must not be declared; the gate derives it")
     for key in ("owner_outcome", "impact"):
         if not _nonempty_string(value.get(key)):
             errors.append(f"{key} is required")
@@ -392,13 +408,29 @@ def _git(path: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> list[str]:
+@dataclass(frozen=True)
+class WorkspaceCheck:
+    """Outcome of one workspace verification pass.
+
+    ``identities`` carries the canonical Git directory identities the gate
+    derived from the workspace during this very pass (Judgment A). It is
+    populated only when the derivation succeeded, so a caller that needs to
+    persist or compare the identities must check ``identities`` rather than
+    assume the absence of errors implies presence.
+    """
+
+    errors: list[str]
+    identities: dict[str, str] | None = None
+
+
+def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> WorkspaceCheck:
     errors: list[str] = []
+    identities: dict[str, str] | None = None
     if not task.workspace_path:
-        return ["task has no workspace_path"]
+        return WorkspaceCheck(["task has no workspace_path"])
     path = Path(task.workspace_path).expanduser()
     if not path.is_absolute() or not path.is_dir():
-        return ["task workspace is not an existing absolute directory"]
+        return WorkspaceCheck(["task workspace is not an existing absolute directory"])
     try:
         lexical_path = Path(os.path.abspath(path))
         real_path = Path(os.path.realpath(path))
@@ -421,10 +453,15 @@ def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> list[str
         ).resolve()
         if resolved_git_dir == resolved_common_dir:
             errors.append("workspace is not a linked worktree")
-        if str(resolved_git_dir) != approval.get("git_dir"):
-            errors.append("workspace git_dir no longer matches the approval request")
-        if str(resolved_common_dir) != approval.get("git_common_dir"):
-            errors.append("workspace git_common_dir no longer matches the approval request")
+        else:
+            # Judgment A: this derivation is the sole source of the canonical
+            # identities. The substantive property (the target is a linked
+            # worktree, i.e. not the primary repository) is decided by the
+            # comparison above and never consulted a declared value.
+            identities = {
+                "git_dir": str(resolved_git_dir),
+                "git_common_dir": str(resolved_common_dir),
+            }
         head = _git(path, "rev-parse", "HEAD")
         actual_branch = _git(path, "branch", "--show-current")
         if actual_branch != declared_branch:
@@ -471,7 +508,8 @@ def verify_workspace(task: kanban_db.Task, approval: dict[str, Any]) -> list[str
                             )
     except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
         errors.append(f"Git verification failed: {exc}")
-    return errors
+        identities = None
+    return WorkspaceCheck(errors, identities)
 
 
 def _task_or_404(conn, task_id: str) -> kanban_db.Task:
@@ -502,18 +540,40 @@ def _ledger_matches_approval(
     owner_provider: str,
     owner_user_id: str,
 ) -> bool:
+    # The canonical Git identities are no longer part of the worker-authored
+    # object (Judgment A), so they cannot be cross-checked here. Their drift
+    # check lives where their provenance now is: the freshly derived values
+    # are compared against the ledger row by the callers of verify_workspace.
     expected = {
         "base_sha": approval.get("base_sha"),
         "head_sha": approval.get("head_sha"),
         "workspace_path": approval.get("workspace_path"),
         "branch_name": approval.get("branch_name"),
-        "git_common_dir": approval.get("git_common_dir"),
-        "git_dir": approval.get("git_dir"),
         "review_run_id": review_run_id,
         "approved_by_provider": owner_provider,
         "approved_by_user_id": owner_user_id,
     }
     return all(row.get(key) == value for key, value in expected.items())
+
+
+def _identity_drift_errors(
+    row: dict[str, Any], identities: dict[str, str] | None
+) -> list[str]:
+    """Compare freshly derived Git identities against a stored ledger row.
+
+    Judgment A moved the provenance of these two values from the worker to the
+    gate, so the two-point drift check became "derivation at approval time vs
+    derivation at this time", mediated by the ledger row. A missing derivation
+    is an error rather than a pass: fail closed when the values that bind the
+    approval to a specific linked worktree could not be read.
+    """
+    if not identities:
+        return ["workspace Git identities could not be derived"]
+    errors: list[str] = []
+    for key in GATE_DERIVED_IDENTITY_KEYS:
+        if row.get(key) != identities.get(key):
+            errors.append(f"workspace {key} no longer matches the approval ledger")
+    return errors
 
 
 def _verification_identity_errors(task, approval: Any) -> list[str]:
@@ -552,7 +612,7 @@ def _pending_item(conn, task: kanban_db.Task) -> dict[str, Any]:
     if task.assignee not in (None, "default"):
         errors.append("task is assigned to a non-finalizer profile")
     if not errors and isinstance(approval, dict):
-        errors.extend(verify_workspace(task, approval))
+        errors.extend(verify_workspace(task, approval).errors)
     return {
         "task_id": task.id,
         "title": task.title,
@@ -658,7 +718,16 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
             ):
                 prior_errors.append("prior approval ledger identity has drifted")
             if not prior_errors and isinstance(prior_approval, dict):
-                prior_errors.extend(verify_workspace(task, prior_approval))
+                prior_check = verify_workspace(task, prior_approval)
+                prior_errors.extend(prior_check.errors)
+                # Judgment A: the identity drift check that used to compare the
+                # derivation against the worker's declaration now compares it
+                # against the ledger row written at first approval. Replaying
+                # an approval must not succeed against a moved worktree.
+                if not prior_errors:
+                    prior_errors.extend(
+                        _identity_drift_errors(existing, prior_check.identities)
+                    )
             if prior_errors:
                 raise HTTPException(status_code=409, detail={"errors": prior_errors})
             return {
@@ -685,9 +754,11 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
         actual_digest = approval_digest(approval)
         if not secrets.compare_digest(actual_digest, body.digest):
             raise HTTPException(status_code=409, detail="approval digest is stale or mismatched")
-        workspace_errors = verify_workspace(task, approval)
-        if workspace_errors:
-            raise HTTPException(status_code=409, detail={"errors": workspace_errors})
+        workspace_check = verify_workspace(task, approval)
+        if workspace_check.errors:
+            raise HTTPException(
+                status_code=409, detail={"errors": workspace_check.errors}
+            )
 
         assert handoff is not None and handoff.get("run_id") is not None
         review_run_id = int(handoff["run_id"])
@@ -708,17 +779,30 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
                 or not secrets.compare_digest(approval_digest(fresh_approval), actual_digest)
             ):
                 raise HTTPException(status_code=409, detail="review handoff changed during approval")
-            fresh_workspace_errors = verify_workspace(fresh_task, fresh_approval)
-            if fresh_workspace_errors:
-                raise HTTPException(status_code=409, detail={"errors": fresh_workspace_errors})
+            fresh_check = verify_workspace(fresh_task, fresh_approval)
+            if fresh_check.errors:
+                raise HTTPException(status_code=409, detail={"errors": fresh_check.errors})
+            # Judgment A: the identities persisted below come from this
+            # in-transaction derivation, not from an earlier pass, so the value
+            # written to the ledger is the one verified inside the window that
+            # the fresh re-verification exists to close.
+            fresh_identities = fresh_check.identities
+            if not fresh_identities:
+                raise HTTPException(
+                    status_code=409,
+                    detail="workspace Git identities could not be derived",
+                )
 
             current_existing = _existing_approval(conn, task_id, actual_digest)
-            if current_existing is not None and not _ledger_matches_approval(
-                current_existing,
-                approval,
-                review_run_id=review_run_id,
-                owner_provider=owner_provider,
-                owner_user_id=owner_user_id,
+            if current_existing is not None and (
+                not _ledger_matches_approval(
+                    current_existing,
+                    approval,
+                    review_run_id=review_run_id,
+                    owner_provider=owner_provider,
+                    owner_user_id=owner_user_id,
+                )
+                or _identity_drift_errors(current_existing, fresh_identities)
             ):
                 raise HTTPException(status_code=409, detail="prior approval identity is invalid")
             approved_at = int(time.time())
@@ -760,8 +844,8 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
                         approval["head_sha"],
                         approval["workspace_path"],
                         approval["branch_name"],
-                        approval["git_common_dir"],
-                        approval["git_dir"],
+                        fresh_identities["git_common_dir"],
+                        fresh_identities["git_dir"],
                         review_run_id,
                         approved_at,
                         owner_provider,
@@ -777,8 +861,19 @@ def approve_task(task_id: str, body: ApproveBody, request: Request):
                 "head_sha": approval["head_sha"],
                 "workspace_path": approval["workspace_path"],
                 "branch_name": approval["branch_name"],
-                "git_common_dir": approval["git_common_dir"],
-                "git_dir": approval["git_dir"],
+                # Gate-derived (Judgment A). On the idempotent replay path the
+                # ledger row is authoritative, and the drift check above has
+                # already proven the row agrees with this derivation.
+                "git_common_dir": (
+                    str(current_existing["git_common_dir"])
+                    if current_existing is not None
+                    else fresh_identities["git_common_dir"]
+                ),
+                "git_dir": (
+                    str(current_existing["git_dir"])
+                    if current_existing is not None
+                    else fresh_identities["git_dir"]
+                ),
                 "review_run_id": review_run_id,
                 "approved_at": (
                     int(current_existing["approved_at"])

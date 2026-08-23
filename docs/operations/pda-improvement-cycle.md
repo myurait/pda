@@ -41,11 +41,28 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 1. 直近のowner request-bearing sessionと`pda-improvement`のopen cardを読む。
 2. 即時捕捉から漏れた持続的な依頼を、未割当`triage`として追加する。
 3. 重複候補は削除せず、正本候補と差分をコメントに残す。
-4. 最大3件の`triage`をHermes specifierで具体化し、目的、受入条件、非目標、検証方法、最終反映対象が十分で停止・価値判断ゲートがなければ`ready`へ進める。
+4. 最大3件の`triage`をHermes specifierで具体化し、目的、受入条件、非目標、検証方法、最終反映対象、書込スコープ宣言が十分で停止・価値判断ゲートがなければ`ready`へ進める。
 5. `running`の停滞、繰り返し失敗、`review`の承認待ち、branch衝突を抽出する。明示的な停止中カードは再開しない。
 6. その日の変更、実行中、承認待ち、未解決リスク、次候補を監査カードへJST日付付きで1コメントだけ残す。
 
 同一日の再実行は既存の日次コメントを読み、カードとコメントを重複させない。
+
+### Ready化条件としての書込スコープ宣言
+
+`scope_seed.enabled`が有効な間、Readyカードは本文に機械可読な書込スコープ宣言を1つだけ持つ。宣言はオーケストレーターが読み、割当時にスコープ審査ゲートの契約seedとして記録される。宣言のないカードは割当されず、理由がカードへ1件コメントされる。tenant全体の既定スコープは置かない。
+
+宣言は情報文字列`pda-scope`のフェンス済みブロックへJSONオブジェクトで書く。
+
+```
+{"write_paths": ["operations/improvement/*.py"], "test_paths": ["operations/improvement/tests/test_x.py"]}
+```
+
+- `write_paths`は必須で、リポジトリ相対のglobパターンを1件以上。`*`はパス区切りを越えず、再帰は`**`で表す。
+- `test_paths`は省略可。省略時はテスト資産の書込を許可しない。
+- `execution`は省略可。省略時は実行を伴う検証を一切許可しない。許可する場合は検証テンプレートIDのみを書く。
+- `git_write`は省略可。省略時はクラス既定（`stage`と`commit`）で、宣言できるのは縮小のみ。
+
+宣言はタスク単位の上限であり、割当後の編集はできない。編集された状態で次周期に入るとカードが詰まり、理由がコメントされる。スコープを変える場合は新しいカードへ分ける。
 
 ## 二段階実行契約
 
@@ -60,8 +77,8 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 ### Phase 2: 最終承認後だけ実行する
 
 - Dashboardの「承認」タブはKanban `review`カードから一覧を導出し、別タスクDBを持たない。
-- APIは現在のbasic-auth owner sessionだけに承認・差戻しを許し、最新review handoffのcanonical SHA-256 digest、task ID、full approval contract、exact non-symlink linked-worktree path、canonical Git common/worktree identity、`pda-auto/<task_id>` branch、base/diff、cleanな実Git HEADをtransaction内でも再照合する。不一致ならfail closedでカードを動かさない。
-- 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。installerは汎用commentを承認証拠として受理しない。activationは事前生成nonceでledger rowを排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。rollbackまたはclaim解放の競合時はtimerを再停止してclaimを保持し、15分経過後の明示recoveryだけを許す。
+- APIは現在のbasic-auth owner sessionだけに承認・差戻しを許し、最新review handoffのcanonical SHA-256 digest、task ID、full approval contract、exact non-symlink linked-worktree path、`pda-auto/<task_id>` branch、base/diff、cleanな実Git HEADをtransaction内でも再照合する。不一致ならfail closedでカードを動かさない。canonical Git common/worktree identityはこの再照合の中でAPI自身がworkspaceから導出する（workerの申告値ではない。申告されていれば拒否する）。
+- 承認時は同じKanban DB内のplugin専用ledgerへowner identity、task/run/digest、base/head、workspace path/branch、および**ゲート自身が導出した**worktree/Git identityをatomicに記録し、author `pda-owner-approval`のコメントはworkerへの通知だけに使って同じカードをReadyへ戻す。以後の同一性のdriftは、消費時の実地再導出とこのledger行の比較で検査する（承認digestはこの2項を含まない）。installerは汎用commentを承認証拠として受理しない。activationは事前生成nonceでledger rowを排他claimし、共有変更前後にfull contractを再検査して成功時だけ一度消費する。rollbackまたはclaim解放の競合時はtimerを再停止してclaimを保持し、15分経過後の明示recoveryだけを許す。
 - 差戻しはauthor `pda-owner-changes`で記録し、新しいcommitとdigestによる再承認を要求する。
 
 ### 承認があっても暗黙には拡大しない

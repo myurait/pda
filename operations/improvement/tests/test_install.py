@@ -113,6 +113,9 @@ def test_installer_exposes_full_fail_closed_approval_contract_validator():
 
     errors = validator("t_expected", {"schema_version": 1, "task_id": "t_other"})
 
+    # Judgment A bumped the metadata schema to 2; a version 1 worker object is
+    # refused rather than having its stale identity declarations ignored.
+    assert "schema_version must be 2" in errors
     assert "task_id does not match the review card" in errors
     assert "owner_outcome is required" in errors
     assert "base_sha must be a full hexadecimal Git SHA" in errors
@@ -163,7 +166,7 @@ def _plugin_module():
 
 def _behavior_contract(**overrides):
     contract = {
-        "schema_version": 1,
+        "schema_version": 2,
         "task_id": "t_parity01",
         "owner_outcome": "o",
         "impact": "i",
@@ -171,8 +174,6 @@ def _behavior_contract(**overrides):
         "head_sha": "b" * 40,
         "workspace_path": "/x/worktree",
         "branch_name": "pda-auto/t_parity01",
-        "git_common_dir": "/x/repo/.git",
-        "git_dir": "/x/repo/.git/worktrees/task",
         "changed_files": ["src/app.py"],
         "verification": [{"command": "pytest -q", "outcome": "passed"}],
         "residual_risks": [],
@@ -216,18 +217,31 @@ def test_plugin_and_installer_validators_agree_on_behavior():
         ),
         _behavior_contract(head_sha="d" * 40),
         {"schema_version": 1, "task_id": "t_other"},
+        # Judgment A: both validators must refuse a declared gate-derived
+        # identity, and must refuse the superseded schema version. The two
+        # validators are independent implementations, so parity is asserted
+        # rather than shared through an import.
+        _behavior_contract(git_dir="/x/repo/.git/worktrees/task"),
+        _behavior_contract(git_common_dir="/x/repo/.git"),
+        _behavior_contract(schema_version=1),
     ]
     for case in cases:
         assert plugin.validate_approval(
             "t_parity01", case
         ) == install_module._validate_approval_contract("t_parity01", case), case
+    assert plugin.APPROVAL_METADATA_SCHEMA_VERSION == (
+        install_module.APPROVAL_METADATA_SCHEMA_VERSION
+    )
+    assert plugin.GATE_DERIVED_IDENTITY_KEYS == (
+        install_module.GATE_DERIVED_IDENTITY_KEYS
+    )
 
 
 def test_worker_finalization_touching_governance_paths_is_refused():
     contract_errors = install_module._validate_approval_contract(
         "t_gov00001",
         {
-            "schema_version": 1,
+            "schema_version": 2,
             "task_id": "t_gov00001",
             "owner_outcome": "o",
             "impact": "i",
@@ -235,8 +249,6 @@ def test_worker_finalization_touching_governance_paths_is_refused():
             "head_sha": "b" * 40,
             "workspace_path": "/x/worktree",
             "branch_name": "pda-auto/t_gov00001",
-            "git_common_dir": "/x/repo/.git",
-            "git_dir": "/x/repo/.git/worktrees/task",
             "changed_files": ["integrations/hermes-kanban-governance/manifest.json"],
             "verification": [
                 {"command": "pytest -q", "outcome": "passed"}
@@ -500,7 +512,7 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
         )
         conn.commit()
         approval = {
-            "schema_version": 1,
+            "schema_version": 2,
             "task_id": task_id,
             "owner_outcome": "verified PDA improvement",
             "impact": "local test repository",
@@ -508,8 +520,6 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             "head_sha": head,
             "workspace_path": str(workspace.resolve()),
             "branch_name": branch,
-            "git_common_dir": _git_path(workspace, "--git-common-dir"),
-            "git_dir": _git_path(workspace, "--git-dir"),
             "changed_files": ["change.txt"],
             "verification": [
                 {"command": "pytest -q", "outcome": "passed", "summary": "passed"}
@@ -558,8 +568,10 @@ def test_activation_rechecks_latest_review_head_and_clean_workspace(tmp_path, mo
             "head_sha": head,
             "workspace_path": approval["workspace_path"],
             "branch_name": approval["branch_name"],
-            "git_common_dir": approval["git_common_dir"],
-            "git_dir": approval["git_dir"],
+            # Judgment A: the marker reproduces the ledger row, which carries
+            # the approval gate's own derivation rather than a worker claim.
+            "git_common_dir": _git_path(workspace, "--git-common-dir"),
+            "git_dir": _git_path(workspace, "--git-dir"),
             "review_run_id": int(run["id"]),
             "approved_at": 123,
         }

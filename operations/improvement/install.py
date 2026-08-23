@@ -36,6 +36,13 @@ KANBAN_ENV_OVERRIDES = (
     "HERMES_KANBAN_ATTACHMENTS_ROOT",
 )
 APPROVAL_SCHEMA = "PDA_OWNER_APPROVAL_V1"
+
+# Kept in step with the approval plugin's own constants (Judgment A,
+# 2026-08-23). The two validators are deliberately independent
+# implementations, so the version and the derived-key set are asserted equal
+# by the regression tests rather than shared through an import.
+APPROVAL_METADATA_SCHEMA_VERSION = 2
+GATE_DERIVED_IDENTITY_KEYS = ("git_common_dir", "git_dir")
 _ALLOWED_RISK_CLASSES = {
     "local-reversible",
     "service-restart",
@@ -335,22 +342,27 @@ def _validate_approval_contract(task_id: str, value: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(value, dict):
         return ["pda_approval metadata is missing"]
-    if value.get("schema_version") != 1:
-        errors.append("schema_version must be 1")
+    if value.get("schema_version") != APPROVAL_METADATA_SCHEMA_VERSION:
+        errors.append(
+            f"schema_version must be {APPROVAL_METADATA_SCHEMA_VERSION}"
+        )
     if value.get("task_id") != task_id:
         errors.append("task_id does not match the review card")
     expected_branch = f"pda-auto/{task_id}"
     if value.get("branch_name") != expected_branch:
         errors.append(f"branch_name must be {expected_branch}")
-    for key in ("workspace_path", "git_common_dir", "git_dir"):
-        path_value = value.get(key)
-        if (
-            not _nonempty_string(path_value)
-            or not Path(str(path_value)).expanduser().is_absolute()
-        ):
-            errors.append(f"{key} must be an absolute path")
-    if value.get("git_common_dir") == value.get("git_dir"):
-        errors.append("git_dir must identify a linked worktree")
+    path_value = value.get("workspace_path")
+    if (
+        not _nonempty_string(path_value)
+        or not Path(str(path_value)).expanduser().is_absolute()
+    ):
+        errors.append("workspace_path must be an absolute path")
+    # Judgment A (2026-08-23): the canonical Git identities are derived by the
+    # approval gate and live on the ledger row, never inside the worker object
+    # or the approved digest. A declaration here would be unvalidated data.
+    for key in GATE_DERIVED_IDENTITY_KEYS:
+        if key in value:
+            errors.append(f"{key} must not be declared; the gate derives it")
     for key in ("owner_outcome", "impact"):
         if not _nonempty_string(value.get(key)):
             errors.append(f"{key} is required")
@@ -567,13 +579,10 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
         raise ValueError("approved review run has drifted")
     if approval.get("head_sha") != marker.get("head_sha"):
         raise ValueError("approved review head has drifted")
-    for key in (
-        "base_sha",
-        "workspace_path",
-        "branch_name",
-        "git_common_dir",
-        "git_dir",
-    ):
+    # The canonical Git identities are absent from the worker object under
+    # Judgment A, so they are not cross-checked here. Their drift check is the
+    # live re-derivation against the ledger row further down.
+    for key in ("base_sha", "workspace_path", "branch_name"):
         if approval.get(key) != marker.get(key):
             raise ValueError(f"approved review {key} has drifted")
     if not task.workspace_path:
@@ -613,9 +622,14 @@ def _verify_approved_artifact(conn, task_id: str, marker: dict[str, Any]) -> Non
     ).resolve()
     if resolved_git_dir == resolved_common_dir:
         raise ValueError("approved workspace is not a linked worktree")
-    if str(resolved_git_dir) != approval.get("git_dir"):
+    # Judgment A: the second point of the two-point drift check. The approval
+    # gate derived these identities at approval time and wrote them to the
+    # ledger row that `marker` is built from; this re-derivation at consume
+    # time must still agree with it. Comparing against `approval` here would
+    # compare against a key the worker no longer supplies.
+    if str(resolved_git_dir) != marker.get("git_dir"):
         raise ValueError("approved workspace git_dir has drifted")
-    if str(resolved_common_dir) != approval.get("git_common_dir"):
+    if str(resolved_common_dir) != marker.get("git_common_dir"):
         raise ValueError("approved workspace git_common_dir has drifted")
     actual_branch = _run(
         ["git", "-C", str(workspace), "branch", "--show-current"], timeout=30
