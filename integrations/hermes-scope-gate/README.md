@@ -35,7 +35,15 @@ codes do not become completion evidence.
 For an enforced `artifact-change` turn, write permission and execution permission are separate
 contract layers.
 
-- First layer (hard, deterministic): known read/search tools are admitted with an audit record.
+- First layer (hard, deterministic): known read/search tools are admitted with an audit record, as
+  are work-record tools — a closed, explicitly listed catalogue of tools that act only on the task
+  board and the step list, never on the repository. Read-only Git (`status`, `diff`, `rev-parse`,
+  `branch`) is admitted through the closeout allowlist implementation itself rather than a second
+  parser, before the Git write permission is consulted, since a contract with no write permission
+  still has to see the state it works on. The deny ceiling counts only deviations against the write
+  and execution boundaries: refusing a read-only subcommand that is not admitted spends the tool
+  budget instead, so a turn following the required procedure cannot strand itself, and no uncounted
+  path escapes the class budget.
   Write destinations are identified from an explicit tool-name-to-fields catalogue, so an unlisted
   tool is treated as a mutation, and a listed tool that carries none of its declared destination
   fields — or carries a declared container in an unexpected shape — is denied rather than skipped.
@@ -142,9 +150,9 @@ against the installed Hermes runtime.
   `PDA_SCOPE_GATE_ARTIFACT_PRELOCK=1` and is off otherwise. Wiring the assignment path for the
   autonomous lane is an owner decision (D-S3-6), and whether the default-deny stage should already
   apply to the interactive lane is D-S3-8.
-- The first layer admits no read-only Git and no work-bookkeeping tools, which the autonomous lane's
-  own procedure needs, and their refusals spend the turn's deny budget. Resolving that — the allowed
-  set, the tool categories, and what the deny budget counts — is D-S3-7.
+- The read-only Git subset is narrower than closeout's on purpose (D-S3-7): remote-ref reads serve
+  push, which this class does not have, and `log` has no bounded-argument implementation to reuse, so
+  `rev-parse HEAD` is the admitted way to read the commit id.
 - Commit admission inspects the command, not the index: content staged outside the gate still lands
   in the local commit. Push is denied, so this stays inside local history. Recorded as a first-layer
   residue in the design document.

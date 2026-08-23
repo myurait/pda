@@ -34,9 +34,12 @@ action=lock, one absolute worktree, and the write scope you need (`write_paths`,
 for test assets and `execution` template ids only if verification must actually run). A lock can
 only narrow an assigned scope, never widen it, and the target and write scope cannot be extended
 afterwards. Once locked you may write inside the locked scope, stage explicitly named in-scope
-paths, and make one local commit with an explicit message. Pushing, history rewriting, bypassing
-verification hooks, broad test runs, delegation, background work, and any write outside the scope
-are denied. Call scope_gate action=complete when the change is done or blocked."""
+paths, and make one local commit with an explicit message. Reading is admitted throughout: file and
+search tools, the work-record tools for the task board and the step list, and read-only Git limited
+to `git status`, bounded `git diff`, `git rev-parse HEAD`, and `git branch --show-current` inside the
+locked worktree (use `rev-parse HEAD` for the commit id; `git log` is not admitted). Pushing, history
+rewriting, bypassing verification hooks, broad test runs, delegation, background work, and any write
+outside the scope are denied. Call scope_gate action=complete when the change is done or blocked."""
 
 
 PRELOCK_ENFORCEMENT_ENV = "PDA_SCOPE_GATE_ARTIFACT_PRELOCK"

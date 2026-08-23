@@ -30,8 +30,13 @@ from plugin_runtime import (
     prelock_enforcement_setting,
 )
 from scope_gate import (
+    ARTIFACT_CHANGE_CLASS_BUDGET,
+    ARTIFACT_GIT_READ_SUBCOMMANDS,
+    ARTIFACT_GIT_READ_UNADMITTED,
     ARTIFACT_READ_TOOLS,
+    ARTIFACT_WORK_RECORD_TOOLS,
     ARTIFACT_WRITE_TOOL_CATALOG,
+    artifact_deny_counter,
     EXECUTION_TEMPLATES,
     GateStore,
     PathRejected,
@@ -1638,7 +1643,9 @@ def test_a_local_commit_with_an_explicit_message_is_admitted(tmp_path: Path) -> 
         "git push origin main",
         "git reset --hard HEAD",
         "git checkout other",
-        "git status --short",
+        # `git status --short` used to be denied here. D-S3-7 admits the
+        # read-only Git subset, so the read cases moved to the read-set
+        # tests below and this list keeps only the write forms.
     ],
 )
 def test_commit_arguments_and_other_git_writes_are_bounded(
@@ -1882,3 +1889,447 @@ def test_a_persuasive_reason_cannot_widen_the_hard_bounds(tmp_path: Path) -> Non
     assert replay.allowed is True
     assert replay.action == "expansion-permit"
     assert second.allowed is False
+
+
+# ---------------------------------------------------------------------------
+# D-S3-7: the first-layer permitted set and the operating flow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git status",
+        "git status --short",
+        "git diff",
+        "git diff --cached",
+        "git diff --stat",
+        "git diff -- src/app.py",
+        "git rev-parse HEAD",
+        "git rev-parse --abbrev-ref HEAD",
+        "git branch --show-current",
+    ],
+)
+def test_read_only_git_is_admitted_inside_the_locked_worktree(
+    tmp_path: Path, command: str
+) -> None:
+    # Staging names explicit paths, so the turn has to be able to see which
+    # paths changed; the approval metadata needs the commit id and branch.
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(store, "terminal", {"command": command, "workdir": str(repo)})
+
+    assert decision.allowed is True, (command, decision)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "git diff ../outside",
+        "git diff --output=/tmp/leak",
+        "git diff --ext-diff",
+        "git rev-parse --git-dir",
+        "git branch -D other",
+        "git branch --set-upstream-to=origin/main",
+    ],
+)
+def test_read_only_git_arguments_outside_the_admitted_form_are_denied(
+    tmp_path: Path, command: str
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(store, "terminal", {"command": command, "workdir": str(repo)})
+
+    assert decision.allowed is False, command
+    assert decision.action == "git-read-unsafe", command
+
+
+def test_read_only_git_reads_outside_the_locked_worktree_are_denied(
+    tmp_path: Path,
+) -> None:
+    store, _ = _seeded_store(tmp_path)
+    elsewhere = tmp_path / "elsewhere"
+    _init_git_repo(elsewhere)
+
+    decision = _admit(
+        store, "terminal", {"command": "git status", "workdir": str(elsewhere)}
+    )
+
+    assert decision.allowed is False
+    assert decision.action == "target-closed"
+
+
+def test_read_only_git_needs_no_git_write_permission(tmp_path: Path) -> None:
+    # Reading the state one is working on is not a write permission, so a
+    # contract that hands out none still has to be able to look.
+    store, repo = _seeded_store(tmp_path, git_write=[])
+
+    read = _admit(store, "terminal", {"command": "git status", "workdir": str(repo)})
+    stage = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+
+    assert read.allowed is True
+    assert stage.allowed is False
+    assert stage.action == "git-write-forbidden"
+
+
+def test_push_stays_outside_the_first_layer(tmp_path: Path) -> None:
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(
+        store, "terminal", {"command": "git push origin main", "workdir": str(repo)}
+    )
+
+    assert decision.allowed is False
+    assert decision.action == "git-subcommand"
+
+
+@pytest.mark.parametrize("subcommand", sorted(ARTIFACT_GIT_READ_UNADMITTED))
+def test_recognized_read_only_git_subcommands_are_refused_without_counting(
+    tmp_path: Path, subcommand: str
+) -> None:
+    # A read-only subcommand this class does not admit is a read refusal, not
+    # an attempt on the write boundary, so it must not spend the ceiling that
+    # exists to stop boundary probing.
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(
+        store, "terminal", {"command": f"git {subcommand}", "workdir": str(repo)}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert decision.allowed is False
+    assert decision.action == "git-read-unadmitted"
+    assert turn is not None
+    assert turn["denied_count"] == 0
+    assert turn["tool_count"] == 1
+
+
+def test_unrecognized_git_subcommands_still_count_as_deviations(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+
+    decision = _admit(
+        store, "terminal", {"command": "git rebase -i main", "workdir": str(repo)}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert decision.allowed is False
+    assert decision.action == "git-subcommand"
+    assert turn is not None
+    assert turn["denied_count"] == 1
+
+
+@pytest.mark.parametrize(
+    "tool_name",
+    ["todo", "kanban_show", "kanban_comment", "kanban_request_review", "kanban_block"],
+)
+def test_work_record_tools_are_admitted_in_a_locked_turn(
+    tmp_path: Path, tool_name: str
+) -> None:
+    store, _ = _seeded_store(tmp_path)
+
+    decision = _admit(store, tool_name, {"card": "CARD-1", "body": "progress"})
+
+    assert decision.allowed is True
+    assert decision.action == "record-work-state"
+
+
+def test_work_record_tools_are_admitted_before_lock_and_after_a_failed_seed(
+    tmp_path: Path,
+) -> None:
+    # Nothing about the work-management plane depends on the scope being
+    # fixed, and recording a blocked state is what INV-S6 asks a stalled
+    # turn to do instead of starting repair work.
+    pre_lock = GateStore(tmp_path / "pre.db", enforce_artifact_change_pre_lock=True)
+    pre_lock.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-pre",
+        user_message=CHANGE_MESSAGE,
+    )
+    denied_store, _ = _seeded_store(
+        tmp_path / "denied", branch="not-the-checked-out-branch"
+    )
+
+    before_lock = _admit(pre_lock, "kanban_heartbeat", {"card": "CARD-1"})
+    after_failure = _admit(denied_store, "kanban_block", {"card": "CARD-1"})
+
+    assert pre_lock.get_turn("turn-change")["state"] == "pre-lock"
+    assert denied_store.get_turn("turn-change")["state"] == "mutation-denied"
+    assert before_lock.allowed is True
+    assert after_failure.allowed is True
+
+
+def test_the_work_record_catalogue_is_a_closed_explicit_set(tmp_path: Path) -> None:
+    vocabulary = _hermes_tool_vocabulary()
+
+    # Every listed name is a tool that actually exists, and the categories do
+    # not overlap: membership is by name, never inferred from capability or
+    # from the shape of the arguments.
+    assert ARTIFACT_WORK_RECORD_TOOLS <= vocabulary
+    assert not (ARTIFACT_WORK_RECORD_TOOLS & ARTIFACT_READ_TOOLS)
+    assert not (ARTIFACT_WORK_RECORD_TOOLS & set(ARTIFACT_WRITE_TOOL_CATALOG))
+    assert "terminal" not in ARTIFACT_WORK_RECORD_TOOLS
+    # Excluded on purpose: another agent, outside material, skill files, and
+    # durable state outside the turn are not records of the work in hand.
+    for excluded in ("delegate_task", "web_search", "skill_manage", "memory", "cronjob"):
+        assert excluded not in ARTIFACT_WORK_RECORD_TOOLS, excluded
+
+
+@pytest.mark.parametrize(
+    "tool_name", ["kanban_delete_board", "todo_export", "delegate_task"]
+)
+def test_tools_outside_the_work_record_catalogue_stay_denied(
+    tmp_path: Path, tool_name: str
+) -> None:
+    store, _ = _seeded_store(tmp_path)
+
+    decision = _admit(store, tool_name, {"card": "CARD-1"})
+
+    assert decision.allowed is False
+    assert decision.action == "expansion-required"
+
+
+@pytest.mark.parametrize(
+    ("action", "counter"),
+    [
+        ("write-scope", "denied_count"),
+        ("expansion-required", "denied_count"),
+        ("git-subcommand", "denied_count"),
+        ("git-read-unsafe", "denied_count"),
+        ("execution-not-opted-in", "denied_count"),
+        ("stage-scope", "denied_count"),
+        ("target-closed", "denied_count"),
+        ("git-read-unadmitted", "tool_count"),
+        ("wall-budget", None),
+        ("tool-budget", None),
+        ("deny-budget", None),
+    ],
+)
+def test_the_deny_ceiling_counts_only_boundary_deviations(
+    action: str, counter: str | None
+) -> None:
+    # An unclassified denial counts: a new reason has to be admitted to the
+    # exemption deliberately rather than by omission.
+    assert artifact_deny_counter(action) == counter
+    assert artifact_deny_counter("some-future-reason") == "denied_count"
+
+
+def test_read_refusals_do_not_strand_a_turn_that_keeps_working(
+    tmp_path: Path,
+) -> None:
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for index in range(ceiling + 2):
+        refused = _admit(
+            store,
+            "terminal",
+            {"command": "git log --oneline -1", "workdir": str(repo)},
+            call_id=f"log-{index}",
+        )
+        assert refused.allowed is False, index
+
+    still_working = _admit(
+        store, "write_file", {"path": "src/app.py", "content": "fixed"}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert still_working.allowed is True
+    assert still_working.action == "write-in-scope-change"
+    assert turn is not None
+    assert turn["denied_count"] == 0
+
+
+def test_boundary_deviations_still_exhaust_the_deny_ceiling(tmp_path: Path) -> None:
+    store, _ = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+
+    for index in range(ceiling):
+        deviation = _admit(
+            store,
+            "write_file",
+            {"path": "secrets.txt", "content": str(index)},
+            call_id=f"deviation-{index}",
+        )
+        assert deviation.allowed is False, index
+
+    exhausted = _admit(store, "write_file", {"path": "src/app.py", "content": "x"})
+
+    assert exhausted.allowed is False
+    assert exhausted.action == "deny-budget"
+
+
+def test_uncounted_denials_stay_bounded_by_the_class_budget(tmp_path: Path) -> None:
+    # The uncounted path is not an unbounded path: it spends the tool budget,
+    # so the class ceilings still terminate it.
+    store, repo = _seeded_store(tmp_path)
+    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_tool_calls"])
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET tool_count = ? WHERE turn_id = 'turn-change'",
+            (ceiling - 1,),
+        )
+
+    last = _admit(
+        store, "terminal", {"command": "git show HEAD", "workdir": str(repo)}
+    )
+    beyond = _admit(
+        store, "terminal", {"command": "git show HEAD~1", "workdir": str(repo)}
+    )
+
+    assert last.action == "git-read-unadmitted"
+    assert beyond.allowed is False
+    assert beyond.action == "tool-budget"
+
+
+def test_closeout_deny_counting_is_unchanged(tmp_path: Path) -> None:
+    # The counting rule is scoped to artifact-change; the enforced class that
+    # shipped in S1 keeps counting every denial.
+    store = GateStore(tmp_path / "closeout.db")
+    store.start_turn(
+        turn_id="turn-closeout",
+        session_id="s",
+        user_message="commit, pushしていない資源があればcommit, pushして",
+    )
+
+    denied = store.admit_tool(
+        turn_id="turn-closeout",
+        tool_call_id="c1",
+        tool_name="delegate_task",
+        args={"goal": "review everything"},
+    )
+    turn = store.get_turn("turn-closeout")
+
+    assert denied.allowed is False
+    assert turn is not None
+    assert turn["task_class"] == "repository-closeout"
+    assert turn["denied_count"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Section 10 acceptance: artifact-change replay in the enforced state
+# ---------------------------------------------------------------------------
+
+
+def test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling(
+    tmp_path: Path,
+) -> None:
+    """Section 10 item 15: the normal autonomous-worker flow, enforced.
+
+    Inspect the diff, edit, verify, stage, commit, update the card. The
+    existing artifact-change fixtures pin the unenforced state only, so this
+    is the first replay that runs the flow through a locked contract.
+    """
+
+    store, repo = _seeded_store(
+        tmp_path,
+        write_paths=["src/*.py"],
+        test_paths=["tests/test_app.py"],
+        execution=["focused-test"],
+    )
+    flow: list[tuple[str, dict[str, object]]] = [
+        ("kanban_show", {"card": "CARD-1"}),
+        ("terminal", {"command": "git status --short", "workdir": str(repo)}),
+        ("terminal", {"command": "git diff", "workdir": str(repo)}),
+        ("read_file", {"path": str(repo / "src" / "app.py")}),
+        ("write_file", {"path": "src/app.py", "content": "x = 2\n"}),
+        ("write_file", {"path": "tests/test_app.py", "content": "def test_x():\n    pass\n"}),
+        ("terminal", {"command": "pytest -q tests/test_app.py", "workdir": str(repo)}),
+        ("terminal", {"command": "git add src/app.py tests/test_app.py", "workdir": str(repo)}),
+        ("terminal", {"command": "git commit -m 'fix: login'", "workdir": str(repo)}),
+        ("terminal", {"command": "git rev-parse HEAD", "workdir": str(repo)}),
+        ("terminal", {"command": "git branch --show-current", "workdir": str(repo)}),
+        ("kanban_comment", {"card": "CARD-1", "body": "done"}),
+        ("kanban_request_review", {"card": "CARD-1"}),
+    ]
+
+    for index, (tool_name, args) in enumerate(flow):
+        decision = _admit(store, tool_name, args, call_id=f"flow-{index}")
+        assert decision.allowed is True, (tool_name, args, decision)
+
+    turn = store.get_turn("turn-change")
+
+    assert turn is not None
+    assert turn["denied_count"] == 0
+    assert turn["state"] == "locked"
+
+
+def test_replay_the_worker_flow_survives_one_unadmitted_read_attempt(
+    tmp_path: Path,
+) -> None:
+    """Section 10 item 16: a refused read does not stall the enforced flow."""
+
+    store, repo = _seeded_store(tmp_path, execution=["focused-test"])
+
+    refused = _admit(
+        store, "terminal", {"command": "git log --oneline -1", "workdir": str(repo)}
+    )
+    substitute = _admit(
+        store, "terminal", {"command": "git rev-parse HEAD", "workdir": str(repo)}
+    )
+    staged = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+    )
+    committed = _admit(
+        store, "terminal", {"command": "git commit -m 'fix'", "workdir": str(repo)}
+    )
+    turn = store.get_turn("turn-change")
+
+    assert refused.allowed is False
+    assert refused.action == "git-read-unadmitted"
+    for allowed in (substitute, staged, committed):
+        assert allowed.allowed is True, allowed
+    assert turn is not None
+    assert turn["denied_count"] == 0
+
+
+def test_replay_the_enforced_flow_still_refuses_the_incident_expansions(
+    tmp_path: Path,
+) -> None:
+    """Section 10 item 17: the original incident's expansions stay denied.
+
+    The same replay set as item 5, run in the enforced state instead of the
+    unenforced one: a whole-suite run, another worktree, a subagent, and
+    push are all outside the first layer. `push` is not part of S3's first
+    layer at all and stays with the separate finalization contract.
+    """
+
+    store, repo = _seeded_store(tmp_path, execution=["focused-test"])
+    other = tmp_path / "other-worktree"
+    _init_git_repo(other)
+
+    denials = {
+        "whole-suite": _admit(
+            store, "terminal", {"command": "pytest", "workdir": str(repo)}
+        ),
+        "other-worktree": _admit(
+            store, "write_file", {"path": str(other / "src" / "a.py"), "content": "x"}
+        ),
+        "subagent": _admit(store, "delegate_task", {"goal": "review all worktrees"}),
+        "push": _admit(
+            store, "terminal", {"command": "git push origin main", "workdir": str(repo)}
+        ),
+        "out-of-scope-write": _admit(
+            store, "write_file", {"path": "secrets.txt", "content": "x"}
+        ),
+    }
+
+    for name, decision in denials.items():
+        assert decision.allowed is False, name
+        assert decision.action != "git-read-unadmitted", name
+
+
+def test_the_read_only_git_subset_is_a_closed_set() -> None:
+    # Network reads serve push, which this class does not have, and `log` has
+    # no bounded-argument implementation to reuse.
+    assert ARTIFACT_GIT_READ_SUBCOMMANDS == {"status", "diff", "rev-parse", "branch"}
+    assert not (ARTIFACT_GIT_READ_SUBCOMMANDS & ARTIFACT_GIT_READ_UNADMITTED)
+    for excluded in ("ls-remote", "remote", "log"):
+        assert excluded not in ARTIFACT_GIT_READ_SUBCOMMANDS, excluded
+    for write_form in ("add", "commit", "push", "reset", "checkout", "rebase"):
+        assert write_form not in ARTIFACT_GIT_READ_SUBCOMMANDS, write_form
+        assert write_form not in ARTIFACT_GIT_READ_UNADMITTED, write_form

@@ -39,6 +39,14 @@
   - 同ファイル: `test_the_admission_boundary_blocks_when_the_gate_itself_fails` / `test_admission_under_write_contention_returns_a_decision` / `test_a_transient_repository_probe_failure_stays_retryable` / `test_expired_contract_records_and_permits_are_purged`
 - **許可集合とツール語彙の乖離**（実在しないツール名による見かけの網羅、実在する読み取りツールの取りこぼし）
   - 同ファイル: `test_the_read_tool_allowlist_matches_the_running_tool_vocabulary`
+- **許可カテゴリの推論による拡大**（作業記録系カテゴリを capability 推論やツール形状で判定し、未列挙ツールが変異系に紛れ込む）
+  - 同ファイル: `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`
+- **読み取り許可に紛れる書込・境界外読み取り**（読み取り subcommand の書込形、ロック済み worktree 外への読み取り、読み取り許可が書込権限検査を飛ばす経路）
+  - 同ファイル: `test_read_only_git_arguments_outside_the_admitted_form_are_denied` / `test_read_only_git_reads_outside_the_locked_worktree_are_denied` / `test_read_only_git_needs_no_git_write_permission` / `test_push_stays_outside_the_first_layer` / `test_the_read_only_git_subset_is_a_closed_set`
+- **拒否上限の計上規則を使った座礁と免除の悪用**（必要手順の拒否で上限を食い潰す false deny 側、および免除経路を無償の無制限探索に使う fail-open 側）
+  - 同ファイル: `test_the_deny_ceiling_counts_only_boundary_deviations` / `test_read_refusals_do_not_strand_a_turn_that_keeps_working` / `test_boundary_deviations_still_exhaust_the_deny_ceiling` / `test_uncounted_denials_stay_bounded_by_the_class_budget` / `test_closeout_deny_counting_is_unchanged`
+- **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜17）
+  - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_replay_the_worker_flow_survives_one_unadmitted_read_attempt` / `test_replay_the_enforced_flow_still_refuses_the_incident_expansions`
 - **強制層の回帰**（closeout 専用ガードの弱化）
   - `integrations/hermes-scope-gate/tests/test_closeout_guards.py`
 - **worker による統治ファイル変更の finalization 拒否**（ADR D3。憲章・ADR・ロードマップ決定・ゲート/承認/ガード実装・停止policyへ触れる approval contract の機械拒否）
@@ -53,8 +61,7 @@
 未カバー（後続で追加する）:
 
 - 検証者・review 専用主体による lifecycle 変更試行の網羅（検証者ステージの実装は M2）
-- commit 時点の index 内容と write scope の照合（設計 §11 第9項の明示済み残余。帰属は D-S3-7 の判断待ち）
-- artifact-change の強制状態を通す incident replay fixture（既存 fixture は未強制状態のみを固定。D-S3-7 の判断待ち）
+- commit 時点の index 内容と write scope の照合（設計 §11 第9項の明示済み残余。D-S3-7 の決定には含まれなかったため残余のまま）
 
 ## 実行方法
 

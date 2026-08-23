@@ -472,6 +472,41 @@ ARTIFACT_READ_TOOLS = frozenset(
     }
 )
 
+# Tools that act only on the agent's own work-management plane (the task
+# board and the step list) and never on the repository write boundary.
+# D-S3-7 admits them in the first layer with an audit record only.
+#
+# This is a closed, explicit catalogue of tool names. Membership is never
+# inferred from a capability guess or from the shape of the arguments: an
+# inferring rule is the defect shape this class already had to remove once,
+# and it would re-open by construction as the vocabulary grows. A tool that
+# is not named here stays under default deny for mutation.
+#
+# Deliberately excluded, with reasons:
+#   - delegate_task: spawns another agent (class budget `subagents` is 0,
+#     and §10 acceptance item 5 denies it).
+#   - web_search / web_extract: acquires new outside material, which is an
+#     expansion rather than a record of the work in hand.
+#   - skill_manage: can write skill definitions, i.e. repository files.
+#   - memory / cronjob: writes durable state outside this turn's contract.
+ARTIFACT_WORK_RECORD_TOOLS = frozenset(
+    {
+        "todo",
+        "kanban_show",
+        "kanban_attachments",
+        "kanban_create",
+        "kanban_comment",
+        "kanban_heartbeat",
+        "kanban_complete",
+        "kanban_block",
+        "kanban_request_review",
+        "kanban_request_changes",
+        "kanban_link",
+        "kanban_attach",
+        "kanban_attach_url",
+    }
+)
+
 _PATH_PAIR_FIELDS = (
     "path",
     "file_path",
@@ -2113,11 +2148,20 @@ class GateStore:
                     time.time(),
                 ),
             )
-            counter = "tool_count" if decision.allowed else "denied_count"
-            connection.execute(
-                f"UPDATE turns SET {counter} = {counter} + 1 WHERE turn_id = ?",
-                (turn_id,),
-            )
+            if decision.allowed:
+                counter: str | None = "tool_count"
+            elif task_class == "artifact-change":
+                # D-S3-7 limits the deny ceiling to deviations against the
+                # write and execution boundaries. The rule is scoped to this
+                # class: closeout counting is unchanged.
+                counter = artifact_deny_counter(decision.action)
+            else:
+                counter = "denied_count"
+            if counter is not None:
+                connection.execute(
+                    f"UPDATE turns SET {counter} = {counter} + 1 WHERE turn_id = ?",
+                    (turn_id,),
+                )
             if decision.allowed and decision.resource:
                 connection.execute(
                     "INSERT OR IGNORE INTO candidates (turn_id, path, source) VALUES (?, ?, ?)",
@@ -2540,6 +2584,75 @@ ARTIFACT_TERMINAL_ARGUMENT_FIELDS = frozenset(
 ARTIFACT_GIT_WRITE_ACTIONS = ("stage", "commit")
 _GIT_WRITE_SUBCOMMANDS = {"stage": "add", "commit": "commit"}
 
+# Read-only Git in the first layer (D-S3-7). The argument inspection is the
+# closeout allowlist implementation itself, not a second parser written for
+# this class: `status` carries no argument allowlist there either, `diff`
+# goes through the bounded-pathspec check, and `rev-parse` / `branch` go
+# through the verification allowlist. Reusing those functions is what keeps
+# the two classes from drifting apart on the same command surface.
+#
+# Narrower than closeout's read set, in two places:
+#   - `ls-remote` / `remote` are excluded: they read over the network to
+#     serve push, and push is not in this class at all.
+#   - `log` is excluded: closeout has no bounded-argument implementation for
+#     it, and adding one would be the new parser this decision rules out.
+#     `rev-parse HEAD` supplies the commit id the worker flow needs.
+ARTIFACT_GIT_READ_SUBCOMMANDS = frozenset({"status", "diff", "rev-parse", "branch"})
+
+# Read-only Git subcommands this class recognizes but does not admit. They
+# are named explicitly so their denial can be classified as a read-boundary
+# refusal instead of a deviation against the write boundary (see
+# `artifact_deny_counter`). An unrecognized subcommand is not in this set and
+# keeps counting as a deviation.
+ARTIFACT_GIT_READ_UNADMITTED = frozenset(
+    {
+        "log",
+        "show",
+        "blame",
+        "shortlog",
+        "describe",
+        "reflog",
+        "ls-files",
+        "ls-remote",
+        "remote",
+    }
+)
+
+# Denials that exhaust a budget are the ceiling itself, not an attempt at
+# anything: they consume no counter, so reaching a ceiling cannot inflate
+# the count that produced it.
+ARTIFACT_BUDGET_DENY_ACTIONS = frozenset({"wall-budget", "tool-budget", "deny-budget"})
+
+# Denials that refuse a read rather than a deviation against the write or
+# execution boundary. D-S3-7 limits the deny ceiling to deviations, so these
+# consume the tool budget instead: an uncounted denial still costs a turn
+# slot and stays bounded by the class budget.
+#
+# The exemption covers subcommands that cannot deviate, not arguments that
+# attempt to. `git-read-unsafe` stays counted, because an admitted read
+# subcommand carrying arguments outside the admitted form is either reaching
+# outside the locked worktree or is the write form of a subcommand whose
+# read form is admitted.
+ARTIFACT_READ_REFUSAL_ACTIONS = frozenset({"git-read-unadmitted"})
+
+
+def artifact_deny_counter(action: str) -> str | None:
+    """Which turn counter a denied artifact-change call consumes.
+
+    The deny ceiling exists to stop repeated probing of the write and
+    execution boundaries. Counting read refusals and work-record refusals
+    against it strands a turn that is following the required flow, so the
+    ceiling is limited to deviations and everything else is bounded by the
+    class budget instead. Unclassified denials count as deviations: a new
+    denial reason has to be admitted to the exemption deliberately.
+    """
+
+    if action in ARTIFACT_BUDGET_DENY_ACTIONS:
+        return None
+    if action in ARTIFACT_READ_REFUSAL_ACTIONS:
+        return "tool_count"
+    return "denied_count"
+
 
 def normalize_git_write_actions(raw: Any) -> tuple[str, ...]:
     """Validate the contract field that carries Git write permission.
@@ -2635,11 +2748,19 @@ def _admit_artifact_change_pre_lock(
 
     Known read/search/list tools are admitted with an audit record only.
     Structured writes, execution-bearing tools, and unknown tools are denied.
+    Work-record tools are admitted here as well as in the locked stage: they
+    act only on the work-management plane, so there is no scope for them to
+    exceed, and recording a blocked state is the escape valve INV-S6 asks a
+    stalled turn to use instead of starting repair work.
     """
 
     if tool_name in ARTIFACT_READ_TOOLS:
         return GateDecision(
             True, "inspect-before-lock", "read-only inspection before scope lock"
+        )
+    if tool_name in ARTIFACT_WORK_RECORD_TOOLS:
+        return GateDecision(
+            True, "record-work-state", "work-record tool outside the repository boundary"
         )
     return GateDecision(False, action, reason)
 
@@ -2733,6 +2854,45 @@ def _artifact_commit_verdict(tail: list[str]) -> tuple[bool, str, str]:
     return (True, "", "")
 
 
+def _admit_artifact_change_git_read(
+    subcommand: str,
+    tail: list[str],
+    *,
+    root: str,
+    branches: set[str],
+) -> GateDecision:
+    """Read-only Git inside the locked worktree (D-S3-7).
+
+    The argument checks are the closeout allowlist functions themselves. No
+    second parser is introduced for this class, and none of those functions
+    is widened here: a read this class needs but closeout cannot express is
+    a read this class does not admit.
+    """
+
+    if subcommand == "status":
+        return GateDecision(
+            True, "inspect-repository-state", "read-only status of the locked worktree", root
+        )
+    if subcommand == "diff":
+        if not _diff_args_are_bounded(tail):
+            return GateDecision(
+                False,
+                "git-read-unsafe",
+                "diff arguments can inspect outside the locked worktree",
+            )
+        return GateDecision(
+            True, "inspect-repository-diff", "read-only diff of the locked worktree", root
+        )
+    action = _verification_action(subcommand, tail, branches)
+    if action is None:
+        return GateDecision(
+            False,
+            "git-read-unsafe",
+            f"the git {subcommand} arguments are outside the admitted read form",
+        )
+    return GateDecision(True, action, "read-only verification of the locked worktree", root)
+
+
 def _admit_artifact_change_git(
     contract: dict[str, Any],
     tokens: list[str],
@@ -2745,6 +2905,23 @@ def _admit_artifact_change_git(
         return GateDecision(False, "git-subcommand", "git needs a concrete subcommand")
     subcommand = tokens[1]
     tail = list(tokens[2:])
+    bindings = (contract.get("targets") or {}).get("worktree_branches") or {}
+    expected_branch = str(bindings.get(root) or "")
+    if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
+        # Reads are admitted before the write-permission check: a contract
+        # that hands out no Git write permission still has to be able to see
+        # the state it is working on. Drift is not re-checked either, because
+        # reading is safe on whatever branch the worktree is actually on --
+        # the workdir binding already holds the read inside the locked root.
+        return _admit_artifact_change_git_read(
+            subcommand, tail, root=root, branches={expected_branch} if expected_branch else set()
+        )
+    if subcommand in ARTIFACT_GIT_READ_UNADMITTED:
+        return GateDecision(
+            False,
+            "git-read-unadmitted",
+            f"git {subcommand} is read-only but is not in the admitted read set",
+        )
     if subcommand not in {"add", "commit"}:
         return GateDecision(
             False,
@@ -2769,8 +2946,6 @@ def _admit_artifact_change_git(
             "git-write-forbidden",
             f"the locked contract does not permit {required}",
         )
-    bindings = (contract.get("targets") or {}).get("worktree_branches") or {}
-    expected_branch = str(bindings.get(root) or "")
     if not expected_branch:
         return GateDecision(
             False, "target-closed", "the locked worktree has no branch binding"
@@ -3003,6 +3178,10 @@ def _admit_artifact_change_locked(
     if tool_name in ARTIFACT_READ_TOOLS:
         return GateDecision(
             True, "inspect-locked-target", "read-only inspection inside a locked turn"
+        )
+    if tool_name in ARTIFACT_WORK_RECORD_TOOLS:
+        return GateDecision(
+            True, "record-work-state", "work-record tool outside the repository boundary"
         )
     if tool_name == "terminal":
         return _admit_artifact_change_terminal(
