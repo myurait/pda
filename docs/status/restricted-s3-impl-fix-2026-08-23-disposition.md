@@ -667,3 +667,48 @@ Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verif
 
 - `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **598 passed**。
 - `operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発 PC で実行不能（`hermes_cli` / `fastapi` 不在）。ルータ経由の新規テストは等価再現（`./tmp/fix-wv/router_equiv.py`）で確認した。ミニPC でのスイート実行は親セッションが行う。
+
+## 16. agent-node 限定スイートの失敗 4 件の処置（2026-08-24、15 節の続き）
+
+- 入力: ミニPC（agent-node）でのみ実行できる 2 スイートの失敗 4 件（`operations/improvement/tests` 3 件、`integrations/hermes-pda-approvals/tests` 1 件）。
+- 分類: **ハーネス問題 2 件 / 意味論追従 1 件 / テスト fixture の版ずれ 1 件。実装欠陥 0 件。** 変更は test ファイル 3 本のみで、実装・設計本文・運用手順は無改訂。
+- **admission は広げていない。** 安全性質を弱める変更は無く、2 項・3 項はいずれも主張を強めている。
+- 全数: `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）**598 passed**（15 節から不変。本節の変更は当該スイートに触れない）。
+
+### 1.（ハーネス問題）承認プラグインを exec で読み込む 2 件が dataclass の注釈解決で落ちる
+
+対象: `test_governance_path_lists_match_between_installer_and_plugin`、`test_plugin_and_installer_validators_agree_on_behavior`
+
+- 症状: `dataclasses._is_type` 内で `AttributeError: 'NoneType' object has no attribute '__dict__'`。
+- 原因: 両テストのモジュール読込が `module_from_spec` の結果を `sys.modules` へ登録せずに `exec_module` している。`plugin_api.py` は `from __future__ import annotations` 下にあり注釈は文字列であるため、`dataclasses` は `ClassVar` / `InitVar` / `KW_ONLY` の判定で定義モジュールを `sys.modules` から引く。未登録のモジュール内では dataclass が生成できない。Judgment A で新設した `WorkspaceCheck` が当該モジュール唯一の dataclass であり、これが入って初めて潜在していたハーネス欠陥が表面化した。テストは assert 本体に到達せず、モジュール実行の段で落ちていた。
+- 処置: 両読込に `exec_module` 前の `sys.modules[name] = module` を追加した。実装は無改訂。同じ登録は本リポジトリの既存 3 箇所（承認テスト自身のプラグイン読込、ルータの seed helper 読込、scope-gate の配線テスト）で既に行われており、それに合わせた形である。
+- 再現と反転: 開発PC 上でスタブを当てて exec を再現し、処置前は同一トレースで失敗、処置後は成功することを確認した。
+- **併せて閉じた点。** 当該 2 件の assert 本体は読込段の失敗に阻まれ、Judgment A 以後一度も実行されていない。読込修正が新たな assert 失敗へ化けないことを事前に閉じるため、処置後に本体（`GOVERNANCE_PATHS` の集合一致、両バリデータの 11 ケース挙動一致、`APPROVAL_METADATA_SCHEMA_VERSION` と `GATE_DERIVED_IDENTITY_KEYS` の一致）を開発PC 上で実行し、いずれも成立することを確認した。スキーマ v2 化に伴う二実装の乖離は無い。
+
+### 2.（意味論追従）path collision テストが per-card 回復より前の契約を主張している
+
+対象: `test_cycle_adopts_exact_existing_branch_but_rejects_path_collision`
+
+- 症状: `assert result["ok"] is False` が True。
+- 判定: 15 節 3（WV-03 の訂正）で批准対象としている範囲そのものである。per-card 回復は割当ループ内の `CycleError` を種別で選別せず捕らえるため、`workspace-collision` も `ok: true` + `refused` へ移る。設計本文（第一層 worker 配線、「拒否は当該カード単位に閉じる」の項）にも当該理由種別が名指しで書かれている。テストが改訂前の契約に留まっていたものであり、挙動側の退行ではない。
+- 処置: 主張を批准後の契約へ改めた。`ok is True` / `assigned == []` / `refused == [{task_id, "workspace-collision"}]` / `reason == "no-routable-task"` に加え、**周期水準の失敗として報告されないこと**（`"error_kind" not in result`）を新たに固定した。安全側の主張（衝突ディレクトリを worktree として採用しない、カードを割当てない）は維持し、さらに **衝突ディレクトリの内容が不変であること・`.git` が作られないこと・当該 branch が作られないこと** を追加した。docstring に WV-03 と設計本文の該当項を記し、テストが批准根拠を自ら持つようにした。
+- 反転の実測: 開発PC 上のスタブ盤面で実 `run_cycle` を当該シナリオへ通し、新しい 9 個の主張すべてが成立することを確認した。
+
+### 3.（fixture の版ずれ）承認トランザクション内の再検証テストが drift を作れていない
+
+対象: `test_workspace_is_revalidated_inside_approval_transaction`
+
+- 症状: `assert response.status_code == 409` が 200。
+- **実装は健全である。** 承認経路は `kanban_db.write_txn` の内側で `verify_workspace(fresh_task, fresh_approval)` を呼び直し、`errors` があれば 409、導出 identities が空でも 409 を返す。台帳へ書く identities はこの内側の導出値であって前段の値ではない。Judgment A はトランザクション内再検証を弱めていない。
+- 原因: fixture が Judgment A 前の戻り値形に留まっている。`verify_workspace` は `WorkspaceCheck`（frozen dataclass）を返すようになったが、fixture は戻り値をそのまま `if not errors:` で空判定していた。dataclass のインスタンスは常に truthy であるため条件は決して成立せず、drift（タスクの `branch_name` 書換え）が一度も注入されない。drift が無ければ再検証は当然通り、承認が成立して 200 になる。**表面上の期待値ではなく、安全性質のテストが空回りしていたことが失敗の内容である。**
+- 処置: 空判定を `check.errors` 側へ改め、`check` をそのまま返す形にした。併せて応答検査の直前へ **`assert drifted is True`** を追加した。fixture が再び空回りした場合、409 の主張が通ってしまう前にこの主張が落ちる（空回り検出の固定であり、主張を弱めない）。期待値 409 は変更していない。
+- 反転の実測: 開発PC 上で実 linked worktree に対して実 `verify_workspace` を呼び、(a) 清浄な workspace では `errors == []` かつ identities が得られる、(b) 旧 fixture の条件は成立しない（drift 非注入）、(c) 新 fixture の条件は成立する（drift 注入）、(d) `branch_name` を drift させたタスクは `task branch_name no longer matches the approval request` で拒否される、の 4 点を確認した。(d) がトランザクション内で 409 を生む入力である。
+
+### 4. 併せて記録する観測（本節では処置しない）
+
+- `workspace-collision` の拒否は `_ensure_worktree` が投げるため `_route_task` に到達せず、**カードコメントは書かれない**。設計本文の「可視性はカードコメント（1 件）と `refused` の 2 経路で確保する」は宣言不備の拒否について成立し、`workspace-collision` / `dirty-worktree` / `claim-race` では `refused` の 1 経路のみである。15 節 3 で改めた WV-03 の記述は「拒否は `refused` に必ず出るため不可視ではない」としてこの 1 経路を前提にしており矛盾はしていないが、設計本文の 2 経路の記述は宣言不備に限る旨を補う余地がある。コメント経路の追加は批准範囲外の挙動変更であるため本節では行わず、exit gate の判断材料として記録する。
+
+### 5. 実行結果
+
+- `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **598 passed**。
+- `operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発PC で実行不能（`hermes_cli` / `fastapi` 不在）。本節の 4 件はいずれも開発PC 上のスタブ再現で処置前の失敗と処置後の反転を確認した。ミニPC でのスイート実行は親セッションが行う。

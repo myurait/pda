@@ -629,12 +629,16 @@ def test_workspace_is_revalidated_inside_approval_transaction(tmp_path, monkeypa
 
     def verify_then_drift(task, approval):
         nonlocal drifted
-        errors = original_verify(task, approval)
-        if not errors and not drifted:
+        # Judgment A made this a ``WorkspaceCheck``, and a dataclass instance is
+        # always truthy. The emptiness test has to read ``errors``: branching on
+        # the check object itself never fires, the drift is never injected, and
+        # this test passes without exercising the re-verification at all.
+        check = original_verify(task, approval)
+        if not check.errors and not drifted:
             drifted = True
             with kanban_db.connect() as conn:
                 kanban_db.set_branch_name(conn, task_id, f"pda-auto/{task_id}-drift")
-        return errors
+        return check
 
     monkeypatch.setattr(module, "verify_workspace", verify_then_drift)
 
@@ -643,6 +647,9 @@ def test_workspace_is_revalidated_inside_approval_transaction(tmp_path, monkeypa
         json={"digest": module.approval_digest(payload)},
     )
 
+    # Guard against a silently vacuous run: the 409 below only demonstrates
+    # in-transaction re-verification if the drift was actually injected.
+    assert drifted is True
     assert response.status_code == 409
     with kanban_db.connect() as conn:
         task = kanban_db.get_task(conn, task_id)

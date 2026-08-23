@@ -250,6 +250,17 @@ def test_atomic_route_never_overwrites_a_concurrent_assignment(tmp_path, monkeyp
 
 
 def test_cycle_adopts_exact_existing_branch_but_rejects_path_collision(tmp_path, monkeypatch):
+    """A directory that is not the exact worktree is never adopted.
+
+    The refusal is reported per card, not as a cycle-level failure: per-card
+    recovery catches every ``CycleError`` raised inside the assignment loop
+    without selecting on kind, so ``workspace-collision`` returns ``ok: true``
+    with a ``refused`` entry (WV-03 correction, 2026-08-23; see
+    ``docs/design/task-scope-admission-gate.md`` "拒否は当該カード単位に閉じる").
+    What must not change is the refusal itself: the colliding directory is left
+    untouched and the card stays unassigned.
+    """
+
     monkeypatch.setenv("HERMES_HOME", str(tmp_path / "home"))
     repo = _repo(tmp_path)
     config = _config(tmp_path, repo)
@@ -262,9 +273,20 @@ def test_cycle_adopts_exact_existing_branch_but_rejects_path_collision(tmp_path,
 
     result = run_cycle(config)
 
-    assert result["ok"] is False
+    assert result["ok"] is True
     assert result["assigned"] == []
-    assert result["error_kind"] == "workspace-collision"
+    assert result["refused"] == [
+        {"task_id": task_id, "error_kind": "workspace-collision"}
+    ]
+    assert result["reason"] == "no-routable-task"
+    # The collision is a fact about this card, so it must not be reported as a
+    # failure of the cycle itself.
+    assert "error_kind" not in result
+    # The colliding directory is refused, not repaired into a worktree, and no
+    # branch is left behind for it.
+    assert (collision / "foreign.txt").read_text(encoding="utf-8") == "not a worktree\n"
+    assert not (collision / ".git").exists()
+    assert _git(repo, "branch", "--list", f"pda-auto/{task_id}") == ""
     with kanban_db.connect() as conn:
         task = kanban_db.get_task(conn, task_id)
         assert task is not None and task.assignee is None

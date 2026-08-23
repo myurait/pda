@@ -136,11 +136,15 @@ def test_governance_path_lists_match_between_installer_and_plugin():
         / "dashboard"
         / "plugin_api.py"
     )
-    spec = importlib.util.spec_from_file_location(
-        "pda_approvals_plugin_api_paritycheck", plugin_path
-    )
+    name = "pda_approvals_plugin_api_paritycheck"
+    spec = importlib.util.spec_from_file_location(name, plugin_path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
+    # Register before executing: the plugin module is under
+    # ``from __future__ import annotations``, so ``dataclasses`` resolves its
+    # field annotations by looking the defining module up in ``sys.modules``.
+    # An unregistered module makes every dataclass in it unconstructable.
+    sys.modules[name] = module
     spec.loader.exec_module(module)
 
     assert module.GOVERNANCE_PATHS == install_module.GOVERNANCE_PATHS
@@ -156,11 +160,13 @@ def _plugin_module():
         / "dashboard"
         / "plugin_api.py"
     )
-    spec = importlib.util.spec_from_file_location(
-        "pda_approvals_plugin_api_behaviorcheck", plugin_path
-    )
+    name = "pda_approvals_plugin_api_behaviorcheck"
+    spec = importlib.util.spec_from_file_location(name, plugin_path)
     module = importlib.util.module_from_spec(spec)
     assert spec and spec.loader
+    # See the parity test above: dataclass field resolution needs the module
+    # registered in ``sys.modules`` before it is executed.
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 
