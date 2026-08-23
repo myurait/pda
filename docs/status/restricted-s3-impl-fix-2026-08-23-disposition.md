@@ -1,6 +1,6 @@
 # S3-M1 実装 反証レビュー 確証欠陥の処置台帳（2026-08-23）
 
-- Status: closed（第1ラウンドの確証欠陥 37 件＝1〜6 節、司令塔判断 4 項目＝7 節、D-S3-7 実装の反証レビュー 14 件＝9〜10 節、いずれも処置完了。exit 条件 3 件はすべて closed＝10 節 3。残余は 8 節の 1 項目と 10 節 4 の司令塔判断 2 項目）
+- Status: closed（第1ラウンドの確証欠陥 37 件＝1〜6 節、司令塔判断 4 項目＝7 節、D-S3-7 実装の反証レビュー 14 件＝9〜10 節、V ラウンド 3 件＝11 節、V2 ラウンド 2 件＝12 節、いずれも処置完了。exit 条件 3 件はすべて closed＝10 節 3、J-FID-01 は 11 節 6 で再判定。残余は 8 節の 1 項目、10 節 4 の司令塔判断 2 項目、12 節 7 の批准確認 3 項目）
 - 読み取り方針: **`restricted-` 接頭辞の対象。個別の再現条件に触れるため Fable モデルのセッションでは直接読まない**。抽象名のみの一覧は `docs/operations/adversarial-suite.md` にある。
 - 対象レビュー: `restricted-s3-impl-review-2026-08-23-{correctness,bypass,compat,fidelity}.md`（確証欠陥 37 件 + 判断 1 件）
 - 正本設計: `docs/design/task-scope-admission-gate.md`「S3-M1」節（本処置に伴う改訂を含む）
@@ -355,3 +355,80 @@ lock 前段・契約検証失敗段でも許可した点は「第一層で許可
 10 節 4 の 2 項目をそのまま引き継ぐ。本節で新たに増えた判断事項は無い。V-01〜V-03 はいずれも実装の網羅の問題であり、設計判断を要さなかった（処置はすべて既存の明示列挙機構の内側に収まり、admission を広げていない）。
 
 残余として記録する既知の限界（設計判断は要さない）: 束ね走査の打ち切り規則は「フラグ文字でない最初の文字」までの走査であり、宣言済み短縮綴りの文字が他オプションの**英数字のみで構成される値**の内部に現れ、かつその後続がパス形である場合には計上側へ落ちうる。既に拒否済みの呼び出しの計数先が変わるだけで、方向は計上側（保守的側）である。
+
+## 12. V2 ラウンドの確証欠陥 2 件の処置と D-S3-7 補則の実装（2026-08-23、11 節の続き）
+
+- 入力: `docs/status/restricted-s3-impl-review-2026-08-23-final-verify.md` の V2 ラウンド節（`240d859` の独立検証。確証欠陥 2 件 / 誤検知 0 件）。
+- 処置の分類: **設計改訂による解消**。V2-01 / V2-02 は誤検知ではなく、検査時点で有効な確証欠陥である。個別の網羅漏れを塞ぐ 4 巡目の修正は行わず、司令塔決定（D-S3-7 補則）により計上規則そのものを改訂して欠陥の成立条件を除去した。
+- 対象: 計上規則と理由コードの帰属。**admission は無変更**（許可集合・判定関数・closeout 共有実装のいずれも変更なし）。
+- 実装: `integrations/hermes-scope-gate/scope_gate.py`。テスト: `tests/test_artifact_change_scope.py`。
+- 全数: **502 passed**（本節前 459。新規 43 パラメタ、既存 20 件を改訂基準へ更新、旧基準と矛盾する 2 件を置換）。
+
+### 1. 改訂に至った判断
+
+3 巡（D7 ラウンド → V ラウンド → V2 ラウンド）で確証された欠陥は、いずれも「terminal 引数の綴りを並行列挙して逸脱か否かを両方向に分類する」機構の網羅漏れであった。11 節 6 は網羅の担保手段として宣言表の全域性を不変条件へ格上げしたが、V2 ラウンドの独立検証はその担保の限界を明示した。全域性は「どの member が宣言するか」を閉じるが、「宣言が対象コマンドの受け付ける全綴りに効くか」は閉じない。検証者の指摘は「開放的な引数空間の双方向分類は列挙では原理的に閉じない」であり、これは実装の努力量ではなく機構の構造に対する指摘である。
+
+したがって 4 巡目として個別の綴りを追加するのではなく、**分類の正しさが安全性・可用性のいずれにも影響しない構造へ移す**ことを選んだ。詳細は正本設計の D-S3-7 補則。
+
+### 2. V2-01（major）宣言済み境界オプションの照合における綴り正規化の不足
+
+- 検査時点の症状: 宣言済みの境界オプションについて、対象コマンドが受理する一部の綴り形が照合を素通りし、計上側であるべき invocation が免除側へ落ちた。実行境界・読み取り境界の双方に成立し、うち一部は前差分が捕捉していた区画を失った退行であった。
+- 処置: **設計改訂による解消。** 補則により、当該分類段の拒否は計上対象から外れた。綴り正規化の網羅は計上先を変えないため、この欠陥の成立条件（計上先の誤り）が消滅した。
+- **admission 側の確認（検証者確認済み）**: 本欠陥の逸脱形はすべて admission では拒否のまま（`allowed is False`）である。誤っていたのは予算の帰属のみで、許可は広がっていない。したがって改訂後も、これらの invocation が通るようになることはない。
+- 残る性質: 綴り正規化の網羅漏れは audit ラベルの精度の問題として残る。監査記録上、境界形の refusal が読み取り refusal として記録されうる。admission の判定と予算の帰属には影響しない。
+
+### 3. V2-02（minor）境界に届かないオプションの過剰宣言による純粋読み取りの誤計上と座礁
+
+- 検査時点の症状: パスを開かないオプションをパスオプションとして宣言したため、純粋な読み取りが計上側へ落ち、上限回数の反復でターンが座礁した。
+- 処置: **設計改訂による解消。** 補則により既定が非計上となったため、過剰宣言によって純粋な読み取りが計上側へ落ちる経路が消滅した。座礁は原理的に成立しなくなった（当該段の拒否は計上ゼロ）。
+- 固定: `test_no_classification_label_can_strand_the_required_flow`（4 パラメタ）。分類器が 4 ラベルのいずれを付けた場合でも、上限+2 反復の後に write scope 内書込とステージが成立し `denied_count == 0` であることを固定する。ラベルの正しさに依存しない形で座礁不成立を固定した点が、従来の固定との違いである。
+
+### 4. 実装の変更点
+
+1. **計上規則の反転**: 免除集合（既定は計上）を廃し、計上集合 `ARTIFACT_DEVIATION_DENY_ACTIONS`（有限の文字列リテラル集合、25 メンバー）を新設した。`artifact_deny_counter` の既定を `tool_count` へ反転した。集合の帰属規則は「その理由コードを受け取りうる invocation が、admission が自ら決める事実だけで write / 実行境界への試行と断定できること」＝「実際には scope 内の純粋な読み取りである呼び出しが到達しえないこと」。
+2. **分類表の降格**: 分類表・分類関数（`ARTIFACT_GIT_WRITE_FORM_MARKERS` / `ARTIFACT_GIT_PATH_OPTIONS` / `ARTIFACT_GIT_READ_FORM_FLAGS` / `_artifact_git_deviation_action` 等）は削除せず audit 帰属専用へ降格した。削除すると監査粒度を失い、ラベルの回帰テストを書き換える必要が生じるだけで得が無い。各表のヘッダコメントに「audit attribution only」および「計上先を変えない」を明記し、旧根拠（計上先に関する記述）を除去した。`ARTIFACT_GIT_READ_FORM_FLAGS` のみは admission に対して load-bearing のままである（`branch` の書込形を読み取りとして admit させない allowlist）ことを明記した。
+3. **理由コードの一意化**: terminal の workdir 検査 3 件を `target-missing` / `target-traversal` / `target-closed` から `workdir-missing` / `workdir-traversal` / `workdir-outside` へ改めた。理由: workdir 検査はコマンドの字句解析より前に行われ、純粋な読み取りも到達する（例: 読み取り subcommand を worktree 外の workdir で呼ぶ形）。write 対象のパス検査と綴りを共有したままでは、コードから計数先への写像が健全にならず、write 対象が root 外へ出る確定判定を計上側に置けない。分離により当該 3 コードは非計上、write 対象のパス検査由来のコードは計上側となった。
+4. 計上判定は分類表を参照しない。静的に固定した（下記 5 の 3 層）。
+
+補則の例示のうち計上集合に対応コードを持たないものと、写像を経由しない計上箇所を、監査の便のため明記する。
+
+- **「lock 超過宣言」に対応する計上コードは無い。** 宣言 scope が seed を超える場合と scope パターンがロック済み root 外へ解決する場合の拒否は、`lock_turn`（ストア API）が例外として送出する。per-call の admission 経路を通らないため `GateDecision` を生成せず、`artifact_deny_counter` にも到達しない。計上規則の対象外であり、集合の欠落ではない。
+- **`hook-argument-drift` は写像を経由せず直接 `denied_count` を加算する。** 同一の tool-call id が異なる引数で再到達した場合の拒否で、冪等性ガードの位置（admission 判定の前）にある。クラス非依存で、本補則より前から存在する。ゲート自身が記録した fingerprint の比較という確定判定であり補則の原理と整合するが、写像された集合のメンバーではない。純粋な読み取りの呼び出し id を引数を変えて再送する形も到達しうるため、帰属規則の litmus に厳密には合わない。既存挙動を変えないことを選んだ（下記 7 の 4 項目目）。
+
+### 5. 回帰テスト（新規 42 パラメタ、既存 20 件を改訂基準へ更新）
+
+新規:
+- `test_the_counting_set_is_exactly_the_ratified_enumeration`（1。計上集合の同値性。実装から導出せずテスト側に正本列挙を持ち、集合の増減を意図的な二箇所編集に限定する）
+- `test_every_definitive_determination_charges_the_deny_ceiling`（25。計上集合の**全数**）
+- `test_a_budget_denial_consumes_no_counter`（3。予算枯渇由来はいずれの計数も消費しない）
+- `test_a_denial_that_is_not_a_definitive_determination_spends_tool_budget`（18。非計上側。分類ラベル 4 件と、純粋な読み取りが到達する経路 14 件）
+- `test_an_unclassified_denial_does_not_charge_the_deny_ceiling`（1。既定の極性反転）
+- `test_the_counting_rule_does_not_consume_the_argument_classification`（1。静的独立性 第1層。計上関数の `co_names` が分類表・分類関数の識別子を含まない）
+- `test_no_classification_label_can_reach_the_deny_ceiling`（1。静的独立性 第2層。分類器の値域を理由文表から導出し、計上集合と交わらないことを固定。第1層のみでは「表から構築した集合を参照する」形を捕捉できない）
+- `test_an_uncounted_denial_lane_is_closed_by_the_tool_budget`（5。end-to-end。非計上の 5 レーンについて tool 予算まで反復し、`denied_count == 0`・tool 予算で閉鎖・閉鎖が拒否であって fail-open でないことを固定）
+- `test_no_classification_label_can_strand_the_required_flow`（4。上記 3 節）
+- `test_the_idempotence_guard_charges_the_ceiling_outside_the_mapping`（1。写像を経由しない唯一の計上箇所を両方向に固定。上記 4 節の 2 点目）
+
+更新（旧項目18 前提から改訂基準へ）:
+- 分類の両方向を計上先で固定していた 8 件（`test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane` 他）は、**audit ラベルの固定**へ改めた。ラベル assert は維持し、計上 assert を `tool_count` へ統一した。テスト名の "exempt" 語彙を "labelled" 系へ改めた（免除／計上の対比が計上規則の記述ではなくなったため）。
+- `test_a_refused_read_is_classified_by_the_whole_invocation`（11 パラメタ）: ラベルは維持、計上分岐を削除し `denied_count == 0` へ統一。
+- `test_git_families_with_a_write_form_are_never_exempt` → `..._are_not_recognized_as_reads`: 認識外 subcommand コードが非計上であることへ更新。
+- `test_unrecognized_git_subcommands_still_count_as_deviations` → `..._are_denied_and_bounded_by_tool_budget`: 同上。admission は不変（拒否のまま）。
+- `test_probing_a_newly_classified_boundary_exhausts_the_ceiling` / `test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling`: 削除し、上記 `test_an_uncounted_denial_lane_is_closed_by_the_tool_budget` へ置換した。旧テストは分類段の拒否が拒否上限を枯渇させることを固定していたため、改訂基準と直接矛盾する。
+- workdir コード改称に伴う 2 件（`test_terminal_work_outside_the_locked_worktree_is_denied` / `test_read_only_git_reads_outside_the_locked_worktree_are_denied`）を新コードへ更新。
+
+新規テストは 43 パラメタ。更新理由は本節に記録し、テスト内コメントには改訂の経緯を書いていない（コメントは当該テストが何を固定するかのみを述べる）。
+
+### 6. 併せて更新した文書
+
+- `docs/design/task-scope-admission-gate.md`（正本）: Status 行に補則を追記。§11「第一層」の計上規則を確定判定由来へ書き換え（確定判定の定義、有限明示集合と既定非計上、分類表非参照、理由コード一意性の要求）。D-S3-7 の決定項へ「補則」を経緯・3 要点・安全目的の担保付きで追記。§10 受入項目 18 を「改訂（2026-08-23、D-S3-7 補則）」として出所を残して書き換え（固定対象 4 点＋改訂理由 3 点）。契約ライフサイクル節の「lock 未了」の計上に関する記述を補則と整合させた。
+- `docs/operations/adversarial-suite.md`: 分類機構の位置付け変更を反映（下記）。
+
+### 7. 本ラウンド後の残余（司令塔判断）
+
+10 節 4 の 2 項目をそのまま引き継ぐ。本節で新たに増えた判断事項として次の 3 点を挙げる（いずれも admission を広げず、非計上側＝クラス予算で有界な側への帰属である）。
+
+1. **認識外 subcommand / 認識外ツールの拒否が非計上になった。** 理由コード（`git-subcommand` / `expansion-required`）は、純粋な読み取りである呼び出しも到達しうるため確定判定に当たらない。結果として、これらの反復探索は tool 予算（96）で有界となり拒否上限（6）では有界でない。押し出し系（`push` 等）は本クラスでは認識外 subcommand としてこの経路に入る。admission は全て拒否のままである。
+2. **terminal workdir がロック済み worktree 外である拒否が非計上になった。** workdir 検査が字句解析より前に位置するため、同一コードに純粋な読み取りと書込試行の双方が到達する。admission の順序は変更していない（補則は admission 無変更を要求する）。順序を変えずに計上へ戻すには、字句解析後に workdir を再判定する構造変更が必要である。
+3. **ステージ・コミットの引数形拒否を計上側に置いた。** `stage-option` / `stage-unbounded` / `stage-magic` / `stage-directory` / `commit-unsafe` / `commit-rewrite` は、解決済みの境界越えを証明するコードではないが、当該レーンへ到達するのは `git add` / `git commit` のみであり、純粋な読み取りは到達しえない。同じ理由で実行テンプレート不一致系（`execution-template` / `execution-option` / `execution-stdin` / `execution-target`）も計上側に置いた。保守的側の選択が逆（非計上）である解釈も成立するため、批准時に確認を要する。
+4. **`hook-argument-drift` の計上を写像の外に残した。** 上記 4 節のとおり、冪等性ガードの位置で直接 `denied_count` を加算する既存経路であり、クラス非依存である。帰属規則の litmus に厳密には合わない（純粋な読み取りの呼び出し id を引数を変えて再送する形も到達しうる）が、これはフック protocol の整合性ガードであり、非計上へ移すと改竄側の反復が拒否上限で有界でなくなる。既存挙動の保持を選んだ。写像へ取り込むか、litmus に合わせて非計上とするかは批准時の判断とする。

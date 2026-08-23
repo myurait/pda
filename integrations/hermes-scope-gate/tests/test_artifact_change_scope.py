@@ -30,7 +30,11 @@ from plugin_runtime import (
     prelock_enforcement_setting,
 )
 from scope_gate import (
+    _GIT_READ_REFUSAL_REASONS,
+    _GIT_UNADMITTED_REASONS,
+    ARTIFACT_BUDGET_DENY_ACTIONS,
     ARTIFACT_CHANGE_CLASS_BUDGET,
+    ARTIFACT_DEVIATION_DENY_ACTIONS,
     ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS,
     ARTIFACT_GIT_PATH_OPTIONS,
     ARTIFACT_GIT_READ_FORM_FLAGS,
@@ -38,7 +42,6 @@ from scope_gate import (
     ARTIFACT_GIT_READ_UNADMITTED,
     ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS,
     ARTIFACT_GIT_WRITE_FORM_MARKERS,
-    ARTIFACT_READ_REFUSAL_ACTIONS,
     ARTIFACT_READ_TOOLS,
     ARTIFACT_RUN_SIGNAL_TOOLS,
     ARTIFACT_WORK_RECORD_TOOLS,
@@ -1694,7 +1697,10 @@ def test_terminal_work_outside_the_locked_worktree_is_denied(tmp_path: Path) -> 
     )
 
     assert decision.allowed is False
-    assert decision.action == "target-closed"
+    # Refused on the workdir, before the command is tokenized -- so this is
+    # the workdir code and not the write-target code, even though the command
+    # itself would have been a commit.
+    assert decision.action == "workdir-outside"
 
 
 def test_composed_and_backgrounded_terminal_calls_are_denied(tmp_path: Path) -> None:
@@ -1987,9 +1993,9 @@ def test_read_only_git_arguments_outside_the_admitted_form_are_denied(
 def test_a_refused_read_is_classified_by_the_whole_invocation(
     tmp_path: Path, command: str, action: str
 ) -> None:
-    # Which counter a refusal spends is a property of the invocation, not of
-    # its subcommand: classifying by subcommand alone put state-changing
-    # forms in the exempt lane and pure reads on the counted one.
+    # The invocation still decides the audit label. What it no longer decides
+    # is the budget: every refusal in the Git read lane spends the tool budget
+    # and leaves the deny ceiling untouched (D-S3-7 補則).
     store, repo = _seeded_store(tmp_path)
 
     decision = _admit(store, "terminal", {"command": command, "workdir": str(repo)})
@@ -1998,12 +2004,8 @@ def test_a_refused_read_is_classified_by_the_whole_invocation(
     assert decision.allowed is False, command
     assert decision.action == action, command
     assert turn is not None
-    if action == "git-read-unbounded":
-        assert turn["denied_count"] == 0, command
-        assert turn["tool_count"] == 1, command
-    else:
-        assert turn["denied_count"] == 1, command
-        assert turn["tool_count"] == 0, command
+    assert turn["denied_count"] == 0, command
+    assert turn["tool_count"] == 1, command
 
 
 @pytest.mark.parametrize(
@@ -2016,12 +2018,14 @@ def test_a_refused_read_is_classified_by_the_whole_invocation(
         "git reflog delete HEAD@{0}",
     ],
 )
-def test_git_families_with_a_write_form_are_never_exempt(
+def test_git_families_with_a_write_form_are_not_recognized_as_reads(
     tmp_path: Path, command: str
 ) -> None:
-    # The exemption is for subcommands that cannot deviate. A family whose
-    # read form and state-changing form share one subcommand name can, so it
-    # is not recognized as a read at all and its refusals spend the ceiling.
+    # A family whose read form and state-changing form share one subcommand
+    # name is not recognized as a read at all, so admission denies it under
+    # the unrecognized-subcommand code. That code does not charge the ceiling:
+    # an unrecognized subcommand can equally well be a pure read, so the lane
+    # is undetermined and the tool budget bounds it (D-S3-7 補則).
     store, repo = _seeded_store(tmp_path)
 
     decision = _admit(store, "terminal", {"command": command, "workdir": str(repo)})
@@ -2030,7 +2034,8 @@ def test_git_families_with_a_write_form_are_never_exempt(
     assert decision.allowed is False, command
     assert decision.action == "git-subcommand", command
     assert turn is not None
-    assert turn["denied_count"] == 1, command
+    assert turn["denied_count"] == 0, command
+    assert turn["tool_count"] == 1, command
 
 
 def test_read_only_git_reads_outside_the_locked_worktree_are_denied(
@@ -2045,7 +2050,10 @@ def test_read_only_git_reads_outside_the_locked_worktree_are_denied(
     )
 
     assert decision.allowed is False
-    assert decision.action == "target-closed"
+    # The workdir refusal carries its own code: it is decided before the
+    # command is tokenized, so it cannot mean the write lane the way the
+    # write-target codes do (D-S3-7 補則).
+    assert decision.action == "workdir-outside"
 
 
 def test_read_only_git_needs_no_git_write_permission(tmp_path: Path) -> None:
@@ -2095,9 +2103,12 @@ def test_recognized_read_only_git_subcommands_are_refused_without_counting(
     assert turn["tool_count"] == 1
 
 
-def test_unrecognized_git_subcommands_still_count_as_deviations(
+def test_unrecognized_git_subcommands_are_denied_and_bounded_by_tool_budget(
     tmp_path: Path,
 ) -> None:
+    # Admission is unchanged: a history-rewriting subcommand is denied. Only
+    # the attribution moved, because the same code answers `git ls-tree`, a
+    # pure read, and the lane cannot be told apart from the code alone.
     store, repo = _seeded_store(tmp_path)
 
     decision = _admit(
@@ -2108,7 +2119,8 @@ def test_unrecognized_git_subcommands_still_count_as_deviations(
     assert decision.allowed is False
     assert decision.action == "git-subcommand"
     assert turn is not None
-    assert turn["denied_count"] == 1
+    assert turn["denied_count"] == 0
+    assert turn["tool_count"] == 1
 
 
 @pytest.mark.parametrize("tool_name", sorted(ARTIFACT_WORK_RECORD_TOOLS))
@@ -2277,31 +2289,159 @@ def test_an_unbindable_call_cannot_record_work_state(tmp_path: Path) -> None:
     assert signal.action == "contract-unbound"
 
 
+# The canonical counting set. Written out here rather than derived from the
+# implementation so that adding or removing a reason code has to be a
+# deliberate edit in two places (D-S3-7 補則).
+_EXPECTED_DEVIATION_DENY_ACTIONS = frozenset(
+    {
+        # Structured write lane.
+        "write-scope",
+        "target-shape",
+        "target-missing",
+        "target-control",
+        "target-base",
+        "target-traversal",
+        "target-escape",
+        "target-closed",
+        "target-root",
+        # Git write lane.
+        "git-write-unspecified",
+        "git-write-forbidden",
+        "target-drift",
+        "stage-unbounded",
+        "stage-option",
+        "stage-magic",
+        "stage-directory",
+        "stage-scope",
+        "commit-unsafe",
+        "commit-rewrite",
+        # Execution lane.
+        "execution-not-opted-in",
+        "execution-template",
+        "execution-option",
+        "execution-stdin",
+        "execution-target",
+    }
+)
+
+
+def test_the_counting_set_is_exactly_the_ratified_enumeration() -> None:
+    assert ARTIFACT_DEVIATION_DENY_ACTIONS == _EXPECTED_DEVIATION_DENY_ACTIONS
+
+
+# Audit labels the Git argument classification can produce. Since D-S3-7 補則
+# these are attribution only: the tests below pin which label an operator sees
+# in the audit trail, and pin that none of them charges the deny ceiling. They
+# are no longer a safety property, so the label coverage is not required to be
+# exhaustive over the argument space.
+_CLASSIFIER_BOUNDARY_LABELS = frozenset({"git-write-form", "git-read-unsafe"})
+_CLASSIFIER_READ_LABELS = frozenset({"git-read-unbounded", "git-read-unadmitted"})
+
+
+@pytest.mark.parametrize("action", sorted(_EXPECTED_DEVIATION_DENY_ACTIONS))
+def test_every_definitive_determination_charges_the_deny_ceiling(action: str) -> None:
+    assert artifact_deny_counter(action) == "denied_count"
+
+
+@pytest.mark.parametrize("action", sorted(ARTIFACT_BUDGET_DENY_ACTIONS))
+def test_a_budget_denial_consumes_no_counter(action: str) -> None:
+    assert artifact_deny_counter(action) is None
+
+
 @pytest.mark.parametrize(
-    ("action", "counter"),
+    "action",
     [
-        ("write-scope", "denied_count"),
-        ("expansion-required", "denied_count"),
-        ("git-subcommand", "denied_count"),
-        ("git-read-unsafe", "denied_count"),
-        ("git-write-form", "denied_count"),
-        ("execution-not-opted-in", "denied_count"),
-        ("stage-scope", "denied_count"),
-        ("target-closed", "denied_count"),
-        ("git-read-unadmitted", "tool_count"),
-        ("git-read-unbounded", "tool_count"),
-        ("wall-budget", None),
-        ("tool-budget", None),
-        ("deny-budget", None),
+        # Argument-classification labels: the codomain of the heuristic stage.
+        "git-read-unsafe",
+        "git-write-form",
+        "git-read-unbounded",
+        "git-read-unadmitted",
+        # Lanes an actual pure read reaches.
+        "git-subcommand",
+        "expansion-required",
+        "lock-pending",
+        "seed-verification-failed",
+        "contract-invalid",
+        "turn-closed",
+        "scope-control-invalid",
+        "terminal-argument-unlisted",
+        "background-forbidden",
+        "compound-command",
+        "command-parse",
+        "workdir-missing",
+        "workdir-traversal",
+        "workdir-outside",
     ],
 )
-def test_the_deny_ceiling_counts_only_boundary_deviations(
-    action: str, counter: str | None
+def test_a_denial_that_is_not_a_definitive_determination_spends_tool_budget(
+    action: str,
 ) -> None:
-    # An unclassified denial counts: a new reason has to be admitted to the
-    # exemption deliberately rather than by omission.
-    assert artifact_deny_counter(action) == counter
-    assert artifact_deny_counter("some-future-reason") == "denied_count"
+    assert action not in ARTIFACT_DEVIATION_DENY_ACTIONS
+    assert artifact_deny_counter(action) == "tool_count"
+
+
+def test_an_unclassified_denial_does_not_charge_the_deny_ceiling() -> None:
+    # Inverted polarity: a reason code has to be admitted to the ceiling
+    # deliberately. The uncounted default is bounded by the tool budget.
+    assert artifact_deny_counter("some-future-reason") == "tool_count"
+
+
+def test_the_idempotence_guard_charges_the_ceiling_outside_the_mapping(
+    tmp_path: Path,
+) -> None:
+    # The one counting site that does not go through the reason-code mapping:
+    # replaying a tool-call id with different arguments is refused by the
+    # idempotence guard, which charges the ceiling directly. Class-agnostic and
+    # older than D-S3-7 補則. Pinned here so the exception cannot drift
+    # unnoticed in either direction.
+    store, _ = _seeded_store(tmp_path)
+
+    first = _admit(
+        store, "write_file", {"path": "src/app.py", "content": "a"}, call_id="same-id"
+    )
+    drifted = _admit(
+        store, "write_file", {"path": "src/app.py", "content": "b"}, call_id="same-id"
+    )
+    turn = store.get_turn("turn-change")
+
+    assert first.allowed is True
+    assert drifted.allowed is False
+    assert drifted.action == "hook-argument-drift"
+    assert drifted.action not in ARTIFACT_DEVIATION_DENY_ACTIONS
+    assert turn is not None
+    assert turn["denied_count"] == 1
+
+
+def test_the_counting_rule_does_not_consume_the_argument_classification() -> None:
+    consumed = set(artifact_deny_counter.__code__.co_names)
+    forbidden = {
+        "ARTIFACT_GIT_WRITE_FORM_MARKERS",
+        "ARTIFACT_GIT_PATH_OPTIONS",
+        "ARTIFACT_GIT_READ_FORM_FLAGS",
+        "ARTIFACT_GIT_READ_UNADMITTED",
+        "ARTIFACT_GIT_READ_SUBCOMMANDS",
+        "ARTIFACT_GIT_DIFF_FAMILY_SUBCOMMANDS",
+        "_artifact_git_deviation_action",
+        "artifact_git_read_refusal_action",
+        "artifact_git_unadmitted_refusal_action",
+        "_git_token_matches_marker",
+        "_git_token_reaches_outside",
+        "_git_token_path_candidates",
+    }
+    assert not (consumed & forbidden), sorted(consumed & forbidden)
+
+
+def test_no_classification_label_can_reach_the_deny_ceiling() -> None:
+    # Layer two of the independence check: the counting set could have been
+    # built *from* the tables without naming them. Derive the classifier's
+    # codomain from the reason tables so a new label is caught here.
+    codomain = set(_GIT_READ_REFUSAL_REASONS) | set(_GIT_UNADMITTED_REASONS)
+    assert codomain
+    assert not (codomain & ARTIFACT_DEVIATION_DENY_ACTIONS), sorted(
+        codomain & ARTIFACT_DEVIATION_DENY_ACTIONS
+    )
+    for label in sorted(codomain):
+        assert artifact_deny_counter(label) == "tool_count", label
 
 
 def test_read_refusals_do_not_strand_a_turn_that_keeps_working(
@@ -2693,16 +2833,16 @@ def test_the_read_only_git_subset_is_a_closed_set() -> None:
         ("rev-parse", ["--show-toplevel", "../elsewhere"]),
     ],
 )
-def test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane(
+def test_a_write_form_of_an_admitted_read_is_labelled_as_a_boundary_form(
     subcommand: str, tail: list[str]
 ) -> None:
-    # The closure has to hold at the argument level too: the first
-    # implementation of this rule closed the subcommand set and still let a
-    # state-changing invocation spend the tool budget instead of the ceiling.
+    # Audit attribution: the operator should see that a state-changing form
+    # was refused, not just that a read was. The label carries no budget
+    # consequence -- the Git read lane spends the tool budget either way.
     action = artifact_git_read_refusal_action(subcommand, tail)
 
-    assert action not in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
-    assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+    assert action in _CLASSIFIER_BOUNDARY_LABELS, (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
 @pytest.mark.parametrize(
@@ -2733,12 +2873,12 @@ def test_no_write_form_of_an_admitted_read_reaches_the_exempt_lane(
 def test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling(
     subcommand: str, tail: list[str]
 ) -> None:
-    # The other half of the same closure. Counting these strands a turn that
-    # is following the required procedure, and the marker matching has to be
-    # narrow enough that a longer unrelated option is not swept in with it.
+    # Marker matching stays narrow enough that a longer unrelated option is
+    # not swept in. Under D-S3-7 補則 a miss here would cost audit precision
+    # rather than stranding the turn, but the label is still worth pinning.
     action = artifact_git_read_refusal_action(subcommand, tail)
 
-    assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert action in _CLASSIFIER_READ_LABELS, (subcommand, tail, action)
     assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
@@ -2763,18 +2903,16 @@ def test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling(
         ("blame", ["--", "../outside"]),
     ],
 )
-def test_a_write_form_under_a_recognized_read_name_is_never_exempt(
+def test_a_write_form_under_a_recognized_read_name_is_labelled_as_one(
     subcommand: str, tail: list[str]
 ) -> None:
-    # Recognizing a subcommand as read-only is not the exemption. Several
-    # members of the unadmitted set take the diff family's options, so the
-    # closure has to hold at the argument level here too -- classifying this
-    # set by subcommand name alone is the same granularity error that put
-    # state-changing forms in the exempt lane one round earlier.
+    # Several members of the unadmitted set take the diff family's options, so
+    # the audit label distinguishes their write form from their read form. All
+    # of them are denied, and all of them spend the tool budget.
     action = artifact_git_unadmitted_refusal_action(subcommand, tail)
 
-    assert action not in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
-    assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+    assert action in _CLASSIFIER_BOUNDARY_LABELS, (subcommand, tail, action)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
 @pytest.mark.parametrize(
@@ -2819,7 +2957,7 @@ def test_a_pure_read_of_a_recognized_read_name_stays_exempt(
         ("show", ["--relative=../../elsewhere"]),
     ],
 )
-def test_a_path_inside_a_joined_option_value_is_not_exempt(
+def test_a_path_inside_a_joined_option_value_is_labelled_unsafe(
     subcommand: str, tail: list[str]
 ) -> None:
     admitted = artifact_git_read_refusal_action(subcommand, tail)
@@ -2827,7 +2965,7 @@ def test_a_path_inside_a_joined_option_value_is_not_exempt(
 
     for action in (admitted, recognized):
         assert action == "git-read-unsafe", (subcommand, tail, action)
-        assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+        assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
 @pytest.mark.parametrize(
@@ -2843,17 +2981,17 @@ def test_a_path_inside_a_joined_option_value_is_not_exempt(
         ("shortlog", ["-sn"]),
     ],
 )
-def test_a_joined_value_without_a_path_stays_exempt(
+def test_a_joined_value_without_a_path_is_labelled_a_read(
     subcommand: str, tail: list[str]
 ) -> None:
-    # The false-deny side of the same widening: looking inside a token for a
-    # path must not make every bundled flag or `key=value` option a deviation.
+    # Looking inside a token for a path must not label every bundled flag or
+    # `key=value` option a boundary attempt.
     if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
         action = artifact_git_read_refusal_action(subcommand, tail)
     else:
         action = artifact_git_unadmitted_refusal_action(subcommand, tail)
 
-    assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert action in _CLASSIFIER_READ_LABELS, (subcommand, tail, action)
     assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
@@ -2874,18 +3012,16 @@ def test_a_joined_value_without_a_path_stays_exempt(
         ["-quecho", "origin"],
     ],
 )
-def test_an_execution_form_under_a_recognized_read_name_is_never_exempt(
+def test_an_execution_form_under_a_recognized_read_name_is_labelled_as_one(
     tail: list[str],
 ) -> None:
-    # Same structure as the write-form closure, one boundary over. Recognizing
-    # a subcommand as read-only exempts it from the ceiling, so a member that
-    # can name a program to run has to be classified by its whole invocation
-    # or the execution boundary becomes probeable against the far larger tool
-    # budget instead of the deny ceiling.
+    # Same structure as the write-form label, one boundary over: a member that
+    # can name a program to run gets the boundary label rather than the read
+    # label. Admission denies every spelling here regardless.
     action = artifact_git_unadmitted_refusal_action("ls-remote", tail)
 
-    assert action not in ARTIFACT_READ_REFUSAL_ACTIONS, (tail, action)
-    assert artifact_deny_counter(action) == "denied_count", tail
+    assert action in _CLASSIFIER_BOUNDARY_LABELS, (tail, action)
+    assert artifact_deny_counter(action) == "tool_count", tail
 
 
 @pytest.mark.parametrize(
@@ -2904,7 +3040,7 @@ def test_an_execution_form_under_a_recognized_read_name_is_never_exempt(
         ("ls-files", ["-cX/etc/passwd"]),
     ],
 )
-def test_a_path_packed_onto_a_flag_bundle_is_not_exempt(
+def test_a_path_packed_onto_a_flag_bundle_is_labelled_unsafe(
     subcommand: str, tail: list[str]
 ) -> None:
     if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
@@ -2913,17 +3049,16 @@ def test_a_path_packed_onto_a_flag_bundle_is_not_exempt(
         action = artifact_git_unadmitted_refusal_action(subcommand, tail)
 
     assert action == "git-read-unsafe", (subcommand, tail, action)
-    assert artifact_deny_counter(action) == "denied_count", (subcommand, tail)
+    assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
 @pytest.mark.parametrize(
     ("subcommand", "tail"),
     [
-        # The false-deny side of looking inside a token, in the region the
-        # earlier guard never visited: values that DO carry path separators
-        # and are nevertheless not paths. Reading the value without reading
-        # the option name put each of these on the deny ceiling, where six of
-        # them stranded the turn.
+        # Values that DO carry path separators and are nevertheless not paths.
+        # Reading the value without reading the option name used to put each of
+        # these on the deny ceiling, where six of them stranded the turn; since
+        # D-S3-7 補則 the same mistake would only mislabel the audit record.
         ("log", ["--grep=/etc/passwd"]),
         ("log", ["--grep=../old-api"]),
         ("log", ["--author=../x"]),
@@ -2945,7 +3080,7 @@ def test_a_path_packed_onto_a_flag_bundle_is_not_exempt(
         ("log", ["-L/^def main/,+20:src/app.py"]),
     ],
 )
-def test_a_value_that_only_looks_like_a_path_stays_exempt(
+def test_a_value_that_only_looks_like_a_path_is_labelled_a_read(
     subcommand: str, tail: list[str]
 ) -> None:
     if subcommand in ARTIFACT_GIT_READ_SUBCOMMANDS:
@@ -2953,7 +3088,7 @@ def test_a_value_that_only_looks_like_a_path_stays_exempt(
     else:
         action = artifact_git_unadmitted_refusal_action(subcommand, tail)
 
-    assert action in ARTIFACT_READ_REFUSAL_ACTIONS, (subcommand, tail, action)
+    assert action in _CLASSIFIER_READ_LABELS, (subcommand, tail, action)
     assert artifact_deny_counter(action) == "tool_count", (subcommand, tail)
 
 
@@ -3013,63 +3148,91 @@ def test_a_read_whose_value_looks_like_a_path_does_not_strand_the_turn(
 @pytest.mark.parametrize(
     ("command", "action"),
     [
-        # Both newly classified boundaries, end to end: repeating either has
-        # to spend the ceiling rather than the tool budget.
+        # One command per uncounted lane, covering both classification labels
+        # and the two lanes whose code cannot determine the lane at all.
         ("git ls-remote --upload-pack=echo origin", "git-write-form"),
         ("git log -pO/etc/passwd", "git-read-unsafe"),
+        ("git log --oneline", "git-read-unadmitted"),
+        ("git rev-parse --git-dir", "git-read-unbounded"),
+        ("git rebase -i main", "git-subcommand"),
     ],
 )
-def test_probing_a_newly_classified_boundary_exhausts_the_ceiling(
+def test_an_uncounted_denial_lane_is_closed_by_the_tool_budget(
     tmp_path: Path, command: str, action: str
 ) -> None:
+    # D-S3-7 補則 moved these lanes off the deny ceiling. What has to hold in
+    # their place: repeating one never strands the turn on the ceiling, and it
+    # does not run forever either -- the class tool budget closes the turn, and
+    # the closure is a denial rather than a fail-open.
     store, repo = _seeded_store(tmp_path)
-    ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
+    tool_budget = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_tool_calls"])
 
-    for index in range(ceiling):
+    for index in range(tool_budget):
         refused = _admit(
             store,
             "terminal",
             {"command": command, "workdir": str(repo)},
-            call_id=f"boundary-{index}",
+            call_id=f"uncounted-{index}",
         )
         assert refused.allowed is False, index
         assert refused.action == action, index
 
     turn = store.get_turn("turn-change")
     assert turn is not None
-    assert turn["denied_count"] == ceiling
+    assert turn["denied_count"] == 0
+    assert turn["tool_count"] == tool_budget
+
     exhausted = _admit(
         store, "terminal", {"command": command, "workdir": str(repo)}
     )
 
-    assert exhausted.action == "deny-budget"
+    assert exhausted.allowed is False
+    assert exhausted.action == "tool-budget"
 
 
-def test_probing_a_write_form_under_a_recognized_read_name_exhausts_the_ceiling(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("command", "action"),
+    [
+        # One command per classification label, including the two labels the
+        # classifier reserves for boundary forms. Whichever label the argument
+        # inspection picks -- and whether it picks it correctly -- the required
+        # flow has to survive past the ceiling. This is the property that the
+        # spelling coverage of the marker and path tables no longer has to
+        # carry: a misclassification here cannot strand the turn.
+        ("git log --oneline -1", "git-read-unadmitted"),
+        ("git rev-parse --git-dir", "git-read-unbounded"),
+        ("git log --output=leak.txt", "git-write-form"),
+        ("git log -pO/etc/passwd", "git-read-unsafe"),
+    ],
+)
+def test_no_classification_label_can_strand_the_required_flow(
+    tmp_path: Path, command: str, action: str
 ) -> None:
-    # End to end: the point of the classification is which budget the probe
-    # spends. A write form repeated under a recognized read name has to hit
-    # the deny ceiling, not run to the far larger tool budget.
     store, repo = _seeded_store(tmp_path)
     ceiling = int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"])
 
-    for _ in range(ceiling):
+    for index in range(ceiling + 2):
         refused = _admit(
             store,
             "terminal",
-            {"command": "git log --output=leak.txt", "workdir": str(repo)},
+            {"command": command, "workdir": str(repo)},
+            call_id=f"label-{index}",
         )
-        assert refused.allowed is False
-        assert refused.action == "git-write-form"
+        assert refused.allowed is False, index
+        assert refused.action == action, index
 
-    turn = store.get_turn("turn-change")
-    assert turn is not None
-    assert turn["denied_count"] == ceiling
-    exhausted = _admit(
-        store, "terminal", {"command": "git log --output=leak.txt", "workdir": str(repo)}
+    writing = _admit(store, "write_file", {"path": "src/app.py", "content": "fixed"})
+    staging = _admit(
+        store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
     )
-    assert exhausted.action == "deny-budget"
+    turn = store.get_turn("turn-change")
+
+    assert writing.allowed is True, action
+    assert writing.action == "write-in-scope-change"
+    assert staging.allowed is True, action
+    assert staging.action == "stage-in-scope-change"
+    assert turn is not None
+    assert turn["denied_count"] == 0, action
 
 
 def test_a_recognized_read_still_does_not_strand_the_required_flow(

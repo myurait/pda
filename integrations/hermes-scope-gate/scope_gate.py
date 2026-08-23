@@ -2167,8 +2167,9 @@ class GateStore:
                 counter: str | None = "tool_count"
             elif task_class == "artifact-change":
                 # D-S3-7 limits the deny ceiling to deviations against the
-                # write and execution boundaries. The rule is scoped to this
-                # class: closeout counting is unchanged.
+                # write and execution boundaries, and the 補則 limits it
+                # further to determinations admission makes for itself. The
+                # rule is scoped to this class: closeout counting is unchanged.
                 counter = artifact_deny_counter(decision.action)
             else:
                 counter = "denied_count"
@@ -2621,23 +2622,21 @@ _GIT_WRITE_SUBCOMMANDS = {"stage": "add", "commit": "commit"}
 ARTIFACT_GIT_READ_SUBCOMMANDS = frozenset({"status", "diff", "rev-parse", "branch"})
 
 # Read-only Git subcommands this class recognizes but does not admit. They
-# are named explicitly so their denial can be classified as a read-boundary
-# refusal instead of a deviation against the write boundary (see
-# `artifact_deny_counter`). An unrecognized subcommand is not in this set and
-# keeps counting as a deviation.
+# are named explicitly so the audit record can say a read was refused rather
+# than that an unknown command was rejected.
 #
-# Membership means the subcommand has no state-changing form of its own. A
-# subcommand whose own purpose includes changing state (the remote
-# configuration and reflog families are the two this class had to remove)
-# does not belong here: its denial is an attempt at the write boundary, and
-# exempting it would let that boundary be probed against the tool budget
-# instead of the deny ceiling.
+# Audit attribution only. Since D-S3-7 補則 this set and the argument tables
+# below no longer decide which budget a denial spends: every refusal in the
+# Git read lane spends the tool budget, because admission cannot determine
+# from an argument spelling whether the invocation was really a deviation.
+# The classification is kept because the reason code is what an operator
+# reads when asking why a required step was refused.
 #
-# Membership is not by itself the exemption. Several members take the diff
-# family's options, which can write a file or run an external program, so the
-# refusal is classified by the whole invocation exactly as the admitted subset
-# is: a member named here reaches the exempt lane only when its arguments
-# carry no write-form marker and no path outside the locked root.
+# Membership still means the subcommand has no state-changing form of its
+# own, and the tables below still record which forms of each member reach a
+# boundary. Neither statement is load-bearing for safety any more -- the
+# admission verdict for every member is deny either way -- so an error in
+# them costs audit precision, not a budget.
 ARTIFACT_GIT_READ_UNADMITTED = frozenset(
     {
         "log",
@@ -2699,6 +2698,12 @@ ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS = frozenset(
 # `-X<value>`), and a value-taking short option packed onto the end of a
 # bundle; a longer unrelated option (`--output-indicator-new`) is not swept in.
 #
+# Audit attribution only (D-S3-7 補則). A marker missing from this table used
+# to move a denial off the ceiling; now it only makes the audit record say
+# `git-read-*` where `git-write-form` would have been more precise. Spelling
+# coverage here is therefore best-effort by design: closing it is not
+# possible by enumeration, and no longer needs to be.
+#
 # `git diff` is a read of the working tree that can nevertheless be told to
 # write its output to a file or to hand the comparison to an external
 # program, so those two forms are deviations rather than refused reads. The
@@ -2754,9 +2759,13 @@ ARTIFACT_GIT_WRITE_FORM_MARKERS: dict[str, frozenset[str]] = {
 # Option spellings whose *value* names a filesystem path that Git opens, per
 # subcommand. Only these options make the value inside a token a path
 # candidate: the value of an option that takes a search pattern, a format
-# string, a display prefix, or a line range is not a path, and treating every
-# joined value as one moves pure reads onto the deny ceiling and strands the
-# turn on the sixth such read.
+# string, a display prefix, or a line range is not a path.
+#
+# Audit attribution only (D-S3-7 補則). Over-declaring a spelling here used to
+# strand a turn by charging a pure read to the deny ceiling, and
+# under-declaring one used to hide a boundary attempt from it. Neither is
+# possible now: the Git read lane spends the tool budget whatever this table
+# says. What remains is the audit label.
 #
 # The table is per subcommand because the same spelling means different things
 # in different members: the short option below that names a revision file for
@@ -2796,9 +2805,9 @@ ARTIFACT_GIT_PATH_OPTIONS: dict[str, frozenset[str]] = {
 # Read-form argument allowlist for an admitted subcommand that doubles as a
 # write command. `git branch` creates, deletes, moves, re-points, and
 # re-describes refs, so its read side is given as a closed allowlist and
-# anything else counts. Default-count is deliberate: an unusual listing form
-# landing on the counted side only changes which budget an already-denied
-# call spends.
+# anything else is refused. The allowlist is load-bearing for *admission* --
+# it is what keeps `git branch -D` from being admitted as a read -- and only
+# its resulting audit label is affected by D-S3-7 補則.
 ARTIFACT_GIT_READ_FORM_FLAGS: dict[str, frozenset[str]] = {
     "branch": frozenset(
         {
@@ -2825,29 +2834,74 @@ ARTIFACT_GIT_READ_FORM_FLAGS: dict[str, frozenset[str]] = {
 # the count that produced it.
 ARTIFACT_BUDGET_DENY_ACTIONS = frozenset({"wall-budget", "tool-budget", "deny-budget"})
 
-# Denials that refuse a read rather than a deviation against the write or
-# execution boundary. D-S3-7 limits the deny ceiling to deviations, so these
-# consume the tool budget instead: an uncounted denial still costs a turn
-# slot and stays bounded by the class budget.
+# Reason codes that charge the deny ceiling (D-S3-7 補則, 2026-08-23).
 #
-# Whether a call is a deviation is a property of the whole invocation, not of
-# its subcommand. Classifying by subcommand alone produced errors in both
-# directions -- a state-changing form landing in the exempt lane, and a pure
-# read inside the locked worktree spending the ceiling -- so a refused read
-# of an admitted subcommand is classified three ways, not two:
+# The membership rule is a property of the *determination*, not of the
+# argument spelling: a code belongs here only when every invocation that can
+# receive it has already been established, by a fact admission decides for
+# itself, to be an attempt at the write or execution boundary. The facts that
+# qualify are the ones admission cannot be wrong about -- the tool name being
+# in the write catalogue, the Git subcommand being `add`/`commit`, the command
+# being a non-Git program, a contract permission field being absent, a
+# resolved path failing the write-scope match. Equivalently: no invocation
+# that is really a pure in-scope read can ever land on a code named here.
 #
-#   `git-read-unsafe`     the arguments name a path outside the locked root
-#   `git-write-form`      the invocation is the write form of a subcommand
-#                         whose read form is admitted
-#   `git-read-unbounded`  a pure read inside the locked root whose argument
-#                         form is simply not on the allowlist
+# This replaces an exempt-list whose default was to count. The polarity is
+# inverted because the old default made every unclassified refusal a
+# deviation, which put the burden on a heuristic classification of terminal
+# arguments to prove that a pure read was *not* one. Three independent
+# reviews confirmed the same failure shape in that classification -- an open
+# argument space cannot be closed by enumerating spellings -- so a
+# misclassification there must no longer decide which budget a denial spends.
+# What makes the uncounted default safe is that an uncounted denial still
+# consumes a tool slot, so every lane below is bounded by the class tool
+# budget and closes the turn on exhaustion rather than failing open.
 #
-# Only the third is exempt. The two-way split this rule replaced ("either
-# reaching outside the locked worktree or the write form of an admitted read
-# subcommand") was not exhaustive, and the missing third case is the one the
-# required approval-metadata flow walks through.
-ARTIFACT_READ_REFUSAL_ACTIONS = frozenset(
-    {"git-read-unadmitted", "git-read-unbounded"}
+# Codes deliberately absent, with the reason each fails the rule:
+#   `git-read-*`, `git-write-form`   issued by the argument classification,
+#                                   which is now audit attribution only
+#   `git-subcommand`                 an unrecognized subcommand can be a pure
+#                                    read, so the lane is undetermined
+#   `expansion-required`             an unrecognized *tool* can be a read
+#   `lock-pending`,                  pre-lock refusals: reads via terminal are
+#   `seed-verification-failed`        unadmitted there, so reads reach these
+#   `workdir-*`                      decided before the command is tokenized,
+#                                    so the lane is not yet known
+#   `contract-invalid`, `turn-closed`, `scope-control-invalid`,
+#   `terminal-argument-unlisted`, `background-forbidden`, `compound-command`,
+#   `command-parse`                  same: reachable by a pure read
+ARTIFACT_DEVIATION_DENY_ACTIONS = frozenset(
+    {
+        # Structured write lane: only a tool in the write catalogue reaches
+        # these, so the invocation is a write attempt by tool identity.
+        "write-scope",
+        "target-shape",
+        "target-missing",
+        "target-control",
+        "target-base",
+        "target-traversal",
+        "target-escape",
+        "target-closed",
+        "target-root",
+        # Git write lane: only `git add` / `git commit` reach these.
+        "git-write-unspecified",
+        "git-write-forbidden",
+        "target-drift",
+        "stage-unbounded",
+        "stage-option",
+        "stage-magic",
+        "stage-directory",
+        "stage-scope",
+        "commit-unsafe",
+        "commit-rewrite",
+        # Execution lane: reached only by a non-Git command, which crosses the
+        # execution boundary by running a program at all.
+        "execution-not-opted-in",
+        "execution-template",
+        "execution-option",
+        "execution-stdin",
+        "execution-target",
+    }
 )
 
 
@@ -2855,18 +2909,22 @@ def artifact_deny_counter(action: str) -> str | None:
     """Which turn counter a denied artifact-change call consumes.
 
     The deny ceiling exists to stop repeated probing of the write and
-    execution boundaries. Counting read refusals and work-record refusals
-    against it strands a turn that is following the required flow, so the
-    ceiling is limited to deviations and everything else is bounded by the
-    class budget instead. Unclassified denials count as deviations: a new
-    denial reason has to be admitted to the exemption deliberately.
+    execution boundaries. Charging it for anything else strands a turn that is
+    following the required flow, so a reason code has to be admitted to the
+    ceiling deliberately, and only a determination admission makes for itself
+    qualifies (D-S3-7 補則). Every other denial spends the tool budget, which
+    still bounds it and still closes the turn on exhaustion.
+
+    This function is deliberately a total map over a finite literal set. It
+    reads no classification table: which budget a denial spends must not
+    depend on how an argument was spelled.
     """
 
     if action in ARTIFACT_BUDGET_DENY_ACTIONS:
         return None
-    if action in ARTIFACT_READ_REFUSAL_ACTIONS:
-        return "tool_count"
-    return "denied_count"
+    if action in ARTIFACT_DEVIATION_DENY_ACTIONS:
+        return "denied_count"
+    return "tool_count"
 
 
 def normalize_git_write_actions(raw: Any) -> tuple[str, ...]:
@@ -3164,16 +3222,18 @@ def _git_token_matches_marker(token: str, markers: frozenset[str]) -> bool:
 
 
 def _artifact_git_deviation_action(subcommand: str, tail: list[str]) -> str | None:
-    """Is a refused Git read actually an attempt on a boundary? (D-S3-7 #3)
+    """Label a refused Git read for the audit record (D-S3-7 #3).
 
-    Returns the deviation reason code, or None when the invocation is a pure
-    read inside the locked root. Both the admitted read subset and the
-    recognized-but-unadmitted set go through this: whether a call is a
-    deviation is a property of the whole invocation, so classifying either set
-    by subcommand name alone leaves write forms in the exempt lane.
+    Returns a deviation reason code, or None when the invocation looks like a
+    pure read inside the locked root. Both the admitted read subset and the
+    recognized-but-unadmitted set go through this.
 
-    The classification changes which budget an already-denied call spends; it
-    never admits anything.
+    Audit attribution only since D-S3-7 補則. This function never admits
+    anything, and it no longer selects a budget either: every code it can
+    return spends the tool budget. It exists so an operator reading the audit
+    trail can tell a refused read from an attempt at a boundary. Being wrong
+    here is a labelling error, not a safety or liveness one, which is why the
+    spelling coverage it depends on is no longer required to be exhaustive.
     """
 
     # Most specific label first. All of these branches count, so the order
@@ -3293,9 +3353,8 @@ def _admit_artifact_change_git(
         # working directory but does not by itself bound the arguments.
         return _admit_artifact_change_git_read(subcommand, tail, root=root)
     if subcommand in ARTIFACT_GIT_READ_UNADMITTED:
-        # Recognizing the subcommand is not the exemption. Its arguments go
-        # through the same whole-invocation classification the admitted subset
-        # uses, so a write form under a recognized name spends the ceiling.
+        # Denied either way. The argument classification only chooses the
+        # audit label; it does not select a budget (D-S3-7 補則).
         action = artifact_git_unadmitted_refusal_action(subcommand, tail)
         return GateDecision(False, action, _GIT_UNADMITTED_REASONS[action].format(
             subcommand=subcommand
@@ -3494,17 +3553,28 @@ def _admit_artifact_change_terminal(
         )
     command = str(args.get("command") or "").strip()
     workdir = str(args.get("workdir") or "").strip()
+    # The workdir is checked before the command is tokenized, so these three
+    # refusals happen before admission knows which lane the call belongs to: a
+    # pure read and a staging attempt reach them alike. They therefore carry
+    # their own reason codes rather than the write-target codes they used to
+    # share. Counting is driven by the reason code (D-S3-7 補則), so a code
+    # issued by two different determinations cannot be mapped soundly to one
+    # counter -- the write-target spellings have to mean the write lane only.
     if not workdir or not Path(workdir).is_absolute():
         return GateDecision(
-            False, "target-missing", "terminal commands require an absolute workdir"
+            False, "workdir-missing", "terminal commands require an absolute workdir"
         )
     if ".." in Path(workdir).parts:
         return GateDecision(
-            False, "target-traversal", "the terminal workdir carries an upward reference"
+            False,
+            "workdir-traversal",
+            "the terminal workdir carries an upward reference",
         )
     if not paths_name_the_same_location(workdir, root):
         return GateDecision(
-            False, "target-closed", "the terminal workdir is outside the locked worktree"
+            False,
+            "workdir-outside",
+            "the terminal workdir is outside the locked worktree",
         )
     try:
         tokens = _tokenize_single_shell_command(command)
