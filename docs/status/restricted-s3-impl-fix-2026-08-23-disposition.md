@@ -871,3 +871,27 @@ Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verif
 ### 4. 実行結果
 
 - `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **622 passed**（本ラウンドは文書修正のみで新規テスト追加は無く、18 節時点の件数を維持）。
+
+---
+
+## 20. 隔離実機検証（HERMES_HOME 分離・実カード）による束縛修正の確認と実機新知見の記録（2026-08-24、19 節の続き）
+
+17 節で処置した束縛修正（アンカー優先解決からホスト供給のカード識別子優先への変更、`bc32ca1`。18・19 節の反証レビュー・再検証を経て確証済み）について、17 節が残した残余「本処置後の実機再走行は未実施である」を解消するため、live 資産から分離した隔離環境（`HERMES_HOME=/tmp/pda-iso-verify`）で実 LLM worker により実カード `t_dec48aee` を用いて 3 走行の検証を行った。
+
+### 1. 走行の経過
+
+- 走行1〜2: worker プロセスが解決に用いる task_id が（フックへ届く払い出し形と同様に）カード識別子ではなくセッション識別子であり、契約記録を引けない状態を観測した。17 節の処置が対象とした欠陥形と同一のパターンであり、dispatcher が `HERMES_KANBAN_TASK=<カード識別子>` を worker プロセスの環境変数へ供給し、ゲート側 `resolve_task_binding()` がこれを優先解決する束縛（17 節の実装、`bc32ca1`）が機能する条件を実機で再確認した。
+- 途中の blocker: worker 側に git author identity が設定されておらずコミットが実行できない事象が発生した。これはゲート側の欠陥ではなく隔離ハーネス環境の不備（iso worktree に git config が未設定）であり、iso worktree 側へ git config を設定して解消した。worker は blocker を理由付きで正しく報告しており、fail-closed の挙動として正当である。
+- respawn guard: `consecutive_failures` の蓄積により dispatcher の Spawned カウントが 0 となる挙動を観測した。カウントのリセットで復帰した。ゲートの束縛・admission とは無関係な dispatcher 側の既存仕様である。
+- 束縛修正後の最終走行（成功走行）: task_id=`t_dec48aee` で seed 消費が結合し、ターンは `locked` / `artifact-change` / `contract_origin=assignment` として開始した。decisions は 22 allow / 4 deny、計上対象の denied_count は 0（座礁なし）。scope 外への git diff 系試行は `write-scope` として正しく遮断された。scope 内の write → stage → ローカルコミット（`a5610a5`）作成 → complete までを完走し、ターンは `completed` / `success`、カードは `done` となった。
+- 全走行を通じ、live 資産（本番 kanban.db、gate store、オーナーの `~/projects/pda`）は不変であることを確認した。
+
+### 2. 実機で新たに判明した事項（未処置、オーナー判断待ち）
+
+- 実在の読み取り専用ツール `skill_view`（スキル定義閲覧）を複数回、および `tool_describe`（ツール schema 閲覧）を、いずれも第一層カタログ（「第一層: write 境界」節の読み取り系ツール許可集合）に含まれないため拒否する事例を実機で確認した。拒否は非計上・座礁なしだが、純粋な読み取りに対する運用上の摩擦になる。
+- カタログへの追加は許可集合を広げる方向の変更（allow-set 拡大）に当たるため、本セッションでは実装しない。有効化ゲートにおけるオーナー承認事項として提示する。
+- git の `-c` 付き複合形に対する拒否は、既存の tokenizer 方針（未列挙形の default deny for mutation）どおりの挙動であり、対応は不要と判断した。
+
+### 3. 設計文書への反映
+
+上記の結果を `docs/design/task-scope-admission-gate.md` の「S3-M1 worker 配線」節末尾（第 7 項として新設）へ反映した。false deny 2 件のカタログ追加提案が未実装・オーナー判断待ちである旨も同項へ記載した。
