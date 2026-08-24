@@ -16,6 +16,7 @@ import shlex
 import sqlite3
 import subprocess
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
@@ -47,7 +48,11 @@ def host_task_binding() -> str:
     return os.environ.get(HOST_TASK_BINDING_ENV, "").strip()
 
 
-def resolve_task_binding(payload_task_id: str = "") -> str:
+def resolve_task_binding(
+    payload_task_id: str = "",
+    *,
+    has_contract: Callable[[str], bool] | None = None,
+) -> str:
     """The task identifier to bind a hook call by.
 
     The host-supplied value wins because it is the assigner's own key for the
@@ -56,9 +61,31 @@ def resolve_task_binding(payload_task_id: str = "") -> str:
     sessions above all). ``session_id`` is never overridden: it identifies
     the conversation, and the contract lookup still needs it as its own
     fallback when neither task identifier is present.
+
+    Precedence may not retire a contract. ``has_contract`` answers "does
+    binding by this identifier reach a contract record", and when the two
+    identifiers disagree, an anchor that reaches none does not displace a
+    payload identifier that does: a lookup that finds nothing is not the
+    safe side of this choice, it is the unenforced side, which is strictly
+    wider than the contract the payload identifier was already carrying.
+    Losing the host's supply and being handed a wrong value are different
+    conditions, and only the former was fail-closed by absence alone.
+
+    The correction can only add enforcement, never remove it, so anchor
+    precedence stands wherever the anchor reaches a contract of its own --
+    including one reached through the session fallback -- and wherever
+    neither identifier reaches one.
     """
 
-    return host_task_binding() or str(payload_task_id or "").strip()
+    anchor = host_task_binding()
+    payload = str(payload_task_id or "").strip()
+    if not anchor:
+        return payload
+    if has_contract is None or not payload or payload == anchor:
+        return anchor
+    if has_contract(anchor) or not has_contract(payload):
+        return anchor
+    return payload
 
 
 @dataclass(frozen=True)
@@ -1174,6 +1201,27 @@ class GateStore:
                 if row is not None:
                     return self._render_scope_record(row, origin="self")
         return None
+
+    def has_contract_record(self, *, task_id: str, session_id: str = "") -> bool:
+        """Whether binding by these identifiers reaches a contract record.
+
+        The two record kinds that can put a turn in force: an assignment
+        seed and a standing self lock. Both lookups already consult the
+        session as their own fallback, so this answers the question the
+        binding resolution actually asks -- "would a turn bound this way be
+        enforced" -- rather than "is this exact key seeded".
+
+        Turn history is deliberately not part of the predicate. It is not a
+        record: a turn opened under a task that has history but no record is
+        unenforced whichever identifier bound it, so counting history here
+        would move bindings without putting any contract back in force.
+        """
+
+        return (
+            self.get_contract_seed(task_id, session_id=session_id) is not None
+            or self.get_self_scope_lock(task_id=task_id, session_id=session_id)
+            is not None
+        )
 
     def _record_scope_use(
         self,
@@ -2393,12 +2441,9 @@ class GateStore:
         recording, so the same rationale does not reach this path.
         """
 
-        enforced = (
-            self.get_contract_seed(task_id, session_id=session_id) is not None
-            or self.get_self_scope_lock(task_id=task_id, session_id=session_id)
-            is not None
-            or self._has_enforced_history(task_id=task_id, session_id=session_id)
-        )
+        enforced = self.has_contract_record(
+            task_id=task_id, session_id=session_id
+        ) or self._has_enforced_history(task_id=task_id, session_id=session_id)
         if not enforced:
             return GateDecision(
                 True, "not-enforced", "initial rollout audits this task class"
@@ -4180,9 +4225,16 @@ def validate_shell_payload(
     store = GateStore(state_path or default_state_path())
     # One resolution for the whole call: binding the turn by one identifier
     # and admitting against another is how a contract stops covering the very
-    # call it was recorded for.
-    task_id = resolve_task_binding(str(extra.get("task_id") or ""))
+    # call it was recorded for. The out-of-process surface resolves by the
+    # same rule as the in-process one, contract probe included, so a wrong
+    # anchor cannot retire a contract here either.
     session_id = str(payload.get("session_id") or "")
+    task_id = resolve_task_binding(
+        str(extra.get("task_id") or ""),
+        has_contract=lambda candidate: store.has_contract_record(
+            task_id=candidate, session_id=session_id
+        ),
+    )
     resolved_turn = store.resolve_turn_id(
         turn_id=str(extra.get("turn_id") or ""),
         task_id=task_id,

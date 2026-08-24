@@ -94,11 +94,14 @@ class ScopeGatePluginRuntime:
         )
 
     def pre_llm_call(self, **kwargs: Any) -> dict[str, str] | None:
-        task_id, session_id = self._binding(kwargs)
-        turn_id = self._turn_key(kwargs, task_id=task_id, session_id=session_id)
-        if not turn_id:
-            return None
         try:
+            # Inside the boundary: resolving the binding reads the store, so
+            # a store failure here has to land on the same fail-closed exit
+            # as a registration failure rather than escaping the hook.
+            task_id, session_id = self._binding(kwargs)
+            turn_id = self._turn_key(kwargs, task_id=task_id, session_id=session_id)
+            if not turn_id:
+                return None
             intent = self.store.start_turn(
                 turn_id=turn_id,
                 session_id=session_id,
@@ -132,8 +135,9 @@ class ScopeGatePluginRuntime:
         return self.store.record_contract_seed(**kwargs)
 
     def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
-        task_id, session_id = self._binding(kwargs)
         try:
+            # Resolution reads the store, so it belongs inside the boundary.
+            task_id, session_id = self._binding(kwargs)
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
                 task_id=task_id,
@@ -181,8 +185,9 @@ class ScopeGatePluginRuntime:
     ) -> Any:
         """Revalidate the final post-hook arguments immediately before dispatch."""
 
-        task_id, session_id = self._binding(kwargs)
         try:
+            # Resolution reads the store, so it belongs inside the boundary.
+            task_id, session_id = self._binding(kwargs)
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
                 task_id=task_id,
@@ -222,8 +227,9 @@ class ScopeGatePluginRuntime:
 
     def handle_scope_gate(self, params: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         action = str(params.get("action") or "")
-        task_id, session_id = self._binding(kwargs)
         try:
+            # Resolution reads the store, so it belongs inside the boundary.
+            task_id, session_id = self._binding(kwargs)
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
                 task_id=task_id,
@@ -392,8 +398,7 @@ class ScopeGatePluginRuntime:
         except Exception:  # noqa: BLE001 -- a bookkeeping hook must not raise.
             return
 
-    @staticmethod
-    def _binding(kwargs: dict[str, Any]) -> tuple[str, str]:
+    def _binding(self, kwargs: dict[str, Any]) -> tuple[str, str]:
         """The (task, session) identifiers this hook call is bound by.
 
         Resolved once per hook invocation and threaded through every store
@@ -402,14 +407,27 @@ class ScopeGatePluginRuntime:
         about which task is executing, which is the one way an in-force
         contract can stop covering its own call.
 
+        The resolution is contract-aware: the store answers whether either
+        candidate binding reaches a contract record, so an anchor naming a
+        card this store knows nothing about cannot displace a payload
+        identifier that carries one. The probe runs here, inside the single
+        resolution, for the same reason the resolution is single -- a later
+        second opinion is how the two halves come apart.
+
         Deliberately not applied to ``record_contract_seed``: that runs in
         the orchestrator, where the task id is the assigner's explicit key
         for the card being handed out, not the identity of a worker process.
         """
 
+        session_id = str(kwargs.get("session_id") or "")
         return (
-            resolve_task_binding(str(kwargs.get("task_id") or "")),
-            str(kwargs.get("session_id") or ""),
+            resolve_task_binding(
+                str(kwargs.get("task_id") or ""),
+                has_contract=lambda candidate: self.store.has_contract_record(
+                    task_id=candidate, session_id=session_id
+                ),
+            ),
+            session_id,
         )
 
     @staticmethod

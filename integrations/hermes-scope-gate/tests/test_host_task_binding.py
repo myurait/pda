@@ -13,6 +13,7 @@ out-of-process admission surfaces resolve the same way.
 
 from __future__ import annotations
 
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -38,6 +39,11 @@ CHANGE_MESSAGE = "ログイン画面のバグを修正して"
 # conversation id.
 CARD_ID = "t_dec48aee"
 SESSION_ID = "20260824_122848_9e31b9"
+
+# A card id this store knows nothing about: the shape an anchor takes when it
+# is left over from earlier work, or supplied for a card whose seed never
+# landed. Precedence must not let it stand for "no contract applies".
+FOREIGN_CARD_ID = "t_absent9999"
 
 
 def _repo(tmp_path: Path) -> Path:
@@ -406,3 +412,325 @@ def test_seed_recording_is_not_rebound_by_the_anchor(
 
     assert runtime.store.get_contract_seed("t_assigned_card") is not None
     assert runtime.store.get_contract_seed("t_executing_card") is None
+
+
+# ---------------------------------------------------------------------------
+# Precedence may not retire a contract
+#
+# Anchor precedence answers "which identifier names the work". It must not
+# also decide "whether any contract applies": an anchor that reaches no
+# record is not the safe side of that question, because the payload
+# identifier it displaces may be carrying a live ceiling. Losing the host's
+# supply and being handed a wrong value are different conditions, and only
+# the first is fail-closed by absence alone.
+# ---------------------------------------------------------------------------
+
+
+def test_the_resolution_order_never_retires_a_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # All four reachability combinations, pinned on the resolution itself so
+    # the rule is readable without a store. The anchor keeps precedence in
+    # three of them; it yields only where yielding is the enforcing side.
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, CARD_ID)
+
+    assert resolve_task_binding(SESSION_ID, has_contract=lambda _: True) == CARD_ID
+    assert (
+        resolve_task_binding(SESSION_ID, has_contract=lambda name: name == CARD_ID)
+        == CARD_ID
+    )
+    assert (
+        resolve_task_binding(SESSION_ID, has_contract=lambda name: name == SESSION_ID)
+        == SESSION_ID
+    )
+    assert resolve_task_binding(SESSION_ID, has_contract=lambda _: False) == CARD_ID
+    # Surfaces that cannot reach a store keep the plain precedence.
+    assert resolve_task_binding(SESSION_ID) == CARD_ID
+
+
+def test_the_contract_probe_is_skipped_where_it_cannot_change_the_answer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # There is nothing to compare when only one identifier exists, or when
+    # both name the same work. Probing anyway would put a store read on every
+    # hook of the interactive surface for an answer already determined.
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, CARD_ID)
+    asked: list[str] = []
+
+    def probe(candidate: str) -> bool:
+        asked.append(candidate)
+        return False
+
+    assert resolve_task_binding("", has_contract=probe) == CARD_ID
+    assert resolve_task_binding(CARD_ID, has_contract=probe) == CARD_ID
+    assert resolve_task_binding("   ", has_contract=probe) == CARD_ID
+    assert asked == []
+
+    monkeypatch.delenv(HOST_TASK_BINDING_ENV)
+    assert resolve_task_binding(SESSION_ID, has_contract=probe) == SESSION_ID
+    assert asked == []
+
+
+def test_an_absent_anchor_contract_does_not_unenforce_a_seeded_payload_task(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The combination the precedence rule left open: the payload identifier
+    # names the seeded card and the anchor names something the store has no
+    # record for. Resolving to the anchor opened the turn unenforced, which
+    # is strictly wider than the ceiling the payload identifier carried.
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    _seed(runtime, repo, CARD_ID)
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+    payload = {"task_id": CARD_ID, "session_id": SESSION_ID}
+
+    runtime.pre_llm_call(**payload, user_message=CHANGE_MESSAGE)
+
+    with runtime.store._connect() as connection:
+        row = connection.execute("SELECT * FROM turns").fetchone()
+    assert str(row["task_id"]) == CARD_ID
+    assert str(row["state"]) == "locked"
+    assert str(row["contract_origin"]) == "assignment"
+    # The ceiling is in force on the tool boundary, not merely recorded.
+    assert (
+        runtime.pre_tool_call(
+            **payload,
+            tool_call_id="outside",
+            tool_name="write_file",
+            args={"path": str(repo / "secrets.txt"), "content": "x"},
+        )
+        or {}
+    ).get("action") == "block"
+    assert (
+        runtime.pre_tool_call(
+            **payload,
+            tool_call_id="inside",
+            tool_name="write_file",
+            args={"path": str(repo / "src" / "app.py"), "content": "x"},
+        )
+        is None
+    )
+
+
+def test_an_absent_anchor_contract_does_not_unenforce_a_self_locked_payload_task(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A standing self lock is the other record kind a turn can be in force
+    # by, and it is kept at task scope precisely so the next turn of the same
+    # work starts locked. An anchor naming nothing must not be the way that
+    # lock stops applying either.
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    runtime.store.start_turn(
+        turn_id="turn-first",
+        session_id=SESSION_ID,
+        task_id="task-self-locked",
+        user_message=CHANGE_MESSAGE,
+    )
+    runtime.store.lock_turn(
+        turn_id="turn-first",
+        repositories=[str(repo)],
+        worktrees=[str(repo)],
+        branches=["main"],
+        write_paths=["src/*.py"],
+    )
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+
+    runtime.pre_llm_call(
+        task_id="task-self-locked",
+        session_id=SESSION_ID,
+        user_message="別のファイルも修正して",
+    )
+
+    with runtime.store._connect() as connection:
+        row = connection.execute(
+            "SELECT * FROM turns WHERE turn_id != 'turn-first'"
+        ).fetchone()
+    assert str(row["task_id"]) == "task-self-locked"
+    assert str(row["state"]) == "locked"
+    assert str(row["contract_origin"]) == "self"
+
+
+def test_the_anchor_is_kept_when_its_own_binding_reaches_the_session_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The seed lookup already falls back to the session, so an anchor whose
+    # own key is unseeded can still be a fully enforced binding. Treating
+    # "the anchor key is not seeded" as the trigger would flip the binding
+    # here for nothing and hand the turn the payload task's ceiling instead
+    # of the one the session actually carries.
+    repo = _repo(tmp_path)
+    other = tmp_path / "other"
+    (other / "src").mkdir(parents=True)
+    subprocess.run(
+        ["git", "init", "-q", "-b", "main", str(other)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    (other / "src" / "other.py").write_text("z = 3\n", encoding="utf-8")
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    runtime.record_contract_seed(
+        task_id="task-session-scoped",
+        session_id=SESSION_ID,
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    runtime.record_contract_seed(
+        task_id="task-payload",
+        worktree=str(other),
+        branch="main",
+        write_paths=["src/other.py"],
+    )
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+
+    runtime.pre_llm_call(
+        task_id="task-payload",
+        session_id=SESSION_ID,
+        user_message=CHANGE_MESSAGE,
+    )
+
+    with runtime.store._connect() as connection:
+        row = connection.execute("SELECT * FROM turns").fetchone()
+    assert str(row["task_id"]) == FOREIGN_CARD_ID
+    assert str(row["state"]) == "locked"
+    assert str(repo) in str(row["contract_json"])
+    assert str(other) not in str(row["contract_json"])
+    assert runtime.store.get_contract_seed("task-payload")["consumed_turn_id"] is None
+
+
+def test_the_anchor_still_binds_when_neither_identifier_reaches_a_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Nothing is in force either way here, so the correction must not fire:
+    # the anchor remains the identifier the work is filed under, which is the
+    # whole reason the host supplies it.
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+
+    runtime.pre_llm_call(
+        task_id="task-unseeded",
+        session_id=SESSION_ID,
+        user_message=CHANGE_MESSAGE,
+    )
+
+    with runtime.store._connect() as connection:
+        row = connection.execute("SELECT * FROM turns").fetchone()
+    assert str(row["task_id"]) == FOREIGN_CARD_ID
+    assert str(row["state"]) == "audit"
+    assert str(row["contract_origin"]) == ""
+
+
+def test_the_shell_hook_keeps_a_seeded_payload_task_enforced_under_that_anchor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The out-of-process surface resolves independently, so the same
+    # combination has to be closed there rather than inherited. The unbound
+    # form is the one that isolates the resolution: with no turn to fall back
+    # to on either identifier, whether the call is enforced depends purely on
+    # which identifier the contract was looked up under.
+    repo = _repo(tmp_path)
+    store = GateStore(tmp_path / "scope.db")
+    store.record_contract_seed(
+        task_id=CARD_ID,
+        worktree=str(repo),
+        branch="main",
+        write_paths=["src/*.py"],
+    )
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+    common = {
+        "hook_event_name": "pre_tool_call",
+        "session_id": SESSION_ID,
+        "extra": {"task_id": CARD_ID},
+    }
+
+    unbound = validate_shell_payload(
+        {
+            **common,
+            "tool_name": "write_file",
+            "tool_input": {"path": str(repo / "src" / "app.py"), "content": "x"},
+        },
+        state_path=store.path,
+    )
+
+    assert unbound.get("action") == "block"
+    assert "contract-unbound" in unbound["message"]
+
+    # And once the card's turn exists, the refusal is the contract's own
+    # write scope rather than the absence of a binding.
+    store.start_turn(
+        turn_id="turn-card",
+        session_id=SESSION_ID,
+        task_id=CARD_ID,
+        user_message=CHANGE_MESSAGE,
+    )
+    blocked = validate_shell_payload(
+        {
+            **common,
+            "tool_name": "write_file",
+            "tool_input": {"path": str(repo / "secrets.txt"), "content": "x"},
+        },
+        state_path=store.path,
+    )
+    admitted = validate_shell_payload(
+        {
+            **common,
+            "tool_name": "write_file",
+            "tool_input": {"path": str(repo / "src" / "app.py"), "content": "x"},
+        },
+        state_path=store.path,
+    )
+
+    assert blocked.get("action") == "block"
+    assert "write-scope" in blocked["message"]
+    assert admitted == {}
+
+
+def test_a_failing_contract_probe_stays_inside_the_fail_closed_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Resolving the binding now reads the store, so it can fail the way any
+    # store read can (a locked database, an I/O error). Every admission path
+    # already carries an exception boundary whose whole purpose is that a
+    # gate failure refuses rather than escapes; a resolution performed ahead
+    # of that boundary would hand the caller a crash instead of a refusal.
+    # The probe itself must not swallow the error either: reporting "no
+    # contract" on failure resolves to the anchor, which is the unenforced
+    # side of the very combination this section closes.
+    repo = _repo(tmp_path)
+    runtime = ScopeGatePluginRuntime(tmp_path / "scope.db")
+    _seed(runtime, repo, CARD_ID)
+    monkeypatch.setenv(HOST_TASK_BINDING_ENV, FOREIGN_CARD_ID)
+
+    def unavailable(**_: object) -> bool:
+        raise sqlite3.OperationalError("database is locked")
+
+    monkeypatch.setattr(runtime.store, "has_contract_record", unavailable)
+    payload = {"task_id": CARD_ID, "session_id": SESSION_ID}
+    write_args = {"path": str(repo / "src" / "app.py"), "content": "x"}
+    executed: list[dict[str, object]] = []
+
+    # Registration declines, which leaves later calls on the unbound path.
+    assert runtime.pre_llm_call(**payload, user_message=CHANGE_MESSAGE) is None
+    with runtime.store._connect() as connection:
+        assert connection.execute("SELECT count(*) FROM turns").fetchone()[0] == 0
+
+    admission = runtime.pre_tool_call(
+        **payload, tool_call_id="probe-down", tool_name="write_file", args=write_args
+    )
+    middleware = runtime.tool_execution_middleware(
+        **payload,
+        tool_call_id="probe-down",
+        tool_name="write_file",
+        args=write_args,
+        next_call=lambda args: executed.append(args) or {"ok": True},
+    )
+    control = runtime.handle_scope_gate({"action": "complete"}, **payload)
+
+    assert admission is not None
+    assert admission["action"] == "block"
+    assert "admission-validator-error" in admission["message"]
+    assert executed == []
+    assert "execution-validator-error" in str(middleware["error"])
+    assert control["ok"] is False

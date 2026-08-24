@@ -112,6 +112,16 @@ threaded through the seed lookup, the turn key, and admission alike — binding 
 admitting by another would take a live contract off the tool boundary. Recording a seed is not
 resolved this way: there the task id is the assigner's key for the card being handed out.
 
+Precedence decides which identifier names the work, not whether a contract applies. Where the two
+identifiers disagree and the environment value reaches no contract record while the payload
+identifier reaches one, the payload identifier is taken: a lookup that finds nothing is the
+unenforced side of that choice, not the safe one, and an anchor naming an unknown card would
+otherwise retire a ceiling that was already in force. Losing the host's value and being handed a
+wrong one are different conditions, and only the first is fail-closed by absence alone. The
+correction can only add enforcement, so the environment value still wins wherever it reaches a
+contract of its own — including one reached through the session fallback — and wherever neither
+identifier reaches one.
+
 ## Architecture
 
 - `__init__.py`: Hermes plugin registration, one control tool, stable policy prompt section,
