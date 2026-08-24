@@ -30,6 +30,36 @@ _STATE_MENTION_RE = re.compile(
     re.IGNORECASE,
 )
 
+HOST_TASK_BINDING_ENV = "HERMES_KANBAN_TASK"
+
+
+def host_task_binding() -> str:
+    """The task identifier the host set on this worker process, if any.
+
+    The dispatcher that spawns a worker exports the board card id in the
+    worker's process environment. That is the only identifier that names the
+    unit of work a contract seed is keyed by: the identifiers carried in the
+    hook payload name the conversation, and were measured to be the session
+    id in both the task and the session field, which a seed cannot be joined
+    on.
+    """
+
+    return os.environ.get(HOST_TASK_BINDING_ENV, "").strip()
+
+
+def resolve_task_binding(payload_task_id: str = "") -> str:
+    """The task identifier to bind a hook call by.
+
+    The host-supplied value wins because it is the assigner's own key for the
+    work, not the executor's view of it; the payload value remains the
+    fallback for every surface the dispatcher does not start (interactive
+    sessions above all). ``session_id`` is never overridden: it identifies
+    the conversation, and the contract lookup still needs it as its own
+    fallback when neither task identifier is present.
+    """
+
+    return host_task_binding() or str(payload_task_id or "").strip()
+
 
 @dataclass(frozen=True)
 class TaskIntent:
@@ -4148,15 +4178,20 @@ def validate_shell_payload(
         raise TypeError("hook payload requires object tool_input and extra")
 
     store = GateStore(state_path or default_state_path())
+    # One resolution for the whole call: binding the turn by one identifier
+    # and admitting against another is how a contract stops covering the very
+    # call it was recorded for.
+    task_id = resolve_task_binding(str(extra.get("task_id") or ""))
+    session_id = str(payload.get("session_id") or "")
     resolved_turn = store.resolve_turn_id(
         turn_id=str(extra.get("turn_id") or ""),
-        task_id=str(extra.get("task_id") or ""),
-        session_id=str(payload.get("session_id") or ""),
+        task_id=task_id,
+        session_id=session_id,
     )
     if not resolved_turn:
         unbound = store.admit_without_turn(
-            task_id=str(extra.get("task_id") or ""),
-            session_id=str(payload.get("session_id") or ""),
+            task_id=task_id,
+            session_id=session_id,
             tool_name=tool_name,
         )
         if unbound.allowed:
@@ -4170,8 +4205,8 @@ def validate_shell_payload(
         tool_call_id=str(extra.get("tool_call_id") or ""),
         tool_name=tool_name,
         args=tool_input,
-        task_id=str(extra.get("task_id") or ""),
-        session_id=str(payload.get("session_id") or ""),
+        task_id=task_id,
+        session_id=session_id,
     )
     if decision.allowed:
         return {}

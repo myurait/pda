@@ -11,9 +11,19 @@ from pathlib import Path
 from typing import Any
 
 try:  # Hermes loads the plugin as a namespaced package.
-    from .scope_gate import ARTIFACT_ENFORCED_STATES, GateStore, default_state_path
+    from .scope_gate import (
+        ARTIFACT_ENFORCED_STATES,
+        GateStore,
+        default_state_path,
+        resolve_task_binding,
+    )
 except ImportError:  # Direct unit-test/script import fallback.
-    from scope_gate import ARTIFACT_ENFORCED_STATES, GateStore, default_state_path
+    from scope_gate import (
+        ARTIFACT_ENFORCED_STATES,
+        GateStore,
+        default_state_path,
+        resolve_task_binding,
+    )
 
 
 _CLOSEOUT_CONTEXT = """PDA scope contract: repository-closeout (hard enforced).
@@ -84,14 +94,15 @@ class ScopeGatePluginRuntime:
         )
 
     def pre_llm_call(self, **kwargs: Any) -> dict[str, str] | None:
-        turn_id = self._turn_key(kwargs)
+        task_id, session_id = self._binding(kwargs)
+        turn_id = self._turn_key(kwargs, task_id=task_id, session_id=session_id)
         if not turn_id:
             return None
         try:
             intent = self.store.start_turn(
                 turn_id=turn_id,
-                session_id=str(kwargs.get("session_id") or ""),
-                task_id=str(kwargs.get("task_id") or ""),
+                session_id=session_id,
+                task_id=task_id,
                 user_message=str(kwargs.get("user_message") or ""),
             )
         except Exception:  # noqa: BLE001 -- registration failure must not
@@ -121,8 +132,7 @@ class ScopeGatePluginRuntime:
         return self.store.record_contract_seed(**kwargs)
 
     def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
-        task_id = str(kwargs.get("task_id") or "")
-        session_id = str(kwargs.get("session_id") or "")
+        task_id, session_id = self._binding(kwargs)
         try:
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
@@ -171,16 +181,17 @@ class ScopeGatePluginRuntime:
     ) -> Any:
         """Revalidate the final post-hook arguments immediately before dispatch."""
 
+        task_id, session_id = self._binding(kwargs)
         try:
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
-                task_id=str(kwargs.get("task_id") or ""),
-                session_id=str(kwargs.get("session_id") or ""),
+                task_id=task_id,
+                session_id=session_id,
             )
             if not turn_id:
                 unbound = self.store.admit_without_turn(
-                    task_id=str(kwargs.get("task_id") or ""),
-                    session_id=str(kwargs.get("session_id") or ""),
+                    task_id=task_id,
+                    session_id=session_id,
                     tool_name=tool_name,
                 )
                 if unbound.allowed:
@@ -193,8 +204,8 @@ class ScopeGatePluginRuntime:
                 tool_call_id=str(kwargs.get("tool_call_id") or ""),
                 tool_name=tool_name,
                 args=args,
-                task_id=str(kwargs.get("task_id") or ""),
-                session_id=str(kwargs.get("session_id") or ""),
+                task_id=task_id,
+                session_id=session_id,
             )
         except Exception as exc:  # noqa: BLE001 -- this boundary must fail closed.
             return {
@@ -211,11 +222,12 @@ class ScopeGatePluginRuntime:
 
     def handle_scope_gate(self, params: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         action = str(params.get("action") or "")
+        task_id, session_id = self._binding(kwargs)
         try:
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
-                task_id=str(kwargs.get("task_id") or ""),
-                session_id=str(kwargs.get("session_id") or ""),
+                task_id=task_id,
+                session_id=session_id,
             )
             if not turn_id:
                 return {
@@ -274,10 +286,11 @@ class ScopeGatePluginRuntime:
         raw_args = kwargs.get("args")
         if not isinstance(raw_args, dict):
             return
+        task_id, session_id = self._binding(kwargs)
         turn_id = self.store.resolve_turn_id(
             turn_id=str(kwargs.get("turn_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            session_id=str(kwargs.get("session_id") or ""),
+            task_id=task_id,
+            session_id=session_id,
         )
         if turn_id:
             self.store.record_tool_result(
@@ -322,10 +335,11 @@ class ScopeGatePluginRuntime:
             return
 
     def _close_at_audit_hook(self, **kwargs: Any) -> None:
+        task_id, session_id = self._binding(kwargs)
         turn_id = self.store.resolve_turn_id(
             turn_id=str(kwargs.get("turn_id") or ""),
-            task_id=str(kwargs.get("task_id") or ""),
-            session_id=str(kwargs.get("session_id") or ""),
+            task_id=task_id,
+            session_id=session_id,
         )
         if turn_id:
             turn = self.store.get_turn(turn_id)
@@ -360,10 +374,11 @@ class ScopeGatePluginRuntime:
             and not kwargs.get("interrupted")
         )
         try:
+            task_id, session_id = self._binding(kwargs)
             turn_id = self.store.resolve_turn_id(
                 turn_id=str(kwargs.get("turn_id") or ""),
-                task_id=str(kwargs.get("task_id") or ""),
-                session_id=str(kwargs.get("session_id") or ""),
+                task_id=task_id,
+                session_id=session_id,
             )
             if not turn_id:
                 return
@@ -378,19 +393,42 @@ class ScopeGatePluginRuntime:
             return
 
     @staticmethod
-    def _turn_key(kwargs: dict[str, Any]) -> str:
+    def _binding(kwargs: dict[str, Any]) -> tuple[str, str]:
+        """The (task, session) identifiers this hook call is bound by.
+
+        Resolved once per hook invocation and threaded through every store
+        call that invocation makes. Reading the host anchor again mid-hook
+        would let a seed lookup and the admission that follows it disagree
+        about which task is executing, which is the one way an in-force
+        contract can stop covering its own call.
+
+        Deliberately not applied to ``record_contract_seed``: that runs in
+        the orchestrator, where the task id is the assigner's explicit key
+        for the card being handed out, not the identity of a worker process.
+        """
+
+        return (
+            resolve_task_binding(str(kwargs.get("task_id") or "")),
+            str(kwargs.get("session_id") or ""),
+        )
+
+    @staticmethod
+    def _turn_key(kwargs: dict[str, Any], *, task_id: str, session_id: str) -> str:
         """Identity of the turn being started.
 
         A task id alone is not a turn key: every message of the task would
         collapse into one row, so the first message's classification, wall
         clock, and budgets would stand for the whole task and no later turn
         would exist for the state machine to act on.
+
+        The scope half of the key takes the already-resolved identifiers, so
+        the turn is filed under the same task the contract is looked up by.
         """
 
         direct = str(kwargs.get("turn_id") or "")
         if direct:
             return direct
-        scope = str(kwargs.get("task_id") or "") or str(kwargs.get("session_id") or "")
+        scope = task_id or session_id
         if not scope:
             return ""
         digest = hashlib.sha256(

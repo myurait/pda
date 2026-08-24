@@ -712,3 +712,65 @@ Judgment A 側（承認ゲート）へも同じ封じ込めを課した。`verif
 
 - `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **598 passed**。
 - `operations/improvement/tests` と `integrations/hermes-pda-approvals/tests` は開発PC で実行不能（`hermes_cli` / `fastapi` 不在）。本節の 4 件はいずれも開発PC 上のスタブ再現で処置前の失敗と処置後の反転を確認した。ミニPC でのスイート実行は親セッションが行う。
+
+---
+
+## 17. 実機検証（隔離 HERMES_HOME・実カード）で確定した束縛欠陥の処置（2026-08-24、16 節の続き）
+
+ミニPC の dispatcher 起動 worker で実カードを 1 枚流し、フックへ実際に届く値を計測した。設計第 9 項が「運用条件として要求する」に留めていた host 識別子の配線について、実測が要求の成立形を変えたため本節で処置する。
+
+### 1. 発見（計測事実）
+
+- **フックへ届く task_id は Hermes セッション識別子であり、ボードカード ID ではない。** turn 行の実測値は `task_id == session_id ==` 同一のセッション識別子、`task_class=audit-only`、`contract_origin` 空であった。
+- seed はカード ID を鍵として記録されるため、payload だけを見る解決では**照会が結合せず、ターンは監査のみとして開く**。設計が想定した「seed の存在が強制の発効セレクタである」という不変条件は、記録側が正しくてもこの一点で成立しなくなる。第 9 項の「task_id または session_id のどちらかが配線されていること」という条件は、**両方が非空でも満たされない**（非空性ではなく指す対象が問題であった）。
+- **強制系そのものは健全であった。** worker は locked 契約なしの変異を自覚し、self-lock を「audit-only turns cannot lock a scope contract」で拒否され、カードを理由付きで block した。fail-closed は設計どおり成立しており、欠陥は「強制が漏れる」方向ではなく「seed 経路が発効しない」方向である。
+- **dispatcher は spawn 時に worker プロセスの環境変数へカード ID を供給していた**（`HERMES_KANBAN_TASK`。ミニPC 実機で確認。開発PC に当該ソースは無い）。plugin/フックは worker の agent プロセス内で動くため、この値はホスト供給の束縛アンカーとして読める。
+- 併せて確認: plugin のロードと shell hook 登録（`fail_closed=True`）は隔離環境で成功。カタログのツール名（`read_file`・`kanban_block` 等）は実レジストリに実在した（架空名による許可の空振りは無い）。
+
+### 2. 処置（司令塔決定の実装）
+
+決定は「プロセス環境変数 `HERMES_KANBAN_TASK` を最優先の正本とし、無ければ従来どおり payload の task_id → session_id」。
+
+- 解決関数を `scope_gate.py` に置いた（`HOST_TASK_BINDING_ENV` / `host_task_binding()` / `resolve_task_binding()`）。shell hook は `scope_gate` のみを import するため、両サーフェスが共有できる置き場所はここだけである。
+- 読取はフック処理時に行う（プロセス起動時に固定しない）。ただし**一つの呼び出しの中では一度だけ解決し、同じ値を全ての store 呼び出しへ渡す**。`plugin_runtime` に `_binding()` を置き、`pre_llm_call` / `pre_tool_call` / `tool_execution_middleware` / `handle_scope_gate` / `post_tool_call` / `_close_at_audit_hook` / `on_session_end` の全フックで先頭に解決を寄せた。`_turn_key()` は kwargs を読む形から解決済み値を受け取る形へ改め、キーワードを必須にした（既定値を残すと呼び出し漏れが空文字経路へ落ちる）。
+- `validate_shell_payload` も同一順序で解決し、`resolve_turn_id` / `admit_without_turn` / `admit_tool` へ同じ値を渡す。改訂前は同じ式を各呼び出しで別々に書いていたため、片方だけ直すと束縛と admission が食い違う形が残る。
+- **`session_id` は上書きしない。** 会話の識別子であり、task 識別子が全て無い場合の照会先として独立に必要である。
+- **`record_contract_seed` には適用しない。** そこでの task_id は「配る相手のカード」を指す割当者の鍵であり、実行中 worker プロセスの同一性ではない。統一すると seed が誤ったタスクへ記録される。この非対称は意図であり、後続ラウンドが「揃える」方向で潰さないよう設計本文にも明記した。
+- `operations/improvement/install.py` の `KANBAN_ENV_OVERRIDES` には**加えない**。あちらは board / DB パスの pin を無効化するための集合であり（インシデント t_4a78c98b）、`HERMES_KANBAN_TASK` はパス pin ではない。2 つの同名タプルは目的が別である。
+
+### 3. テスト環境の露出（処置に含めた）
+
+環境変数が payload より優先されるため、**worker 環境の中でスイートを走らせると明示した識別子が上書きされる**。実測: ambient に値を置くと 5 件が落ちる（うち 3 件は「アンカー不在時の挙動」を主張するテスト、2 件は 2 つの異なる task id を使うテスト）。残りが通るのは解決が seed・ターン・admission で一貫して上書きされるためであり、これは実装の一貫性の裏付けでもある。
+
+- リポジトリ直下 `conftest.py` の `KANBAN_ENV_OVERRIDES` へ `HERMES_KANBAN_TASK` を追加した。同 conftest が既に扱っているインシデント類型（dispatcher 管理環境の env が `HERMES_HOME` ベースの隔離を上回る）と同一であり、ゲートを import するスイートは本ディレクトリの他に 2 つある（`operations/improvement/tests`・`integrations/hermes-pda-approvals/tests`）ためリポジトリ全体で除去するのが正しい範囲である。
+- 加えて `integrations/hermes-scope-gate/tests/conftest.py` に autouse fixture を置いた。rootdir がリポジトリ直下でない起動（当該ディレクトリ内から `pytest tests` を実行する形）では直下 conftest が読まれないため、二重化する。両方の経路で ambient 値を置いた実測 green を確認した。
+
+### 4. 回帰テスト（新規 16 件）
+
+`integrations/hermes-scope-gate/tests/test_host_task_binding.py`。テスト名は欠陥台帳の抽象水準に留める。
+
+- 解決規則そのもの: 呼び出し時読取であること、空白のみの値は「不在」であって task id ではないこと、アンカーが payload に優先すること、アンカー不在時に payload が束縛すること。
+- in-process サーフェス: カード seed が初回ターンへ結合し `locked` / `contract_origin=assignment` になり seed の `consumed_turn_id` が埋まること、同ターンの tool 呼び出しが当該契約で統治されること（scope 内は admit・scope 外は block）、**バインド不能な呼び出しがカード契約に対して enforced になること**（`contract-unbound`）、実行 middleware が同じアンカーを解決すること、制御ツールが同じターンへ届くこと、アンカー不在時に payload 識別子で従来どおり `locked` になること。
+- 優先順位の可観測化: payload 側 task にも実 seed を持たせ、**両者が実契約へ解決する状態で**アンカー側が勝つことを主張する（片方の照会が失敗するだけの構成では優先順位を実証できない）。payload 側 seed が未消費であることも併せて固定した。
+- out-of-process サーフェス: shell hook が同じアンカーを解決すること（payload の session 欄が欠ける形を含む。この形ではアンカーだけが契約へ到達する唯一の識別子であり、改訂前は not-enforced として許可されていた）、および shell hook のバインド不能経路が enforced になること。
+- 割当側の非適用: ambient にアンカーを置いた状態で `record_contract_seed` が引数のカードへ記録され、アンカー側のカードには記録されないこと。
+
+**空回り検出**: 解決関数からアンカー優先を外した状態で当該ファイルを実行し、**16 件のうち 8 件が落ちる**ことを確認した（残る 8 件は解決の単体検査・アンカー不在時の挙動・割当側非適用であり、どちらでも通るのが正しい）。テスト環境の露出についても、直下 conftest を外して ambient 値を置くと 5 件が落ちることを確認済み（3 節）。
+
+### 5. 設計文書の更新
+
+- 契約ライフサイクル節 第 9 項の「host 識別子の配線が前提条件」を、実測に基づく解決順序へ書き換えた。要求の内容が「どちらかが非空であること」から「カードを名指す識別子が到達すること」へ変わっている点を明記した。一呼び出し一回の解決、割当側 seed への非適用、pytest ガードへの追加も同項に含めた。
+- 「S3-M1 worker 配線」節へ第 3 項「記録した契約と実行中の worker を結ぶ識別子」を新設し、以降を繰り下げた（旧 3→4、旧 4→5、旧 5→6）。他節からの「第N項」参照は当該節を指すものが無いことを確認済み（415/581/659 行の参照はいずれも別節・S2 宛て）。ホスト供給値が INV-S8（上限の出所は実行主体の外）と同じ性質を持つこと、実行主体が書き換えても自分の上限は広がらないこと、供給が失われた場合も fail-closed であることを記した。
+- 併せて `integrations/hermes-scope-gate/README.md` の束縛記述を解決順序へ改めた。
+
+### 6. 本ラウンド後の残余（司令塔判断）
+
+- 実機で確認できていない設計第 7 項の残り: `post_llm_call` の発火粒度、cycle と gateway が同一 store を解決すること、`PDA_SCOPE_GATE_ARTIFACT_PRELOCK` の実効値読み戻し、worktree path の canonical 一致。本ラウンドの実カード実行は audit-only ターンで終わったため、locked ターンでのこれらの確認は seed 結合後の再走行を要する。
+- **本処置後の実機再走行は未実施である。** 開発PC には dispatcher のソースが無く、環境変数の供給は実機観測に依拠している。処置の実効確認（seed 結合済みの locked ターンでカードが完走すること）はミニPC 側の再走行事項として親セッションへ引き渡す。
+- **アンカーは継承される環境変数であるという性質の残余（本節では処置しない）。** kanban-governance patch の同梱テスト（`test_delegate_child_env_scrub_bypass_is_closed`）が示すとおり、当該変数を持たない子プロセスは実在する事象として既に扱われている。アンカーを持たない呼び出しは payload 識別子へ落ち、親の seed とは結合しないため監査のみとして解決される。**この形は本処置の新設ではない**（改訂前も子の payload 識別子は親の seed と結合しない）。かつ artifact-change 契約は委任と background work を拒否するため、locked な worker からこの経路へ進むことはできない。したがって現時点で追加の機構は要らないと判断したが、「ホスト供給値の到達がクラスの運用条件である」という第 9 項の要求は、供給する側（dispatcher）と供給が途切れる境界（子プロセス生成）の両方に掛かる。境界側を機構で閉じるか運用条件に留めるかは司令塔判断であり、exit gate の判断材料として記録する。
+
+### 7. 実行結果
+
+- `integrations/hermes-scope-gate/tests`（`test_hermes_integration.py` 除く）: **614 passed**（16 節時点 598 + 新規 16。既存の失敗・skip 無し）。
+- ambient に `HERMES_KANBAN_TASK` を置いた同スイート: **614 passed**（直下 conftest 経路・ディレクトリ内 rootdir 経路の両方）。
+- `operations/improvement/tests`・`integrations/hermes-pda-approvals/tests`・`tests/`・`integrations/openwebui-hermes-progress/tests` は開発PC で実行不能（`fastapi` / `hermes_cli` 不在。16 節と同じ）。直下 conftest の変更は当該スイートへも影響するため、ミニPC でのスイート実行は親セッションが行う。`operations/improvement/install.py` 側の同名タプルは変更していないため、`test_kanban_isolation.py` が import する集合は不変である。

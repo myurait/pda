@@ -15,6 +15,13 @@ pytest from the repository root:
    ``hermes_cli.kanban_db`` path resolution (used by ``connect``,
    ``connect_closing`` and ``init_db``) fails closed if any test would
    resolve to one of them.
+
+``HERMES_KANBAN_TASK`` joins the scrub for the same reason at a different
+target: the dispatcher exports the card id it spawned a worker for, and the
+scope gate reads it as the authoritative task binding. Left ambient it would
+outrank the explicit identifiers every gate test passes in, so a suite run
+inside a worker environment would silently exercise one binding while
+asserting another.
 """
 from __future__ import annotations
 
@@ -29,6 +36,7 @@ KANBAN_ENV_OVERRIDES = (
     "HERMES_KANBAN_BOARD",
     "HERMES_KANBAN_WORKSPACES_ROOT",
     "HERMES_KANBAN_ATTACHMENTS_ROOT",
+    "HERMES_KANBAN_TASK",
 )
 
 

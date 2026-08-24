@@ -102,8 +102,15 @@ session end. The intermediate audit hook is neither, so it does not close an enf
 turn stays reachable to keep refusing. The contract records its origin, so a self-declared write
 scope is auditable as the weaker guarantee.
 
-An artifact-change turn needs at least one of `task_id` / `session_id` from the host: the contract
-record is looked up by those identifiers, and a call carrying neither has nothing to look up.
+An artifact-change turn is bound to a contract by a task identifier from the host, resolved in one
+order on every surface: the `HERMES_KANBAN_TASK` process environment variable first, then the hook
+payload's `task_id`, then its `session_id`. The environment variable is what a dispatcher exports
+into a worker process and names the board card a contract is recorded against; the payload
+identifiers name the conversation, so they bind the surfaces a dispatcher does not start. A call
+carrying none of the three has nothing to look up. The resolution happens once per hook call and is
+threaded through the seed lookup, the turn key, and admission alike — binding by one identifier and
+admitting by another would take a live contract off the tool boundary. Recording a seed is not
+resolved this way: there the task id is the assigner's key for the card being handed out.
 
 ## Architecture
 
