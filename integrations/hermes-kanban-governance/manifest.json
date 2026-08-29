@@ -1,18 +1,22 @@
 {
   "schema_version": 2,
-  "purpose": "Kanban terminal-transition claim guard: complete/block/archive refuse anonymous calls against a live foreign worker claim (incident t_877230c3, delegate-child env-scrub bypass)",
+  "purpose": "Kanban governance patches for the autonomous dispatcher: (0001) complete/block/archive refuse anonymous calls against a live foreign worker claim (incident t_877230c3, delegate-child env-scrub bypass); (0002) the respawn guard judges the crashed run's worktree progress before re-spawning, so an uncontrolled retry cannot start a second worker session on the same checkout and a no-progress loop is blocked with a reason instead of repeating silently (docs/status/m1-supervised-run-2026-08-29.md issue 2)",
   "upstream_url": "https://github.com/NousResearch/hermes-agent.git",
-  "base_commit": "9a9f72812d27108ae7d4e3b0b23010096c6d929b",
-  "base_commit_note": "live agent-node HEAD: upstream 4323c67d + local 0778d86c (plan progress events) + local 9a9f7281 (prompt-cache retry fix)",
+  "base_commit": "084cdbf18fadb4b259a1129797d8ce502a55eb5c",
+  "base_commit_note": "live agent-node HEAD: upstream 4323c67d + local 0778d86c (plan progress events) + local 9a9f7281 (prompt-cache retry fix) + local 084cdbf1 (patch 0001 of this series, already applied live). Patch 0002 applies on top of 084cdbf1.",
   "source_commits": [
-    "dd42edf1c853c4c5e021ddd2c26e962430f1e1b6"
+    "dd42edf1c853c4c5e021ddd2c26e962430f1e1b6",
+    "2decf3b8caa8ba7894096a68d1913529ad080f1b"
   ],
-  "source_commit": "dd42edf1c853c4c5e021ddd2c26e962430f1e1b6",
-  "source_tree": "0b9412973fad8619f571f0ece8da312cd2380c9c",
+  "source_commits_note": "0002 was re-generated on the development PC after the review of docs/status/restricted-respawn-review-2026-08-29.md; its commit id belongs to that regeneration tree (base = the pre-0002 hermes_cli/kanban_db.py, verified by git apply --check and --reverse --check), not to a hermes clone. The superseded id was 9367943d.",
   "patches": [
     {
       "file": "0001-fix-kanban-bind-terminal-transitions-to-live-claim-o.patch",
       "sha256": "ee10c1d9f392cd62e9bc32116dc5b5199bd4f9d03cedbd68ea9333e39b40768e"
+    },
+    {
+      "file": "0002-fix-kanban-gate-respawn-on-deterministic-worktree-pr.patch",
+      "sha256": "4d8c05687166186ed4f5e1d1c37db93797991e2d22023e86f0d915e8a221872c"
     }
   ],
   "contains_secrets": false
