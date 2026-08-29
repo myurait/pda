@@ -1196,7 +1196,57 @@ def test_the_read_tool_allowlist_matches_the_running_tool_vocabulary() -> None:
     vocabulary = _hermes_tool_vocabulary()
 
     assert ARTIFACT_READ_TOOLS <= vocabulary
-    assert {"read_file", "search_files", "session_search"} <= ARTIFACT_READ_TOOLS
+    assert {
+        "read_file",
+        "search_files",
+        "session_search",
+        "skill_view",
+        "tool_describe",
+    } <= ARTIFACT_READ_TOOLS
+
+
+def test_reads_of_the_agents_own_configuration_plane_touch_no_write_boundary(
+    tmp_path: Path,
+) -> None:
+    # skill_view (a skill definition) and tool_describe (a tool schema) read
+    # the agent's own configuration and metadata plane. Neither names a
+    # repository path nor an execution boundary, so the first layer has no
+    # destination to bound and the rationale holds in every stage - which is
+    # also the full reach of this allow-direction change (isolated live-run
+    # finding, 2026-08-24).
+    locked, _ = _seeded_store(tmp_path / "locked")
+    pre_lock = GateStore(
+        tmp_path / "pre.db", enforce_artifact_change_pre_lock=True
+    )
+    pre_lock.start_turn(
+        turn_id="turn-change",
+        session_id="session-change",
+        task_id="task-pre",
+        user_message=CHANGE_MESSAGE,
+    )
+    unbound, _ = _seeded_store(tmp_path / "unbound")
+
+    for tool_name in ("skill_view", "tool_describe"):
+        in_locked = _admit(locked, tool_name, {})
+        before_lock = _admit(pre_lock, tool_name, {})
+        without_turn = unbound.admit_without_turn(
+            task_id="task-change", session_id="session-change", tool_name=tool_name
+        )
+
+        assert in_locked.allowed is True, tool_name
+        assert in_locked.action == "inspect-locked-target", tool_name
+        assert before_lock.allowed is True, tool_name
+        assert before_lock.action == "inspect-before-lock", tool_name
+        assert without_turn.allowed is True, tool_name
+        assert without_turn.action == "inspect-unbound", tool_name
+
+    assert pre_lock.get_turn("turn-change")["state"] == "pre-lock"
+    # The writing neighbour in the same vocabulary group stays out: it can
+    # write skill definitions, which are repository files. tool_call carries
+    # another tool's invocation, which the first layer does not bound either.
+    for excluded in ("skill_manage", "tool_call"):
+        assert excluded in _hermes_tool_vocabulary(), excluded
+        assert excluded not in ARTIFACT_READ_TOOLS, excluded
 
 
 def test_the_admission_dispatch_is_the_only_class_branch() -> None:

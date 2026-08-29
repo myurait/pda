@@ -521,11 +521,22 @@ def verify_scope_prefixes_are_inside_root(
 # vocabulary agreement test): a speculative name here is not a widening, but
 # it does read as coverage that is not there, and a missing real name is a
 # false deny in the class the design requires zero false denies from.
+#
+# A name listed here is admitted in every stage, the unbound path included:
+# the rationale is that the call reads and writes nothing the first layer
+# would have to bound, and that rationale does not depend on a turn.
 ARTIFACT_READ_TOOLS = frozenset(
     {
         "read_file",
         "search_files",
         "session_search",
+        # Isolated live-run finding (2026-08-24): each reads the agent's own
+        # configuration or metadata plane (a skill definition, a tool schema)
+        # and acts on neither the repository nor the execution boundary.
+        # skill_manage stays out of every catalogue: it can write skill
+        # definitions, which are repository files.
+        "skill_view",
+        "tool_describe",
     }
 )
 
