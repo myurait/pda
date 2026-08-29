@@ -15,6 +15,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -122,7 +123,37 @@ def _worktree_is_exact(path: Path, branch: str) -> bool:
     return Path(top).resolve() == path.resolve() and actual_branch == branch
 
 
-def _ensure_worktree(repo: Path, root: Path, task_id: str, base_branch: str) -> tuple[Path, str]:
+_BASE_COMMIT_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+
+
+def _assignment_base_commit(repo: Path, branch: str, base_branch: str) -> str:
+    """The commit the assigned branch starts from, resolved by the router.
+
+    The merge base rather than the tip of ``base_branch``: for a branch just
+    created from it the two are the same commit, and for a branch that already
+    existed the merge base is where the work actually diverged. It is also the
+    stable choice -- ``base_branch`` moving on does not change it -- so a
+    later tick that re-derives the seed states the same base instead of
+    colliding with the recorded one.
+
+    This is the value the audit range is taken over, and it is resolved here
+    precisely so it is never the executing agent's own claim about its base.
+    """
+
+    result = _git(repo, "merge-base", base_branch, branch, check=False)
+    base = result.stdout.strip()
+    if result.returncode != 0 or not _BASE_COMMIT_RE.match(base):
+        raise CycleError(
+            "git-error",
+            "could not resolve the assignment base commit for "
+            f"{branch}: {result.stderr.strip() or base or 'no common ancestor'}",
+        )
+    return base
+
+
+def _ensure_worktree(
+    repo: Path, root: Path, task_id: str, base_branch: str
+) -> tuple[Path, str, str]:
     path = root / task_id
     branch = _branch_for(task_id)
     root.mkdir(parents=True, exist_ok=True)
@@ -157,7 +188,7 @@ def _ensure_worktree(repo: Path, root: Path, task_id: str, base_branch: str) -> 
             )
     if _git(path, "status", "--porcelain").stdout.strip():
         raise CycleError("dirty-worktree", f"new task worktree is dirty: {path}")
-    return path, branch
+    return path, branch, _assignment_base_commit(repo, branch, base_branch)
 
 
 SCOPE_SEED_AUTHOR = "pda-improvement-cycle"
@@ -237,6 +268,7 @@ def _record_scope_seed(
     path: Path,
     branch: str,
     repo: Path,
+    base_commit: str,
     state_path: Path | None,
     max_top_level_entries: int | None = None,
 ) -> None:
@@ -263,6 +295,7 @@ def _record_scope_seed(
             body=task.body,
             worktree=path,
             branch=branch,
+            base_commit=base_commit,
             state_path=state_path,
             max_top_level_entries=max_top_level_entries,
         )
@@ -273,7 +306,20 @@ def _record_scope_seed(
 def _refuse_for_scope(conn, task_id: str, scope_seed, exc) -> None:
     """Comment the reason once, then raise the routing refusal."""
 
-    if exc.kind == "missing-scope-declaration":
+    if exc.kind == "scope-seed-base-mismatch":
+        # The declaration is not what was refused, so the comment must not
+        # send the owner to edit it. The recorded seed belongs to a workspace
+        # that started at another commit -- or to a row written before the
+        # base was recorded -- and only retiring that row clears it.
+        body = (
+            "自動改善サイクルはこのカードを割り当てませんでした。"
+            "書込スコープ宣言には問題ありません。"
+            "このtaskには既存の契約seedが残っており、割当時のbase commitが"
+            f"記録値と一致しません: {exc}"
+            "カード本文を直しても解消しません。"
+            "既存seedの失効（retention経過またはオーナーによる削除）が必要です。"
+        )
+    elif exc.kind == "missing-scope-declaration":
         body = (
             "自動改善サイクルはこのカードを割り当てませんでした。"
             "機械可読な書込スコープ宣言が本文にありません。"
@@ -328,6 +374,7 @@ def _route_task(
     *,
     scope_seed_enabled: bool,
     repo: Path | None = None,
+    base_commit: str | None = None,
     scope_seed_state_path: Path | None = None,
     scope_max_top_level_entries: int | None = None,
 ) -> None:
@@ -344,6 +391,15 @@ def _route_task(
             raise CycleError(
                 "invalid-config", "scope seed recording requires the repository root"
             )
+        if not base_commit:
+            # The base is resolved when the workspace is created, and the seed
+            # is the only place it is recorded. Routing without it would store
+            # a ceiling that says nothing about the commit its work started
+            # from, so the omission fails the assignment instead.
+            raise CycleError(
+                "invalid-config",
+                "scope seed recording requires the assignment-time base commit",
+            )
         # Seed -> assignment CAS -> notification. The notification is what wakes
         # the gateway's Kanban dispatcher, so it stays last.
         _record_scope_seed(
@@ -352,6 +408,7 @@ def _route_task(
             path,
             branch,
             repo,
+            base_commit,
             scope_seed_state_path,
             scope_max_top_level_entries,
         )
@@ -513,7 +570,7 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                             _check_scope_declaration(
                                 conn, task, repo, scope_max_top_level_entries
                             )
-                        path, branch = _ensure_worktree(
+                        path, branch, base_commit = _ensure_worktree(
                             repo, root, task.id, base_branch
                         )
                         _route_task(
@@ -523,6 +580,7 @@ def run_cycle(config_path: str | Path) -> dict[str, Any]:
                             branch,
                             assignee,
                             repo=repo,
+                            base_commit=base_commit,
                             scope_seed_enabled=scope_seed_enabled,
                             scope_max_top_level_entries=scope_max_top_level_entries,
                         )

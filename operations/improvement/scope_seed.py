@@ -18,6 +18,7 @@ declaration is not assigned.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import importlib.util
 import json
@@ -83,18 +84,28 @@ GOVERNANCE_PATHS = (
     "pda_charter.md",
     "conftest.py",
     "continuity/autonomous-improvement.json",
+    "continuity/local-backup.json",
     "profiles/pda/managed-habits.json",
     "profiles/pda/skills/pda-autonomous-improvement/",
+    "schemas/",
     "docs/design/self-improvement-governance-adr.md",
     "docs/design/task-scope-admission-gate.md",
+    "docs/design/auto-integration-gate.md",
+    "docs/design/improvement-orchestrator.md",
+    "docs/design/staged-verification.md",
     "docs/roadmap/autonomous-improvement-goal.md",
     "docs/roadmap/autonomous-improvement-operating-rules.md",
     "docs/roadmap/current-priority.md",
     "docs/operations/adversarial-suite.md",
+    "docs/operations/pda-improvement-cycle.md",
+    "docs/operations/worktree-lifecycle.md",
+    "docs/status/",
     "integrations/hermes-kanban-governance/",
     "integrations/hermes-scope-gate/",
     "integrations/hermes-pda-approvals/",
     "operations/improvement/",
+    "operations/backup/",
+    "src/pda/backup/",
     "infra/systemd/",
 )
 
@@ -265,14 +276,52 @@ def _is_governance_path(path: str) -> bool:
     return False
 
 
+def _pattern_reaches_below(pattern_segments: tuple[str, ...], entry_segments: tuple[str, ...]) -> bool:
+    """Whether the pattern can match some path *below* a governance directory.
+
+    Compared segment by segment rather than as literal text, because a
+    wildcard placed on a governance directory's own name (``docs/*/new.md``,
+    ``docs/sta*/new.md``) covers the surface without spelling it. ``**``
+    crosses separators, so it may consume any number of the directory's
+    segments; every other segment consumes exactly one, matched with
+    ``fnmatch`` so the pattern's own wildcards decide.
+
+    The pattern has to reach past the directory: covering the directory entry
+    itself is not covering its contents, which is the same line
+    ``_is_governance_path`` draws.
+    """
+
+    if not entry_segments:
+        return bool(pattern_segments)
+    if not pattern_segments:
+        return False
+    head, rest = pattern_segments[0], pattern_segments[1:]
+    if head == "**":
+        if not rest:
+            return True
+        return _pattern_reaches_below(rest, entry_segments) or _pattern_reaches_below(
+            pattern_segments, entry_segments[1:]
+        )
+    if fnmatch.fnmatchcase(entry_segments[0], head):
+        return _pattern_reaches_below(rest, entry_segments[1:])
+    return False
+
+
 def _pattern_names_governance(pattern: str) -> bool:
-    """True when a pattern's literal text places it on a governance surface.
+    """True when a pattern can place a not-yet-existing file on a governance surface.
 
     The tree walk below catches a pattern that covers a governance file which
     exists. This catches the same pattern aimed at a name that does not exist
     yet: a new file under a governance directory matches nothing in the tree,
     so measurement alone would let the declaration through and the refusal
     would only arrive at finalization, after the work was done.
+
+    Directory surfaces are tested as patterns against the directory's
+    segments, not as a prefix of the pattern's text: a spelling that puts a
+    wildcard on the directory's own name reaches the same files while sharing
+    no literal prefix with it. The single-file entries stay a text comparison
+    -- each of them is a file that exists, so a wildcard spelling aimed at one
+    is already caught by the measurement against the tree.
     """
 
     text = pattern.strip()
@@ -280,9 +329,12 @@ def _pattern_names_governance(pattern: str) -> bool:
         text = text[2:]
     if Path(text).name == "conftest.py":
         return True
+    segments = tuple(part for part in text.split("/") if part)
     for entry in GOVERNANCE_PATHS:
         if entry.endswith("/"):
-            if text.startswith(entry):
+            if text.startswith(entry) or _pattern_reaches_below(
+                segments, tuple(part for part in entry.split("/") if part)
+            ):
                 return True
         elif text == entry:
             return True
@@ -373,6 +425,36 @@ def _reject_overbroad_scope(
         )
 
 
+_BASE_COMMIT_RE = re.compile(r"(?:[0-9a-f]{40}|[0-9a-f]{64})\Z")
+
+
+def _normalized_base_commit(raw: Any) -> str:
+    """The assignment-time base commit, or "" when the caller states none.
+
+    The value never comes from the card and never from the worker: it is the
+    commit the assigning side resolved when it created the worktree. A card
+    cannot smuggle one in either, because the declaration's key set is closed
+    and ``base_commit`` is not in it.
+    """
+
+    if raw is None:
+        return ""
+    if not isinstance(raw, str):
+        raise ScopeSeedError(
+            "invalid-base-commit", "the assignment-time base commit must be a string"
+        )
+    value = raw.strip()
+    if not value:
+        return ""
+    if not _BASE_COMMIT_RE.match(value):
+        raise ScopeSeedError(
+            "invalid-base-commit",
+            "the assignment-time base commit must be a full lowercase "
+            f"hexadecimal Git object name; got {value!r}",
+        )
+    return value
+
+
 def derive_seed_payload(
     *,
     task_id: str,
@@ -380,6 +462,7 @@ def derive_seed_payload(
     tree_root: Path | str,
     gate_root: Path | str | None = None,
     max_top_level_entries: int | None = None,
+    base_commit: str | None = None,
 ) -> dict[str, Any]:
     """Turn a card body into the keyword arguments for a contract seed.
 
@@ -397,6 +480,13 @@ def derive_seed_payload(
     checkout the pattern matcher is read from and defaults to ``tree_root``;
     the router passes the primary repository so the matcher never comes from a
     tree a worker can write to.
+
+    ``base_commit`` is the commit the assigned worktree starts from. It is an
+    argument rather than something read out of the card because the card is
+    worker-writable and the value has to be the assigning side's own
+    resolution. It is optional here so the pre-worktree admission check can
+    reuse this derivation before a base exists; ``record_seed`` is where the
+    value becomes mandatory, because that is the payload that gets stored.
     """
 
     declaration = parse_scope_declaration(body)
@@ -454,6 +544,7 @@ def derive_seed_payload(
         "test_paths": test_paths,
         "execution": execution,
         "git_write": git_write,
+        "base_commit": _normalized_base_commit(base_commit),
     }
 
 
@@ -505,6 +596,7 @@ def record_seed(
     body: Any,
     worktree: Path | str,
     branch: str,
+    base_commit: str,
     state_path: Path | str | None = None,
     max_top_level_entries: int | None = None,
 ) -> dict[str, Any]:
@@ -519,6 +611,12 @@ def record_seed(
     The breadth is measured against the worktree this seed is being recorded
     for -- the tree the ceiling will actually govern -- while the matcher is
     read from the primary repository, which is outside every worker's ceiling.
+
+    ``base_commit`` has no default on purpose. It is the record of which
+    commit the assigned worktree started from, and a caller that may omit it
+    would record a seed that states nothing about its own base while still
+    reporting success. Without a default the omission is a loud failure at
+    the call site instead of a silently baseless seed.
     """
 
     payload = derive_seed_payload(
@@ -527,6 +625,7 @@ def record_seed(
         tree_root=Path(worktree),
         gate_root=repo_root,
         max_top_level_entries=max_top_level_entries,
+        base_commit=base_commit,
     )
     gate = load_scope_gate(repo_root)
     resolved_state = (
@@ -539,6 +638,12 @@ def record_seed(
             branch=branch,
             **payload,
         )
+    except gate.ContractSeedBaseConflict as exc:
+        # Separated from the declaration refusal below because the card is not
+        # what is wrong and editing it changes nothing: the standing row was
+        # written for a workspace that started at another commit, or before
+        # the base was recorded at all. Only retiring that row clears it.
+        raise ScopeSeedError("scope-seed-base-mismatch", str(exc)) from exc
     except ValueError as exc:
         raise ScopeSeedError("scope-seed-rejected", str(exc)) from exc
     except OSError as exc:

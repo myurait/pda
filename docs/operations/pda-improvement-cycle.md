@@ -55,7 +55,7 @@ PDA改善の依頼を会話に埋没させず、Hermes Kanbanを唯一の正本�
 
 ````
 ```pda-scope
-{"write_paths": ["src/pda/backup/*.py"], "test_paths": ["tests/backup/test_local_snapshot.py"]}
+{"write_paths": ["integrations/openwebui-hermes-progress/*.py"], "test_paths": ["tests/test_progress_filter.py"]}
 ```
 ````
 

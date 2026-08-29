@@ -50,6 +50,11 @@
         "self"
       ]
     },
+    "base_commit": {
+      "description": "The commit the assigned worktree started from, as resolved by the assigning side at assignment time. Present only on contracts built from a seed that carries it; absent means the base was not recorded, which a consumer that needs it must refuse rather than default.",
+      "type": "string",
+      "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+    },
     "targets": {
       "type": "object",
       "additionalProperties": false,

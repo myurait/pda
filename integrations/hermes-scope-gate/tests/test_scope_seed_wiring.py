@@ -44,6 +44,21 @@ def _load(name: str, path: Path):
 scope_seed = _load("scope_seed_under_test", SCOPE_SEED_SOURCE)
 
 
+# Two full object names, spelled with hex letters so the uppercase form is
+# actually a different string than the accepted one.
+BASE = "ab" * 20
+OTHER_BASE = "cd" * 20
+
+
+def _head_of(repo: Path, revision: str = "main") -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", revision],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    ).stdout.strip()
+
+
 def _card_body(**declaration) -> str:
     return (
         "目的: 何かを直す\n\n"
@@ -120,7 +135,7 @@ def _measure_tree(root: Path) -> Path:
         "tests/test_app.py",
         "docs/note.md",
         "docs/design/spec.md",
-        "schemas/thing.json",
+        "assets/thing.json",
         "README.md",
         "Makefile",
     ):
@@ -243,12 +258,14 @@ def test_recording_the_same_declaration_twice_is_idempotent(tmp_path: Path) -> N
     repo, worktree, branch = _repo_with_worktree(tmp_path)
     state = tmp_path / "scope.db"
     body = _card_body(write_paths=["src/*.py"])
+    base = _head_of(repo)
     first = scope_seed.record_seed(
         repo_root=repo,
         task_id="t_seed",
         body=body,
         worktree=worktree,
         branch=branch,
+        base_commit=base,
         state_path=state,
     )
     second = scope_seed.record_seed(
@@ -257,11 +274,13 @@ def test_recording_the_same_declaration_twice_is_idempotent(tmp_path: Path) -> N
         body=body,
         worktree=worktree,
         branch=branch,
+        base_commit=base,
         state_path=state,
     )
     assert first == second
     assert first["write_paths"] == ["src/*.py"]
     assert first["git_write"] == ["stage", "commit"]
+    assert first["base_commit"] == base
 
 
 def test_a_changed_declaration_is_refused_rather_than_replacing_the_ceiling(
@@ -275,6 +294,7 @@ def test_a_changed_declaration_is_refused_rather_than_replacing_the_ceiling(
         body=_card_body(write_paths=["src/*.py"]),
         worktree=worktree,
         branch=branch,
+        base_commit=_head_of(repo),
         state_path=state,
     )
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
@@ -284,6 +304,7 @@ def test_a_changed_declaration_is_refused_rather_than_replacing_the_ceiling(
             body=_card_body(write_paths=["src/*.py", "docs/*.md"]),
             worktree=worktree,
             branch=branch,
+            base_commit=_head_of(repo),
             state_path=state,
         )
     assert excinfo.value.kind == "scope-seed-rejected"
@@ -308,12 +329,14 @@ def test_the_recorded_seed_locks_the_first_turn_of_the_task(tmp_path: Path) -> N
 
     repo, worktree, branch = _repo_with_worktree(tmp_path)
     state = tmp_path / "scope.db"
+    base = _head_of(repo)
     scope_seed.record_seed(
         repo_root=repo,
         task_id="t_seed",
         body=_card_body(write_paths=["src/*.py"]),
         worktree=worktree,
         branch=branch,
+        base_commit=base,
         state_path=state,
     )
     gate = scope_seed.load_scope_gate(repo)
@@ -334,6 +357,210 @@ def test_the_recorded_seed_locks_the_first_turn_of_the_task(tmp_path: Path) -> N
     assert contract["targets"]["worktrees"] == [str(worktree.resolve())]
     # The card declared no execution templates, so the second layer stays shut.
     assert contract["execution"]["templates"] == []
+    # The locked contract states the base the assignment started from, so the
+    # turn's own audit record names the range a later audit takes a diff over.
+    assert contract["base_commit"] == base
+
+
+# --------------------------------------------------------------------------
+# The assignment-time base commit
+# --------------------------------------------------------------------------
+
+
+def test_the_seed_records_the_base_the_assignment_resolved(tmp_path: Path) -> None:
+    """The commit the audit range starts from, stored where the ceiling is.
+
+    Without it the range a later audit takes a diff over comes from the
+    executing agent's own report, so what was inspected and what would be
+    merged are two different things that nothing compares.
+    """
+
+    repo, worktree, branch = _repo_with_worktree(tmp_path)
+    state = tmp_path / "scope.db"
+    base = _head_of(repo)
+    scope_seed.record_seed(
+        repo_root=repo,
+        task_id="t_seed",
+        body=_card_body(write_paths=["src/*.py"]),
+        worktree=worktree,
+        branch=branch,
+        base_commit=base,
+        state_path=state,
+    )
+    gate = scope_seed.load_scope_gate(repo)
+    seed = gate.GateStore(state).get_contract_seed("t_seed")
+    assert seed is not None
+    assert seed["base_commit"] == base
+
+
+def test_a_card_cannot_declare_the_base_its_work_is_measured_against(
+    tree: Path,
+) -> None:
+    """The value is the assigning side's, and the card is worker-writable.
+
+    A card that could state its own base could move the range its diff is
+    audited over, which is the one input this field exists to take away from
+    the executing side.
+    """
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=["src/*.py"], base_commit=BASE), tree)
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+    assert "base_commit" in str(excinfo.value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "main",
+        "HEAD",
+        BASE[:12],
+        BASE + "0",
+        BASE.upper(),
+        "z" * 40,
+        17,
+    ],
+)
+def test_a_base_that_is_not_a_full_object_name_is_refused(
+    value: object, tree: Path
+) -> None:
+    # A ref moves and a prefix is not a commit identity, so neither is a
+    # record of which commit the work started from.
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=["src/*.py"]), tree, base_commit=value)
+
+    assert excinfo.value.kind == "invalid-base-commit"
+
+
+def test_an_absent_base_stays_absent_rather_than_becoming_a_value(
+    tree: Path,
+) -> None:
+    """Fail-closed belongs to the consumer, and needs the absence to survive.
+
+    The pre-worktree admission check derives before a base exists, so the
+    derivation has to tolerate none. What it must not do is substitute a
+    placeholder, which would hand a consumer a base that is not a fact.
+    """
+
+    payload = _derive(_card_body(write_paths=["src/*.py"]), tree)
+
+    assert payload["base_commit"] == ""
+
+
+def test_a_seed_written_before_the_base_field_existed_is_refused_not_accepted(
+    tmp_path: Path,
+) -> None:
+    """A row that records no base is not agreement with one that states a base.
+
+    The router resolves the base when it creates the workspace and hands it
+    to the recording call. If the standing row keeps an empty value while
+    that call reports success, the assignment proceeds under a ceiling that
+    says nothing about the commit its work started from, and nothing later
+    detects it -- the guarantee would hold for new task ids only. So the
+    mismatch fails the assignment, and the stored row is left for the owner
+    to retire rather than being rewritten here.
+    """
+
+    repo, worktree, branch = _repo_with_worktree(tmp_path)
+    state = tmp_path / "scope.db"
+    gate = scope_seed.load_scope_gate(repo)
+    store = gate.GateStore(state)
+    # A row as the previous implementation wrote it: no base at all.
+    store.record_contract_seed(
+        task_id="t_seed",
+        worktree=str(worktree),
+        branch=branch,
+        write_paths=["src/*.py"],
+    )
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.record_seed(
+            repo_root=repo,
+            task_id="t_seed",
+            body=_card_body(write_paths=["src/*.py"]),
+            worktree=worktree,
+            branch=branch,
+            base_commit=_head_of(repo),
+            state_path=state,
+        )
+
+    # A kind of its own: the card's declaration is not what was refused, and
+    # editing it would change nothing.
+    assert excinfo.value.kind == "scope-seed-base-mismatch"
+    # No side effect on the standing record.
+    seed = store.get_contract_seed("t_seed")
+    assert seed is not None
+    assert seed["base_commit"] == ""
+    assert seed["write_paths"] == ["src/*.py"]
+
+
+def test_a_caller_that_states_no_base_leaves_a_recorded_one_standing(
+    tmp_path: Path,
+) -> None:
+    """The tolerated direction of the comparison.
+
+    A caller offering no base makes no claim about where the work started, so
+    it cannot contradict the stored row and must not be able to refuse it.
+    The stored value survives untouched.
+    """
+
+    repo, worktree, branch = _repo_with_worktree(tmp_path)
+    state = tmp_path / "scope.db"
+    gate = scope_seed.load_scope_gate(repo)
+    store = gate.GateStore(state)
+    base = _head_of(repo)
+    store.record_contract_seed(
+        task_id="t_seed",
+        worktree=str(worktree),
+        branch=branch,
+        write_paths=["src/*.py"],
+        base_commit=base,
+    )
+
+    again = store.record_contract_seed(
+        task_id="t_seed",
+        worktree=str(worktree),
+        branch=branch,
+        write_paths=["src/*.py"],
+    )
+
+    assert again["base_commit"] == base
+    seed = store.get_contract_seed("t_seed")
+    assert seed is not None and seed["base_commit"] == base
+
+
+def test_two_different_bases_for_one_task_are_refused(tmp_path: Path) -> None:
+    # Both sides state a base and they disagree: the recorded work started
+    # somewhere the second call does not agree with, which is exactly the
+    # divergence between inspected range and merge range this field closes.
+    repo, worktree, branch = _repo_with_worktree(tmp_path)
+    state = tmp_path / "scope.db"
+    body = _card_body(write_paths=["src/*.py"])
+    scope_seed.record_seed(
+        repo_root=repo,
+        task_id="t_seed",
+        body=body,
+        worktree=worktree,
+        branch=branch,
+        base_commit=BASE,
+        state_path=state,
+    )
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        scope_seed.record_seed(
+            repo_root=repo,
+            task_id="t_seed",
+            body=body,
+            worktree=worktree,
+            branch=branch,
+            base_commit=OTHER_BASE,
+            state_path=state,
+        )
+
+    assert excinfo.value.kind == "scope-seed-base-mismatch"
+    gate = scope_seed.load_scope_gate(repo)
+    seed = gate.GateStore(state).get_contract_seed("t_seed")
+    assert seed is not None and seed["base_commit"] == BASE
 
 
 # --------------------------------------------------------------------------
@@ -465,6 +692,7 @@ def test_the_router_records_the_seed_before_claiming_and_notifies_last(
         branch,
         "default",
         repo=repo,
+        base_commit=_head_of(repo),
         scope_seed_enabled=True,
         scope_seed_state_path=state,
     )
@@ -492,6 +720,7 @@ def test_the_router_leaves_the_card_unassigned_when_the_scope_is_undeclared(
             branch,
             "default",
             repo=repo,
+            base_commit=_head_of(repo),
             scope_seed_enabled=True,
             scope_seed_state_path=state,
         )
@@ -522,6 +751,7 @@ def test_a_repeatedly_unroutable_card_collects_one_comment(tmp_path: Path) -> No
                 branch,
                 "default",
                 repo=repo,
+                base_commit=_head_of(repo),
                 scope_seed_enabled=True,
                 scope_seed_state_path=state,
             )
@@ -543,6 +773,7 @@ def test_a_changed_declaration_mid_flight_surfaces_instead_of_replacing_the_seed
         branch,
         "default",
         repo=repo,
+        base_commit=_head_of(repo),
         scope_seed_enabled=True,
         scope_seed_state_path=state,
     )
@@ -561,6 +792,7 @@ def test_a_changed_declaration_mid_flight_surfaces_instead_of_replacing_the_seed
             branch,
             "default",
             repo=repo,
+            base_commit=_head_of(repo),
             scope_seed_enabled=True,
             scope_seed_state_path=state,
         )
@@ -568,6 +800,66 @@ def test_a_changed_declaration_mid_flight_surfaces_instead_of_replacing_the_seed
     gate = scope_seed.load_scope_gate(repo)
     seed = gate.GateStore(state).get_contract_seed("t_seed")
     assert seed is not None and seed["write_paths"] == ["src/*.py"]
+
+
+def test_a_base_mismatch_is_not_reported_to_the_card_as_a_declaration_problem(
+    tmp_path: Path,
+) -> None:
+    """The comment has to name what the owner can actually act on.
+
+    A worktree cleaned up and re-created diverges from the recorded base
+    without the card changing at all. Reporting that as a declaration the gate
+    would not accept sends the owner to edit a card that is already correct,
+    and no edit to it clears the standing row.
+    """
+
+    cycle, kanban, conn, repo, worktree, branch = _seeded_router(
+        tmp_path, _card_body(write_paths=["src/*.py"])
+    )
+    state = tmp_path / "scope.db"
+    cycle._route_task(
+        conn,
+        kanban.task,
+        worktree,
+        branch,
+        "default",
+        repo=repo,
+        base_commit=BASE,
+        scope_seed_enabled=True,
+        scope_seed_state_path=state,
+    )
+    kanban.task.status = "ready"
+    kanban.task.assignee = None
+    conn.execute("UPDATE tasks SET assignee = NULL, status = 'ready'")
+    conn.commit()
+
+    # Same card, same declaration; only the workspace's base moved.
+    with pytest.raises(cycle.CycleError) as excinfo:
+        cycle._route_task(
+            conn,
+            kanban.task,
+            worktree,
+            branch,
+            "default",
+            repo=repo,
+            base_commit=OTHER_BASE,
+            scope_seed_enabled=True,
+            scope_seed_state_path=state,
+        )
+
+    assert excinfo.value.kind == "scope-seed-base-mismatch"
+    refusals = [
+        row["body"]
+        for row in conn.execute("SELECT body FROM task_comments").fetchall()
+        if "割り当てませんでした" in row["body"]
+    ]
+    assert len(refusals) == 1
+    body = refusals[0]
+    assert "base commit" in body
+    assert "書込スコープ宣言をゲートが受理しませんでした" not in body
+    gate = scope_seed.load_scope_gate(repo)
+    seed = gate.GateStore(state).get_contract_seed("t_seed")
+    assert seed is not None and seed["base_commit"] == BASE
 
 
 def test_the_flag_defaults_off_and_records_nothing(tmp_path: Path) -> None:
@@ -591,6 +883,115 @@ def test_the_flag_defaults_off_and_records_nothing(tmp_path: Path) -> None:
     assert row["assignee"] == "default"
     assert kanban.log[-1] == "notify"
     assert not state.exists(), "no seed store is created while the switch is off"
+
+
+
+def test_the_workspace_the_router_creates_reports_the_base_it_started_from(
+    tmp_path: Path,
+) -> None:
+    """The base is the router's own resolution, taken where the branch begins.
+
+    The merge base, not the tip of the base branch: for a branch created here
+    the two are the same commit, and for a branch that already exists it is
+    where the work diverged. The distinction shows up once the base branch
+    moves on -- the recorded base must not move with it, or the next tick
+    would state a base the stored seed disagrees with.
+    """
+
+    cycle, _, _, repo, _, _ = _seeded_router(
+        tmp_path, _card_body(write_paths=["src/*.py"])
+    )
+    root = tmp_path / "wt-created"
+
+    path, branch, base = cycle._ensure_worktree(repo, root, "t_new", "main")
+
+    assert path == root / "t_new"
+    assert branch == "pda-auto/t_new"
+    assert base == _head_of(repo)
+
+    # The base branch advances; the assignment's base does not.
+    (repo / "src" / "later.py").write_text("y = 2\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "commit", "-q", "-m", "later"],
+        check=True,
+        env={
+            "GIT_AUTHOR_NAME": "t",
+            "GIT_AUTHOR_EMAIL": "t@example.com",
+            "GIT_COMMITTER_NAME": "t",
+            "GIT_COMMITTER_EMAIL": "t@example.com",
+            "PATH": "/usr/bin:/bin:/usr/local/bin",
+            "HOME": str(tmp_path),
+        },
+    )
+    assert _head_of(repo) != base
+
+    _, _, adopted = cycle._ensure_worktree(repo, root, "t_new", "main")
+
+    assert adopted == base
+
+
+def test_the_router_seeds_the_base_it_resolved_rather_than_a_reported_one(
+    tmp_path: Path,
+) -> None:
+    # End to end on the assignment path: the value the workspace step resolved
+    # is the value the recorded ceiling carries.
+    cycle, kanban, conn, repo, _, _ = _seeded_router(
+        tmp_path, _card_body(write_paths=["src/*.py"])
+    )
+    state = tmp_path / "scope.db"
+    path, branch, base = cycle._ensure_worktree(repo, tmp_path / "wt", "t_seed", "main")
+
+    cycle._route_task(
+        conn,
+        kanban.task,
+        path,
+        branch,
+        "default",
+        repo=repo,
+        base_commit=base,
+        scope_seed_enabled=True,
+        scope_seed_state_path=state,
+    )
+
+    gate = scope_seed.load_scope_gate(repo)
+    seed = gate.GateStore(state).get_contract_seed("t_seed")
+    assert seed is not None
+    assert seed["base_commit"] == base == _head_of(repo)
+
+
+def test_routing_without_a_base_refuses_instead_of_seeding_without_one(
+    tmp_path: Path,
+) -> None:
+    """The seed is the only place this value is recorded.
+
+    Assigning without it would put a task under a ceiling that says nothing
+    about the commit its work started from, and the omission would only
+    surface much later, at the audit that needed the range.
+    """
+
+    cycle, kanban, conn, repo, worktree, branch = _seeded_router(
+        tmp_path, _card_body(write_paths=["src/*.py"])
+    )
+    state = tmp_path / "scope.db"
+
+    with pytest.raises(cycle.CycleError) as excinfo:
+        cycle._route_task(
+            conn,
+            kanban.task,
+            worktree,
+            branch,
+            "default",
+            repo=repo,
+            scope_seed_enabled=True,
+            scope_seed_state_path=state,
+        )
+
+    assert excinfo.value.kind == "invalid-config"
+    row = conn.execute("SELECT assignee FROM tasks").fetchone()
+    assert row["assignee"] is None
+    assert "notify" not in kanban.log
+    assert not state.exists(), "no ceiling is recorded for an unassigned task"
 
 
 def test_the_committed_policy_reflects_the_owner_approved_seed_activation() -> None:
@@ -649,11 +1050,15 @@ def test_the_same_limit_applies_to_declared_test_assets(tree: Path) -> None:
 @pytest.mark.parametrize(
     "pattern",
     [
-        "src/**",
+        # The recursive forms are spelled over a top level that holds no
+        # governance surface. A recursive pattern aimed at one is refused by
+        # the governance rule rather than by the limit, which is a separate
+        # question from the one this test asks.
+        "assets/**",
         "src/*.py",
         "src/sub/*.py",
         "README.md",
-        "src*/**",
+        "asset*/**",
         "*.py",
     ],
 )
@@ -712,15 +1117,17 @@ def test_the_measured_breadth_is_the_union_of_both_declared_fields(
     """
 
     within = _derive(
-        _card_body(write_paths=["src/**"], test_paths=["tests/**"]), tree, task_id="t1"
+        _card_body(write_paths=["assets/**"], test_paths=["tests/**"]),
+        tree,
+        task_id="t1",
     )
-    assert within["write_paths"] == ["src/**"]
+    assert within["write_paths"] == ["assets/**"]
 
     with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
         _derive(
             _card_body(
-                write_paths=["src/**", "docs/**"],
-                test_paths=["tests/**", "schemas/**"],
+                write_paths=["assets/**", "README.md"],
+                test_paths=["tests/**", "Makefile"],
             ),
             tree,
             task_id="t1",
@@ -734,7 +1141,7 @@ def test_the_limit_is_configurable_without_changing_the_measurement(
     # A lane that needs a wider ceiling raises the limit in the committed
     # policy; the measurement itself does not move.
     declaration = _card_body(
-        write_paths=["src/**", "docs/**"], test_paths=["tests/**", "schemas/**"]
+        write_paths=["assets/**", "README.md"], test_paths=["tests/**", "Makefile"]
     )
 
     with pytest.raises(scope_seed.ScopeSeedError):
@@ -742,7 +1149,7 @@ def test_the_limit_is_configurable_without_changing_the_measurement(
 
     payload = _derive(declaration, tree, task_id="t1", max_top_level_entries=4)
 
-    assert payload["test_paths"] == ["tests/**", "schemas/**"]
+    assert payload["test_paths"] == ["tests/**", "Makefile"]
 
 
 @pytest.mark.parametrize(
@@ -754,6 +1161,15 @@ def test_the_limit_is_configurable_without_changing_the_measurement(
         "operations/improvement/brand_new_module.py",
         "integrations/hermes-scope-gate/**",
         "docs/design/task-scope-admission-gate.md",
+        # The surfaces the auto-integration gate design added (its section 2).
+        "docs/design/auto-integration-gate.md",
+        "docs/status/m1-completion-2026-08-29.md",
+        "docs/status/brand-new-run-record.md",
+        "docs/operations/worktree-lifecycle.md",
+        "schemas/verification-report-v1.schema.json",
+        "operations/backup/pda_backup.py",
+        "src/pda/backup/local_snapshot.py",
+        "continuity/local-backup.json",
         "conftest.py",
         "src/**/conftest.py",
         "infra/systemd/*.service",
@@ -774,6 +1190,65 @@ def test_a_declaration_covering_a_governance_surface_is_refused(
         _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
 
     assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        # A wildcard placed on the governance directory's own name. None of
+        # these shares a literal prefix with the surface it reaches, and each
+        # names a file that does not exist, so neither the text comparison nor
+        # the walk over the tree saw them.
+        "docs/sta*/new.md",
+        "docs/statu?/new.md",
+        "schema*/x.json",
+        "docs/*/new.md",
+        "operations/*/new.py",
+        "src/pda/*/new.py",
+        # The recursive form reaches the same files from further up.
+        "docs/**/new.md",
+        "src/**",
+    ],
+)
+def test_a_wildcard_spelling_of_a_governance_directory_is_refused(
+    pattern: str, tree: Path
+) -> None:
+    """The surface is what the pattern can cover, not how it is spelled.
+
+    A pattern is compared to a governance directory segment by segment, so a
+    wildcard standing in for the directory's name reaches the refusal that
+    the spelled-out form reaches. Without this, the declaration is accepted,
+    the work runs, and finalization refuses the same files at the end -- the
+    cost the declaration-time rule exists to avoid.
+    """
+
+    with pytest.raises(scope_seed.ScopeSeedError) as excinfo:
+        _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
+
+    assert excinfo.value.kind == "invalid-scope-declaration"
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        # The segment-wise comparison may not widen into the ordinary forms:
+        # each of these can be shown not to reach any governance surface, and
+        # the first two are the shapes the operations doc and the reconciler
+        # prompt hand to card authors.
+        "integrations/openwebui-hermes-progress/*.py",
+        "src/pda/*.py",
+        "src/*.py",
+        "docs/*.md",
+        "assets/**",
+        "docs/status",
+    ],
+)
+def test_a_pattern_that_reaches_no_governance_surface_is_still_accepted(
+    pattern: str, tree: Path
+) -> None:
+    payload = _derive(_card_body(write_paths=[pattern]), tree, task_id="t1")
+
+    assert payload["write_paths"] == [pattern]
 
 
 def test_a_governance_file_reached_by_a_wide_pattern_is_refused(
@@ -826,6 +1301,62 @@ def test_the_governance_surfaces_match_the_activation_gate() -> None:
     assert declared is not None, "install.py no longer declares GOVERNANCE_PATHS"
 
     assert scope_seed.GOVERNANCE_PATHS == declared
+
+
+def test_the_governance_surfaces_are_the_ratified_closed_set() -> None:
+    """The enumeration is the machine-readable form of an owner decision.
+
+    Comparing the implementations to each other pins that they agree; it does
+    not pin what they say. A surface silently dropped from all of them stays
+    green under that test while the refusal it carried disappears, so the set
+    itself is written out once here. Changing this literal is changing which
+    surfaces only the owner commits, which is an owner decision, not a
+    refactor.
+    """
+
+    assert scope_seed.GOVERNANCE_PATHS == (
+        "pda_charter.md",
+        "conftest.py",
+        "continuity/autonomous-improvement.json",
+        "continuity/local-backup.json",
+        "profiles/pda/managed-habits.json",
+        "profiles/pda/skills/pda-autonomous-improvement/",
+        "schemas/",
+        "docs/design/self-improvement-governance-adr.md",
+        "docs/design/task-scope-admission-gate.md",
+        "docs/design/auto-integration-gate.md",
+        "docs/design/improvement-orchestrator.md",
+        "docs/design/staged-verification.md",
+        "docs/roadmap/autonomous-improvement-goal.md",
+        "docs/roadmap/autonomous-improvement-operating-rules.md",
+        "docs/roadmap/current-priority.md",
+        "docs/operations/adversarial-suite.md",
+        "docs/operations/pda-improvement-cycle.md",
+        "docs/operations/worktree-lifecycle.md",
+        "docs/status/",
+        "integrations/hermes-kanban-governance/",
+        "integrations/hermes-scope-gate/",
+        "integrations/hermes-pda-approvals/",
+        "operations/improvement/",
+        "operations/backup/",
+        "src/pda/backup/",
+        "infra/systemd/",
+    )
+
+
+def test_every_directory_entry_of_the_enumeration_ends_in_a_separator() -> None:
+    """The matcher reads a trailing slash as "this subtree".
+
+    Without it the entry is compared for equality with one path, so a
+    directory spelled without the separator refuses only a file of exactly
+    that name and admits everything under it.
+    """
+
+    for entry in scope_seed.GOVERNANCE_PATHS:
+        if entry.endswith("/"):
+            continue
+        assert (REPO_ROOT / entry).is_file() or entry == "conftest.py", entry
+        assert not (REPO_ROOT / entry).is_dir(), entry
 
 
 def test_an_unmeasurable_tree_refuses_rather_than_assuming_narrowness(

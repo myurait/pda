@@ -96,6 +96,9 @@ class TaskIntent:
     explicit_global: bool = False
 
 
+# A full Git object name: 40 hex characters for SHA-1, 64 for SHA-256.
+_BASE_COMMIT_RE = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+
 _CLOSEOUT_RE = re.compile(
     r"(?:(?<!未)(?<![A-Za-z0-9_])commit(?![A-Za-z0-9_])|(?<!未)(?<![A-Za-z0-9_])push(?![A-Za-z0-9_])|(?<!未)コミット|(?<!未)プッシュ|保存して|保存せよ|close[ -]?out)",
     re.IGNORECASE,
@@ -281,6 +284,18 @@ class PathRejected(ValueError):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
         self.code = code
+
+
+class ContractSeedBaseConflict(ValueError):
+    """A re-recorded seed states an assignment base the stored row does not.
+
+    Kept distinct from the generic seed disagreement because the two have
+    different causes and different resolutions. A differing ceiling means the
+    card's declaration changed and the card is what has to be corrected; a
+    differing -- or missing -- base means the recorded row was written for a
+    workspace that started somewhere else, which no edit to the card can
+    reconcile. Only the owner can retire the standing row.
+    """
 
 
 class WorktreeProbeError(ValueError):
@@ -893,6 +908,7 @@ class GateStore:
                     test_paths_json TEXT NOT NULL,
                     execution_json TEXT NOT NULL,
                     git_write_json TEXT NOT NULL DEFAULT '[]',
+                    base_commit TEXT NOT NULL DEFAULT '',
                     created_at REAL NOT NULL,
                     consumed_at REAL,
                     consumed_turn_id TEXT
@@ -962,6 +978,15 @@ class GateStore:
                     "ALTER TABLE contract_seeds "
                     "ADD COLUMN git_write_json TEXT NOT NULL DEFAULT '[]'"
                 )
+            if seed_columns and "base_commit" not in seed_columns:
+                # Seeds recorded before the assignment-time base was captured
+                # keep an empty value. Backfilling a guess here would turn an
+                # unknown base into a stated one, so the absence is preserved
+                # and left for the consumer to refuse.
+                connection.execute(
+                    "ALTER TABLE contract_seeds "
+                    "ADD COLUMN base_commit TEXT NOT NULL DEFAULT ''"
+                )
             decision_columns = {
                 row[1] for row in connection.execute("PRAGMA table_info(decisions)").fetchall()
             }
@@ -1027,6 +1052,7 @@ class GateStore:
         test_paths: Any = (),
         execution: Any = (),
         git_write: Any = None,
+        base_commit: Any = None,
         session_id: str = "",
         task_class: str = "artifact-change",
     ) -> dict[str, Any]:
@@ -1062,6 +1088,7 @@ class GateStore:
         test = normalize_scope_patterns(test_paths, field="test_paths")
         templates = normalize_execution_templates(execution)
         git_writes = normalize_git_write_actions(git_write)
+        base = normalize_base_commit(base_commit)
         payload = {
             "task_id": clean_task_id,
             "session_id": str(session_id or ""),
@@ -1072,6 +1099,7 @@ class GateStore:
             "test_paths": list(test),
             "execution": list(templates),
             "git_write": list(git_writes),
+            "base_commit": base,
         }
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -1089,20 +1117,25 @@ class GateStore:
                     "test_paths": json.loads(existing["test_paths_json"]),
                     "execution": json.loads(existing["execution_json"]),
                     "git_write": json.loads(existing["git_write_json"] or "[]"),
+                    "base_commit": str(
+                        existing["base_commit"]
+                        if "base_commit" in set(existing.keys())
+                        else ""
+                    ),
                 }
                 connection.commit()
-                if current != payload:
-                    raise ValueError(
-                        "a different contract seed already exists for this task"
-                    )
+                self._reject_disagreeing_seed(current, payload)
+                # The stored record is returned unchanged: a second call never
+                # replaces the standing ceiling, and never overwrites a base
+                # commit either.
                 return current
             connection.execute(
                 """
                 INSERT INTO contract_seeds (
                     task_id, session_id, task_class, worktree, branch,
                     write_paths_json, test_paths_json, execution_json,
-                    git_write_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    git_write_json, base_commit, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     clean_task_id,
@@ -1114,11 +1147,52 @@ class GateStore:
                     json.dumps(list(test)),
                     json.dumps(list(templates)),
                     json.dumps(list(git_writes)),
+                    base,
                     time.time(),
                 ),
             )
             connection.commit()
         return payload
+
+    @staticmethod
+    def _reject_disagreeing_seed(
+        current: dict[str, Any], payload: dict[str, Any]
+    ) -> None:
+        """Refuse a re-recorded seed that does not state the stored one.
+
+        Everything but the base commit has to match exactly: a differing
+        ceiling means the card's declaration changed while the task was in
+        flight, and accepting it would install a new ceiling silently.
+
+        The base commit is compared asymmetrically, because the two sides do
+        not make the same claim. A caller that offers no base states nothing
+        about where the work started and cannot contradict the stored row, so
+        that direction is tolerated and the stored value survives. A caller
+        that offers one is the assigning side reporting the commit it just
+        resolved, and the recorded row has to carry that same value -- an
+        absent stored base is not agreement, it is a row that records nothing
+        about its own base, which is precisely the guarantee this field
+        exists to give. Neither direction rewrites the stored record: the
+        disagreement is raised so the assignment fails instead of proceeding
+        under a ceiling whose audit range is unknown.
+        """
+
+        keys = set(current) | set(payload)
+        for key in keys - {"base_commit"}:
+            if current.get(key) != payload.get(key):
+                raise ValueError(
+                    "a different contract seed already exists for this task"
+                )
+        stored = str(current.get("base_commit") or "")
+        offered = str(payload.get("base_commit") or "")
+        if not offered or stored == offered:
+            return
+        raise ContractSeedBaseConflict(
+            "the recorded contract seed for this task states a different "
+            f"assignment base commit ({stored or 'none recorded'}) than the "
+            f"one offered ({offered}); the standing seed has to be retired "
+            "before this task can be assigned again"
+        )
 
     @staticmethod
     def _render_scope_record(row: sqlite3.Row, *, origin: str) -> dict[str, Any]:
@@ -1134,6 +1208,7 @@ class GateStore:
             "test_paths": json.loads(row["test_paths_json"]),
             "execution": json.loads(row["execution_json"]),
             "git_write": json.loads(row["git_write_json"] or "[]"),
+            "base_commit": str(row["base_commit"] if "base_commit" in keys else ""),
             "consumed_at": row["consumed_at"] if "consumed_at" in keys else None,
             "consumed_turn_id": (
                 row["consumed_turn_id"] if "consumed_turn_id" in keys else None
@@ -1309,6 +1384,7 @@ class GateStore:
                     test_paths=record["test_paths"],
                     templates=record["execution"],
                     git_write=record["git_write"],
+                    base_commit=record.get("base_commit", ""),
                 )
             except WorktreeProbeError:
                 # The verification could not be run (transient I/O, timeout).
@@ -1732,6 +1808,7 @@ class GateStore:
         test_paths: Any,
         templates: Any,
         git_write: Any = None,
+        base_commit: Any = None,
         repositories: list[str] | None = None,
     ) -> dict[str, Any]:
         """Build and validate one locked artifact-change contract.
@@ -1746,6 +1823,7 @@ class GateStore:
         test = normalize_scope_patterns(test_paths, field="test_paths")
         opted_in = normalize_execution_templates(templates)
         git_writes = normalize_git_write_actions(git_write)
+        base = normalize_base_commit(base_commit)
         if not write:
             raise ValueError("artifact-change contracts require a non-empty write scope")
         worktree_branches = _validated_worktree_branches([str(root)])
@@ -1807,6 +1885,12 @@ class GateStore:
             "budget": dict(ARTIFACT_CHANGE_CLASS_BUDGET),
             "state": "locked",
         }
+        if base:
+            # Only when the assigning side stated one. A self-declared
+            # contract has no assignment-time base, and writing an empty
+            # string would put a value that is not a commit into the audit
+            # record.
+            contract["base_commit"] = base
         _validate_contract_against_schema(contract)
         return contract
 
@@ -3026,6 +3110,36 @@ def artifact_deny_counter(action: str) -> str | None:
     if action in ARTIFACT_DEVIATION_DENY_ACTIONS:
         return "denied_count"
     return "tool_count"
+
+
+def normalize_base_commit(raw: Any) -> str:
+    """Validate the assignment-time base commit carried by a contract seed.
+
+    The value states which commit the assigned worktree started from, so the
+    range a later audit takes a diff over is fixed by the assigning side
+    rather than by whatever the executing agent reports. It is a full object
+    name, never a ref or a short prefix: a ref moves, and a prefix is not a
+    commit identity. An empty value is accepted here and means "not recorded"
+    -- rows written before this field existed carry that, and a consumer that
+    requires the base has to refuse the absence itself rather than read a
+    default as a fact.
+    """
+
+    if raw is None:
+        return ""
+    if not isinstance(raw, str):
+        raise PathRejected(
+            "base-commit-shape", "base_commit must be a Git object name string"
+        )
+    value = raw.strip()
+    if not value:
+        return ""
+    if not _BASE_COMMIT_RE.fullmatch(value):
+        raise PathRejected(
+            "base-commit-shape",
+            "base_commit must be a full lowercase hexadecimal Git object name",
+        )
+    return value
 
 
 def normalize_git_write_actions(raw: Any) -> tuple[str, ...]:
