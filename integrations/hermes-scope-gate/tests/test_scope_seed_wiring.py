@@ -593,13 +593,20 @@ def test_the_flag_defaults_off_and_records_nothing(tmp_path: Path) -> None:
     assert not state.exists(), "no seed store is created while the switch is off"
 
 
-def test_the_committed_policy_default_keeps_the_seed_path_off() -> None:
+def test_the_committed_policy_reflects_the_owner_approved_seed_activation() -> None:
+    # Shipped inert until 2026-08-24, when the owner approved enablement
+    # (approval sheet item 2 and the supervised-run instruction recorded in
+    # docs/status/kanban-reorg-2026-08-24.md). The committed policy is the
+    # single owner-committed source for this switch, so this test pins the
+    # deployment state the owner approved rather than the pre-launch default.
     policy = json.loads(
         (REPO_ROOT / "continuity" / "autonomous-improvement.json").read_text(
             encoding="utf-8"
         )
     )
-    assert policy["scope_seed"]["enabled"] is False
+    assert policy["scope_seed"]["enabled"] is True
+    assert policy["enabled"] is True
+    assert policy["reactivation"]["by"] == "owner-delegation"
 
 
 # --------------------------------------------------------------------------

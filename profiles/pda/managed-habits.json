@@ -45,7 +45,7 @@
     {
       "id": "autonomous-pda-improvement",
       "status": "managed-desired-state",
-      "desired_status": "suspended-by-owner",
+      "desired_status": "active-supervised-run",
       "class": "self-improvement",
       "owner_intent": "PDA改善カードを隔離実装・検証し、最終反映だけを承認リストへ送る。",
       "policy_source": "continuity/autonomous-improvement.json",
@@ -75,16 +75,22 @@
           "real-card-reaches-review-without-main-or-runtime-mutation"
         ]
       },
-      "suspension": {
-        "date": "2026-08-22",
-        "by": "owner",
-        "scope": [
-          "pda-improvement-cycle.timer",
-          "pda-improvement-cycle.service",
-          "kanban-workers",
-          "daily-reconciler-cron-64b615bad09c"
-        ],
-        "reason": "進捗可視化の不備修正を優先するため、所有者指示で自律改善の自動起動を全面停止。再開は所有者の明示指示による。"
+      "reactivation": {
+        "date": "2026-08-24",
+        "by": "owner-delegation",
+        "mode": "supervised-run",
+        "note": "2026-08-24オーナー指示による監督付き実運転(write scopeゲート有効、初回投入t_e2364a83)。記録: docs/status/kanban-reorg-2026-08-24.md",
+        "superseded_suspension": {
+          "date": "2026-08-22",
+          "by": "owner",
+          "scope": [
+            "pda-improvement-cycle.timer",
+            "pda-improvement-cycle.service",
+            "kanban-workers",
+            "daily-reconciler-cron-64b615bad09c"
+          ],
+          "reason": "進捗可視化の不備修正を優先するため、所有者指示で自律改善の自動起動を全面停止。再開は所有者の明示指示による。"
+        }
       }
     }
   ]

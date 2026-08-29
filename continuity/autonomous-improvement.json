@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "enabled": false,
+  "enabled": true,
   "tenant": "pda-improvement",
   "assignee": "default",
   "repo_root": "/home/user/projects/pda",
@@ -11,18 +11,25 @@
   "require_profile_on_disk": true,
   "daily_reconciler_job_id": "64b615bad09c",
   "scope_seed": {
-    "enabled": false,
-    "note": "trueにすると割当時にscope gateの契約seedを記録し、自律workerレーンのartifact-change強制が発効する(D-S3-8)。falseの間はseedを記録せず従来どおりaudit-onlyのworkerになる。有効化は次gateのオーナー承認事項。"
+    "enabled": true,
+    "note": "trueの間、割当時にscope gateの契約seedを記録し、自律workerレーンのartifact-change強制が発効する(D-S3-8)。2026-08-24にオーナー承認(承認シートご確認②)のうえ有効化。"
   },
-  "suspension": {
-    "date": "2026-08-22",
-    "by": "owner",
-    "reason": "初回実運転で発生した本番不具合・試験データ混入・worker統制違反を受け、goal文書(docs/roadmap/autonomous-improvement-goal.md)のM0-M3完了まで自動起動を停止する。解除はオーナーが本ファイルのenabledをtrueへ変更してコミットした場合のみ。",
-    "scope": [
-      "pda-improvement-cycle.timer",
-      "pda-improvement-cycle.service",
-      "kanban-workers",
-      "daily-reconciler-cron-64b615bad09c"
-    ]
+  "reactivation": {
+    "date": "2026-08-24",
+    "by": "owner-delegation",
+    "instruction": "PDAの自己改善サイクルで実際に改善が行われることを確認せよ。そのために最低限必要になる前提作業について、例えば自己改善サイクルの有効化や現時点で必要な改修、ブランチ操作については全て事前に承認する。許可を取らずにやってよし。(2026-08-24 オーナー指示。suspension解除条件『オーナーがenabledをtrueへ変更してコミットした場合のみ』の変更操作を明示委任)",
+    "mode": "supervised-run",
+    "note": "監督付き実運転(初回投入: t_e2364a83、write scopeゲート有効)。M2/M3実装カードの停止ゲートは維持。記録: docs/status/kanban-reorg-2026-08-24.md",
+    "superseded_suspension": {
+      "date": "2026-08-22",
+      "by": "owner",
+      "reason": "初回実運転で発生した本番不具合・試験データ混入・worker統制違反を受け、goal文書(docs/roadmap/autonomous-improvement-goal.md)のM0-M3完了まで自動起動を停止する。解除はオーナーが本ファイルのenabledをtrueへ変更してコミットした場合のみ。",
+      "scope": [
+        "pda-improvement-cycle.timer",
+        "pda-improvement-cycle.service",
+        "kanban-workers",
+        "daily-reconciler-cron-64b615bad09c"
+      ]
+    }
   }
 }
