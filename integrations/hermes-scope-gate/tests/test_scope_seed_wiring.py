@@ -594,7 +594,7 @@ def test_the_flag_defaults_off_and_records_nothing(tmp_path: Path) -> None:
 
 
 def test_the_committed_policy_reflects_the_owner_approved_seed_activation() -> None:
-    # Shipped inert until 2026-08-24, when the owner approved enablement
+    # Shipped inert until 2026-08-29, when the owner approved enablement
     # (approval sheet item 2 and the supervised-run instruction recorded in
     # docs/status/kanban-reorg-2026-08-24.md). The committed policy is the
     # single owner-committed source for this switch, so this test pins the
