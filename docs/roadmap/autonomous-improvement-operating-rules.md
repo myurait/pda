@@ -1,8 +1,8 @@
 # 自律改善再設計 運用細則
 
 - Status: active（2026-08-22 オーナー指示。フォークでの律速分析に基づく）
-- 位置付け: `docs/roadmap/autonomous-improvement-goal.md` と `docs/design/self-improvement-governance-adr.md` に**従属する**運用細則。C1-C9 および ADR D1 の「オーナー固定判断」（統治変更・再有効化・秘密・課金・外部公開・不可逆削除）は一切緩和しない。
-- 適用対象: goal 実行主体（外部Fableサイクル）の作業運用。
+- 位置付け: `docs/roadmap/autonomous-improvement-goal.md` と `docs/design/self-improvement-governance-adr.md` に**従属する**運用細則。ADR D1 第1項（main統合・push）は 2026-08-29 批准の監査ゲート群（`docs/design/auto-integration-gate.md`）全通過を条件とする自動執行であり、不変条件は C5 から C5'（goal 6節）へ改定済み。それ以外の「オーナー固定判断」（統治変更・再有効化・秘密・課金・外部公開・不可逆削除）と C1-C9 の残りは一切緩和しない。
+- 適用対象: goal 実行主体（外部Fableサイクル）の作業運用、および自動統合パイプライン（実装後）。
 
 ## 1. 承認は gate 単位に限定する
 
@@ -21,6 +21,8 @@
 
 - agent-node 上のフルスイートは常に**直列・nice付き**で実行し、変更をバッチして gate 直前に原則1回にまとめる。実行前に `free -h` を確認する。
 - 並列化してよいのは開発PC側の分析エージェントのみ（agent-node は 12GiB・OOM 実証済み。2026-08-22）。
+- 自動統合パイプラインの資源契約（`docs/design/auto-integration-gate.md` 6節）: 1統合あたりの全数スイートは1回とし、rebase後は短縮版（変更影響スイート＋smoke）に限る。実行は常に直列・nice付きで、開始前に空きメモリ閾値を確認し、未達なら統合を延期する。
+- 同一ホスト上のAI起動は同時1件。Tier 1以上の3レンズ反証は直列実行、または開発PC側で実行する。
 
 ## 4. 権限ブロックの扱い
 

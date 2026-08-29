@@ -2,6 +2,7 @@
 
 - Status: approved（2026-08-22 オーナー承認。Open Questions は全て決定済み — 末尾「確定済みオーナー決定」参照。goal M1 の統治正本）
 - 日付: 2026-08-22
+- 改訂: 2026-08-29 オーナー批准（`docs/design/auto-integration-gate.md` 16節 決定1-4）により D1 第1項を改訂。同批准が本 ADR 13行目の「境界の変更は本 ADR の改訂に固定する」を満たす承認記録である。
 - 位置付け: `docs/roadmap/autonomous-improvement-goal.md` M1(a) の成果物。全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md:145,168,178`）が要求する self-improvement governance の ADR。
 - 根拠となる規範: `pda_charter.md`（特に第五条・第六条）、`personal_delegate_agent_plan.md:168-183`（提案と受入判断の分離、ゲートをコアの上位に置く）、goal文書6節の不変条件 C1-C9。
 - 根拠となる実証: 2026-08-22 の M0 で確定した2つの事実。(1) プロンプト規律は強制力ではない（workerが保護環境変数を自己解除した）。(2) 意味的レビューは行動回帰を捕捉できない（b11e01c は digest 束縛のオーナー承認を通過して本番不具合を起こした）。
@@ -23,8 +24,9 @@
 
 オーナーにのみ許される判断（自動化禁止・self-improvement の対象外）:
 
-- 最終反映の承認（digest 束縛。main統合・push・デプロイ・restart・外部送信の解錠）
+- 最終反映の承認（digest 束縛）。ただし main統合・push は、`docs/design/auto-integration-gate.md` のゲート群 G1-G8（同5節）を全通過した変更に限り自動執行を許す（同1節 C5'。2026-08-29 オーナー批准）。デプロイ・restart は同12節 Phase C 以降かつ非干渉検査 G8 通過時のみ自動可。外部送信および以下の固定判断は従来どおりカード単位の承認を要する。
 - 統治の変更: 本 ADR、ゲート policy、承認境界、不変条件 C1-C9、憲章
+- auto-integration-gate 設計・統合記録・方針（`continuity/autonomous-improvement.json` の `auto_integration` 節）・Tier マニフェストの変更
 - 自律改善の再有効化、並列度・資源上限の変更
 - 秘密・認証・課金・不可逆削除・外部公開範囲に触れる一切
 - 優先順位の最終決定と、停止指示・停止解除

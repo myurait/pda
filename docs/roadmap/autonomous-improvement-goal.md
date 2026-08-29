@@ -120,7 +120,7 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 - C2. 提案能力と受入判断の分離。自己改善機能が自身の評価条件・権限境界を無条件に変更できる構造にしない（`personal_delegate_agent_plan.md:168-176`）。
 - C3. ゲートpolicy・承認ledger・監査log・バックアップはworker/coreの書込権限外に置く（`personal_delegate_agent_plan.md:178-183`、`.hermes/plans/2026-07-20:708-709`）。
 - C4. 評価条件・承認境界・監査記録・復元手段を自己正当化で無効化できないこと（`.hermes/prompts/claude-fable-full-system-design.md:49`）。
-- C5. 二段階実行契約の維持: main統合・push・デプロイ・restart・外部送信はdigest束縛のオーナー承認後のみ。承認は暗黙に拡大しない（`docs/operations/pda-improvement-cycle.md`）。
+- C5'. 二段階実行契約の維持: main統合・pushは、オーナーが方針として承認した監査ゲート群（決定論＋推論）を全通過した変更に限り自動で行う。デプロイ・restartは観測窓・自動rollbackに加え非干渉検査G8を通過した場合のみ自動執行できる。外部送信・統治面変更・不可逆操作はdigest束縛のオーナー承認後のみ。承認は暗黙に拡大しない（`docs/design/auto-integration-gate.md` 1節、2026-08-29 オーナー批准。`docs/operations/pda-improvement-cycle.md`）。
 - C6. クレジット規律: AI起動は出力が消費される工程に限定。禁止対象は「参照されない証跡・ログ・オーナーに届かない建前文書の作成・校正」であり、検証・レビューのような消費されるAI起動は制限しない（2026-08-22 オーナー指示・同日明確化）。
 - C7. 試験は本番状態（Kanban DB・承認ledger・runtime）に接触しない。本番パス検出時はfail-closed（t_4a78c98b 完了条件）。
 - C8. 停止指示・停止中カードの尊重。自動再有効化の禁止。
@@ -180,7 +180,7 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 
 運転・計測設計作成済み（2026-08-22）: `docs/design/autonomy-operation-measurement.md`。
 
-- 内容: オーナー承認のもと段階的に再有効化（1枠 → 4枠）。X1-X7の計測を開始し、`/goal` による継続運転へ移行。既存readyカード（t_65c9f889、t_85f7cf5d、t_efb0d5b2、t_e4a13ad6）を新サイクルの初期投入とする。
+- 内容: オーナー承認のもと段階的に再有効化（1枠 → 4枠）。X1-X7の計測を開始し、`/goal` による継続運転へ移行。既存readyカード（t_65c9f889、t_85f7cf5d、t_efb0d5b2、t_e4a13ad6）を新サイクルの初期投入とする。自動統合の実測（`docs/design/auto-integration-gate.md` 12節 Phase A exit）を運転条件へ組み込む。
 - exit gate: 第7節の完了条件X1-X7。
 - オーナー関与: 再有効化承認、期間中の承認判断、goal完了認定。
 
@@ -200,8 +200,9 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 2. 全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md`）との関係。本再設計を全体設計の一部として進めるか、独立トラックとするか。
 3. 多層認知ゲート（構想フェーズ8）との順序。本計画はM1で「自己改善に必要な最小ゲート群」を先行実装する方針だが、これはフェーズ8全体の代替ではない。この先行を許容するか。
 
-## 11. 確定済みオーナー決定（2026-08-22）
+## 11. 確定済みオーナー決定（2026-08-22・2026-08-29）
 
 - 決定1（旧Open Question 1）: Priority 0（通信誠実性）はclosedとしない。完了条件は local Claude による外部コミュニケーション監査（アドバイザリー）の成立とし、t_5c02eea5 として捕捉した。ただしPriority 0による他作業の従属は「PDA自身が改善サイクルを回す」前提の位置付けだったため、本再設計（外部Fableサイクルによる上位レイヤー改善）には適用しない。`docs/roadmap/current-priority.md` に同日付で反映済み。
 - 決定2（旧Open Question 3）: 混入テストカードは除去する。DB全域走査で実在を確認した9件を証拠保全（ホスト上のquarantineダンプ）のうえ完全削除し、承認キュー（review）と承認ledgerにテストデータが残らないことを検証した。漏洩worktree（t_7f88fa9d）とそのbranchも削除。インシデント記載の12件との差分3件はDB上に存在せず、経緯は t_4a78c98b のコメントに記録した。再発防止（試験のfail-closed分離）はM0の残スコープ。
 - 決定3（旧Open Question 4）: 日次reconcilerは凍結を維持する。Kanban化により捕捉・具体化は「積まれたら処理」を基本とする。ただし再起動を要する反映などのために「正常化キュー＋朝の正常化窓」という発想へ転換した日次正常化プロセスの再導入をM2で設計・検討する（無条件の毎朝AI起動には戻さない）。
+- 決定5（2026-08-29 批准）: 自動統合の監査ゲート設計（`docs/design/auto-integration-gate.md`）を批准し、C5をC5'へ置き換えた。デプロイ・restartは他作業とユーザー直接指示作業を止めないことの非干渉検査（G8）新設を条件に自動執行を許可、GitHubへの自動pushはオーナーとAIのみが触る非公開リポジトリに限り許可（organization管理・他ユーザー閲覧のリポジトリは非許可）。実装着手は同12節 Phase A entry の前提を全て閉じてから行う。物理分離（ADR D3残余）はモジュール化・可搬性の成熟後の将来課題とする。
