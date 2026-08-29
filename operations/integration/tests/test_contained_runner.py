@@ -1112,13 +1112,19 @@ def test_run_with_absent_docker_returns_infra_error(git_worktree, runtime, monke
     assert result.collected is None
 
 
-def test_absent_docker_exit_code_is_not_the_failure_exit_code(
+def test_unusable_image_exit_code_is_not_the_failure_exit_code(
     git_worktree, runtime, capsys
 ):
+    # CLI-level counterpart of the absent-docker tests above. The CLI does not
+    # expose a docker-binary override, so the deterministic infra-error path on
+    # every host (docker present or not) is an image that cannot exist: with
+    # docker installed ``image inspect`` fails, without it the binary lookup
+    # fails, and both must exit with the infra code, never the failure code.
     rc = cr.main(
         [
             "--worktree", str(git_worktree),
             "--target", "tests",
+            "--image", "pda-image-does-not-exist:none",
             "--interpreter", str(runtime / "venv" / "bin" / "python"),
             "--runtime-mount", str(runtime),
             "--secret-home", "/home/user",
