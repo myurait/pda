@@ -1,7 +1,7 @@
 # 敵対的迂回テストスイート
 
 - Status: active（goal M1 / ADR D5 の運用台帳。統治変更を伴うリリースは本スイートの全遮断を確認してから review に載せる）
-- 最終更新: 2026-08-23
+- 最終更新: 2026-08-29
 
 ## 目的
 
@@ -47,12 +47,15 @@
   - 同ファイル: `test_run_signal_tools_are_denied_outside_a_locked_turn` / `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`
 - **引数無検査カテゴリへの宛先の持ち込み**（許可カテゴリのツール引数にパス・URL・他カードの宛先を運ぶ）
   - 同ファイル: `test_the_work_record_catalogue_is_a_closed_explicit_set` / `test_tools_outside_the_work_record_catalogue_stay_denied`（宛先を運ぶツールをカタログ外へ出すことで固定）
+  - 残余（run 終端シグナル）: `kanban_complete` / `kanban_request_review` はカード id を宛先として運ぶが作業記録カタログではなく run 終端カタログに属し、予算内の通常レーンは引数を読まずに許可する。宛先の束縛が効くのは下記の予算超過後の免除レーンのみ。通常レーンへ同じ対象一致検査をそのまま広げると、host anchor の無いターン（ターンの task_id がカード id ではなく session id になる形）で正規の完了合図まで拒否されるため、束縛の形は設計 §8 の handoff 契約と併せて決める。
 - **ターン束縛の喪失による記録経路の獲得**（束縛できない呼び出しから作業管理平面へ書く）
   - 同ファイル: `test_an_unbindable_call_cannot_record_work_state`
 - **読み取り許可に紛れる書込・境界外読み取り**（読み取り subcommand の書込形、ロック済み worktree 外への読み取り、読み取り許可が書込権限検査を飛ばす経路）
   - 同ファイル: `test_read_only_git_arguments_outside_the_admitted_form_are_denied` / `test_read_only_git_reads_outside_the_locked_worktree_are_denied` / `test_read_only_git_needs_no_git_write_permission` / `test_push_stays_outside_the_first_layer` / `test_the_read_only_git_subset_is_a_closed_set`
 - **拒否上限の計上規則を使った座礁と免除の悪用**（必要手順の拒否で上限を食い潰す false deny 側、および非計上経路を無償の無制限探索に使う fail-open 側）
   - 同ファイル: `test_the_counting_set_is_exactly_the_ratified_enumeration` / `test_every_definitive_determination_charges_the_deny_ceiling` / `test_a_denial_that_is_not_a_definitive_determination_spends_tool_budget` / `test_an_unclassified_denial_does_not_charge_the_deny_ceiling` / `test_read_refusals_do_not_strand_a_turn_that_keeps_working` / `test_boundary_deviations_still_exhaust_the_deny_ceiling` / `test_uncounted_denials_stay_bounded_by_the_class_budget` / `test_an_uncounted_denial_lane_is_closed_by_the_tool_budget` / `test_closeout_deny_counting_is_unchanged`
+- **tool budget 超過後の完了合図免除の拡大**（1回限りの完了合図免除を、2 回目以降の呼出・他カードを宛先にした呼出・完了合図以外の書込/読取/作業記録へ広げる形、および deny 上限による座礁を同経路で解除する形）。免除の適用条件は引数キーの閉じた集合であり、対象欄（値は束縛タスク id と一致必須）と報告欄のどちらにも属さないキーが1つでもあれば免除不適用（= tool budget 拒否）。対象欄の綴りだけを読み残りのキーを無検査で通す形は、束縛 id を読まれる欄・実効宛先を読まれない欄に置いた 1 呼出が通るため採らない（下記「引数分類の網羅漏れ」と同型）。報告欄の入れ子に置かれた対象欄も同じ一致を要求する。免除は契約の write scope 検証にも従属する。
+  - `integrations/hermes-scope-gate/tests/test_artifact_change_scope.py`: `test_one_run_signal_for_the_bound_task_survives_the_tool_budget` / `test_the_second_run_signal_past_the_budget_is_denied` / `test_a_run_signal_that_does_not_name_the_bound_task_stays_denied_past_the_budget` / `test_the_run_signal_exception_admits_the_whole_report_of_the_bound_task` / `test_the_run_signal_exception_argument_set_is_closed_and_unambiguous` / `test_the_run_signal_exception_needs_a_contract_with_a_write_scope` / `test_no_other_call_passes_the_tool_budget_with_the_run_signal_exception` / `test_the_deny_ceiling_is_not_released_by_the_run_signal_exception`
 - **引数分類の網羅漏れによる計上先の誤り**（D-S3-7 補則、2026-08-23 以降は成立しない）。terminal 引数の綴りを並行列挙して逸脱か否かを両方向に分類する機構は、3 巡の独立検証で「開放的な引数空間の双方向分類は列挙では原理的に閉じない」と実証された。計上規則を admission の確定判定由来へ改訂し、分類を audit 帰属専用へ降格したため、分類の誤りは計上先を変えない。この類型に属していた迂回形（免除粒度のずれ、認識のみ集合の穴、トークン内部の境界外パス、束ね末尾の値取り形、値の意味を見ない一律パス候補化、宣言義務の欠落）は、いずれも admission では拒否のままである。
   - 構造側の固定（同ファイル）: `test_the_counting_rule_does_not_consume_the_argument_classification`（計上関数が分類表・分類関数の識別子を消費しない）/ `test_no_classification_label_can_reach_the_deny_ceiling`（分類器の値域と計上集合が交わらない）/ `test_no_classification_label_can_strand_the_required_flow`（どのラベルが付いても上限+2 反復後に必須手順が成立し `denied_count == 0`）
   - audit 品質側の回帰（同ファイル。ラベルの精度のみを固定し、予算挙動は固定しない）: `test_a_refused_read_is_classified_by_the_whole_invocation` / `test_a_write_form_of_an_admitted_read_is_labelled_as_a_boundary_form` / `test_a_pure_read_inside_the_locked_root_stays_off_the_ceiling` / `test_a_write_form_under_a_recognized_read_name_is_labelled_as_one` / `test_a_pure_read_of_a_recognized_read_name_stays_exempt` / `test_an_execution_form_under_a_recognized_read_name_is_labelled_as_one` / `test_a_path_inside_a_joined_option_value_is_labelled_unsafe` / `test_a_joined_value_without_a_path_is_labelled_a_read` / `test_a_path_packed_onto_a_flag_bundle_is_labelled_unsafe` / `test_a_value_that_only_looks_like_a_path_is_labelled_a_read` / `test_a_path_option_is_declared_per_subcommand_not_by_spelling` / `test_the_read_only_git_subset_is_a_closed_set`
@@ -97,6 +100,7 @@
 未カバー（後続で追加する）:
 
 - 検証者・review 専用主体による lifecycle 変更試行の網羅（検証者ステージの実装は M2）
+- run 終端シグナルの通常レーン（予算内）での宛先束縛。現在束縛が効くのは予算超過後の免除レーンのみで、通常レーンは引数を読まない。anchor 無しターンでの false deny を生まない形が要るため、設計 §8 の handoff 契約と併せて決める
 - commit 時点の index 内容と write scope の照合（設計 §11 第9項の明示済み残余。D-S3-7 の決定には含まれなかったため残余のまま）
 
 ## 実行方法

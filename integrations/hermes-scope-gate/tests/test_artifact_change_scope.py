@@ -45,6 +45,8 @@ from scope_gate import (
     ARTIFACT_GIT_WRITE_CAPABLE_SUBCOMMANDS,
     ARTIFACT_GIT_WRITE_FORM_MARKERS,
     ARTIFACT_READ_TOOLS,
+    ARTIFACT_RUN_SIGNAL_REPORT_FIELDS,
+    ARTIFACT_RUN_SIGNAL_TARGET_FIELDS,
     ARTIFACT_RUN_SIGNAL_TOOLS,
     ARTIFACT_WORK_RECORD_TOOLS,
     ARTIFACT_WRITE_TOOL_CATALOG,
@@ -3671,3 +3673,258 @@ def test_a_git_write_is_refused_when_discovery_resolves_inside_the_locked_root(
     assert committed.allowed is False
     assert committed.action == "git-discovery-redirected"
     assert artifact_deny_counter(staged.action) == "denied_count"
+
+
+# ---------------------------------------------------------------------------
+# Budget stranding: the run-signal exception past the tool budget
+# ---------------------------------------------------------------------------
+
+
+def _exhaust_tool_budget(store: GateStore, *, turn_id: str = "turn-change") -> None:
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET tool_count = ? WHERE turn_id = ?",
+            (int(ARTIFACT_CHANGE_CLASS_BUDGET["max_tool_calls"]), turn_id),
+        )
+
+
+def _exhaust_deny_ceiling(store: GateStore, *, turn_id: str = "turn-change") -> None:
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET denied_count = ? WHERE turn_id = ?",
+            (int(ARTIFACT_CHANGE_CLASS_BUDGET["max_denied_calls"]), turn_id),
+        )
+
+
+def _past_budget_allows(store: GateStore, *, turn_id: str = "turn-change") -> int:
+    with store._connect() as connection:
+        return int(
+            connection.execute(
+                "SELECT COUNT(*) FROM decisions WHERE turn_id = ? "
+                "AND verdict = 'allow' AND action = 'complete-past-budget'",
+                (turn_id,),
+            ).fetchone()[0]
+        )
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+def test_one_run_signal_for_the_bound_task_survives_the_tool_budget(
+    tmp_path: Path, tool_name: str
+) -> None:
+    # Measured 2026-08-29: a turn that had finished its work reached the tool
+    # budget on the completion signal itself, so the finished state never
+    # reached the board. The exception is exactly one run signal for the task
+    # this turn is bound to, and it carries its own audit action.
+    store, _ = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+
+    admitted = _admit(
+        store,
+        tool_name,
+        {"task_id": "task-change", "summary": "done"},
+        call_id="signal-once",
+    )
+    replayed = _admit(
+        store,
+        tool_name,
+        {"task_id": "task-change", "summary": "done"},
+        call_id="signal-once",
+    )
+
+    assert admitted.allowed is True
+    assert admitted.action == "complete-past-budget"
+    # An allowed decision's resource is recorded as a write candidate path,
+    # so the run signal names none.
+    assert admitted.resource == ""
+    assert replayed.allowed is True
+    # The replay is answered from the idempotence cache: one consumption.
+    assert _past_budget_allows(store) == 1
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+def test_the_second_run_signal_past_the_budget_is_denied(
+    tmp_path: Path, tool_name: str
+) -> None:
+    # The exception is a one-shot handoff, not an exempt lane: once it is
+    # spent, the tool budget governs every further call including another run
+    # signal under a different name.
+    store, _ = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+    other = sorted(ARTIFACT_RUN_SIGNAL_TOOLS - {tool_name})[0]
+
+    first = _admit(store, tool_name, {"task_id": "task-change"})
+    again = _admit(store, tool_name, {"task_id": "task-change"})
+    under_the_other_name = _admit(store, other, {"task_id": "task-change"})
+
+    assert first.allowed is True
+    assert again.allowed is False
+    assert again.action == "tool-budget"
+    assert under_the_other_name.allowed is False
+    assert under_the_other_name.action == "tool-budget"
+    assert _past_budget_allows(store) == 1
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+@pytest.mark.parametrize(
+    "args",
+    [
+        # Another card: the exception would report a foreign task as finished.
+        {"task_id": "task-other"},
+        {"card": "task-other"},
+        # The bound task alongside a foreign one is still a foreign target.
+        {"task_id": "task-change", "card": "task-other"},
+        # No target at all: the call cannot be shown to be about this turn.
+        {"summary": "done"},
+        {},
+        # A target that is not a plain identifier identifies nothing.
+        {"task_id": ["task-change"]},
+        {"task_id": ""},
+        # The bound id in a read field with the effective destination in a
+        # field the gate does not read. Recognizing target spellings while
+        # ignoring the rest of the argument set would admit each of these as
+        # a call "about the bound task"; the closed key set is what refuses
+        # them, so no reading of the unlisted key has to be assumed.
+        {"task_id": "task-change", "target": "task-other"},
+        {"task_id": "task-change", "task_ids": ["task-other"]},
+        {"task_id": "task-change", "to": "task-other"},
+        {"task_id": "task-change", "payload": {"card_id": "task-other"}},
+        {"task_id": "task-change", "board": "other-board"},
+        # A key that carries no destination at all is still outside the set:
+        # membership is the check, not a judgement about the key.
+        {"task_id": "task-change", "note": "done"},
+        # A report is admitted, but not one that names another task inside
+        # itself: the board stores it as a claim about that task.
+        {"task_id": "task-change", "metadata": {"task_id": "task-other"}},
+        {"task_id": "task-change", "metadata": {"steps": [{"card": "task-other"}]}},
+    ],
+)
+def test_a_run_signal_that_does_not_name_the_bound_task_stays_denied_past_the_budget(
+    tmp_path: Path, tool_name: str, args: dict[str, object]
+) -> None:
+    store, _ = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+
+    denied = _admit(store, tool_name, dict(args))
+
+    assert denied.allowed is False
+    assert denied.action == "tool-budget"
+    assert _past_budget_allows(store) == 0
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+def test_the_run_signal_exception_admits_the_whole_report_of_the_bound_task(
+    tmp_path: Path, tool_name: str
+) -> None:
+    # The closed key set has to hold the report these tools actually send,
+    # including the approval metadata that names the task it is about --
+    # otherwise the exception is unreachable in the run it exists for and the
+    # turn strands exactly as it did before.
+    store, _ = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+
+    admitted = _admit(
+        store,
+        tool_name,
+        {
+            "task_id": "task-change",
+            "summary": "done",
+            "result": "passed",
+            "reviewer": "pda-owner-changes",
+            "metadata": {
+                "schema_version": 2,
+                "task_id": "task-change",
+                "changed_files": ["src/app.py"],
+            },
+        },
+    )
+
+    assert admitted.allowed is True
+    assert admitted.action == "complete-past-budget"
+
+
+def test_the_run_signal_exception_argument_set_is_closed_and_unambiguous() -> None:
+    # The two catalogues are the whole admitted key set, and no key is in
+    # both: a field cannot be a target to match against and a free report at
+    # the same time.
+    target = frozenset(ARTIFACT_RUN_SIGNAL_TARGET_FIELDS)
+    report = frozenset(ARTIFACT_RUN_SIGNAL_REPORT_FIELDS)
+
+    assert not (target & report)
+    assert len(target) == len(ARTIFACT_RUN_SIGNAL_TARGET_FIELDS)
+    assert len(report) == len(ARTIFACT_RUN_SIGNAL_REPORT_FIELDS)
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+def test_the_run_signal_exception_needs_a_contract_with_a_write_scope(
+    tmp_path: Path, tool_name: str
+) -> None:
+    # Every other allow in the locked lane is downstream of the contract
+    # carrying a write scope. The exception returns before that check is
+    # reached, so it verifies the same condition itself rather than being the
+    # one allow a scope-less lock can still produce.
+    store, _ = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+    with store._connect() as connection:
+        connection.execute(
+            "UPDATE turns SET contract_json = ? WHERE turn_id = ?",
+            (json.dumps({"targets": {"worktrees": [], "write_paths": []}}), "turn-change"),
+        )
+
+    denied = _admit(store, tool_name, {"task_id": "task-change", "summary": "done"})
+
+    assert denied.allowed is False
+    assert denied.action == "tool-budget"
+    assert _past_budget_allows(store) == 0
+
+
+def test_no_other_call_passes_the_tool_budget_with_the_run_signal_exception(
+    tmp_path: Path,
+) -> None:
+    # The exception is one call of one catalogue, not a general reprieve: the
+    # write, execution, read and work-record lanes stay closed on exhaustion,
+    # before and after the exception is spent.
+    store, repo = _seeded_store(tmp_path)
+    _exhaust_tool_budget(store)
+
+    others = {
+        "write": _admit(store, "write_file", {"path": "src/app.py", "content": "x"}),
+        "stage": _admit(
+            store, "terminal", {"command": "git add src/app.py", "workdir": str(repo)}
+        ),
+        "read": _admit(store, "read_file", {"path": "src/app.py"}),
+        "record": _admit(store, "kanban_comment", {"task_id": "task-change", "body": "x"}),
+    }
+    signal = _admit(store, "kanban_complete", {"task_id": "task-change"})
+    after = _admit(store, "kanban_comment", {"task_id": "task-change", "body": "y"})
+
+    for lane, decision in others.items():
+        assert decision.allowed is False, lane
+        assert decision.action == "tool-budget", lane
+    assert signal.allowed is True
+    assert after.allowed is False
+    assert after.action == "tool-budget"
+
+
+@pytest.mark.parametrize("tool_name", sorted(ARTIFACT_RUN_SIGNAL_TOOLS))
+def test_the_deny_ceiling_is_not_released_by_the_run_signal_exception(
+    tmp_path: Path, tool_name: str
+) -> None:
+    # The deny ceiling is the stranding verdict for repeated boundary
+    # deviation, and it is outside the exception in both states: on its own,
+    # and shadowed by an exhausted tool budget (the budget verdict reports
+    # the tool ceiling first).
+    stranded, _ = _seeded_store(tmp_path / "stranded")
+    _exhaust_deny_ceiling(stranded)
+    both, _ = _seeded_store(tmp_path / "both")
+    _exhaust_deny_ceiling(both)
+    _exhaust_tool_budget(both)
+
+    on_the_ceiling = _admit(stranded, tool_name, {"task_id": "task-change"})
+    on_both = _admit(both, tool_name, {"task_id": "task-change"})
+
+    assert on_the_ceiling.allowed is False
+    assert on_the_ceiling.action == "deny-budget"
+    assert on_both.allowed is False
+    assert on_both.action in ARTIFACT_BUDGET_DENY_ACTIONS
+    assert _past_budget_allows(stranded) == 0
+    assert _past_budget_allows(both) == 0

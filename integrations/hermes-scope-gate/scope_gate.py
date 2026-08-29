@@ -605,6 +605,120 @@ ARTIFACT_RUN_SIGNAL_TOOLS = frozenset(
     }
 )
 
+# The audit action a run signal admitted past the tool budget is recorded
+# under. It is its own reason code, never the ordinary `signal-run-outcome`:
+# the exception is the one call in a turn that the budget did not bound, and
+# an audit that cannot separate the two cannot see that it stayed a single
+# call.
+ARTIFACT_RUN_SIGNAL_PAST_BUDGET_ACTION = "complete-past-budget"
+
+# Argument fields that can name the task a run signal is about. Each listed
+# field that is present has to carry the bound task id.
+ARTIFACT_RUN_SIGNAL_TARGET_FIELDS = ("task_id", "task", "card_id", "card", "id")
+
+# The rest of the argument set the exception admits: report fields that carry
+# the worker's own account of the finished run and name no destination.
+#
+# Together with the target fields above this is a closed, explicit catalogue
+# of argument keys, and that closure -- not the target match on its own -- is
+# what binds the destination. A key outside the two sets means the exception
+# does not apply, so the tool budget denies the call exactly as it did before
+# the exception existed. Recognizing some spellings and ignoring the rest
+# would leave the destination in the unread keys: the bound id in a listed
+# field and the effective target in an unlisted one is one call, and that is
+# the open-enumeration shape D-S3-7 補則 ratified as impossible to close.
+#
+# Deliberately excluded, with reasons -- each carries a destination the first
+# layer does not bound, so it belongs in no report:
+#   - board: selects which board the task id is resolved on, so the bound id
+#     alone stops fixing which card the transition lands on.
+#   - created_cards: creates cards as part of the completion, which is how a
+#     blocker becomes a new task -- the same reason kanban_create is outside
+#     the work-record catalogue (INV-S6).
+#   - artifacts: carries paths or URLs, the same destination kanban_attach
+#     and kanban_attach_url are kept out of that catalogue for.
+#
+# Widening this set is a deliberate edit against the board tools' own
+# argument schemas, never a guess. The audit trail names the key a denied
+# signal carried, so a spelling the live board actually sends is added from
+# that record: being too narrow costs the turn the graceful handoff and
+# leaves it on the pre-exception behaviour (the orchestrator's retry recovers
+# the card), while being too wide hands the exception a destination the first
+# layer never read.
+ARTIFACT_RUN_SIGNAL_REPORT_FIELDS = ("summary", "result", "metadata", "reviewer")
+
+# How many nested values a report may hold before the exception stops trying
+# to establish what it names. A report describes one finished run; a payload
+# past this size is not one, and the exception is withheld rather than
+# granted on an unfinished walk.
+_ARTIFACT_RUN_SIGNAL_REPORT_NODE_LIMIT = 512
+
+
+def _run_signal_report_names_another_task(value: Any, bound: str) -> bool:
+    """Whether a report field names a task other than the bound one.
+
+    The approval metadata a review request carries states the task it is
+    about, so the closed key set at the top level is not the whole check: a
+    report naming a foreign task is stored on the board as a claim about that
+    task. Nested keys are not required to form a closed set -- the approval
+    schema is open by design, and the destination the board acts on is a
+    top-level argument -- but a target field found at any depth has to name
+    the bound task, exactly as at the top level.
+    """
+
+    pending: list[Any] = [value]
+    visited = 0
+    while pending:
+        if visited >= _ARTIFACT_RUN_SIGNAL_REPORT_NODE_LIMIT:
+            return True
+        current = pending.pop()
+        visited += 1
+        if isinstance(current, dict):
+            for key, item in current.items():
+                if key in ARTIFACT_RUN_SIGNAL_TARGET_FIELDS:
+                    if not isinstance(item, str) or item.strip() != bound:
+                        return True
+                    continue
+                pending.append(item)
+        elif isinstance(current, (list, tuple)):
+            pending.extend(current)
+    return False
+
+
+def artifact_run_signal_targets_bound_task(
+    turn: sqlite3.Row, tool_name: str, args: dict[str, Any]
+) -> bool:
+    """Whether this call is a run signal about the turn's own bound task.
+
+    The budget-stranding exception (design §8, 実測課題1) turns on this and
+    on nothing else about the arguments. A call that names no target, carries
+    any target other than the bound task at any depth, or carries any
+    argument key outside the closed catalogue above is not covered: the
+    exception exists so a finished turn can report *its own* completion, and
+    a foreign card id -- under any spelling, including one this gate does not
+    read -- would make it a way to move another task's state after the budget
+    stopped bounding the turn.
+    """
+
+    if tool_name not in ARTIFACT_RUN_SIGNAL_TOOLS:
+        return False
+    bound = str(turn["task_id"] or "").strip()
+    if not bound:
+        return False
+    named = False
+    for field, value in args.items():
+        if field in ARTIFACT_RUN_SIGNAL_TARGET_FIELDS:
+            if not isinstance(value, str) or value.strip() != bound:
+                return False
+            named = True
+            continue
+        if field not in ARTIFACT_RUN_SIGNAL_REPORT_FIELDS:
+            return False
+        if _run_signal_report_names_another_task(value, bound):
+            return False
+    return named
+
+
 _PATH_PAIR_FIELDS = (
     "path",
     "file_path",
@@ -2033,6 +2147,12 @@ class GateStore:
                 # budget on it.
                 locked_admission = locked_admission_for(task_class)
                 if locked_admission is not None and turn["state"] == "locked":
+                    # Positional call on purpose: the past-budget run-signal
+                    # exception defaults to unavailable here. Expansion review
+                    # asks what the contract already permits, and it neither
+                    # grants that exception nor records its consumption, so
+                    # answering "already permitted" from it would spend the
+                    # single call without a decision row to show it.
                     admitted = locked_admission(turn, tool_name, args)
                     if admitted.allowed:
                         # No permit row and no budget charge: the review
@@ -2157,6 +2277,37 @@ class GateStore:
             (time.time(), turn_id, fingerprint, time.time()),
         )
         return cur.rowcount == 1
+
+    def _run_signal_exception_spent(
+        self, connection: sqlite3.Connection, turn_id: str
+    ) -> bool:
+        """Whether this turn already used its past-budget run signal.
+
+        The decision rows are the record: an allowed call is written under
+        its own action, so the count of that action in this turn is the
+        number of times the exception was granted. No separate counter is
+        added, which keeps the audit trail and the idempotence check the same
+        fact. A hook replay of the same tool-call id is answered from the
+        decision cache before admission runs, so it does not reach here.
+
+        The count is the exception's own, not a census of run signals past
+        the budget: a run signal an expansion permit admitted is recorded
+        under `expansion-permit`, is bounded by the expansion review budget,
+        and rests on the independent reviewer rather than on this exception
+        (absent a reviewer that lane is fail-closed). An audit asking how
+        many run signals a turn sent after its budget therefore sums both
+        actions.
+        """
+
+        row = connection.execute(
+            """
+            SELECT 1 FROM decisions
+             WHERE turn_id = ? AND verdict = 'allow' AND action = ?
+             LIMIT 1
+            """,
+            (turn_id, ARTIFACT_RUN_SIGNAL_PAST_BUDGET_ACTION),
+        ).fetchone()
+        return row is not None
 
     def finalize_turn(self, *, turn_id: str, status: str) -> dict[str, Any]:
         if status not in {"success", "partial", "blocked", "failed", "interrupted"}:
@@ -2449,7 +2600,18 @@ class GateStore:
             )
         if state == "locked":
             locked_admission = locked_admission_for("artifact-change")
-            decision = locked_admission(turn, tool_name, args)
+            decision = locked_admission(
+                turn,
+                tool_name,
+                args,
+                # The past-budget run signal is one call per turn. The record
+                # of the consumption is the decision row itself, written by
+                # the caller of this function under the same transaction, so
+                # the exception cannot be granted twice by concurrent calls.
+                run_signal_exception_unspent=not self._run_signal_exception_spent(
+                    connection, turn_id
+                ),
+            )
             if not decision.allowed and self._consume_permit_locked(
                 connection, turn_id, fingerprint
             ):
@@ -2999,10 +3161,18 @@ ARTIFACT_GIT_READ_FORM_FLAGS: dict[str, frozenset[str]] = {
     ),
 }
 
+# The reason code for the exhausted per-turn tool ceiling. Named because
+# three places have to agree on it: the verdict that issues it, the budget
+# deny set below, and the past-budget run-signal exception, which is granted
+# only against this one of the three ceilings.
+ARTIFACT_TOOL_BUDGET_ACTION = "tool-budget"
+
 # Denials that exhaust a budget are the ceiling itself, not an attempt at
 # anything: they consume no counter, so reaching a ceiling cannot inflate
 # the count that produced it.
-ARTIFACT_BUDGET_DENY_ACTIONS = frozenset({"wall-budget", "tool-budget", "deny-budget"})
+ARTIFACT_BUDGET_DENY_ACTIONS = frozenset(
+    {"wall-budget", ARTIFACT_TOOL_BUDGET_ACTION, "deny-budget"}
+)
 
 # Reason codes that charge the deny ceiling (D-S3-7 補則, 2026-08-23).
 #
@@ -3196,7 +3366,9 @@ def _artifact_budget_verdict(
         )
     if int(turn["tool_count"]) >= int(budget["max_tool_calls"]):
         return GateDecision(
-            False, "tool-budget", "the artifact-change tool budget is exhausted"
+            False,
+            ARTIFACT_TOOL_BUDGET_ACTION,
+            "the artifact-change tool budget is exhausted",
         )
     if int(turn["denied_count"]) >= int(budget["max_denied_calls"]):
         return GateDecision(False, "deny-budget", "too many denied out-of-scope attempts")
@@ -3224,6 +3396,17 @@ def artifact_contract_scope(
     test = tuple(targets.get("test_paths") or ())
     templates = tuple((contract.get("execution") or {}).get("templates") or ())
     return root, write, test, templates
+
+
+def _artifact_locked_write_scope_is_declared(contract: dict[str, Any]) -> bool:
+    """Whether a locked contract carries the write scope every allow needs.
+
+    The same condition the locked admission enforces as `contract-invalid`,
+    readable by a lane that runs before that check is reached.
+    """
+
+    root, write_patterns, _, _ = artifact_contract_scope(contract)
+    return bool(root and write_patterns)
 
 
 def _admit_artifact_change_pre_lock(
@@ -3945,12 +4128,51 @@ def _admit_artifact_change_locked(
     turn: sqlite3.Row,
     tool_name: str,
     args: dict[str, Any],
+    *,
+    run_signal_exception_unspent: bool = False,
 ) -> GateDecision:
-    """Locked admission for artifact-change (first layer plus opted-in second)."""
+    """Locked admission for artifact-change (first layer plus opted-in second).
+
+    ``run_signal_exception_unspent`` states whether this turn has still not
+    used its single past-budget run signal. Only the caller that holds the
+    decision transaction can answer that, so it is supplied rather than read
+    here; the default is False, which means the exception cannot be granted
+    by a caller that is not recording the consumption.
+    """
 
     contract = json.loads(turn["contract_json"] or "{}")
-    exceeded = _artifact_budget_verdict(turn, _artifact_turn_budget(turn))
+    budget = _artifact_turn_budget(turn)
+    exceeded = _artifact_budget_verdict(turn, budget)
     if exceeded is not None:
+        # After the tool budget is spent the verdict denies everything, and a
+        # turn whose work is already finished then loses the only call that
+        # reports it (measured 2026-08-29, run record 課題1). The exception is
+        # one run signal for the bound task, once per turn -- not an exempt
+        # lane -- and every condition it needs is checked here:
+        #   - the blocking verdict is the tool ceiling. The wall verdict
+        #     precedes it, so an out-of-time turn never reaches this branch;
+        #     the deny ceiling is verified separately because the tool
+        #     verdict is reported first when both are exhausted, and a turn
+        #     stranded for repeated boundary deviation must stay stranded.
+        #   - the locked contract carries a write scope. Every other allow in
+        #     this function is downstream of that check, and an exception
+        #     that skipped it would be the one allow a scope-less lock could
+        #     still produce.
+        #   - the call is a run signal whose whole argument set is the bound
+        #     task and its own report.
+        if (
+            exceeded.action == ARTIFACT_TOOL_BUDGET_ACTION
+            and run_signal_exception_unspent
+            and int(turn["denied_count"]) < int(budget["max_denied_calls"])
+            and _artifact_locked_write_scope_is_declared(contract)
+            and artifact_run_signal_targets_bound_task(turn, tool_name, args)
+        ):
+            return GateDecision(
+                True,
+                ARTIFACT_RUN_SIGNAL_PAST_BUDGET_ACTION,
+                "the single run-state transition this turn may report after "
+                "the tool budget is exhausted",
+            )
         return exceeded
     root, write_patterns, test_patterns, templates = artifact_contract_scope(contract)
     if not root or not write_patterns:
