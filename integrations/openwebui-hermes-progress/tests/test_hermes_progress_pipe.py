@@ -34,6 +34,7 @@ class FakeHermes:
         self.approval_status = approval_status
         self.approval_error_code = approval_error_code
         self.capabilities_features = capabilities_features
+        self.capability_requests = 0
         self.steers = []
         self.approvals = []
         self.stops = []
@@ -67,6 +68,7 @@ class FakeHermes:
         return web.json_response({"accepted": True})
 
     async def capabilities(self, request):
+        self.capability_requests += 1
         if self.capabilities_features is None:
             return web.json_response({"detail": "not found"}, status=404)
         return web.json_response({"features": dict(self.capabilities_features)})
@@ -208,6 +210,8 @@ def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
 
     assert valves.PROGRESS_HEARTBEAT_SECONDS == 300
     assert valves.PROGRESS_STALL_SECONDS == 600
+    assert valves.REQUIRE_REGISTERED_PLAN is False
+    assert valves.PLAN_REQUIRED_AFTER_SECONDS == 0
     assert valves.SHOW_TOOL_ACTIVITY is False
     assert valves.SHOW_REASONING_STATUS is False
     assert schema["minimum"] == 0
@@ -1132,7 +1136,7 @@ def test_heartbeat_always_reports_next_step_delta_and_percent():
 def test_heartbeat_next_step_is_honest_without_pending_or_plan():
     pipe = Pipe()
     no_plan = pipe._initial_progress_state(started_at=1000.0)
-    assert "次: 未登録" in pipe._heartbeat_description(
+    assert "次: 未確定" in pipe._heartbeat_description(
         elapsed_seconds=60, progress=no_plan, now=1060.0
     )
 
@@ -1184,7 +1188,8 @@ async def test_light_task_without_plan_is_not_steered_or_stopped():
         ]
 
         assert visible_content(chunks) == "LIGHT_TASK_OK"
-        assert pipe.valves.PLAN_REQUIRED_AFTER_SECONDS == 300
+        assert pipe.valves.PLAN_REQUIRED_AFTER_SECONDS == 0
+        assert fake.capability_requests == 0
         assert fake.steers == []
         assert fake.stops == []
     finally:
@@ -1192,18 +1197,20 @@ async def test_light_task_without_plan_is_not_steered_or_stopped():
 
 
 @pytest.mark.asyncio
-async def test_long_run_without_plan_is_steered_then_stopped():
+async def test_long_run_without_plan_continues_with_legacy_enforcement_valves():
     fake = await FakeHermes(
         [
             {"event": "tool.started", "tool": "read_file"},
-            {"event": "run.cancelled"},
+            {"event": "tool.completed", "tool": "read_file", "error": False},
+            {"event": "run.completed", "output": "UNPLANNED_LONG_OK"},
         ],
-        event_delays=[0, 2.7],
+        event_delays=[0, 1.4, 1.4],
         capabilities_features=PLAN_CAPABILITY,
     ).start()
     try:
         pipe = configured_pipe(fake.base_url)
         pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        pipe.valves.REQUIRE_REGISTERED_PLAN = True
         pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = 1
         emitted = []
 
@@ -1224,22 +1231,23 @@ async def test_long_run_without_plan_is_steered_then_stopped():
         ]
 
         rendered = visible_content(chunks)
-        assert "作業計画が未登録" in rendered
-        assert len(fake.steers) == 1
-        assert "todo" in fake.steers[0]["input"]
-        assert len(fake.stops) >= 1
-        demanded_lines = [
-            item["description"]
-            for item in status_data(emitted)
-            if "計画: 未登録（登録を要求済み" in str(item.get("description") or "")
-        ]
-        assert demanded_lines
+        descriptions = [str(item.get("description") or "") for item in status_data(emitted)]
+        combined = "\n".join([rendered, *descriptions])
+        assert rendered == "UNPLANNED_LONG_OK"
+        assert fake.capability_requests == 0
+        assert fake.steers == []
+        assert fake.stops == []
+        assert "進捗率未算出" in combined
+        assert "現在: 対象ファイルの内容を確認中" in combined
+        assert "次: 未確定" in combined
+        for forbidden in ("作業計画が未登録", "登録を要求", "未応答", "再実行"):
+            assert forbidden not in combined
     finally:
         await fake.close()
 
 
 @pytest.mark.asyncio
-async def test_steered_run_that_registers_plan_is_not_stopped():
+async def test_long_run_with_optional_plan_keeps_progress_without_steer():
     fake = await FakeHermes(
         [
             {"event": "tool.started", "tool": "read_file"},
@@ -1256,6 +1264,7 @@ async def test_steered_run_that_registers_plan_is_not_stopped():
     try:
         pipe = configured_pipe(fake.base_url)
         pipe.valves.PROGRESS_HEARTBEAT_SECONDS = 1
+        pipe.valves.REQUIRE_REGISTERED_PLAN = True
         pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = 1
         emitted = []
 
@@ -1276,37 +1285,18 @@ async def test_steered_run_that_registers_plan_is_not_stopped():
         ]
 
         assert visible_content(chunks) == "STEERED_PLAN_OK"
-        assert len(fake.steers) == 1
+        assert fake.capability_requests == 0
+        assert fake.steers == []
         assert fake.stops == []
+        descriptions = [str(item.get("description") or "") for item in status_data(emitted)]
+        assert any("(0%)" in description for description in descriptions)
+        assert any("段階: 実装する" in description for description in descriptions)
     finally:
         await fake.close()
 
 
-def test_heartbeat_notes_pending_plan_demand_until_plan_registers():
-    pipe = Pipe()
-    progress = pipe._initial_progress_state(started_at=1000.0)
-    progress["plan_demanded_at"] = 1300.0
-    demanded = pipe._heartbeat_description(
-        elapsed_seconds=300, progress=progress, now=1310.0
-    )
-    assert "計画: 未登録（登録を要求済み・未応答ならrun停止）" in demanded
-
-    pipe._track_progress_event(
-        progress,
-        {
-            "event": "plan.updated",
-            "items": [{"id": "a", "content": "実装する", "status": "in_progress"}],
-        },
-        observed_at=1320.0,
-    )
-    registered = pipe._heartbeat_description(
-        elapsed_seconds=600, progress=progress, now=1610.0
-    )
-    assert "計画: 未登録" not in registered
-
-
 @pytest.mark.asyncio
-async def test_plan_registration_first_run_completes_normally():
+async def test_optional_plan_first_run_completes_without_instruction_injection():
     fake = await FakeHermes(
         [
             {"event": "tool.started", "tool": "todo"},
@@ -1341,58 +1331,25 @@ async def test_plan_registration_first_run_completes_normally():
         ]
 
         assert visible_content(chunks) == "PLANNED_OK"
+        assert fake.capability_requests == 0
+        assert fake.steers == []
         assert fake.stops == []
-        sent_instructions = fake.run_payloads[0]["instructions"]
-        assert sent_instructions.startswith("既存の指示")
-        assert "todoツールにより依頼全体" in sent_instructions
-        assert "5分" in sent_instructions
+        assert fake.run_payloads[0]["instructions"] == "既存の指示"
     finally:
         await fake.close()
 
 
-@pytest.mark.asyncio
-async def test_plan_enforcement_is_skipped_without_capability_or_valve():
-    for capabilities, valve, after_seconds in (
-        (None, True, 300),
-        ({"plan_progress_events": False}, True, 300),
-        (PLAN_CAPABILITY, False, 300),
-        (PLAN_CAPABILITY, True, 0),
-    ):
-        fake = await FakeHermes(
-            [
-                {"event": "tool.started", "tool": "read_file"},
-                {"event": "run.completed", "output": "LEGACY_OK"},
-            ],
-            capabilities_features=capabilities,
-        ).start()
-        try:
-            pipe = configured_pipe(fake.base_url)
-            pipe.valves.REQUIRE_REGISTERED_PLAN = valve
-            pipe.valves.PLAN_REQUIRED_AFTER_SECONDS = after_seconds
-            emitted = []
+def test_legacy_plan_valves_remain_loadable_but_default_inactive():
+    defaults = Pipe.Valves()
+    assert defaults.REQUIRE_REGISTERED_PLAN is False
+    assert defaults.PLAN_REQUIRED_AFTER_SECONDS == 0
 
-            async def emitter(event):
-                emitted.append(event)
-
-            chunks = [
-                chunk
-                async for chunk in pipe._stream_response(
-                    message="legacy run",
-                    history=[],
-                    instructions=None,
-                    session_id="owui_legacy",
-                    session_key="openwebui:legacy",
-                    event_emitter=emitter,
-                    event_call=None,
-                )
-            ]
-
-            assert visible_content(chunks) == "LEGACY_OK"
-            assert fake.steers == []
-            assert fake.stops == []
-            assert "instructions" not in fake.run_payloads[0]
-        finally:
-            await fake.close()
+    saved = Pipe.Valves(
+        REQUIRE_REGISTERED_PLAN=True,
+        PLAN_REQUIRED_AFTER_SECONDS=300,
+    )
+    assert saved.REQUIRE_REGISTERED_PLAN is True
+    assert saved.PLAN_REQUIRED_AFTER_SECONDS == 300
 
 
 @pytest.mark.asyncio

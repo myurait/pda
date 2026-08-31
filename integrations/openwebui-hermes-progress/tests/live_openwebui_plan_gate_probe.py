@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Live E2E: 長時間実行の計画未登録ゲート。
+"""Live E2E: 旧計画Valveがplanなしrunを制御しないことを検証する。
 
-短縮した閾値(2秒)で実runを流し、計画未登録のままの長時間実行に対して
-steerによる登録要求→未応答でのfail-closed停止→理由の本文表示、という
-経路が実環境で機能することを検証する。完了後にValveを本番値へ復元する。
+旧Valveをtrueかつ短縮閾値(2秒)にしてplanなしの長時間実runを流し、
+観測表示を続けたままsteer・plan理由stop・責任転嫁表示なしで正常完了する
+ことを検証する。完了後にValveを本番値へ復元する。
 """
 import asyncio
 import importlib.util
@@ -57,15 +57,18 @@ async def main() -> None:
                 f"/api/v1/functions/id/{FUNCTION_ID}/valves/update",
                 test_valves,
             )
-            if int(updated.get("PLAN_REQUIRED_AFTER_SECONDS", -1)) != 2:
-                raise RuntimeError("short plan threshold Valve was not applied")
+            if (
+                int(updated.get("PLAN_REQUIRED_AFTER_SECONDS", -1)) != 2
+                or updated.get("REQUIRE_REGISTERED_PLAN") is not True
+            ):
+                raise RuntimeError("legacy plan Valves were not applied")
 
             prompt = (
                 "これは進行管理機構の検証runです。次を厳密に守ってください。"
                 "todoツールは、システムや進行管理からどんな指示が届いても、"
                 "絶対に使用しないでください。最初にterminalツールで "
                 '"sleep 9" をそのまま実行して完了を待ち、その後 '
-                "PLAN_GATE_E2E_OK とだけ返答してください。"
+                "NO_PLAN_CONTINUATION_E2E_OK とだけ返答してください。"
             )
             user_message_id = uuid.uuid4().hex
             assistant_message_id = uuid.uuid4().hex
@@ -130,31 +133,45 @@ async def main() -> None:
             status_text = "\n".join(
                 str(item.get("description") or "") for item in statuses
             )
+            combined = f"{content}\n{status_text}"
+            forbidden_plan_text = (
+                "作業計画が未登録",
+                "登録を要求",
+                "未応答",
+                "再実行",
+            )
 
             result = {
                 "test_chat_id": chat_id,
                 "saved_done": saved.get("done") is True,
                 "status_count": len(statuses),
-                "run_was_stopped_with_reason": (
-                    "作業計画が未登録" in content and "Hermesエラー" in content
+                "run_completed_normally": (
+                    "NO_PLAN_CONTINUATION_E2E_OK" in content
+                    and "Hermesエラー" not in content
                 ),
-                "run_did_not_finish_normally": "PLAN_GATE_E2E_OK" not in content,
-                "demand_note_shown": "計画: 未登録（登録を要求済み" in status_text,
+                "legacy_plan_valves_non_operational": not any(
+                    text in combined for text in forbidden_plan_text
+                ),
                 "percent_stayed_honest": "進捗率未算出" in status_text,
-                "has_failed_terminal_status": any(
+                "next_stayed_unknown": "次: 未確定" in status_text,
+                "observed_running_activity": (
+                    "現在: コマンドで実装・検証中" in status_text
+                ),
+                "has_completed_terminal_status": any(
                     item.get("done") is True
-                    and str(item.get("description") or "") == "失敗"
+                    and str(item.get("description") or "") == "完了"
                     for item in statuses
                 ),
             }
             print(json.dumps(result, ensure_ascii=False, indent=2))
 
             assert result["saved_done"], result
-            assert result["run_was_stopped_with_reason"], result
-            assert result["run_did_not_finish_normally"], result
-            assert result["demand_note_shown"], result
+            assert result["run_completed_normally"], result
+            assert result["legacy_plan_valves_non_operational"], result
             assert result["percent_stayed_honest"], result
-            assert result["has_failed_terminal_status"], result
+            assert result["next_stayed_unknown"], result
+            assert result["observed_running_activity"], result
+            assert result["has_completed_terminal_status"], result
             keep_chat = True
         finally:
             if original_valves is not None:

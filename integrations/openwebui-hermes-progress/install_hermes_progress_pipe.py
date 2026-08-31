@@ -316,10 +316,10 @@ def build_valves_payload(
         # Classify ten minutes without a real work event as stalled. Heartbeat
         # emissions alone never reset this clock; set 0 to disable the label.
         "PROGRESS_STALL_SECONDS": 600,
-        # Owner-visible progress must stay computable: refuse tool work that
-        # starts before a full task plan is registered.
-        "REQUIRE_REGISTERED_PLAN": True,
-        "PLAN_REQUIRED_AFTER_SECONDS": 300,
+        # Legacy compatibility Valves. Plan updates are optional observation
+        # data and never control a run; converge stored values to inactive.
+        "REQUIRE_REGISTERED_PLAN": False,
+        "PLAN_REQUIRED_AFTER_SECONDS": 0,
         # Hermes owns the canonical approval deadline (60s by default).
         # Expire the UI first so its deny reaches an active session.
         "APPROVAL_TIMEOUT_SECONDS": 55,

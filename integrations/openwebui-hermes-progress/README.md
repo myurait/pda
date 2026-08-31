@@ -79,9 +79,10 @@ TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 
 - run作成直後は `開始処理中／最初の実行イベント待ち` を即時表示する。`plan.updated` がなくても、tool開始・完了、承認待ち、run状態から、現在の具体的行為、直近結果、待機・阻害要因を構成する。「作業計画が未登録」のような内部事情をユーザー側の欠落として表示しない。
 - ユーザーが見る進捗表示は、run作成直後の初回表示と、その後 `PROGRESS_HEARTBEAT_SECONDS`（既定300秒＝5分）ごとのheartbeatだけである。Runsイベントは表示内容の正本だが、表示回数には影響しない。toolが毎秒動く実作業でも表示は5分間隔に保たれ、通常のassistant本文や次ターンのモデル入力も汚染しない。
-- 表示は、開始からの経過、前回表示からの経過、状態、概算進捗率、段階、現在の実作業、次工程、直近結果、待機・阻害、前回からのdelta、最後に実進展したUTC時刻を改行区切りで保持する。次工程は計画上の次のpending項目で、残工程がなければ `残工程なし`、計画自体が未登録なら `未登録` と正直に表示する。deltaは進捗率のポイント差、段階・表示文の同一/変更、前回表示後の実作業イベント数を明示する。
+- 表示は、開始からの経過、前回表示からの経過、状態、概算進捗率、段階、現在の実作業、次工程、直近結果、待機・阻害、前回からのdelta、最後に実進展したUTC時刻を改行区切りで保持する。次工程は計画上の次のpending項目で、残工程がなければ `残工程なし`、計画自体がなければ `未確定` と正直に表示する。deltaは進捗率のポイント差、段階・表示文の同一/変更、前回表示後の実作業イベント数を明示する。
 - `plan.updated` がある場合だけcancelled以外の項目から概算進捗率と段階を算出する。計画がない場合は率を捏造せず `進捗率未算出` としつつ、観測済みtool/runイベントによる実作業表示は継続する。前提APIは `/v1/capabilities` の `features.plan_progress_events=true` を公開する。
-- 計画登録の強制は長時間実行だけに適用する。`REQUIRE_REGISTERED_PLAN` Valve（既定 `true`）が有効、`PLAN_REQUIRED_AFTER_SECONDS`（既定 `300`＝5分、`0`で無効）が正、かつHermesが `plan_progress_events` capabilityを公開している場合、run作成時のinstructionsへ「5分を超える作業は早期にtodoで全工程を登録する」規律を追記する。開始から同閾値を過ぎても計画未登録のままなら、heartbeat時点でrun steerにより登録を要求し、statusへ `計画: 未登録（登録を要求済み・未応答ならrun停止）` を表示する。要求後さらに同閾値が経過しても未登録なら、fail-closedでrunを停止し理由を本文へ表示する。閾値内に完了する軽いタスクには何も要求しない。capabilityを確認できない環境と、title/tag生成などの内部taskでは強制しない。強制チェックはheartbeat時に行うため、`PROGRESS_HEARTBEAT_SECONDS=0` の場合は働かない。
+- todo/planはexecutorが必要に応じて自己申告する任意の観測情報であり、Progress Pipeは有無をrun継続条件にしない。planなしを理由とするinstructions追加、capability照会、run steer、stop、エラー本文生成を行わない。
+- `REQUIRE_REGISTERED_PLAN` と `PLAN_REQUIRED_AFTER_SECONDS` は更新・rollback互換のためだけに残す非作動Valveで、既定は `false` / `0` である。保存済みの `true` / 正の閾値も読み込み可能だが実行経路では参照せず、installer適用時は非作動値へ収束させる。
 - heartbeatを繰り返しただけでは実進展時刻を更新しない。同じ率・段階・表示文でも新しいtool等の実イベントがあれば通常の実行中とし、既定600秒（10分）実イベントがなければ `停滞` と最後の実進展時刻を表示する。`PROGRESS_HEARTBEAT_SECONDS` は既定 `300`、`PROGRESS_STALL_SECONDS` は既定 `600` で、各Valveは `0` にすると対応機能を無効化できる。
 - 進捗statusはPipe側で省略記号を付けず、改行と許容範囲内の全文を `description` として `statusHistory` へ保存する。安全上限を超えるイベントは途中で切らずfail-closedで拒否する。短い通知プレビューを `…` で省略する後段のntfy仕様とは別契約である。
 - `terminal` 等のtool名、生のユーザー入力、tool引数・preview・raw結果、回答途中の本文、reasoningは意味表示へ使わない。tool名は固定allowlistから「対象ファイルを確認中」「実装・文書を更新中」等の行為へ変換し、未知名は露出しない。todo文はPipe側でもcredential付きURL、secret代入、Bearer値のredactionを通す。
@@ -99,7 +100,7 @@ TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 
 ## 完了タイミングと表示内容
 
-実装バージョンは `hermes_progress_pipe` v2.1.0-local.18。
+実装バージョンは `hermes_progress_pipe` v2.1.0-local.19。
 
 ストリーミング時は、Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信タスクを起動する。Pipe開始時のOpen WebUI host taskの終了を待ってから、Open WebUI DB上の対象assistant messageを読む。success、failure、cancel、timeoutやhost taskの終了状態は通知種別として区別せず、所有者本人のmessageが `done=true` かつ本文が非空なら保存済み内容を通知する。通知タイトルと本文は保存済みレコードだけから読み、Hermesのterminal outputやユーザー入力を代用しない。outlet filterによるredactionを前提にする環境では、filter失敗時にも保存済み本文が通知され得るため、`NTFY_TOPIC`を空にして外部pushを無効化する。
 
@@ -179,7 +180,7 @@ uv run --with aiohttp python tests/live_openwebui_notification_probe.py
 
 このlive probeは、通知タップ先も検証できるようテストチャットを1件残す。assistant messageの `done=true`、`開始処理中／最初の実行イベント待ち` と `完了` のstatus履歴、pushが厳密に1件であることも確認する。失敗時は作成したチャットを削除する。
 
-実Open WebUI + 短縮した計画登録閾値で、計画未登録の長時間実行がsteer要求→未応答停止→理由表示に至ることを確認（完了後にValveを本番値へ復元、合成E2Eのntfy pushは抑止）:
+実Open WebUIで旧計画Valveを `true` / 短縮閾値へ戻し、planなし長時間実行が観測表示を続け、登録要求・plan理由stop・責任転嫁表示なしで正常完了することを確認（完了後にValveを本番値へ復元、合成E2Eのntfy pushは抑止）:
 
 ```bash
 cd "$HOME/openwebui"

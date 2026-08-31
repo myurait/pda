@@ -1,7 +1,7 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.18
+version: 2.1.0-local.19
 required_open_webui_version: 0.10.2
 description: Hermes Runs API adapter with live interim assistant messages, event-grounded semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
@@ -164,28 +164,6 @@ _PROGRESS_TOOL_ACTIVITY_GROUPS = (
         ("利用可能な機能と作業範囲を確認中", "機能と作業範囲の確認を完了"),
     ),
 )
-# Deferred plan enforcement: light tasks may run without a plan, but once a
-# run crosses the long-run threshold it must register a full task plan so the
-# owner-visible progress percent stays computable.
-PLAN_MANDATE_TEMPLATE = (
-    "作業規律: {threshold}を超える見込みの作業では、実作業の早い段階で"
-    "todoツールにより依頼全体の作業計画（全工程）を登録し、工程が進むたびに"
-    "項目statusを更新して全体進捗を算出可能に保つこと。開始から{threshold}"
-    "経過しても計画が未登録の場合は登録要求が届き、それにも応じない場合は"
-    "runが停止される。短時間で完了する軽い作業では計画登録は不要。"
-)
-PLAN_DEMAND_STEER = (
-    "進行管理からの要求: この作業は長時間実行に分類されました。直ちにtodo"
-    "ツールで依頼全体の作業計画（全工程、完了済み工程を含む）を登録し、"
-    "以後は工程ごとにstatusを更新してください。登録されない場合、このrunは"
-    "停止されます。"
-)
-PLAN_STOP_ERROR_TEMPLATE = (
-    "開始から{threshold}経過後も作業計画が未登録で、登録要求にも応答が"
-    "なかったため、runを停止しました。作業計画をtodoツールで登録できる"
-    "状態で再実行してください。"
-)
-
 _PROGRESS_TOOL_ACTIVITY = {
     tool: activity
     for tools, activity in _PROGRESS_TOOL_ACTIVITY_GROUPS
@@ -234,24 +212,19 @@ class Pipe:
             ),
         )
         REQUIRE_REGISTERED_PLAN: bool = Field(
-            default=True,
+            default=False,
             description=(
-                "Once a user-visible run crosses PLAN_REQUIRED_AFTER_SECONDS "
-                "without a registered task plan, demand registration via run "
-                "steer, and stop the run fail-closed when another such period "
-                "passes unanswered. Checked at the periodic display ticks, "
-                "and only when the Hermes API advertises "
-                "plan_progress_events."
+                "Legacy compatibility Valve. Stored values are accepted but "
+                "never used to control, steer, or stop a run."
             ),
         )
         PLAN_REQUIRED_AFTER_SECONDS: int = Field(
-            default=300,
+            default=0,
             ge=0,
             le=86400,
             description=(
-                "Long-run judgment threshold in seconds: work that is still "
-                "running this long must have a registered task plan. 0 "
-                "disables plan enforcement."
+                "Legacy compatibility Valve. Stored values are accepted but "
+                "never used; plan updates remain optional observation data."
             ),
         )
         APPROVAL_TIMEOUT_SECONDS: int = Field(
@@ -329,10 +302,6 @@ class Pipe:
         # Notification delivery is advisory and at-most-once per Open WebUI
         # assistant message for the lifetime of this Function instance.
         self._notified_message_keys: set[str] = set()
-        # Cached per API base: whether Hermes advertises plan progress
-        # events. Refreshed lazily so a Hermes upgrade is noticed without
-        # restarting Open WebUI.
-        self._plan_capability_cache: dict[str, tuple[float, bool]] = {}
 
     async def pipe(
         self,
@@ -677,8 +646,6 @@ class Pipe:
             "last_report_at": None,
             "last_report_event_count": 0,
             "last_report_snapshot": None,
-            "plan_demanded_at": None,
-            "plan_enforcement_stop": False,
         }
 
     @staticmethod
@@ -966,7 +933,7 @@ class Pipe:
         elif snapshot["has_plan"]:
             next_label = "残工程なし（最終検証・結果整理）"
         else:
-            next_label = "未登録"
+            next_label = "未確定"
         lines = [
             f"[{elapsed}経過] {state} ({percent_label}) - {''.join(details)}",
             f"状態: {'停滞' if stalled else '実行中'}",
@@ -983,67 +950,10 @@ class Pipe:
                 f"（{self._format_elapsed(since_progress)}前）"
             ),
         ]
-        if progress.get("plan_demanded_at") is not None and not progress.get(
-            "plan_items"
-        ):
-            lines.append("計画: 未登録（登録を要求済み・未応答ならrun停止）")
         progress["last_report_at"] = observed_at
         progress["last_report_event_count"] = event_count
         progress["last_report_snapshot"] = dict(snapshot)
         return "\n".join(lines)
-
-    async def _plan_progress_supported(
-        self,
-        session: aiohttp.ClientSession,
-        base: str,
-        headers: dict[str, str],
-    ) -> bool:
-        """Return whether Hermes advertises plan progress events.
-
-        Plan enforcement is a visibility guard, not a security boundary:
-        when the capability cannot be confirmed, enforcement stays off so
-        chats keep working against an older or unreachable API.
-        """
-        cached = self._plan_capability_cache.get(base)
-        now = time.time()
-        if cached is not None and now - cached[0] < 600:
-            return cached[1]
-        supported = False
-        try:
-            async with session.get(
-                f"{base}/capabilities",
-                headers=headers,
-                allow_redirects=False,
-            ) as response:
-                if response.status == 200:
-                    data = json.loads(await response.text())
-                    features = data.get("features") or {}
-                    supported = bool(features.get("plan_progress_events"))
-        except Exception:
-            logger.debug("Hermes capability probe failed", exc_info=True)
-        self._plan_capability_cache[base] = (now, supported)
-        return supported
-
-    async def _request_plan_registration(
-        self,
-        session: aiohttp.ClientSession,
-        base: str,
-        headers: dict[str, str],
-        run_id: str,
-    ) -> bool:
-        """Steer a live run to register its task plan. True when accepted."""
-        try:
-            async with session.post(
-                f"{base}/runs/{run_id}/steer",
-                headers=headers,
-                json={"input": PLAN_DEMAND_STEER},
-                allow_redirects=False,
-            ) as response:
-                await response.read()
-                return response.status == 200
-        except Exception:
-            logger.debug("Plan registration steer failed", exc_info=True)
-            return False
 
     async def _progress_heartbeat(
         self,
@@ -1054,10 +964,6 @@ class Pipe:
         interval_seconds: float,
         progress: dict[str, Any],
         stop_event: asyncio.Event,
-        session: Optional[aiohttp.ClientSession] = None,
-        base: str = "",
-        headers: Optional[dict[str, str]] = None,
-        plan_required_after: float = 0,
     ) -> None:
         if emitter is None or interval_seconds <= 0:
             return
@@ -1074,27 +980,6 @@ class Pipe:
             if stop_event.is_set():
                 return
             elapsed_seconds = max(0.0, loop.time() - started_at)
-            if (
-                plan_required_after > 0
-                and session is not None
-                and not progress.get("plan_items")
-            ):
-                demanded_at = progress.get("plan_demanded_at")
-                if demanded_at is None:
-                    if elapsed_seconds >= plan_required_after:
-                        accepted = await self._request_plan_registration(
-                            session, base, headers or {}, run_id
-                        )
-                        if accepted:
-                            progress["plan_demanded_at"] = loop.time()
-                elif (
-                    not progress.get("plan_enforcement_stop")
-                    and loop.time() - float(demanded_at) >= plan_required_after
-                ):
-                    # The demand went unanswered for another full threshold:
-                    # stop fail-closed so unplanned long runs cannot continue.
-                    progress["plan_enforcement_stop"] = True
-                    await self._best_effort_stop(base, headers or {}, run_id)
             await self._emit_status(
                 emitter,
                 self._heartbeat_description(
@@ -1597,22 +1482,6 @@ class Pipe:
             headers = self._headers(session_key)
             timeout = self._run_client_timeout()
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                plan_required_after = int(self.valves.PLAN_REQUIRED_AFTER_SECONDS)
-                plan_required = False
-                if (
-                    bool(self.valves.REQUIRE_REGISTERED_PLAN)
-                    and plan_required_after > 0
-                    and status_emitter is not None
-                ):
-                    plan_required = await self._plan_progress_supported(
-                        session, base, headers
-                    )
-                if plan_required:
-                    threshold = self._format_elapsed(plan_required_after)
-                    mandate = PLAN_MANDATE_TEMPLATE.format(threshold=threshold)
-                    instructions = (
-                        f"{instructions}\n\n{mandate}" if instructions else mandate
-                    )
                 payload: dict[str, Any] = {
                     "input": message,
                     "conversation_history": history,
@@ -1668,12 +1537,6 @@ class Pipe:
                             interval_seconds=heartbeat_interval,
                             progress=progress,
                             stop_event=heartbeat_stop,
-                            session=session,
-                            base=base,
-                            headers=headers,
-                            plan_required_after=(
-                                plan_required_after if plan_required else 0
-                            ),
                         ),
                         name=f"hermes-progress-heartbeat-{run_id}",
                     )
@@ -1752,14 +1615,6 @@ class Pipe:
                             final_status = "失敗"
                             terminal = True
                         elif event_type == "run.cancelled":
-                            if progress.get("plan_enforcement_stop"):
-                                raise RuntimeError(
-                                    PLAN_STOP_ERROR_TEMPLATE.format(
-                                        threshold=self._format_elapsed(
-                                            plan_required_after
-                                        )
-                                    )
-                                )
                             final_status = "キャンセル済み"
                             terminal = True
                         elif event_type == "run.completed":
