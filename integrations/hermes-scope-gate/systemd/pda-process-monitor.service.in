@@ -1,0 +1,14 @@
+[Unit]
+Description=PDA binary decision process monitor reconcile
+After=default.target
+
+[Service]
+Type=oneshot
+Environment=HERMES_HOME=@HERMES_HOME@
+ExecStart=@COMMAND@ monitor-reconcile
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=@HERMES_HOME@

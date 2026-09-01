@@ -55,6 +55,11 @@ def test_installer_is_idempotent_and_preserves_existing_hook_config(tmp_path: Pa
         "fail_closed": True,
     }
     assert (home / "plugins" / "pda-scope-gate").resolve() == ROOT.resolve()
+    service = tmp_path / ".config" / "systemd" / "user" / "pda-process-monitor.service"
+    timer = tmp_path / ".config" / "systemd" / "user" / "pda-process-monitor.timer"
+    assert str(home) in service.read_text()
+    assert "monitor-reconcile" in service.read_text()
+    assert "OnUnitActiveSec=1h" in timer.read_text()
 
 
 def test_installer_rejects_source_missing_runtime_module(tmp_path: Path) -> None:

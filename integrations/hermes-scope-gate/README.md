@@ -1,164 +1,159 @@
-# Hermes PDA Scope Gate
+# PDA scope control v2
 
-This directory is the canonical source for the PDA task-scope admission gate described in
-`docs/design/task-scope-admission-gate.md`.
+This directory is the canonical runtime implementation for
+`docs/design/task-scope-admission-gate.md` and
+`docs/design/process-degeneration-monitor.md`.
 
-Rollout state: S0 + S1, plus the S3-M1 deterministic core for `artifact-change`.
-`repository-closeout` turns are hard-enforced. `artifact-change` enforcement is entered per turn:
-an assignment contract seed locks the turn before its first tool call, or the executor locks the
-turn itself. A turn with neither stays audit-only, so no lane is switched on by this change.
-`bounded-operation` and the remaining classes are still recorded as audit-only.
+Version 0.2 replaces natural-language task classification with a three-phase,
+source-bound loop:
 
-## What is enforced
+1. the executor infers a ScopeFrame and a plain work plan from the current
+   authenticated instruction;
+2. a fresh, no-tools Terra session independently reviews that frame, plan,
+   risk, and deterministic containment before mutation;
+3. the executor and, when Terra requires it, another fresh Terra session audit
+   observed effects before the scope contract can complete.
 
-A high-confidence commit/push-only request starts in bounded discovery. Before mutation, the agent
-must run a small read-only Git inventory and lock the repository/worktree/branch through the single
-`scope_gate` control tool. Once locked, only the following are admitted inside the target:
+Regexes, keyword lists, task classes, and deterministic parsing do not infer
+instruction meaning or risk in the v2 runtime. Deterministic code handles only
+provenance, record shape, assignment ceilings, target/effect containment,
+budgets, stale arguments, completion state, and telemetry.
 
-- Git status and candidate-diff inspection;
-- staging only explicitly inspected, bounded paths (`git add -A`, `--all`, `.`, globbing, and
-  pathspec files are rejected);
-- the commit and/or push explicitly requested by the user;
-- direct local/remote ref verification;
-- scope completion or blocker reporting.
+## Runtime components
 
-Content edits, conflict/test repair, broad tests, branch/worktree manipulation, delegation,
-`execute_code`, background jobs, deployment/restart, unrelated waits, unknown shell composition,
-and target expansion are denied. Three denied expansion attempts close the tool gate except for
-completion reporting. The initial budget is 15 minutes and `min(32, 8 + 3 * target_count)` admitted
-tool calls.
+- `__init__.py` registers one `scope_gate` tool, a byte-stable policy section,
+  the Hermes lifecycle hooks, and the post-hook execution recheck.
+- `plugin_runtime_v2.py` binds each Hermes turn to the current instruction
+  digest, invokes fresh safe-mode Terra sessions, observes tool effects, and
+  adapts the v2 store to Hermes.
+- `scope_v2.py` persists ScopeFrames, reviewed plans, deterministic
+  containment, observed effects, and final audit state. It contains no
+  natural-language classifier.
+- `process_monitor.py` is the generic deterministic monitor for registered
+  binary decision processes.
+- `pda-scope-gate` is both the fail-closed out-of-process tool validator and the
+  process-monitor reconcile/status CLI.
+- `install.py` atomically installs the plugin symlink, shell hook, and hourly
+  monitor timer while preserving concurrent configuration.
+- `scope_gate.py` and `plugin_runtime.py` are retained only for v1 state/seed
+  migration and rollback of already-running turns. New `pre_llm_call` traffic
+  does not invoke their classifier.
 
-Successful completion is not accepted from pre-tool intent alone: the post-tool hook must record a
-successful requested commit/push and, after a push, a later ref verification. Failed terminal exit
-codes do not become completion evidence.
+State is profile-scoped at
+`$HERMES_HOME/plugin-data/pda-scope-gate/scope-gate.db`. Raw instructions are
+held only in the live plugin process for the current turn; the database stores
+their SHA-256 digest, reviewed structured data, effect evidence digests, and
+monitor events. Raw prompts, tool output, and secrets are not copied into the
+scope or monitor tables.
 
-For an enforced `artifact-change` turn, write permission and execution permission are separate
-contract layers.
+## Scope lifecycle
 
-- First layer (hard, deterministic): known read/search tools are admitted with an audit record, as
-  are work-record tools — a closed, explicitly listed catalogue of tools that act only on the task
-  board and the step list, never on the repository. That catalogue is split by stage: the annotation
-  tools (board reads, comments, heartbeat, step list, blocked record) are admitted in every stage,
-  because INV-S6 needs a stalled turn to be able to record a blocked state; the two run-terminal
-  signals (completion, review request) are admitted only in a locked turn, because the orchestrator
-  dispatches the next run on them and an unverified contract has established nothing to report.
-  Card creation, the reviewer's verdict, and the link/attach forms are outside the catalogue
-  entirely, so no admitted tool in it carries a destination that would need bounding.
-  Read-only Git (`status`, `diff`, `rev-parse`, `branch`) is admitted through the closeout allowlist
-  implementation itself rather than a second parser, before the Git write permission is consulted,
-  since a contract with no write permission still has to see the state it works on. The deny ceiling
-  counts only deviations against the write and execution boundaries. Because that is a property of
-  the whole invocation and not of its subcommand, a refused read is classified three ways: arguments
-  naming a path outside the locked root and the write form of a recognized read subcommand count,
-  while a pure read inside the locked root whose argument form is simply not on the allowlist spends
-  the tool budget instead. The same classification covers the subcommands this class recognizes but
-  does not admit — several of them take the diff family's options and can be told to write a file, so
-  naming a subcommand as read-only is not by itself the exemption — and the path check looks inside a
-  joined option value or a packed single-dash flag, since a path need not be the whole token. So a
-  turn following the required procedure cannot strand itself, a family carrying both a read form and
-  a state-changing form is never exempt, and no uncounted path escapes the class budget.
-  Write destinations are identified from an explicit tool-name-to-fields catalogue, so an unlisted
-  tool is treated as a mutation, and a listed tool that carries none of its declared destination
-  fields — or carries a declared container in an unexpected shape — is denied rather than skipped.
-  Every destination goes through one normalizer: upward references are rejected on the raw
-  argument, the path is entity-resolved (existing prefix through `realpath`, remainder appended),
-  and both the locked-root membership test and the glob match are taken on that resolved location.
-  Membership is therefore a property of the location, not of the notation: two spellings of the same
-  directory behave alike, and an in-scope name that resolves elsewhere is matched where it really
-  lands. `*` never crosses a path segment (`**` is the recursive form). Staging is limited to
-  explicitly named non-directory paths inside the write scope — bulk, wildcard, pathspec-magic, and
-  directory forms are rejected, which is narrower than closeout. Which Git writes are admitted comes
-  from the contract's `actions.git_write` field, not from the task class; a contract without the
-  field admits none. One local commit with an explicit message is admitted; pushing, history
-  rewriting, and verification-hook bypass are not. The branch binding fixed at lock is rechecked
-  before every Git write. The `terminal` argument fields are themselves a closed set: an unlisted
-  field is denied instead of passing uninspected.
-- Second layer (opt-in, not covered by the write-boundary guarantee): with no `execution` opt-in,
-  every execution-bearing call is denied. An opted-in contract carries verification template ids
-  only; the id to inspection-rule mapping is a closed registry in the gate. Arguments are scanned in
-  full against an explicit allowlist with immediate deny for anything unknown, targets are matched
-  file by file against the write and test scope, and directory-wide, target-less, and
-  standard-input target forms are rejected. The process side effects of an admitted command are
-  outside the first layer's guarantee — the gate inspects arguments only. Namespace-isolated
-  execution and static inspection of collection paths are fixed M2 requirements, so until they land
-  the second layer is declared but not enforced.
+Read-only work is admitted without a Terra call. A no-effect response is closed
+at Hermes' final-response `post_llm_call` hook and emits one
+`final_scope_conformant=true` decision.
 
-Contract lifecycle: an assignment seed is recorded through a store/runtime API that is deliberately
-absent from the agent-facing control tool, and it locks the turn before its first tool call. The seed
-is a standing ceiling for the task, not a one-shot token: later turns of the same task lock from it
-again, and each use is recorded. A contract record is authoritative over the classifier — once one
-exists for the task, the turn is an artifact-change turn whatever the message looks like, and the
-classifier's own verdict is kept only as an audit field. A self lock (narrowing only, one worktree,
-and refused outright while the task carries a seed) is likewise recorded at task scope, so the next
-turn of the same work starts locked instead of unenforced. Before any lock, only reads are admitted,
-and the unlocked stages carry the same wall/tool/deny ceilings as the locked one.
+Before the first mutation, the agent calls:
 
-Verification that disagrees with the record leaves the turn present with mutation denied, never
-unenforced; verification that could not run leaves the turn unregistered so the call is still
-fail-closed and the next hook can retry. A call that cannot be bound to a turn is denied wherever a
-contract record or an enforced turn history exists for the task or the session — an unknown turn id
-and a missing task id included. Closure has two triggers: the explicit completion control and
-session end. The intermediate audit hook is neither, so it does not close an enforced turn; a closed
-turn stays reachable to keep refusing. The contract records its origin, so a self-declared write
-scope is auditable as the weaker guarantee.
+1. `scope_gate(action=review, scope_frame=..., plan=..., containment=...)`;
+2. `scope_gate(action=lock)` after a `pass` result;
+3. only tools and targets admitted by the reviewed containment;
+4. `scope_gate(action=complete, observed_effects=...,
+   final_scope_conformant=..., completion_summary=...)` before claiming
+   completion.
 
-An artifact-change turn is bound to a contract by a task identifier from the host, resolved in one
-order on every surface: the `HERMES_KANBAN_TASK` process environment variable first, then the hook
-payload's `task_id`, then its `session_id`. The environment variable is what a dispatcher exports
-into a worker process and names the board card a contract is recorded against; the payload
-identifiers name the conversation, so they bind the surfaces a dispatcher does not start. A call
-carrying none of the three has nothing to look up. The resolution happens once per hook call and is
-threaded through the seed lookup, the turn key, and admission alike — binding by one identifier and
-admitting by another would take a live contract off the tool boundary. Recording a seed is not
-resolved this way: there the task id is the assigner's key for the card being handed out.
+Review timeout, process failure, invalid JSON, `revise`, or `block` leaves
+mutation closed. An assignment seed from the autonomous improvement router is a
+hard ceiling: the Terra-reviewed containment may narrow it but never widen it.
+The execution middleware and the out-of-process shell hook both re-evaluate the
+same final tool arguments; a post-hook rewrite is rejected.
 
-Precedence decides which identifier names the work, not whether a contract applies. Where the two
-identifiers disagree and the environment value reaches no contract record while the payload
-identifier reaches one, the payload identifier is taken: a lookup that finds nothing is the
-unenforced side of that choice, not the safe one, and an anchor naming an unknown card would
-otherwise retire a ceiling that was already in force. Losing the host's value and being handed a
-wrong one are different conditions, and only the first is fail-closed by absence alone. The
-correction can only add enforcement, so the environment value still wins wherever it reaches a
-contract of its own — including one reached through the session fallback — and wherever neither
-identifier reaches one.
+The post-tool hook records effects independently of the executor's completion
+payload. Final audit uses the union, preferring the observed record for the same
+kind and target. When pre-work Terra sets
+`additional_assurance_required=true`, `complete` launches a separate fresh
+Terra audit and refuses closure on a finding, timeout, process failure, or
+invalid output.
 
-## Architecture
+Hermes v0.20.2 has no generic blocking `pre_finalize` hook. Therefore v2 does
+not claim it can suppress arbitrary response text. It does block state-changing
+tools until review/lock and refuses scope-contract completion without the final
+audit. A response emitted without explicit completion creates a due final-audit
+event; the monitor surfaces it as `missing-decision`.
 
-- `__init__.py`: Hermes plugin registration, one control tool, stable policy prompt section,
-  lifecycle hooks, and a final tool-execution middleware recheck after any hook argument rewrites.
-- `scope_gate.py`: deterministic classifier, contract/JSON-Schema validator, command normalizer,
-  SQLite atomic budget/evidence store, and shell-hook wire validator. The hot shell-validation path
-  remains standard-library-only; contract lock uses the declared `jsonschema` dependency.
-- `plugin_runtime.py`: Hermes hook/tool adapter.
-- `pda-scope-gate`: out-of-process shell validator. Invalid JSON, timeout, spawn failure, or DB
-  failure becomes a block because the configured shell hook has `fail_closed: true`.
-- `schemas/scope-contract-v1.schema.json`: JSON Schema Draft 2020-12 contract.
-- `install.py`: transactional, idempotent profile install. It enables the plugin, installs the
-  exact fail-closed hook approval, and preserves existing plugin/hook configuration.
+## Deterministic containment
 
-Audit state is profile-scoped under
-`$HERMES_HOME/plugin-data/pda-scope-gate/scope-gate.db`. It contains prompt hashes and normalized
-actions/resources, not raw prompts, raw tool arguments, or tool output. Completed rows are retained
-for 30 days.
+The reviewed containment carries absolute worktrees, repository-relative write
+and test patterns, a finite effect-kind set, optional exact commands, service
+units, remote refs, verification templates, and a bounded tool count.
 
-## Install and verify
+The runtime admits:
 
-Run from the canonical checkout:
+- read/search/control tools before and after lock;
+- file writes only inside reviewed worktrees and path patterns;
+- explicit Git stage/commit/push forms only when their effect and exact targets
+  were reviewed;
+- exact service units only when service reload was reviewed;
+- an exact command only when both the command and the `process-manage` effect
+  were reviewed.
+
+Unknown effectful tools, compound shell syntax, target drift, history rewrite,
+hook bypass, and effect kinds without a deterministic mapping fail closed.
+
+## Process-degeneration monitor
+
+The registry initially contains:
+
+- `scope.prework.additional-assurance-required`;
+- `scope.final.final-scope-conformant`.
+
+Each monitor uses the same policy:
+
+- rolling window: 72 hours;
+- minimum valid decisions: 10;
+- alert threshold: one boolean value is at least 95% of valid decisions.
+
+`N < 10` never starts a degeneration episode, even at 100%. `N >= 10` uses the
+unrounded integer ratio. The monitor supports arbitrary additional registered
+binary processes without per-process branches.
+
+Expected events are joined one-to-one to JSON booleans. Missing, late, invalid,
+duplicate, conflicting, orphaned, and unavailable data are not coerced or
+silently discarded; they create separate telemetry-failure episodes. A
+false-to-true threshold transition creates one stable episode and one durable
+outbox key. Re-evaluation updates the same task, recovery closes the episode
+state without auto-closing the task, and recurrence creates a new generation.
+
+The hourly `pda-process-monitor.timer` reconciles every registry entry and
+delivers pending outbox rows to the default board, tenant `pda-improvement`, as
+unassigned Triage tasks. Kanban idempotency keys prevent duplicate cards; a
+changed payload for the same episode becomes an idempotent card comment.
+Delivery failure is stored in `process_monitor_health` and
+`owner_alert_outbox`, emitted as `pda.process-monitor.health/v1` to the system
+journal, and exits non-zero. It never changes the original verdict, work,
+approval, or finalization.
+
+## Install and activate
+
+From the canonical checkout:
 
 ```text
 python integrations/hermes-scope-gate/install.py
-hermes plugins doctor integrations/hermes-scope-gate --ci
-hermes hooks doctor
+systemctl --user daemon-reload
+systemctl --user enable --now pda-process-monitor.timer
 ```
 
-A Hermes process restart is required after first enablement because plugin and shell-hook discovery
-occurs at process startup. Verify both paths after restart:
+The installer itself does not manipulate a running process. A Hermes process
+must be reloaded after changing the active source. Verify the installed paths:
 
 ```text
-hermes plugins list --plain --no-bundled
-hermes hooks test pre_tool_call --for-tool terminal
+hermes plugins doctor integrations/hermes-scope-gate --ci
+hermes hooks doctor
 integrations/hermes-scope-gate/pda-scope-gate doctor
+integrations/hermes-scope-gate/pda-scope-gate monitor-status
 ```
+
+Use `monitor-reconcile --no-delivery` for isolated or pre-cutover evaluation;
+it persists monitor state/outbox but never touches Kanban.
 
 ## Tests
 
@@ -167,61 +162,19 @@ PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider \
   integrations/hermes-scope-gate/tests
 ```
 
-The suite includes incident replay, target lock, denied expansions, completion closure, wall/tool
-budgets, parallel atomic reservation, plugin/shell idempotence, argument-drift fail-closed behavior,
-corrupt-state failure, transactional installer rollback, schema validation, and a subprocess test
-against the installed Hermes runtime.
+The focused suite covers the 9/10 sample boundary, inclusive 95% threshold in
+both directions, window expiry and recurrence, persistence after reopen,
+duplicate/conflicting/missing events, unknown monitor attribution, fresh Terra
+adapter behavior, reviewer and auditor fail-closed paths, assignment-seed
+narrowing, observed effects, shell-hook revalidation, transactional install and
+rollback, and a real Hermes plugin-dispatch subprocess against an isolated
+`HERMES_HOME`.
 
-## Current limitations
+## Rollback
 
-- Bounded operations remain audit-only until pilot evidence supports S2.
-- `artifact-change` enforcement is not switched on for any lane by default: with no assignment seed
-  and no self lock, a turn stays audit-only. The pre-lock default-deny stage can be turned on with
-  `PDA_SCOPE_GATE_ARTIFACT_PRELOCK=1` and is off otherwise. The assignment path for the autonomous
-  lane is wired (D-S3-6 case A) but ships inert: recording a seed is what makes the lane enforced,
-  and the router only records one when `scope_seed.enabled` is true in the committed improvement
-  policy, which defaults to false. Turning it on is a separate owner decision. Whether the
-  default-deny stage should already apply to the interactive lane is D-S3-8 (default off).
-- A seeded card must carry a machine-readable write scope declaration; the router refuses to assign
-  a card without one rather than supplying a tenant-wide default. The seed is a standing per-task
-  ceiling, so editing the declaration after assignment makes the card stall instead of installing a
-  wider ceiling.
-- The read-only Git subset is narrower than closeout's on purpose (D-S3-7): remote-ref reads serve
-  push, which this class does not have, and `log` has no bounded-argument implementation to reuse, so
-  `rev-parse HEAD` is the admitted way to read the commit id.
-- The canonical Git directory identities the approval metadata asks for (`git_dir`,
-  `git_common_dir`) still have no admitted form inside the contract, and attempting them is refused
-  without spending the deny ceiling. They are no longer the worker's to supply: the approval gate
-  derives them from the workspace and records them on its ledger, and the approval metadata schema
-  (now version 2) refuses them if declared. Resolved as Judgment A in the design document; the
-  admitted set here is unchanged.
-- Read/search tools carry no path bound in this class: the first layer's guarantee is about the
-  write boundary — the mutating side — and about the read-only Git subset, not about every read.
-  This is a confidentiality residue rather than a write-boundary one, because what it exposes is
-  content outside the locked worktree (other tasks' working areas, session records) rather than
-  local history. Judgment B merged the fix into the second layer's M2 requirement for
-  namespace-isolated execution, which bounds every stage and every tool at the OS level instead of
-  by argument inspection. With the seed switch off by default, the exposure does not arise in
-  operation at M1 exit.
-- What holds read-only Git inside the locked worktree is the seed check that fixed the locked root
-  at a worktree top level plus Git's own repository discovery from there; the workdir binding pins
-  the working directory but does not by itself bound the arguments. `git status` arguments are
-  bounded by Git's own pathspec resolution, matching the shared closeout implementation.
-- Because that discovery is a premise of the class's own guarantees, its storage is not a write
-  destination: a repository-relative path carrying a `.git` segment is refused for writes and for
-  staging whatever the declared write scope says, and a Git write is refused when the git-dir or
-  git-common-dir resolved from the locked root lands inside that root (the root's own `.git`
-  excepted, which is the ordinary-repository shape). The approval gate applies the same containment
-  to the workspace it derives the canonical Git identities from.
-- Commit admission inspects the command, not the index: content staged outside the gate still lands
-  in the local commit. Push is denied, so this stays inside local history. Recorded as a first-layer
-  residue in the design document.
-- The second contract layer is declared but not enforced until namespace-isolated execution and
-  static inspection of collection paths land. The first layer's guarantee does not extend to the
-  process side effects of an admitted verification command.
-- No independent scope reviewer is connected, so every G3 expansion that the contract does not
-  already permit fails closed. Expansion budget values cannot be calibrated until it is.
-- Classification is deliberately high precision. An ambiguous request stays audit-only rather than
-  receiving an overly broad or incorrectly narrow hard contract.
-- A successful Git command is evidence of execution, not proof of semantic review quality. The gate
-  prevents scope expansion; it does not replace repository policy or Git hooks.
+The active plugin is a symlink to the tracked source. Roll back with a normal
+Git revert to the prior main content, run the installer again, disable the
+monitor timer if reverting before v2, and reload Hermes. v2 adds SQLite tables
+without dropping or rewriting v1 tables, so the legacy runtime can ignore them.
+The installer restores only files it still owns and refuses to overwrite a
+concurrent configuration change during rollback.

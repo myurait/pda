@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pda.local/schemas/scope-frame-v2.schema.json",
+  "title": "PDA source-bound scope frame v2",
+  "type": "object",
+  "required": [
+    "schema",
+    "turn_id",
+    "instruction_sha256",
+    "scope_frame",
+    "plan",
+    "containment",
+    "review"
+  ],
+  "properties": {
+    "schema": {
+      "const": "pda.scope-frame/v2"
+    },
+    "turn_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "instruction_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "scope_frame": {
+      "$ref": "#/$defs/scopeFrame"
+    },
+    "plan": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "containment": {
+      "$ref": "#/$defs/containment"
+    },
+    "review": {
+      "$ref": "#/$defs/review"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scopeFrame": {
+      "type": "object",
+      "required": [
+        "directive_relation",
+        "required_outcomes",
+        "targets",
+        "allowed_means",
+        "completion_predicates",
+        "non_goals",
+        "uncertainties",
+        "source_refs"
+      ],
+      "properties": {
+        "directive_relation": {
+          "enum": [
+            "new",
+            "continue",
+            "amend",
+            "replace",
+            "report",
+            "stop"
+          ]
+        },
+        "required_outcomes": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "targets": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "allowed_means": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "completion_predicates": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "non_goals": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "uncertainties": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "source_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "containment": {
+      "type": "object",
+      "required": [
+        "worktrees",
+        "write_paths",
+        "allowed_effects"
+      ],
+      "properties": {
+        "worktrees": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "pattern": "^/"
+          }
+        },
+        "write_paths": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "test_paths": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "allowed_effects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "file-write",
+              "git-stage",
+              "git-commit",
+              "git-push",
+              "service-reload",
+              "process-manage",
+              "external-send",
+              "memory-write",
+              "schedule-write"
+            ]
+          }
+        },
+        "command_allowlist": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "services": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "remotes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "repository",
+              "remote",
+              "branch"
+            ],
+            "properties": {
+              "repository": {
+                "type": "string",
+                "pattern": "^/"
+              },
+              "remote": {
+                "type": "string",
+                "minLength": 1
+              },
+              "branch": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "execution": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "focused-test",
+              "syntax-check"
+            ]
+          }
+        },
+        "max_tool_calls": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "additionalProperties": false
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "scope_verdict",
+        "scope_findings",
+        "risk",
+        "risk_basis",
+        "additional_assurance_required",
+        "post_work_audit_must_establish",
+        "reviewer_note"
+      ],
+      "properties": {
+        "scope_verdict": {
+          "enum": [
+            "pass",
+            "revise",
+            "block"
+          ]
+        },
+        "scope_findings": {
+          "type": "array"
+        },
+        "risk": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        "risk_basis": {
+          "type": "array"
+        },
+        "additional_assurance_required": {
+          "type": "boolean"
+        },
+        "post_work_audit_must_establish": {
+          "type": "array"
+        },
+        "reviewer_note": {
+          "type": "string"
+        },
+        "review_id": {
+          "type": "string"
+        },
+        "reviewer_model": {
+          "type": "string"
+        },
+        "reviewer_provider": {
+          "type": "string"
+        },
+        "reviewer_process": {
+          "const": "fresh-safe-mode-session"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

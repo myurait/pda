@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Out-of-process fail-closed entry point for the PDA scope gate."""
+"""Out-of-process fail-closed entry point for PDA scope control v2."""
 
 from __future__ import annotations
 
@@ -7,10 +7,13 @@ import argparse
 import json
 import os
 from pathlib import Path
-import sqlite3
 import sys
+from typing import Any
 
-from scope_gate import GateStore, default_state_path, validate_shell_payload
+from plugin_runtime_v2 import validate_shell_payload_v2
+from process_monitor import ProcessMonitorStore
+from scope_gate import default_state_path
+from scope_v2 import ScopeV2Store
 
 
 def _state_path() -> Path:
@@ -21,7 +24,7 @@ def _state_path() -> Path:
 def _validate_tool() -> int:
     try:
         payload = json.load(sys.stdin)
-        response = validate_shell_payload(payload, state_path=_state_path())
+        response = validate_shell_payload_v2(payload, state_path=_state_path())
     except Exception as exc:
         print(f"pda-scope-gate validation failed: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
@@ -31,25 +34,215 @@ def _validate_tool() -> int:
 
 def _doctor() -> int:
     try:
-        store = GateStore(_state_path())
-        with store._connect() as connection:  # local operator diagnostic
-            result = connection.execute("PRAGMA integrity_check").fetchone()[0]
-        if result != "ok":
-            raise RuntimeError(f"SQLite integrity_check returned {result!r}")
+        path = _state_path()
+        monitor = ProcessMonitorStore(path)
+        scope = ScopeV2Store(path, monitor=monitor)
+        scope_result = scope.integrity_check()
+        monitor_result = monitor.integrity_check()
+        if scope_result != "ok" or monitor_result != "ok":
+            raise RuntimeError(
+                f"SQLite integrity checks returned scope={scope_result!r}, monitor={monitor_result!r}"
+            )
     except Exception as exc:
         print(f"scope gate unhealthy: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps({"ok": True, "state_path": str(store.path), "integrity": "ok"}))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "schema": "pda.scope-control/v2",
+                "state_path": str(path),
+                "integrity": "ok",
+                "monitors": len(monitor.list_monitors()),
+                "min_samples": 10,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
     return 0
+
+
+def _card_body(payload: dict[str, Any], payload_digest: str) -> str:
+    lines = [
+        f"monitor: {payload.get('display_name') or payload.get('monitor_id')}",
+        f"monitor_id: {payload.get('monitor_id')}",
+    ]
+    if "dominant_value" in payload:
+        lines.extend(
+            [
+                f"window: {payload.get('window_start')} .. {payload.get('window_end')}",
+                f"true / false / N: {payload.get('true_count')} / {payload.get('false_count')} / {payload.get('N')}",
+                f"dominance: {payload.get('dominance')}",
+                f"minimum samples: {payload.get('min_samples')}",
+            ]
+        )
+    if payload.get("failure_type"):
+        lines.append(f"failure_type: {payload.get('failure_type')}")
+    lines.extend(
+        [
+            f"payload_digest: {payload_digest}",
+            "元の判定は変更していません。自動修復・自動割当は行っていません。",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _deliver_outbox(store: ProcessMonitorStore) -> tuple[int, list[str]]:
+    from hermes_cli import kanban_db
+
+    kanban_db.init_db()
+    delivered = 0
+    errors: list[str] = []
+    for row in store.pending_outbox():
+        payload = row["payload"]
+        body = _card_body(payload, row["payload_digest"])
+        try:
+            with kanban_db.connect_closing() as connection:
+                task_id = str(row.get("delivered_task_id") or "")
+                if task_id and kanban_db.get_task(connection, task_id) is not None:
+                    comment = (
+                        "形骸化monitor再評価\n"
+                        f"payload_digest: {row['payload_digest']}\n"
+                        + body
+                    )
+                    with kanban_db.write_txn(connection):
+                        exists = connection.execute(
+                            """
+                            SELECT 1 FROM task_comments
+                            WHERE task_id = ? AND author = ? AND body = ? LIMIT 1
+                            """,
+                            (task_id, "pda-process-monitor", comment),
+                        ).fetchone()
+                        if exists is None:
+                            kanban_db.add_comment(
+                                connection,
+                                task_id,
+                                "pda-process-monitor",
+                                comment,
+                            )
+                    kanban_db.notify_task_updated(connection, task_id, ("comments",))
+                else:
+                    task_id = kanban_db.create_task(
+                        connection,
+                        title=str(payload.get("title") or "判定プロセス失敗疑い"),
+                        body=body,
+                        assignee=None,
+                        created_by="pda-process-monitor",
+                        tenant="pda-improvement",
+                        triage=True,
+                        idempotency_key=str(row["idempotency_key"]),
+                        initial_status="triage",
+                    )
+                store.mark_delivered(str(row["outbox_id"]), task_id)
+                delivered += 1
+        except Exception as exc:  # noqa: BLE001 -- delivery failure must stay visible.
+            event_id = store.mark_delivery_failed(str(row["outbox_id"]), str(exc))
+            errors.append(f"{event_id}:{type(exc).__name__}:{exc}")
+    return delivered, errors
+
+
+def _monitor_reconcile(*, no_delivery: bool) -> int:
+    path = _state_path()
+    store = ProcessMonitorStore(path)
+    try:
+        evaluations = store.reconcile()
+        delivered = 0
+        errors: list[str] = []
+        if not no_delivery:
+            delivered, errors = _deliver_outbox(store)
+        result = {
+            "ok": not errors,
+            "schema": "pda.process-monitor.reconcile/v1",
+            "evaluations": evaluations,
+            "delivered": delivered,
+            "pending_outbox": len(store.pending_outbox()),
+            "errors": errors,
+        }
+        stream = sys.stderr if errors else sys.stdout
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True), file=stream)
+        if errors:
+            print(
+                json.dumps(
+                    {
+                        "schema": "pda.process-monitor.health/v1",
+                        "failure_type": "sink-delivery-failed",
+                        "events": errors,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                ),
+                file=sys.stderr,
+            )
+            return 1
+        return 0
+    except Exception as exc:
+        invocation_id = os.environ.get("INVOCATION_ID", "manual")
+        event = {
+            "schema": "pda.process-monitor.health/v1",
+            "failure_type": "outbox-persist-failed",
+            "control_invocation_id": invocation_id,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+        print(json.dumps(event, ensure_ascii=False, sort_keys=True), file=sys.stderr)
+        return 1
+
+
+def _monitor_status() -> int:
+    store = ProcessMonitorStore(_state_path())
+    with store._connect() as connection:  # operator read-only status
+        health = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM process_monitor_health WHERE active = 1"
+            ).fetchone()[0]
+        )
+        owner_alerts = int(
+            connection.execute(
+                "SELECT COUNT(*) FROM owner_alert_outbox WHERE acknowledged_at IS NULL"
+            ).fetchone()[0]
+        )
+    print(
+        json.dumps(
+            {
+                "ok": health == 0,
+                "schema": "pda.process-monitor.status/v1",
+                "monitors": store.list_monitors(),
+                "pending_outbox": len(store.pending_outbox()),
+                "telemetry_failures": len(store.list_failures()),
+                "active_health_failures": health,
+                "unacknowledged_owner_alerts": owner_alerts,
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        )
+    )
+    return 0 if health == 0 else 1
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(prog="pda-scope-gate")
-    parser.add_argument("action", choices=("validate-tool", "doctor"))
+    parser.add_argument(
+        "action",
+        choices=(
+            "validate-tool",
+            "doctor",
+            "monitor-reconcile",
+            "monitor-status",
+        ),
+    )
+    parser.add_argument(
+        "--no-delivery",
+        action="store_true",
+        help="evaluate and persist outbox without touching the Kanban sink",
+    )
     args = parser.parse_args()
     if args.action == "validate-tool":
         return _validate_tool()
-    return _doctor()
+    if args.action == "doctor":
+        return _doctor()
+    if args.action == "monitor-reconcile":
+        return _monitor_reconcile(no_delivery=bool(args.no_delivery))
+    return _monitor_status()
 
 
 if __name__ == "__main__":

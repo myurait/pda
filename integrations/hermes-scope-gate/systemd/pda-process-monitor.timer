@@ -1,0 +1,12 @@
+[Unit]
+Description=Hourly PDA binary decision process monitor reconcile
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1h
+RandomizedDelaySec=30s
+Persistent=true
+Unit=pda-process-monitor.service
+
+[Install]
+WantedBy=timers.target

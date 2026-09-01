@@ -3,7 +3,7 @@
 - Status: approved（2026-08-22 オーナー承認。Open Questions は全て決定済み — 末尾「確定済みオーナー決定」参照。goal M1 の統治正本）
 - 日付: 2026-08-22
 - 改訂: 2026-08-29 オーナー批准（`docs/design/auto-integration-gate.md` 16節 決定1-4）により D1 第1項を改訂。同批准が本 ADR 13行目の「境界の変更は本 ADR の改訂に固定する」を満たす承認記録である。
-- 改訂: 2026-09-01 オーナー指示により、自然言語のスコープ・リスク判定を決定論分類から分離し、Terra事前評価、実作用監査、二値判断プロセスの形骸化監視をD2/D6へ追加した。実装・本番切替は未実施。
+- 改訂: 2026-09-01 オーナー指示により、自然言語のスコープ・リスク判定を決定論分類から分離し、Terra事前評価、実作用監査、二値判断プロセスの形骸化監視をD2/D6へ追加した。同日、実装正本を`integrations/hermes-scope-gate/`へ置く統治変更とmain・稼働環境への反映が承認された。
 - 位置付け: `docs/roadmap/autonomous-improvement-goal.md` M1(a) の成果物。全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md:145,168,178`）が要求する self-improvement governance の ADR。
 - 根拠となる規範: `pda_charter.md`（特に第五条・第六条）、`personal_delegate_agent_plan.md:168-183`（提案と受入判断の分離、ゲートをコアの上位に置く）、goal文書6節の不変条件 C1-C9。
 - 根拠となる実証: 2026-08-22 の M0 で確定した2つの事実。(1) プロンプト規律は強制力ではない（workerが保護環境変数を自己解除した）。(2) 意味的レビューは行動回帰を捕捉できない（b11e01c は digest 束縛のオーナー承認を通過して本番不具合を起こした）。
@@ -106,13 +106,13 @@ M1-M2 で検査化する:
 意味判断を別主体へ分離しても、その主体または最終gateが常に同じbooleanを返すなら機構は形骸化し得る。この失敗は判断内容ではなく施行分布から決定論的に監視する。共通契約の正本は`docs/design/process-degeneration-monitor.md`とする。
 
 - 任意の二値判断processをregistryへ登録でき、個別実装のif分岐にしない。
-- 各processの有効な直近72時間について、`max(true_count, false_count) / N >= 0.95`なら「判定プロセス失敗疑い」をdefault boardのtenant `pda-improvement`へ未割当Triageとして冪等起票する。
-- 件数下限は置かず、`N=0`だけを偏向判定不能とする。
+- 各processの有効な直近72時間について、`N >= 10`かつ`max(true_count, false_count) / N >= 0.95`なら「判定プロセス失敗疑い」をdefault boardのtenant `pda-improvement`へ未割当Triageとして冪等起票する。
+- 件数下限は10件とし、`N < 10`では比率を記録しても偏向episodeを開始しない。
 - 欠損、不正、未実施、評価不能、同値または相反duplicate、期待母集団取得不能、monitor自身の失敗は、比率から黙って除外せず別のtelemetry failureとして起票する。
 - alertは元の判定を反転、補正、再解釈せず、作業・承認・finalizationを自動で許可または拒否しない。
 - 最初の登録はTerra事前評価の`additional_assurance_required`と、全終端runの最終監査gateが出す`final_scope_conformant`である。
 
-この監視のregistry、閾値、起票先を通常workerが変更することはD3により禁止する。実装と本番有効化は、event契約と期待母集団が成立した後の別工程とする。
+この監視のregistry、閾値、起票先を通常workerが変更することはD3により禁止する。実装は`integrations/hermes-scope-gate/process_monitor.py`へ置き、event契約、期待母集団、Triage delivery、reconcileを同integrationのfocused testとruntime read-backで検証する。
 
 ## 確定済みオーナー決定（2026-08-22）
 

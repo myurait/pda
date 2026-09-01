@@ -26,7 +26,7 @@
 - 判定eventが永続化された直後に、その`monitor_id`だけを再評価する。
 - 毎時reconcileで全登録を再評価し、event欠落、遅着、処理失敗、時間経過だけで閾値を横断する場合を回収する。
 - 期待eventだけがある間はprocess固有の期限までpendingとし、期限または必須ライフサイクル境界を越えた場合だけmissingとして起票する。
-- 各processの有効な直近72時間で、`max(true_count, false_count) / N >= 0.95`なら未割当Triageへ「判定プロセス失敗疑い」を冪等起票する。件数下限は置かず、`N=0`だけは偏向判定不能とする。
+- 各processの有効な直近72時間で、`N >= 10`かつ`max(true_count, false_count) / N >= 0.95`なら未割当Triageへ「判定プロセス失敗疑い」を冪等起票する。`N < 10`では比率を記録しても偏向episodeを開始しない。
 - 同じepisodeではカードへ最新集計を追記し、回復後の再発は新episodeとして関連付ける。
 - 欠損、不正、未実施、評価不能、同一施行の同値または相反duplicate、母集団取得不能、monitor自身の失敗は、偏向比率から黙って落とさず別のtelemetry failureとして起票する。
 - sinkはdefault board、tenant `pda-improvement`、未割当Triageである。起票によってworkerを割り当てず、元の判定、作業、承認、finalizationを変更しない。
@@ -38,7 +38,7 @@
 
 初期登録は`scope.prework.additional-assurance-required`と`scope.final.final-scope-conformant`の二件である。前者はScopeFrame/計画のTerra提出を期待母集団とし、作業開始前の`additional_assurance_required`を一件要求する。後者は全ての終端runを期待母集団とし、実作用監査の`final_scope_conformant`を一件要求する。Terraが追加保証を要求したrunでは、予約済みの別主体監査が欠けた最終eventを有効としない。
 
-この節は実装契約であり、現行オーケストレーターへ監視機能が既に存在するという主張ではない。
+この節は共通monitorの実装契約である。実装正本は`integrations/hermes-scope-gate/process_monitor.py`と同integrationのruntime/installerに置き、オーケストレーターは登録eventを供給する側として接続する。稼働状態はserviceとstate storeのread-backで確認する。
 
 ## WIP 意味論の分離（承認待ち飢餓の解消）
 

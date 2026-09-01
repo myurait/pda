@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Transactional installer for the PDA Hermes scope gate."""
+"""Transactional installer for PDA scope control v2 and its monitor timer."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ from typing import Any
 import yaml
 
 PLUGIN_ID = "pda-scope-gate"
+SERVICE_NAME = "pda-process-monitor.service"
+TIMER_NAME = "pda-process-monitor.timer"
 
 
 def _read_yaml_mapping(path: Path) -> dict[str, Any]:
@@ -117,6 +119,17 @@ def _restore_file_if_owned(
         _atomic_write(path, previous, mode)
 
 
+def _render_units(source: Path, home: Path, command_path: Path) -> tuple[bytes, bytes]:
+    service = (source / "systemd" / "pda-process-monitor.service.in").read_text(
+        encoding="utf-8"
+    )
+    service = service.replace("@HERMES_HOME@", str(home)).replace(
+        "@COMMAND@", shlex.quote(str(command_path))
+    )
+    timer = (source / "systemd" / "pda-process-monitor.timer").read_bytes()
+    return service.encode("utf-8"), timer
+
+
 def install_scope_gate(
     *,
     home: str | Path,
@@ -131,22 +144,32 @@ def install_scope_gate(
         "__init__.py",
         "scope_gate.py",
         "plugin_runtime.py",
+        "plugin_runtime_v2.py",
+        "scope_v2.py",
+        "process_monitor.py",
         "pda-scope-gate",
         "schemas/scope-contract-v1.schema.json",
+        "schemas/scope-frame-v2.schema.json",
+        "systemd/pda-process-monitor.service.in",
+        "systemd/pda-process-monitor.timer",
     )
     missing = [name for name in required if not (source_path / name).is_file()]
     if missing:
         raise ValueError(f"scope gate source is incomplete: {', '.join(missing)}")
 
     plugin_path = home_path / "plugins" / PLUGIN_ID
-    command = f"{shlex.quote(str(plugin_path / 'pda-scope-gate'))} validate-tool"
+    command_path = plugin_path / "pda-scope-gate"
+    hook_command = f"{shlex.quote(str(command_path))} validate-tool"
     config_path = home_path / "config.yaml"
     allowlist_path = home_path / "shell-hooks-allowlist.json"
+    systemd_path = home_path.parent / ".config" / "systemd" / "user"
+    service_path = systemd_path / SERVICE_NAME
+    timer_path = systemd_path / TIMER_NAME
 
     current_config = _read_yaml_mapping(config_path)
     current_allowlist = _read_allowlist(allowlist_path)
-    desired_config = _desired_config(current_config, command)
-    desired_allowlist = _desired_allowlist(current_allowlist, command)
+    desired_config = _desired_config(current_config, hook_command)
+    desired_allowlist = _desired_allowlist(current_allowlist, hook_command)
     config_bytes = yaml.safe_dump(
         desired_config,
         allow_unicode=True,
@@ -155,20 +178,32 @@ def install_scope_gate(
     allowlist_bytes = (
         json.dumps(desired_allowlist, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     ).encode("utf-8")
+    service_bytes, timer_bytes = _render_units(source_path, home_path, command_path)
 
-    previous_config = config_path.read_bytes() if config_path.exists() else None
-    previous_allowlist = allowlist_path.read_bytes() if allowlist_path.exists() else None
+    managed = [
+        (config_path, config_bytes, 0o600),
+        (allowlist_path, allowlist_bytes, 0o600),
+        (service_path, service_bytes, 0o644),
+        (timer_path, timer_bytes, 0o644),
+    ]
+    previous = {path: _current_bytes(path) for path, _, _ in managed}
     plugin_was_correct = plugin_path.is_symlink() and plugin_path.resolve() == source_path
-    config_changed = previous_config != config_bytes
-    allowlist_changed = previous_allowlist != allowlist_bytes
-    if plugin_was_correct and not config_changed and not allowlist_changed:
-        return {"changed": False, "plugin": str(plugin_path), "command": command}
+    files_changed = any(previous[path] != data for path, data, _ in managed)
+    if plugin_was_correct and not files_changed:
+        return {
+            "changed": False,
+            "plugin": str(plugin_path),
+            "command": hook_command,
+            "service": str(service_path),
+            "timer": str(timer_path),
+        }
 
     home_path.mkdir(parents=True, exist_ok=True)
     plugin_path.parent.mkdir(parents=True, exist_ok=True)
     backup_path: Path | None = None
     created_link = False
     preserve_backup = False
+    written: list[tuple[Path, bytes, int]] = []
     try:
         if not plugin_was_correct:
             if os.path.lexists(plugin_path):
@@ -181,26 +216,22 @@ def install_scope_gate(
             temporary_link.symlink_to(source_path, target_is_directory=True)
             os.replace(temporary_link, plugin_path)
             created_link = True
-        if config_changed:
-            if _current_bytes(config_path) != previous_config:
-                raise RuntimeError("config changed concurrently before scope-gate write")
-            writer(config_path, config_bytes, 0o600)
-        if allowlist_changed:
-            if _current_bytes(allowlist_path) != previous_allowlist:
-                raise RuntimeError("hook allowlist changed concurrently before scope-gate write")
-            writer(allowlist_path, allowlist_bytes, 0o600)
+        for path, data, mode in managed:
+            if previous[path] == data:
+                continue
+            if _current_bytes(path) != previous[path]:
+                raise RuntimeError(f"managed file changed concurrently before write: {path}")
+            writer(path, data, mode)
+            written.append((path, data, mode))
     except Exception as original:
         rollback_errors: list[str] = []
-        for path, previous, applied in (
-            (config_path, previous_config, config_bytes),
-            (allowlist_path, previous_allowlist, allowlist_bytes),
-        ):
+        for path, data, mode in reversed(written):
             try:
                 _restore_file_if_owned(
                     path,
-                    previous=previous,
-                    applied=applied,
-                    mode=0o600,
+                    previous=previous[path],
+                    applied=data,
+                    mode=mode,
                 )
             except Exception as exc:  # noqa: BLE001 -- aggregate rollback failures.
                 rollback_errors.append(str(exc))
@@ -228,12 +259,20 @@ def install_scope_gate(
         if backup_path is not None and not preserve_backup:
             shutil.rmtree(backup_path.parent, ignore_errors=True)
 
-    return {"changed": True, "plugin": str(plugin_path), "command": command}
+    return {
+        "changed": True,
+        "plugin": str(plugin_path),
+        "command": hook_command,
+        "service": str(service_path),
+        "timer": str(timer_path),
+    }
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", default=os.environ.get("HERMES_HOME") or str(Path.home() / ".hermes"))
+    parser.add_argument(
+        "--home", default=os.environ.get("HERMES_HOME") or str(Path.home() / ".hermes")
+    )
     parser.add_argument("--source", default=str(Path(__file__).resolve().parent))
     args = parser.parse_args()
     result = install_scope_gate(home=args.home, source=args.source)

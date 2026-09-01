@@ -1,6 +1,6 @@
 # 二値判断プロセスの形骸化検知
 
-- Status: owner-directed design（2026-09-01）。文書契約のみ。実装・本番有効化は未実施。
+- Status: owner-approved v2 implementation contract（2026-09-01）。実装正本は`integrations/hermes-scope-gate/`に置き、稼働状態は本書ではなくruntime read-backで確認する。
 - 適用先: 最初の適用はPDAのスコープ制御。以後、同じ契約で任意の二値判断プロセスを登録できる。
 - 関連: `task-scope-admission-gate.md`、`improvement-orchestrator.md`、`self-improvement-governance-adr.md`
 
@@ -8,7 +8,7 @@
 
 AIまたはゲートが形式上は判断を返していても、実際には常に`true`または常に`false`へ倒れ、判断工程として機能しなくなることがある。この失敗を、判断内容を再解釈せず、施行結果の分布から決定論的に検知する。
 
-検知器は、どちらの値が「正しい」か、望ましい比率が何%かを決めない。直近3日間の施行で一方の値が95%以上を占めた事実を「仕組みの失敗疑い」として起票し、人または後続の改善工程へ渡す。
+検知器は、どちらの値が「正しい」か、望ましい比率が何%かを決めない。直近3日間に有効な施行が10件以上あり、一方の値が95%以上を占めた事実を「仕組みの失敗疑い」として起票し、人または後続の改善工程へ渡す。
 
 ## 2. 適用範囲と非目標
 
@@ -84,10 +84,10 @@ false_count = verdict == false の件数
 N           = true_count + false_count
 
 dominance = max(true_count, false_count) / N
-trigger   = N > 0 AND dominance >= 0.95
+trigger   = N >= 10 AND dominance >= 0.95
 ```
 
-比較は「95%以上」なので`>= 0.95`であり、丸めた表示値ではなく整数件数の比で判定する。件数下限は設けない。したがって`N=1`でも一方が100%ならtriggerする。これは少数標本の確証度を高いと主張するものではなく、オーナーが指定した条件を弱めず、誤検知の作用を未割当Triageへ閉じる選択である。`N=0`だけは偏向を判定できない。
+比較は「95%以上」なので`>= 0.95`であり、丸めた表示値ではなく整数件数の比で判定する。件数下限は10件である。`N < 10`では比率を記録しても偏向episodeを開始せず、10件目以降だけtriggerを評価する。
 
 異なる`monitor_id`を合算しない。診断軸ごとの内訳は記録するが、主判定は安定した`monitor_id`全体で行い、version変更による窓のリセットを許さない。
 
@@ -180,11 +180,11 @@ telemetry failureがある場合でも、有効イベントが一件以上あれ
 
 ## 9. 実装境界と受入条件
 
-本書は設計契約であり、現時点ではイベントschema、registry、集計器、Triage sink、reconcile jobを実装していない。実装工程は別の変更として扱い、少なくとも次を固定する。
+本書の実装正本は`integrations/hermes-scope-gate/process_monitor.py`、event producerは同integrationの`scope_v2.py`、Triage sinkとreconcile CLIは`pda-scope-gate`、定期実行は同integrationのsystemd templateである。実装と稼働状態を混同せず、次をfocused testとruntime read-backで固定する。
 
 - event time境界の直前・一致・直後
 - 94.99%相当と95%以上
-- `N=0`、`N=1`、少数標本
+- `N=0`、`N=9`、`N=10`の件数境界
 - 同一event再送、同値duplicate、相反duplicate
 - control envelope、遅着判定、同値duplicateのcanonical survivorが再送・順序違いでも不変であること
 - monitor ID、event ID、join keyが全て欠けたraw eventも`process-monitor.ingress-integrity`と`ingress_id`で一件だけ起票され、主張された未知IDは診断値にしかならないこと

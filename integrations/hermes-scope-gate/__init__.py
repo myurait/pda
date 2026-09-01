@@ -1,109 +1,138 @@
 # ruff: noqa: N999 -- Hermes plugin directory ids intentionally use hyphens.
-"""PDA task-scope admission plugin for Hermes Agent."""
+"""Source-bound PDA task-scope control plugin for Hermes Agent."""
 
 from __future__ import annotations
 
 from typing import Any
 
 try:  # Hermes loads plugins as namespaced packages.
-    from .plugin_runtime import ScopeGatePluginRuntime, json_result
+    from .plugin_runtime_v2 import ScopeGateV2PluginRuntime, json_result
 except ImportError:  # Direct pytest/plugin-doctor file import fallback.
-    from plugin_runtime import ScopeGatePluginRuntime, json_result
+    from plugin_runtime_v2 import ScopeGateV2PluginRuntime, json_result
 
-_RUNTIME: ScopeGatePluginRuntime | None = None
+_RUNTIME: ScopeGateV2PluginRuntime | None = None
 
-_SYSTEM_POLICY = """PDA task scope admission is enforced at the tool boundary. Permission is not scope;
-confidence-improving work is not scope. For a repository-closeout turn, lock one explicit target,
-perform only bounded status/diff/integrity checks, the requested commit/push, and direct ref
-verification. Never repair content, conflicts, tests, branches, worktrees, deployments, or unrelated
-processes in that turn. For an artifact-change turn, write permission and execution permission are
-separate contract layers and mutation needs a locked contract: either the assignment already locked
-the turn, or you lock one worktree and the write scope you need through `scope_gate`. A lock only
-narrows; the target and write scope cannot be extended afterwards. The per-turn contract details are
-supplied with the turn. Completion closes execution; report blockers instead of expanding the task."""
+_SYSTEM_POLICY = """PDA scope control is a three-phase cognitive loop, not a natural-language classifier.
+The current authenticated instruction is authoritative. Before mutation, infer a source-bound
+ScopeFrame and plan, submit both plus minimal deterministic containment through `scope_gate` review,
+and lock only after the separate Terra review passes. Never infer instruction meaning or risk with
+regex, keywords, task classes, or deterministic rules. Work against the reviewed frame, preserve
+other worktrees, then call complete with observed effects and the executor's final scope audit.
+Deterministic enforcement handles provenance, approval, resource containment, effect matching, and
+stale-plan protection only. Review/audit failure blocks effects but never rewrites the instruction.
+A prior turn is context, not authority. Read-only answers need no pre-work review."""
 
+_STRING_ARRAY = {"type": "array", "items": {"type": "string"}}
+_SCOPE_FRAME_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "directive_relation": {
+            "type": "string",
+            "enum": ["new", "continue", "amend", "replace", "report", "stop"],
+        },
+        "required_outcomes": _STRING_ARRAY,
+        "targets": _STRING_ARRAY,
+        "allowed_means": _STRING_ARRAY,
+        "completion_predicates": _STRING_ARRAY,
+        "non_goals": _STRING_ARRAY,
+        "uncertainties": _STRING_ARRAY,
+        "source_refs": _STRING_ARRAY,
+    },
+    "required": [
+        "directive_relation",
+        "required_outcomes",
+        "targets",
+        "allowed_means",
+        "completion_predicates",
+        "non_goals",
+        "uncertainties",
+        "source_refs",
+    ],
+    "additionalProperties": False,
+}
+_CONTAINMENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "worktrees": _STRING_ARRAY,
+        "write_paths": _STRING_ARRAY,
+        "test_paths": _STRING_ARRAY,
+        "allowed_effects": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "file-write",
+                    "git-stage",
+                    "git-commit",
+                    "git-push",
+                    "service-reload",
+                    "process-manage",
+                    "external-send",
+                    "memory-write",
+                    "schedule-write",
+                ],
+            },
+        },
+        "command_allowlist": _STRING_ARRAY,
+        "services": _STRING_ARRAY,
+        "remotes": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "repository": {"type": "string"},
+                    "remote": {"type": "string"},
+                    "branch": {"type": "string"},
+                },
+                "required": ["repository", "remote", "branch"],
+                "additionalProperties": False,
+            },
+        },
+        "execution": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": ["focused-test", "syntax-check"],
+            },
+        },
+        "max_tool_calls": {"type": "integer", "minimum": 1, "maximum": 500},
+    },
+    "required": ["worktrees", "write_paths", "allowed_effects"],
+    "additionalProperties": False,
+}
+_EFFECT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "kind": {"type": "string"},
+        "target": {"type": "string"},
+        "result": {"type": "string"},
+    },
+    "required": ["kind", "target"],
+    "additionalProperties": False,
+}
 _SCOPE_GATE_SCHEMA = {
     "name": "scope_gate",
     "description": (
-        "Lock, review, or complete the current PDA task-scope contract. "
-        "For repository closeout, call lock after bounded read-only target discovery and before mutation."
+        "Review, lock, audit, or inspect the current source-bound PDA scope frame. "
+        "Call review before the first mutation, lock after pass, and complete before finalizing."
     ),
     "parameters": {
         "type": "object",
         "properties": {
             "action": {
                 "type": "string",
-                "enum": ["lock", "review", "complete"],
+                "enum": ["review", "lock", "complete"],
             },
-            "targets": {
-                "type": "object",
-                "properties": {
-                    "repositories": {"type": "array", "items": {"type": "string"}},
-                    "worktrees": {"type": "array", "items": {"type": "string"}},
-                    "branches": {"type": "array", "items": {"type": "string"}},
-                    "write_paths": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": (
-                            "artifact-change only: repository-relative glob patterns this turn may "
-                            "write. '*' stays inside one path segment; '**' is the recursive form."
-                        ),
-                    },
-                    "test_paths": {
-                        "type": "array",
-                        "items": {"type": "string"},
-                        "description": (
-                            "artifact-change only: repository-relative glob patterns for test "
-                            "assets. Omitted means no test asset may be written."
-                        ),
-                    },
-                },
-                "required": ["worktrees"],
-                # The required set is per class, so it has to be declared per
-                # class. A single relaxed list moved the check off the tool
-                # boundary and into a runtime error that still spent the
-                # turn's budget.
-                "anyOf": [
-                    {"required": ["repositories", "worktrees", "branches"]},
-                    {"required": ["worktrees", "write_paths"]},
-                ],
-                "additionalProperties": False,
-            },
-            "execution": {
-                "type": "array",
-                "items": {"type": "string", "enum": ["focused-test", "syntax-check"]},
-                "description": (
-                    "artifact-change only: verification templates this turn may actually run. "
-                    "Omitted means no execution-bearing verification is admitted."
-                ),
-            },
+            "scope_frame": _SCOPE_FRAME_SCHEMA,
+            "plan": _STRING_ARRAY,
+            "containment": _CONTAINMENT_SCHEMA,
             "status": {
                 "type": "string",
                 "enum": ["success", "partial", "blocked", "failed", "interrupted"],
             },
-            "reason": {
-                "type": "string",
-                "description": "Why an expansion review is indispensable; review always denies for closeout.",
-            },
-            "candidate": {
-                "type": "object",
-                "description": "Expansion candidate for action=review: the exact tool action that the contract does not allow.",
-                "properties": {
-                    "tool_name": {"type": "string"},
-                    "args": {"type": "object"},
-                    "reason": {"type": "string"},
-                    "estimated_cost": {
-                        "type": "object",
-                        "properties": {
-                            "seconds": {"type": "number"},
-                            "tool_calls": {"type": "number"},
-                        },
-                        "additionalProperties": False,
-                    },
-                },
-                "required": ["tool_name", "reason"],
-                "additionalProperties": False,
-            },
+            "observed_effects": {"type": "array", "items": _EFFECT_SCHEMA},
+            "final_scope_conformant": {"type": "boolean"},
+            "completion_summary": {"type": "string"},
         },
         "required": ["action"],
         "additionalProperties": False,
@@ -111,10 +140,10 @@ _SCOPE_GATE_SCHEMA = {
 }
 
 
-def _runtime() -> ScopeGatePluginRuntime:
+def _runtime() -> ScopeGateV2PluginRuntime:
     global _RUNTIME
     if _RUNTIME is None:
-        _RUNTIME = ScopeGatePluginRuntime()
+        _RUNTIME = ScopeGateV2PluginRuntime()
     return _RUNTIME
 
 

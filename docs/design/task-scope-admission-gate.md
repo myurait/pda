@@ -1,6 +1,6 @@
 # PDAタスク・スコープ制御設計（v2 / 旧admission gate移行記録）
 
-Status: v2 owner-directed redesign decided 2026-09-01; documentation only. Legacy v1/S3 implementation remains deployed until a separately reviewed migration is approved and applied.
+Status: v2 owner-approved implementation（2026-09-01）。実装正本は`integrations/hermes-scope-gate/`。Legacy v1/S3は既存turn、assignment seed、rollbackの互換経路へ降格し、新しいturnの自然言語意味判断には使わない。
 Checked: 2026-09-01 JST
 Legacy initial target: Hermes Agent v0.20.2 on the PDA runtime
 
@@ -72,19 +72,19 @@ permissionはscopeではない。安全、承認、不可逆性、秘密、resou
 
 決定論的な実装が担うのは、指示元とprovenance、event/schemaの形、対象containment、承認、予算、stale-plan検知、評価済み計画と作用の機械照合、監査証跡である。自然言語の意味・リスク・必要成果を推論しない。
 
-さらに、Terra事前評価の`additional_assurance_required`と最終監査ゲートの`final_scope_conformant`が判断として形骸化していないかを、`process-degeneration-monitor.md`の共通契約で監視する。各processの直近72時間で`true`または`false`の一方が95%以上なら、元判定には介入せず「判定プロセス失敗疑い」を未割当Triageへ冪等起票する。件数下限は設けず、欠損・不正・未実施・評価不能・競合重複は別のtelemetry failureとして起票する。
+さらに、Terra事前評価の`additional_assurance_required`と最終監査ゲートの`final_scope_conformant`が判断として形骸化していないかを、`process-degeneration-monitor.md`の共通契約で監視する。各processの直近72時間に有効施行が10件以上あり、`true`または`false`の一方が95%以上なら、元判定には介入せず「判定プロセス失敗疑い」を未割当Triageへ冪等起票する。`N < 10`では偏向episodeを開始せず、欠損・不正・未実施・評価不能・競合重複は別のtelemetry failureとして起票する。
 
 ### 0.7 移行境界
 
-v2実装は次の順で行う。
+v2実装は次の境界で成立する。
 
-1. source-bound ScopeFrame、Terra事前評価、実作用監査のevent契約を定義する。
-2. 旧G0のregex/task-class結果をadmission入力から外し、監査用の移行観測へ降格する。
-3. 既存のhard containmentを、評価済みScopeFrameの対象・承認・作用境界へ接続する。
-4. final gateと共通形骸化監視を実装し、旧v1とのshadow比較でfalse deny/allowを確認する。
-5. オーナー承認後に切替え、rollback可能な期間を置く。
+1. `scope_v2.py`がsource-bound ScopeFrame、Terra事前評価、実作用監査のevent契約を持つ。
+2. 新しいplugin entryは`ScopeGateV2PluginRuntime`だけを新規turnへ使用し、旧G0のregex/task-class結果をadmission入力へ使わない。
+3. 評価済みScopeFrameのdeterministic containmentへfile、Git、service、exact commandの作用を接続し、assignment seedは拡張不能な上限として読む。
+4. final audit eventと共通形骸化monitorを同じprofile-scoped SQLiteへ追加し、旧v1 tableは既存turnとrollback互換のため破壊せず残す。
+5. installerがplugin、fail-closed shell hook、monitor timerを原子的に配置する。切替前後のruntime read-backと通常のGit revertをrollback handleとする。
 
-本改訂は1〜5を実施したという主張ではない。現行runtime、Gateway、active profile、scope-gate pluginは未変更である。
+active runtimeがこの実装を読み込んでいるかは本書から推定せず、plugin version、shell hook、service、state schemaのread-backで判定する。
 
 ## Legacy v1 design and implementation record
 
