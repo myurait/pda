@@ -3,6 +3,7 @@
 - Status: approved（2026-08-22 オーナー承認。Open Questions は全て決定済み — 末尾「確定済みオーナー決定」参照。goal M1 の統治正本）
 - 日付: 2026-08-22
 - 改訂: 2026-08-29 オーナー批准（`docs/design/auto-integration-gate.md` 16節 決定1-4）により D1 第1項を改訂。同批准が本 ADR 13行目の「境界の変更は本 ADR の改訂に固定する」を満たす承認記録である。
+- 改訂: 2026-09-01 オーナー指示により、自然言語のスコープ・リスク判定を決定論分類から分離し、Terra事前評価、実作用監査、二値判断プロセスの形骸化監視をD2/D6へ追加した。実装・本番切替は未実施。
 - 位置付け: `docs/roadmap/autonomous-improvement-goal.md` M1(a) の成果物。全体設計発注書（`.hermes/prompts/claude-fable-full-system-design.md:145,168,178`）が要求する self-improvement governance の ADR。
 - 根拠となる規範: `pda_charter.md`（特に第五条・第六条）、`personal_delegate_agent_plan.md:168-183`（提案と受入判断の分離、ゲートをコアの上位に置く）、goal文書6節の不変条件 C1-C9。
 - 根拠となる実証: 2026-08-22 の M0 で確定した2つの事実。(1) プロンプト規律は強制力ではない（workerが保護環境変数を自己解除した）。(2) 意味的レビューは行動回帰を捕捉できない（b11e01c は digest 束縛のオーナー承認を通過して本番不具合を起こした）。
@@ -31,26 +32,33 @@
 - 秘密・認証・課金・不可逆削除・外部公開範囲に触れる一切
 - 優先順位の最終決定と、停止指示・停止解除
 
-## D2. 二層検証の契約（決定論的ゲート層 × AI検証者層）
+## D2. 意味判断・作用監査・強制境界の分離
 
-goal文書4節の確定（独立検証者は「AI/決定論混成」）を、層ごとの契約として定義する。どちらか一方を選ぶ議論はしない。
+自然言語の指示が要求するスコープと作業リスクは、regex、キーワード、task class、決定木その他の決定論分類では定義しない。現在の認証済みオーナー指示を最上位とし、`docs/design/task-scope-admission-gate.md` 0節の三段階を適用する。
+
+スコープ制御の判断層:
+
+- 主作業前: 実行主体が現在指示からScopeFrameと計画を作り、別sessionのTerra-class modelが過不足、リスク、`additional_assurance_required`、追加監査事項を評価する。実行主体はフラグを下げたり迂回したりできない。
+- 作業後: 実行主体自身が全runの実作用と未達成果をScopeFrameへ照合し、`final_scope_conformant`と詳細状態を出す。計画どおりだったという自己申告だけでは足りない。
+- 追加保証: Terraが必要とした場合だけ、作業前に予約した別主体が最終作用監査を行う。経路が無ければ作業前にblockする。存在しない検証者待ちを進捗にしない。
 
 強制層（決定論的ゲート）:
 
-- 性質: fail-closed、全カード必須、worker の書込権限外で動作、出力は監査イベント。
-- 構成: スコープ審査（`docs/design/task-scope-admission-gate.md` の S2/S3 を worker 実行へ適用）、Git 実地検証（既存の digest/worktree/branch/diff 一致）、不変条件チェック（D4 の機械検査項目）、検証コマンド実在確認（handoff が主張するテスト実行をログ・exit code で照合）、terminal 遷移の claim 束縛（M0 で Hermes 本体へ実装済み・本番適用済み）。
-- 根拠: 実証(1)(2)。プロンプトにも意味的レビューにも代替させない。
+- 性質: fail-closed、workerの書込権限外、出力は監査event。
+- 担当: 指示元/provenance、event/schema、対象containment、Gitのdigest/worktree/branch/diff一致、不変条件、検証実行の証拠、承認、予算、stale-plan、terminal遷移のclaim束縛、評価済み計画と観測作用の機械照合。
+- 非担当: 自然言語の意味、必要成果、リスク、追加保証要否を決定論的に推論しない。安全境界は作用を止められるが、現在指示の意味を別taskへ書き換えない。
 
-判断層（AI検証者）:
+自己改善成果の独立実装検証:
 
-- 性質: 実装workerと別主体のAIが、受入条件の意味的充足・回帰リスク・スコープ妥当性を判定する。**全ての変更に適用する**（2026-08-22 オーナー決定。risk_class による適用可否の傾斜は行わない — 深さの調整は許容）。
-- 消費契約（C6 充足）: 検証者の出力は review handoff の必須添付であり、承認画面に表示される。C6 が禁じるのは「参照されない証跡・ログ・オーナーに届かない建前文書」のためのAI起動であり、消費される検証はこれに当たらない。
-- 限界の明文化: AI検証者の「合格」は強制層の通過にも digest 承認にも代替しない。検証者は lifecycle 変更権限を持たない（terminal claim guard により機械的に保証される）。
-- 実装プリミティブの選定（Hermes の reviewer 引数 / `claim_review_task` / swarm verifier 段のいずれを使うか）は M2 のオーケストレーター設計で行い、本 ADR は契約のみを固定する。
+- 実装workerとは別主体のAIが、受入条件の意味的充足、回帰、成果差分を検証し、review handoffへ添付する従来契約は**全ての自己改善変更で維持する**（2026-08-22 オーナー決定）。
+- これは成果物の独立検証であり、上記のTerra事前評価、実行主体の最終作用監査、条件付きの追加スコープ監査とは別契約である。一つの出力で複数の主体分離を満たしたことにしない。
+- AI検証者の合格は強制層やdigest承認に代替せず、検証者はlifecycle変更権限を持たない。
+
+各AI出力は実際の計画修正、監査gate、review handoffのいずれかに消費されるためC6に適合する。実装プリミティブとstage配置はM2で具体化する。
 
 ## D3. ゲートの所有権と配置
 
-- ゲート policy・不変条件定義・敵対テストは Git 正本（本リポジトリ）で管理し、変更はオーナー承認のコミットのみとする。worker の finalization contract に統治ファイルへの変更が含まれる場合、強制層は無条件で拒否する。
+- ゲート policy・不変条件定義・敵対テスト・形骸化monitor registry/閾値/起票先は Git 正本（本リポジトリ）で管理し、変更はオーナー承認のコミットのみとする。worker の finalization contract に統治ファイルへの変更が含まれる場合、強制層は無条件で拒否する。
 - 承認 ledger（`pda_owner_approvals`）は現在 Kanban DB 内にあり、DB に書ける主体からは物理的に隔離されていない。M0 の terminal claim guard と installer の検証は関数・契約レベルの保護であり、「worker の書込権限外への物理配置」（root 所有 broker 等、identity 計画の control-owned binding と同系）は未達である。これは本 ADR の残余であり、物理分離は identity 計画（control-owned session binding）と統合して後続実施とする（確定済みオーナー決定 4）。
 - 強制層のコードは Hermes 本体への管理パッチ（`integrations/hermes-kanban-governance/`）と本リポジトリの決定論的ツールに置き、worker のスキル・プロンプトには置かない。
 
@@ -92,6 +100,19 @@ M1-M2 で検査化する:
 - 検証者・review 専用主体による lifecycle 変更試行
 
 新しい迂回が実運用で観測された場合、ポストモーテム起票と同時にこのスイートへ再現テストを追加する（学習ループ、M3）。
+
+## D6. 二値判断プロセスの形骸化検知
+
+意味判断を別主体へ分離しても、その主体または最終gateが常に同じbooleanを返すなら機構は形骸化し得る。この失敗は判断内容ではなく施行分布から決定論的に監視する。共通契約の正本は`docs/design/process-degeneration-monitor.md`とする。
+
+- 任意の二値判断processをregistryへ登録でき、個別実装のif分岐にしない。
+- 各processの有効な直近72時間について、`max(true_count, false_count) / N >= 0.95`なら「判定プロセス失敗疑い」をdefault boardのtenant `pda-improvement`へ未割当Triageとして冪等起票する。
+- 件数下限は置かず、`N=0`だけを偏向判定不能とする。
+- 欠損、不正、未実施、評価不能、同値または相反duplicate、期待母集団取得不能、monitor自身の失敗は、比率から黙って除外せず別のtelemetry failureとして起票する。
+- alertは元の判定を反転、補正、再解釈せず、作業・承認・finalizationを自動で許可または拒否しない。
+- 最初の登録はTerra事前評価の`additional_assurance_required`と、全終端runの最終監査gateが出す`final_scope_conformant`である。
+
+この監視のregistry、閾値、起票先を通常workerが変更することはD3により禁止する。実装と本番有効化は、event契約と期待母集団が成立した後の別工程とする。
 
 ## 確定済みオーナー決定（2026-08-22）
 

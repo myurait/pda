@@ -19,6 +19,27 @@
   - リコンサイル: 毎時 1 回、イベント欠落に備えて盤面全体を照合する（要件 5）。生存していない claim、期限切れ permit、残置 worktree、review 滞留を検出し、回復は「安全に自動化できる種別」だけ実行して残りは審査リストへ記す。
 - 割当てポリシー評価は 1 回の実行で 1 トランザクション。原子的 claim（既存 CAS）を用い、同一カードの重複割当てと worktree 共有を構造的に排除する（要件 3, 4）。
 
+## 二値判断プロセスの形骸化監視
+
+`docs/design/process-degeneration-monitor.md`の共通契約を、オーケストレーターの決定論的な観測・起票経路として実装する。オーケストレーター自身は判定内容を再解釈せず、登録済みeventの完全性、72時間窓の件数、episode状態、起票冪等性だけを扱う。
+
+- 判定eventが永続化された直後に、その`monitor_id`だけを再評価する。
+- 毎時reconcileで全登録を再評価し、event欠落、遅着、処理失敗、時間経過だけで閾値を横断する場合を回収する。
+- 期待eventだけがある間はprocess固有の期限までpendingとし、期限または必須ライフサイクル境界を越えた場合だけmissingとして起票する。
+- 各processの有効な直近72時間で、`max(true_count, false_count) / N >= 0.95`なら未割当Triageへ「判定プロセス失敗疑い」を冪等起票する。件数下限は置かず、`N=0`だけは偏向判定不能とする。
+- 同じepisodeではカードへ最新集計を追記し、回復後の再発は新episodeとして関連付ける。
+- 欠損、不正、未実施、評価不能、同一施行の同値または相反duplicate、母集団取得不能、monitor自身の失敗は、偏向比率から黙って落とさず別のtelemetry failureとして起票する。
+- sinkはdefault board、tenant `pda-improvement`、未割当Triageである。起票によってworkerを割り当てず、元の判定、作業、承認、finalizationを変更しない。
+- sink失敗時はcontrol側のdurable outboxへ同じidempotency keyを保持し、task IDのread-backまで再送する。起票失敗をepisode成功として記録しない。
+- monitor状態のfalse→true遷移、episode generation採番、outbox行作成は同じcontrol transactionでCASし、event直後評価と毎時reconcileの競合で二重episodeを作らない。
+- Kanban delivery障害はprimary sinkへ再帰的にだけ通知せず、control storeの`process_monitor_health`とKanban非依存の`owner_alert_outbox`へ記録する。control store自体の失敗は構造化journal eventとservice non-zeroで表面化し、次の正常reconcileが冪等に取り込む。
+- monitor IDが欠落・未知なraw eventは予約ID`process-monitor.ingress-integrity`へ帰属させ、control envelopeのingress IDで冪等化する。未知IDをregistryへ自動追加しない。
+- 集計・reconcile・起票にAIは使わない。新しい監視対象はregistryへ追加し、個別if分岐を増やさない。
+
+初期登録は`scope.prework.additional-assurance-required`と`scope.final.final-scope-conformant`の二件である。前者はScopeFrame/計画のTerra提出を期待母集団とし、作業開始前の`additional_assurance_required`を一件要求する。後者は全ての終端runを期待母集団とし、実作用監査の`final_scope_conformant`を一件要求する。Terraが追加保証を要求したrunでは、予約済みの別主体監査が欠けた最終eventを有効としない。
+
+この節は実装契約であり、現行オーケストレーターへ監視機能が既に存在するという主張ではない。
+
 ## WIP 意味論の分離（承認待ち飢餓の解消）
 
 - 現行の `max_wip`（ready+running+review 合算）を廃止し、次の独立上限へ分離する（要件 1, 2）。
@@ -50,8 +71,8 @@
 
 ## ADR 依存（レビュー結果で確定する箇所）
 
-- 独立検証者ステージの配置と handoff 契約の形（ADR D2）。本設計では「review 前に検証者ステージを挟める」フックだけを置く。
-- expansion review の judge 接続と深さの傾斜（ADR Open Question 3）。G3 の決定論機構と permit は実装済みで、judge は差し替え可能。
+- ScopeFrame/計画のTerra事前評価、全runの実行主体による作用監査、`additional_assurance_required=true`時の別主体監査を別stageとして扱う（ADR D2、`task-scope-admission-gate.md` 0節）。
+- 自己改善成果に対する従来の独立実装検証は全変更で維持し、上記の条件付き追加スコープ監査と同一視しない（ADR D2）。
 - 統治ファイル変更の拒否ゲートの強制点（ADR D3）。
 - 承認記録簿の物理分離（ADR Open Question 4）。
 
@@ -59,4 +80,5 @@
 
 1. 現行ルーターのポリシー判定（優先度・停止接頭辞・policy 二重確認・worktree 整合）を関数として抽出し、イベント駆動の評価器から呼ぶ。30 分 timer は移行完了までフォールバックとして残し、二重割当ては原子的 claim が防ぐ。
 2. スレッド配信は表示契約の共通化から着手し、既存 run にも遡って適用しない（新規割当てから有効化）。
-3. 各段の有効化は staged config + オーナー承認（既存の activation 契約）を踏む。
+3. ScopeFrame/Terra/final auditのevent契約と期待母集団を先に実装し、共通形骸化monitorをshadow modeで照合してからTriage sinkを有効化する。
+4. 各段の有効化は staged config + オーナー承認（既存の activation 契約）を踏む。

@@ -1,8 +1,94 @@
-# PDAタスク・スコープ審査ゲート設計
+# PDAタスク・スコープ制御設計（v2 / 旧admission gate移行記録）
 
-Status: Implemented through rollout S1; S3-M1 design decided 2026-08-23 (D-S3-1..8 decided, including D-S3-7 の補則 and its 定式化統一; ratification at the M1 exit gate); worker wiring implemented and shipped inert (`scope_seed.enabled` 既定 false); production activation pending
-Checked: 2026-08-18 JST
-Initial target: Hermes Agent v0.20.2 on the PDA runtime
+Status: v2 owner-directed redesign decided 2026-09-01; documentation only. Legacy v1/S3 implementation remains deployed until a separately reviewed migration is approved and applied.
+Checked: 2026-09-01 JST
+Legacy initial target: Hermes Agent v0.20.2 on the PDA runtime
+
+## 0. 現行決定（v2）と旧設計の扱い
+
+本節が現在のスコープ制御の意味論である。後続の`## 1. Purpose`から`## 14. References`までは、2026-08-18〜24に実装したv1の履歴、移行対象、hard containmentの実証記録として残す。そこにあるregex、キーワード、task class、persistent seed、one-shot lock、G0/G2/G3は、現在の自然言語指示の意味またはリスクを決める規範ではない。
+
+v1 runtimeは本書の改訂だけでは変わらない。置換実装と本番切替は別工程であり、それまでは既存の安全・承認・書込containmentを弱めない。一方、v1の分類結果を新しいオーナー指示より上位に置いたり、明示された作業を別種のturnへ書き換えたりしてはならない。
+
+### 0.1 基本原理
+
+スコープ制御は一層のallow/deny分類器ではなく、次の三段階を分離した認知ループとする。
+
+1. 現在の認証済み指示から、その指示が取り扱うよう要求しているスコープと作業計画を推定する。
+2. 別主体Terraによる事前評価を通したScopeFrameと計画に対応付けて作業する。
+3. 作業後、計画ではなく実際に起きた作用をScopeFrameへ照合する。
+
+現在指示が最上位である。過去turn、task card、task seed、旧ScopeContract、分類結果、予算は文脈または実行上限であり、新しい指示の意味を自己規定しない。明示的な継続・修正がある部分だけを旧指示から引き継ぐ。
+
+permissionはscopeではない。安全、承認、不可逆性、秘密、resource containmentもscope意味論とは別の実行境界である。これらは作用を止められるが、現在指示を`audit-only`等の別目的へ書き換えない。
+
+### 0.2 Phase 1: 現在指示からScopeFrameと計画を作る
+
+実行主体は最初のmutating actionより前に、少なくとも次を持つScopeFrameを作る。
+
+- 現在指示との関係（新規、継続、修正、置換、報告、停止）。
+- 要求された成果、対象、許される手段、直接必要な前提。
+- 完了条件、明示または強く含意された非目標。
+- 不確実点と、その解消方法。
+- 各規範欄が現在指示のどこに由来するか。旧指示を使う場合は狭い継承元。
+
+自然言語の意味またはリスクを、regex、キーワード一覧、task class、決定木、その他の決定論ルールで推論しない。この機能は決定論的に定義できない。対象を特定するための限定的なread-only discoveryは許されるが、discovery結果が新しい目的を生成することはない。
+
+新しいオーナー指示が届いた場合は、次の作業単位より前に現在ScopeFrameへ戻って再推定する。初期推定と必要作業が合わない場合もtask全体を取り消さず、現在指示に根拠があればsource-boundな改訂を作り、根拠がなければその作業単位だけを除く。
+
+### 0.3 Terraによる独立事前評価
+
+主作業前に、実行主体とは別sessionの低コストなTerra-class modelへ、現在指示、参照解決に必要な最小文脈、ScopeFrame、作業計画を渡す。Terraは次を返す。
+
+- 指示に対する過小解釈・過大解釈と必要な修正。
+- 作業リスクと、その実質的な根拠。
+- `additional_assurance_required`のboolean。
+- 追加監査が必要な場合に、その監査が最終的に確かめる事項。
+
+実行主体は計画を修正して再提出できるが、Terraのリスクまたは追加保証フラグを自分で下げたり無視したりできない。決定論的policyは保護を上げる方向にだけ作用でき、Terraの意味判断を置き換えない。
+
+`additional_assurance_required=true`なら、主作業開始前に実在する別主体の最終監査経路を予約する。経路がなければその時点でblockerとして報告し、作業後に存在しない検証者を待つ状態を作らない。
+
+### 0.4 Phase 2: 評価済みScopeFrameに対応付けて作業する
+
+各作業単位は、どの要求、直接前提、または完了確認に対応するかを持つ。予測対象と作用種別、可逆性、必要ならrollback handleを記録し、最小十分な手段で実行する。
+
+対象containment、認証主体、承認、秘密、外部可視性、不可逆性、予算、並行作業保護は、該当作用の直前に独立して検査する。ここで止まった結果は`authorization/safety blocked`であり、`out of scope`へ言い換えない。他worktreeとユーザー所有の未commit変更をreset、stash、merge、削除してはならない。
+
+### 0.5 Phase 3: 実作用と未達成果を監査する
+
+最終応答前に、計画したtool名ではなく観測した作用をScopeFrameへ照合する。詳細状態は少なくとも次を区別する。
+
+- `conformant`: 作用が要求または対象へ帰属できる。
+- `under-fulfilled`: 要求された成果が未達である。
+- `overreach`: 現在指示上の根拠を持たない作用がある。
+- `unresolved`: 実作用をまだ確定できない。
+
+全ての終端runは、これとは別に`final_scope_conformant`を一件出す。観測できた全作用に現在スコープ上の根拠があり、作用の帰属が未解決でなければ`true`、一件でもoverreachまたは未解決作用があれば`false`とする。要求未達はcompletion状態で表し、作用が範囲内ならそれだけで`false`にしない。
+
+実行主体自身の作用監査は全作業で必須である。Terraが追加保証を要求した場合は、予約済みの別主体が現在指示、評価済み計画、観測作用、完了主張を比較し、その結果なしに最終ゲートを通さない。
+
+### 0.6 決定論で行うこと
+
+決定論的な実装が担うのは、指示元とprovenance、event/schemaの形、対象containment、承認、予算、stale-plan検知、評価済み計画と作用の機械照合、監査証跡である。自然言語の意味・リスク・必要成果を推論しない。
+
+さらに、Terra事前評価の`additional_assurance_required`と最終監査ゲートの`final_scope_conformant`が判断として形骸化していないかを、`process-degeneration-monitor.md`の共通契約で監視する。各processの直近72時間で`true`または`false`の一方が95%以上なら、元判定には介入せず「判定プロセス失敗疑い」を未割当Triageへ冪等起票する。件数下限は設けず、欠損・不正・未実施・評価不能・競合重複は別のtelemetry failureとして起票する。
+
+### 0.7 移行境界
+
+v2実装は次の順で行う。
+
+1. source-bound ScopeFrame、Terra事前評価、実作用監査のevent契約を定義する。
+2. 旧G0のregex/task-class結果をadmission入力から外し、監査用の移行観測へ降格する。
+3. 既存のhard containmentを、評価済みScopeFrameの対象・承認・作用境界へ接続する。
+4. final gateと共通形骸化監視を実装し、旧v1とのshadow比較でfalse deny/allowを確認する。
+5. オーナー承認後に切替え、rollback可能な期間を置く。
+
+本改訂は1〜5を実施したという主張ではない。現行runtime、Gateway、active profile、scope-gate pluginは未変更である。
+
+## Legacy v1 design and implementation record
+
+以下は移行時の事実・脅威モデル・既存containmentを失わないための履歴である。自然言語の意味論についてv2と衝突する箇所はv2が優先する。
 
 ## 1. Purpose
 
@@ -765,6 +851,7 @@ M1 成果物としては呼び出し側を配置し、フラグ既定 false で 
 ## 14. References
 
 - PDA authority: `pda_charter.md`
+- Current binary-process monitoring contract: `docs/design/process-degeneration-monitor.md`
 - Owner communication: `profiles/pda/skills/pda-user-escalation/SKILL.md`
 - Delegation and durability: `docs/design/operational-delegation-routing.md`
 - Hermes Event Hooks: https://hermes-agent.nousresearch.com/docs/user-guide/features/hooks/
