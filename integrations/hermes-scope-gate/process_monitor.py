@@ -515,6 +515,33 @@ class ProcessMonitorStore:
                 connection.execute(
                     "DELETE FROM pm_outbox WHERE outbox_id = ?", (row["outbox_id"],)
                 )
+                # A delivery failure recorded against a folded row is resolved
+                # by the fold itself: its content now travels in the grouped
+                # row, whose own delivery is tracked from here on.
+                now = self.clock()
+                superseded = connection.execute(
+                    """
+                    SELECT event_id FROM process_monitor_health
+                    WHERE failure_type = 'sink-delivery-failed'
+                      AND subject_key = ? AND active = 1
+                    """,
+                    (row["outbox_id"],),
+                ).fetchall()
+                connection.execute(
+                    """
+                    UPDATE process_monitor_health SET active = 0, updated_at = ?
+                    WHERE failure_type = 'sink-delivery-failed' AND subject_key = ?
+                    """,
+                    (now, row["outbox_id"]),
+                )
+                for health in superseded:
+                    connection.execute(
+                        """
+                        UPDATE owner_alert_outbox SET acknowledged_at = ?, updated_at = ?
+                        WHERE alert_id = ? AND acknowledged_at IS NULL
+                        """,
+                        (now, now, health["event_id"]),
+                    )
             self._enqueue_outbox_in_txn(
                 connection,
                 kind="telemetry-failure",

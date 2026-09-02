@@ -337,7 +337,18 @@ def test_telemetry_failures_share_one_outbox_row_per_failure_type_and_legacy_row
                     now + index,
                 ),
             )
+    # A failed delivery recorded against one of the legacy rows is resolved
+    # by the fold, so monitor-status stops reporting it as active.
+    store.mark_delivery_failed("legacy-0", "initial_status rejected")
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM process_monitor_health WHERE active = 1"
+        ).fetchone()[0] == 1
     reopened = ProcessMonitorStore(path, clock=lambda: now + 10)
+    with sqlite3.connect(path) as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM process_monitor_health WHERE active = 1"
+        ).fetchone()[0] == 0
     late = [
         row
         for row in reopened.pending_outbox()
