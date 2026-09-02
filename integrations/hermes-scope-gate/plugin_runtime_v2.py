@@ -144,6 +144,10 @@ class TerraReviewer:
                 "現在指示、事前評価済みframe/計画、実作用、完了主張を比較してください。"
                 "一件でもscope逸脱または作用未解決があればpassにしないでください。"
                 "実装品質の一般レビューではなく、追加の最終作用監査です。"
+                "この監査はscope_gate completeの処理の一部として呼ばれており、completeの"
+                "戻り値はこの監査結果で決まります。したがってcompleteの戻り値や監査後の"
+                "確認記録が入力に無いことを欠陥にしないでください。observed_effectsは"
+                "ゲートが独立に観測した記録であり、実行主体の自己申告ではありません。"
             )
             schema = {
                 "audit_verdict": "pass|needs_changes|block",
