@@ -9,6 +9,7 @@ import json
 import os
 import shlex
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -123,8 +124,13 @@ def _render_units(source: Path, home: Path, command_path: Path) -> tuple[bytes, 
     service = (source / "systemd" / "pda-process-monitor.service.in").read_text(
         encoding="utf-8"
     )
+    # The monitor delivers into Hermes' Kanban through ``hermes_cli``, which only
+    # the Hermes interpreter can import, so the unit runs the script with the
+    # interpreter that ran the installer instead of relying on the shebang's
+    # ``/usr/bin/env python3``.
+    interpreter = shlex.quote(sys.executable)
     service = service.replace("@HERMES_HOME@", str(home)).replace(
-        "@COMMAND@", shlex.quote(str(command_path))
+        "@COMMAND@", f"{interpreter} {shlex.quote(str(command_path))}"
     )
     timer = (source / "systemd" / "pda-process-monitor.timer").read_bytes()
     return service.encode("utf-8"), timer

@@ -59,6 +59,10 @@ def test_installer_is_idempotent_and_preserves_existing_hook_config(tmp_path: Pa
     timer = tmp_path / ".config" / "systemd" / "user" / "pda-process-monitor.timer"
     assert str(home) in service.read_text()
     assert "monitor-reconcile" in service.read_text()
+    import shlex
+    import sys
+
+    assert shlex.quote(sys.executable) in service.read_text()
     assert "OnUnitActiveSec=1h" in timer.read_text()
 
 
