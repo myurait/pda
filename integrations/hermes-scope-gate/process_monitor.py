@@ -501,6 +501,30 @@ class ProcessMonitorStore:
             ORDER BY updated_at
             """
         ).fetchall()
+        # A delivery failure whose outbox row no longer exists (already folded
+        # by an earlier start-up, or delivered under its grouped key) has no
+        # pending delivery left to fail; it is closed instead of staying an
+        # active health failure forever.
+        now = self.clock()
+        orphaned = connection.execute(
+            """
+            SELECT event_id, subject_key FROM process_monitor_health
+            WHERE failure_type = 'sink-delivery-failed' AND active = 1
+              AND subject_key NOT IN (SELECT outbox_id FROM pm_outbox)
+            """
+        ).fetchall()
+        for health in orphaned:
+            connection.execute(
+                "UPDATE process_monitor_health SET active = 0, updated_at = ? WHERE event_id = ?",
+                (now, health["event_id"]),
+            )
+            connection.execute(
+                """
+                UPDATE owner_alert_outbox SET acknowledged_at = ?, updated_at = ?
+                WHERE alert_id = ? AND acknowledged_at IS NULL
+                """,
+                (now, now, health["event_id"]),
+            )
         groups: dict[str, list[sqlite3.Row]] = {}
         for row in rows:
             parts = str(row["idempotency_key"]).split("/")
