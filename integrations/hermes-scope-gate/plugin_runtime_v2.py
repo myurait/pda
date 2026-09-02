@@ -129,6 +129,21 @@ class TerraReviewer:
                 "自然言語の意味やリスクをregex、keyword、task class、決定木などの"
                 "決定論分類で判断してはいけません。executorの案を追認せず、必要なら"
                 "reviseまたはblockにしてください。"
+                "判断範囲の地の規則: (1) 判断対象は『現在指示に対する過小・過大解釈』"
+                "『予定作用の実質的リスク』『追加監査の必要性』だけです。"
+                "(2) containmentのschemaは固定であり、schemaに無い欄(read境界、"
+                "control-plane作用種別、引用証拠欄など)の追加を要求してはいけません。"
+                "(3) scope_gateのreview/lock/complete、Kanbanの注記(heartbeat/comment/block)、"
+                "delegate_task、別sessionの監査は、gateが決定論的に管理するcontrol-plane"
+                "操作であり、containmentへ記載する作用ではありません。読取専用tool"
+                "(ファイル読取・検索・git status/diff/log等)も作用ではなく、封じ込めの"
+                "対象外です。これらを理由にreviseしてはいけません。"
+                "(4) source_refsはexecutorが参照した根拠の名指しであり、原文の逐語引用"
+                "を要求してはいけません。指示文そのものは本入力のinstructionにあります。"
+                "(5) reviseは、指示の要求に対して計画・対象・作用が不足または過剰で"
+                "あることを具体的に示せる場合に限ります。判断できない点は"
+                "post_work_audit_must_establishに書き、additional_assurance_requiredで"
+                "監査を要求してください。"
             )
             schema = {
                 "scope_verdict": "pass|revise|block",

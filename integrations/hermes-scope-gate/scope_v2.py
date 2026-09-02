@@ -1149,6 +1149,10 @@ class ScopeV2Store:
         turn = self.get_turn(turn_id)
         if turn is None or turn["containment"] is None:
             return
+        if status == "blocked":
+            # A call the gate refused never ran, so it produced no effect;
+            # recording it would turn the refusal itself into an audit finding.
+            return
         kind = ""
         target = ""
         if tool_name in {"write_file", "patch"}:

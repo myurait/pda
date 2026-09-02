@@ -654,3 +654,33 @@ def test_made_up_claimed_effect_kind_is_refused_without_recording_a_decision(tmp
         raise AssertionError("made-up effect kind was accepted")
     assert store.get_turn("turn")["state"] == "locked"
     assert monitor.evaluate("scope.final.final-scope-conformant", cutoff=NOW)["N"] == 0
+
+
+def test_blocked_tool_calls_are_not_recorded_as_effects(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    reviewer = FakeReviewer()
+    _start(store, "turn", "直して")
+    store.review_scope(
+        turn_id="turn", instruction="直して", scope_frame=_frame(), plan=["edit"],
+        containment=_containment(root), reviewer=reviewer,
+    )
+    store.lock_turn(turn_id="turn")
+    outside = {"path": str(root / "other.py"), "content": "x"}
+    assert store.admit_tool(turn_id="turn", tool_call_id="b", tool_name="write_file", args=outside).allowed is False
+    store.record_tool_result(
+        turn_id="turn", tool_call_id="b", tool_name="write_file", args=outside,
+        status="blocked", result={"error": "blocked"},
+    )
+    store.record_tool_result(
+        turn_id="turn", tool_call_id="e", tool_name="execute_code", args={"code": "1"},
+        status="blocked", result={"error": "blocked"},
+    )
+    assert store.observed_effects("turn") == []
+    completed = store.complete_turn(
+        turn_id="turn", status="success", observed_effects=[], final_scope_conformant=True,
+        completion_summary="nothing written", instruction="直して", reviewer=reviewer,
+    )
+    assert completed["ok"] is True
