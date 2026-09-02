@@ -285,3 +285,64 @@ def test_monitor_cli_reconcile_no_delivery_isolated_from_kanban(tmp_path: Path) 
     result = json.loads(reconcile.stdout)
     assert result["delivered"] == 0
     assert len(result["evaluations"]) == 2
+
+
+def test_telemetry_failures_share_one_outbox_row_per_failure_type_and_legacy_rows_coalesce(
+    tmp_path,
+) -> None:
+    import json
+    import sqlite3
+
+    from process_monitor import ProcessMonitorStore
+
+    now = 1_788_240_000.0
+    path = tmp_path / "monitor.db"
+    store = ProcessMonitorStore(path, clock=lambda: now)
+    monitor_id = "scope.final.final-scope-conformant"
+    for index in range(3):
+        store.record_expected(
+            monitor_id=monitor_id,
+            join_key=f"run-{index}",
+            event_id=f"expected-{index}",
+            occurred_at=now - 1000,
+            due_at=now - 500,
+        )
+    store.evaluate(monitor_id, cutoff=now)
+
+    pending = store.pending_outbox()
+    telemetry = [row for row in pending if row["kind"] == "telemetry-failure"]
+    assert len(telemetry) == 1
+    assert telemetry[0]["payload"]["failure_type"] == "missing-decision"
+    assert telemetry[0]["payload"]["active_episodes"] == 3
+    assert len(store.list_failures()) == 3, "per-subject episodes are still recorded"
+
+    # Legacy per-subject rows from the previous key scheme fold into one row.
+    with sqlite3.connect(path) as connection:
+        for index in range(2):
+            connection.execute(
+                """
+                INSERT INTO pm_outbox (
+                    outbox_id, idempotency_key, kind, monitor_id, episode_id,
+                    payload_json, payload_digest, created_at, updated_at
+                ) VALUES (?, ?, 'telemetry-failure', ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"legacy-{index}",
+                    f"process-telemetry/{monitor_id}/late-decision/ep{index}",
+                    monitor_id,
+                    f"ep{index}",
+                    json.dumps({"failure_type": "late-decision", "subject_key": f"s{index}"}),
+                    f"digest{index}",
+                    now + index,
+                    now + index,
+                ),
+            )
+    reopened = ProcessMonitorStore(path, clock=lambda: now + 10)
+    late = [
+        row
+        for row in reopened.pending_outbox()
+        if row["payload"].get("failure_type") == "late-decision"
+    ]
+    assert len(late) == 1
+    assert late[0]["payload"]["coalesced_legacy_rows"] == 2
+    assert late[0]["payload"]["subject_key"] == "s1"

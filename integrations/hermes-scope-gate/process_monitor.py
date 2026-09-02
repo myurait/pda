@@ -46,6 +46,10 @@ INITIAL_MONITORS = (
 )
 
 
+def _telemetry_outbox_key(monitor_id: str, failure_type: str) -> str:
+    return f"process-telemetry/{monitor_id}/{failure_type}"
+
+
 def _canonical(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
@@ -199,6 +203,7 @@ class ProcessMonitorStore:
                 connection.execute(
                     "ALTER TABLE pm_outbox ADD COLUMN delivered_payload_digest TEXT"
                 )
+            self._coalesce_legacy_telemetry_outbox(connection)
 
     def register_monitor(self, definition: MonitorDefinition) -> None:
         if not definition.monitor_id.strip():
@@ -482,6 +487,43 @@ class ProcessMonitorStore:
         )
         return {"ingress_id": ingress_id, "accepted": True, "decision": decision}
 
+    def _coalesce_legacy_telemetry_outbox(self, connection: sqlite3.Connection) -> None:
+        """Fold per-subject telemetry rows (pre-2026-09-02 keys) into one row
+        per (monitor, failure type). Only undelivered rows are touched; the
+        newest payload of each group survives, the group count is kept in the
+        payload, and pm_failures episodes are untouched."""
+
+        rows = connection.execute(
+            """
+            SELECT outbox_id, idempotency_key, monitor_id, payload_json, updated_at
+            FROM pm_outbox
+            WHERE kind = 'telemetry-failure' AND delivered_task_id IS NULL
+            ORDER BY updated_at
+            """
+        ).fetchall()
+        groups: dict[str, list[sqlite3.Row]] = {}
+        for row in rows:
+            parts = str(row["idempotency_key"]).split("/")
+            if len(parts) != 4 or parts[0] != "process-telemetry":
+                continue
+            groups.setdefault(_telemetry_outbox_key(parts[1], parts[2]), []).append(row)
+        for key, members in groups.items():
+            newest = members[-1]
+            payload = json.loads(str(newest["payload_json"]))
+            payload["coalesced_legacy_rows"] = len(members)
+            for row in members:
+                connection.execute(
+                    "DELETE FROM pm_outbox WHERE outbox_id = ?", (row["outbox_id"],)
+                )
+            self._enqueue_outbox_in_txn(
+                connection,
+                kind="telemetry-failure",
+                monitor_id=str(newest["monitor_id"]),
+                episode_id=str(payload.get("latest_episode_id") or key),
+                idempotency_key=key,
+                payload=payload,
+            )
+
     def _enqueue_outbox_in_txn(
         self,
         connection: sqlite3.Connection,
@@ -546,19 +588,31 @@ class ProcessMonitorStore:
             """,
             (episode_id, monitor_id, failure_type, subject_key, encoded, now, now),
         )
+        # One open card per (monitor, failure type): every further subject
+        # of the same failure type is appended to that card instead of
+        # opening a new one. The per-subject episode stays in pm_failures.
+        open_count = int(
+            connection.execute(
+                """
+                SELECT COUNT(*) FROM pm_failures
+                WHERE monitor_id = ? AND failure_type = ? AND active = 1
+                """,
+                (monitor_id, failure_type),
+            ).fetchone()[0]
+        )
         self._enqueue_outbox_in_txn(
             connection,
             kind="telemetry-failure",
             monitor_id=monitor_id,
             episode_id=episode_id,
-            idempotency_key=(
-                f"process-telemetry/{monitor_id}/{failure_type}/{episode_id}"
-            ),
+            idempotency_key=_telemetry_outbox_key(monitor_id, failure_type),
             payload={
                 "title": f"判定テレメトリ失敗: {failure_type}",
                 "monitor_id": monitor_id,
                 "failure_type": failure_type,
                 "subject_key": subject_key,
+                "latest_episode_id": episode_id,
+                "active_episodes": open_count,
                 "details": dict(details),
                 "original_decision_unchanged": True,
                 "automatic_assignment": False,

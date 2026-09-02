@@ -130,9 +130,10 @@ def _deliver_outbox(store: ProcessMonitorStore) -> tuple[int, list[str]]:
                         assignee=None,
                         created_by="pda-process-monitor",
                         tenant="pda-improvement",
+                        # ``triage=True`` forces the triage column; the live
+                        # Hermes create_task rejects initial_status="triage".
                         triage=True,
                         idempotency_key=str(row["idempotency_key"]),
-                        initial_status="triage",
                     )
                 store.mark_delivered(str(row["outbox_id"]), task_id)
                 delivered += 1
