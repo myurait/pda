@@ -276,7 +276,11 @@ def test_post_llm_auto_closes_no_effect_turn_but_marks_missing_explicit_audit(
     )
     runtime.handle_scope_gate({"action": "lock"}, **common)
     runtime.post_llm_call(**common)
-    runtime.monitor.evaluate("scope.final.final-scope-conformant")
+    import time
+
+    # The implicit final boundary carries the same grace as an explicit
+    # completion; the decision is missing once that grace has passed.
+    runtime.monitor.evaluate("scope.final.final-scope-conformant", cutoff=time.time() + 600)
 
     failures = runtime.monitor.list_failures()
     assert any(item["failure_type"] == "missing-decision" for item in failures)
