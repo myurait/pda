@@ -55,7 +55,7 @@ Kanban（tenant `pda-improvement`）の完了カードと承認ledgerが示す�
 
 - 状態機械の実体（tasksスキーマ、遷移、worker起動・ライフサイクル）は Hermes 本体側の外部モジュール（`hermes_cli.kanban_db`、gateway組込みdispatcher）にあり、本リポジトリは薄いrouter・installer・承認plugin・スキル文書のオーバーレイである。リポジトリからは状態機械の正しさを直接検証できない。
 - router（`operations/improvement/pda_improvement_cycle.py`）は30分周期のblind tickで、`ready+running+review` を合算した `max_wip=2`、1 tick 1件割当。retry・backoff・停滞検知・依存関係考慮・worktree GCはない。
-- 準拠強制は (1) digest束縛の承認 (2) Git実地検証 (3) タイトル接頭辞による停止判定、のみ。スコープ審査ゲートは S1（repository-closeoutクラス）まで実装で、worker実行（artifact-change相当）への機械的スコープ強制は未実装（`docs/design/task-scope-admission-gate.md` Rollout節）。それ以外はSKILL.mdのプロンプト規律に依存する。
+- （2026-08-22時点の記録。task class による分類は v1 の履歴であり、2026-09-01 以降の現行は `docs/design/task-scope-admission-gate.md` 0節の v2 scope 制御）準拠強制は (1) digest束縛の承認 (2) Git実地検証 (3) タイトル接頭辞による停止判定、のみ。スコープ審査ゲートは S1（repository-closeoutクラス）まで実装で、worker実行（artifact-change相当）への機械的スコープ強制は未実装（`docs/design/task-scope-admission-gate.md` Rollout節）。それ以外はSKILL.mdのプロンプト規律に依存する。
 - 状態の二重管理がある: runtime config（`~/.config/pda/autonomous-improvement.json`）、リポジトリのpolicy（`continuity/autonomous-improvement.json` は `enabled: true` のまま）、habit（`suspended-by-owner`）が独立に存在し、単一の正本がない。また installer が日次reconcilerへ強制ロードする4スキルのうち `workstream-reconciliation` と `task-scope-control` はリポジトリに実体がない（Hermes側配備の有無はリポジトリから検証不能）。
 
 ---

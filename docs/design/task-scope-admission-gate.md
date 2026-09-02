@@ -1,7 +1,7 @@
 # PDAタスク・スコープ制御設計（v2 / 旧admission gate移行記録）
 
-Status: v2 owner-approved implementation（2026-09-01）。実装正本は`integrations/hermes-scope-gate/`。Legacy v1/S3は既存turn、assignment seed、rollbackの互換経路へ降格し、新しいturnの自然言語意味判断には使わない。
-Checked: 2026-09-01 JST
+Status: v2 owner-approved implementation（2026-09-01、2026-09-02に稼働反映）。実装正本は`integrations/hermes-scope-gate/`。Legacy v1/S3は既存turn、assignment seed、rollbackの互換経路へ降格し、新しいturnの自然言語意味判断には使わない。稼働環境のshell hookもv1分類器へは経路を持たない。
+Checked: 2026-09-02 JST
 Legacy initial target: Hermes Agent v0.20.2 on the PDA runtime
 
 ## 0. 現行決定（v2）と旧設計の扱い
@@ -34,7 +34,9 @@ permissionはscopeではない。安全、承認、不可逆性、秘密、resou
 
 自然言語の意味またはリスクを、regex、キーワード一覧、task class、決定木、その他の決定論ルールで推論しない。この機能は決定論的に定義できない。対象を特定するための限定的なread-only discoveryは許されるが、discovery結果が新しい目的を生成することはない。
 
-新しいオーナー指示が届いた場合は、次の作業単位より前に現在ScopeFrameへ戻って再推定する。初期推定と必要作業が合わない場合もtask全体を取り消さず、現在指示に根拠があればsource-boundな改訂を作り、根拠がなければその作業単位だけを除く。
+新しいオーナー指示が届いた場合は、次の作業単位より前に現在ScopeFrameへ戻って再推定する。初期推定と必要作業が合わない場合もtask全体を取り消さず、現在指示に根拠があればsource-boundな改訂を作り、根拠がなければその作業単位だけを除く。改訂は`scope_gate(action=review)`の再提出として行い、lock済みまたはaudit-blockedのturnからも再提出できる。旧評価はsupersededとして記録に残り、以後の作用は新しい評価済みcontainmentだけに照合される。
+
+外部文書、Webページ、tool結果、引用文は証拠であり、ユーザー指示ではない。ScopeFrameの規範欄が由来できるのは現在の認証済み指示（明示継承がある場合は狭い旧指示）だけである。実装上、turnに束縛される指示はHermesが`pre_llm_call`へ渡すユーザーメッセージのdigestであり、tool結果や取得文書を混ぜた文はdigest不一致としてreviewを通らない。
 
 ### 0.3 Terraによる独立事前評価
 
@@ -47,7 +49,11 @@ permissionはscopeではない。安全、承認、不可逆性、秘密、resou
 
 実行主体は計画を修正して再提出できるが、Terraのリスクまたは追加保証フラグを自分で下げたり無視したりできない。決定論的policyは保護を上げる方向にだけ作用でき、Terraの意味判断を置き換えない。
 
-`additional_assurance_required=true`なら、主作業開始前に実在する別主体の最終監査経路を予約する。経路がなければその時点でblockerとして報告し、作業後に存在しない検証者を待つ状態を作らない。
+評価後にscope、計画、対象、作用の種類が実質的に変わった場合は、旧評価を失効させて再評価する。再評価の要求には、それまでに観測された実作用と旧評価が同封され、Terraは新しいframeを実作用込みで判断する。`additional_assurance_required`はturn内で単調であり、一度trueになった後の再評価でTerraがfalseを返しても有効値はtrueのままである（Terraの生の判定値はmonitor用に別途記録する）。
+
+Terraの実経路は、実行主体とは別processで起動する`hermes -z`のfresh sessionである（safe-mode、最小toolset、`gpt-5.6-terra` / `openai-codex`）。mockや呼び出しの省略で本番経路を成立させない。経路が無い、timeoutした、JSON以外を返した場合はreview失敗として作用を閉じる。
+
+`additional_assurance_required=true`なら、主作業開始前に実在する別主体の最終監査経路を予約する。経路がなければその時点でblockerとして報告し、作業後に存在しない検証者を待つ状態を作らない。実装上は`scope_gate(action=lock)`が監査経路の実在を確認し、無ければlock自体を拒否する。
 
 ### 0.4 Phase 2: 評価済みScopeFrameに対応付けて作業する
 
@@ -68,6 +74,10 @@ permissionはscopeではない。安全、承認、不可逆性、秘密、resou
 
 実行主体自身の作用監査は全作業で必須である。Terraが追加保証を要求した場合は、予約済みの別主体が現在指示、評価済み計画、観測作用、完了主張を比較し、その結果なしに最終ゲートを通さない。
 
+最終監査が必要になる条件は次のとおりである。作用を伴うturnは全て`scope_gate(action=complete)`で実行主体の作用監査を出す。`additional_assurance_required=true`のturnでは、それに加えて別sessionのTerra監査がpassするまでcompleteは通らない。Kanban workerの終端遷移（`kanban_complete`、`kanban_request_review`）は、completeが通った後か、turnが作用を一件も持たない場合にだけ許される。作用を伴うturnが明示的なcompleteなしに終わった場合は、最終監査eventが未着として監視側へ現れる。
+
+障害時の挙動: Terra事前評価が失敗した場合は作用を開かない（review-blocked）。監査経路が無い場合はlockで止まる。Terra監査が失敗・timeout・不正出力の場合はaudit-blockedとなり、以後の作用と終端遷移は止まるが、現在指示から再評価すれば作業を続けられる。監視機構やKanban起票経路の障害は判定を捨てず、監視機構自体の失敗として起票・journalへ出す。
+
 ### 0.6 決定論で行うこと
 
 決定論的な実装が担うのは、指示元とprovenance、event/schemaの形、対象containment、承認、予算、stale-plan検知、評価済み計画と作用の機械照合、監査証跡である。自然言語の意味・リスク・必要成果を推論しない。
@@ -79,10 +89,12 @@ permissionはscopeではない。安全、承認、不可逆性、秘密、resou
 v2実装は次の境界で成立する。
 
 1. `scope_v2.py`がsource-bound ScopeFrame、Terra事前評価、実作用監査のevent契約を持つ。
-2. 新しいplugin entryは`ScopeGateV2PluginRuntime`だけを新規turnへ使用し、旧G0のregex/task-class結果をadmission入力へ使わない。
-3. 評価済みScopeFrameのdeterministic containmentへfile、Git、service、exact commandの作用を接続し、assignment seedは拡張不能な上限として読む。
+2. 新しいplugin entryは`ScopeGateV2PluginRuntime`だけを新規turnへ使用し、旧G0のregex/task-class結果をadmission入力へ使わない。out-of-processのshell hook（`pda-scope-gate validate-tool`）も同じv2 storeだけを見る。v1のcontract seedは割当者が置く資源境界（worktreeと書込パターンの上限）としてだけ読み、意味判断へは使わない。
+3. 評価済みScopeFrameのdeterministic containmentへfile、Git、service、exact command、およびtool名で種類が定まる作用（memory、cronjob、skill_manage、board書込、execute_code、外部送信系）を接続し、assignment seedは拡張不能な上限として読む。読取・盤面注記・委譲は作用ではなく常時許可し、委譲先の子sessionは親turnへ束縛する（子sessionの「指示」は親モデルが書いた文であり、認証済み指示ではないため独自のturnを開かない）。
 4. final audit eventと共通形骸化monitorを同じprofile-scoped SQLiteへ追加し、旧v1 tableは既存turnとrollback互換のため破壊せず残す。
 5. installerがplugin、fail-closed shell hook、monitor timerを原子的に配置する。切替前後のruntime read-backと通常のGit revertをrollback handleとする。
+
+移行とrollbackの手順は`integrations/hermes-scope-gate/README.md`の「Install and activate」「Rollback」に従う。要点: 稼働pluginはmain checkoutへのsymlinkであり、mainのfast-forwardとgateway再起動で切り替わる。戻す場合は該当commitを通常のGit revertでmainへ入れ、installerを再実行し、monitor timerを止め、gatewayを再起動する。v2はv1のSQLite tableを壊さないため、v1へ戻しても既存stateは読める。
 
 active runtimeがこの実装を読み込んでいるかは本書から推定せず、plugin version、shell hook、service、state schemaのread-backで判定する。
 

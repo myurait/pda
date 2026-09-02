@@ -45,6 +45,14 @@ AIまたはゲートが形式上は判断を返していても、実際には常
 | `task_destination` | 既定はHermes default board、tenant `pda-improvement`、未割当Triage。 |
 | `authority_source` | この登録と閾値を承認した統治文書またはオーナー決定。 |
 
+### 3.1 新しい二値判断工程を追加する手順
+
+1. 判断工程の意味と`monitor_id`を決め、統治文書（本書または該当ADR）に閾値の出所を1行で記す。
+2. `integrations/hermes-scope-gate/process_monitor.py`の`MonitorDefinition`で登録レコードを作り、`ProcessMonitorStore.register_monitor()`で登録する。初期登録は同ファイルの`INITIAL_MONITORS`に並べれば、storeの初期化時に自動登録される。
+3. 判断が必要になった時点で`record_expected(monitor_id, join_key, event_id, occurred_at, due_at)`を、判定が確定した時点で`record_decision(monitor_id, join_key, event_id, verdict: bool, occurred_at, accepted_at)`を、それぞれcontrol plane側から呼ぶ。時刻は呼び出し側（control plane）が付与し、実行主体の自由記述時刻を渡さない。
+4. `pda-scope-gate monitor-reconcile --no-delivery`で期待どおりに`N`と比率が集計されることを確かめ、その後は毎時のtimer（`pda-process-monitor.timer`）が起票まで行う。
+5. 既存登録の閾値や窓を変える場合は`register_monitor()`が差分を拒否するため、新しい`monitor_id`と移行記録を作る（同じIDのまま条件を緩めることはできない）。
+
 `monitor_id`は意味的に同じ工程を版ごとに分割してはならない。モデルやpolicy versionを主キーにすると、頻繁な版上げだけで72時間窓を空にできるためである。版情報は同じ監視内の診断軸として保持する。判断の意味自体が変わる場合だけ、新しい`monitor_id`と移行記録を作る。
 
 control plane全体には予約済みの`monitor_id = process-monitor.ingress-integrity`を常設する。raw eventに`monitor_id`が無い、registryに存在しない、またはmonitor IDとして不正な値しかない場合は、元の主張値を`claimed_monitor_id`という診断欄へ隔離し、この予約IDの`unattributed-invalid-event`として扱う。未知IDを動的にregistryへ追加したり、raw eventを捨てたりしない。

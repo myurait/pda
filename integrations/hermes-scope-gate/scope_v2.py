@@ -45,7 +45,15 @@ _ALLOWED_EFFECTS = {
     "external-send",
     "memory-write",
     "schedule-write",
+    "skill-write",
+    "board-write",
+    "code-exec",
 }
+# Closed, explicit catalogue of tool names whose calls read state or annotate
+# the agent's own work-management plane (the task board, the step list, the
+# scope-control tool itself). Membership is a deterministic resource
+# classification of a *tool*, never an inference about instruction meaning.
+# A name that is not listed stays under default deny for mutation.
 _READ_ONLY_TOOLS = {
     "read_file",
     "search_files",
@@ -54,9 +62,86 @@ _READ_ONLY_TOOLS = {
     "session_search",
     "skill_view",
     "skills_list",
+    "tool_describe",
     "vision_analyze",
+    "video_analyze",
+    "x_search",
     "todo",
+    "clarify",
     "scope_gate",
+    # Work-record plane: board annotations that the orchestrator reads as the
+    # worker's own account of progress. Heartbeat and blocked-state recording
+    # must stay available in every state, otherwise a stalled worker cannot
+    # even report that it is stalled.
+    "kanban_list",
+    "kanban_show",
+    "kanban_attachments",
+    "kanban_comment",
+    "kanban_heartbeat",
+    "kanban_block",
+    "kanban_unblock",
+    # Delegation is a control action: the child session is bound to this
+    # turn (see ScopeV2Store.link_session) and its effects are admitted
+    # against this turn's reviewed containment, so spawning is not an effect.
+    "delegate_task",
+    # UI / terminal read surfaces.
+    "read_terminal",
+    "read_preview",
+    "read_window_below",
+    "open_preview",
+    "focus_pane",
+    "project_list",
+    "browser_snapshot",
+    "browser_console",
+    "browser_get_images",
+    "browser_vision",
+    "ha_get_state",
+    "ha_list_entities",
+    "ha_list_services",
+    "feishu_doc_read",
+    "feishu_drive_list_comments",
+    "feishu_drive_list_comment_replies",
+}
+# Tools that move the run to a terminal state on the durable control plane.
+# They are the worker's "final reflection": admitted only once the turn's
+# final scope audit has passed, or when the turn produced no effect at all.
+_RUN_SIGNAL_TOOLS = {"kanban_complete", "kanban_request_review"}
+# Deterministic effect-kind mapping for tools whose effect is bounded by the
+# kind alone (no per-call target the containment could check further).
+_EFFECT_BY_TOOL = {
+    "memory": "memory-write",
+    "cronjob": "schedule-write",
+    "skill_manage": "skill-write",
+    "kanban_create": "board-write",
+    "kanban_link": "board-write",
+    "kanban_attach": "board-write",
+    "kanban_attach_url": "board-write",
+    "kanban_request_changes": "board-write",
+    "execute_code": "code-exec",
+    "process": "process-manage",
+    "close_terminal": "process-manage",
+    "setup_mcp": "process-manage",
+    "browser_navigate": "external-send",
+    "browser_click": "external-send",
+    "browser_type": "external-send",
+    "browser_press": "external-send",
+    "browser_scroll": "external-send",
+    "browser_back": "external-send",
+    "browser_exec": "external-send",
+    "browser_cdp": "external-send",
+    "browser_dialog": "external-send",
+    "computer_use": "external-send",
+    "discord": "external-send",
+    "discord_admin": "external-send",
+    "react_to_message": "external-send",
+    "ha_call_service": "external-send",
+    "feishu_drive_add_comment": "external-send",
+    "feishu_drive_reply_comment": "external-send",
+    "yb_send_dm": "external-send",
+    "yb_send_sticker": "external-send",
+    "text_to_speech": "external-send",
+    "image_generate": "external-send",
+    "video_generate": "external-send",
 }
 _TERMINAL_READ_ONLY = {
     ("git", "status"),
@@ -85,6 +170,23 @@ class ScopeReviewer(Protocol):
     def review(self, request: dict[str, object]) -> dict[str, object]: ...
 
     def audit(self, request: dict[str, object]) -> dict[str, object]: ...
+
+
+def reviewer_audit_available(reviewer: object) -> bool:
+    """Whether the independent post-work audit path exists right now.
+
+    A reviewer without an explicit probe is assumed reachable only for the
+    review it already answered; the probe lets ``lock`` refuse work whose
+    required audit could not be performed afterwards.
+    """
+
+    probe = getattr(reviewer, "audit_available", None)
+    if probe is None:
+        return True
+    try:
+        return bool(probe())
+    except Exception:  # noqa: BLE001 -- an unhealthy probe is an unavailable path.
+        return False
 
 
 @dataclass(frozen=True)
@@ -367,8 +469,51 @@ class ScopeV2Store:
                     created_at REAL NOT NULL,
                     PRIMARY KEY (turn_id, tool_call_id, kind, target)
                 );
+                CREATE TABLE IF NOT EXISTS scope_v2_session_links (
+                    child_session_id TEXT PRIMARY KEY,
+                    parent_session_id TEXT NOT NULL,
+                    turn_id TEXT NOT NULL,
+                    created_at REAL NOT NULL
+                );
                 """
             )
+
+    def link_session(
+        self, *, child_session_id: str, parent_session_id: str, turn_id: str
+    ) -> bool:
+        """Bind a delegated child session to the parent's current turn.
+
+        Delegation text is authored by the parent model, not by the
+        authenticated user, so a child session never gets a turn of its own:
+        its tool calls are admitted against the parent's reviewed containment
+        and its effects are recorded on the parent's turn. Returns False when
+        the parent has no current turn (the child then stays unbound and
+        fails closed for mutation).
+        """
+
+        if not child_session_id or not parent_session_id or not turn_id:
+            return False
+        if child_session_id == parent_session_id:
+            return False
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT turn_id FROM scope_v2_turns WHERE turn_id = ?", (turn_id,)
+            ).fetchone()
+            if row is None:
+                return False
+            connection.execute(
+                """
+                INSERT INTO scope_v2_session_links (
+                    child_session_id, parent_session_id, turn_id, created_at
+                ) VALUES (?, ?, ?, ?)
+                ON CONFLICT(child_session_id) DO UPDATE SET
+                    parent_session_id = excluded.parent_session_id,
+                    turn_id = excluded.turn_id,
+                    created_at = excluded.created_at
+                """,
+                (child_session_id, parent_session_id, turn_id, self.clock()),
+            )
+        return True
 
     def start_turn(
         self,
@@ -451,17 +596,27 @@ class ScopeV2Store:
                 row = connection.execute(
                     """
                     SELECT turn_id FROM scope_v2_turns
-                    WHERE task_id = ? ORDER BY updated_at DESC LIMIT 1
+                    WHERE task_id = ?
+                    ORDER BY (state = 'completed') ASC, updated_at DESC, rowid DESC
+                    LIMIT 1
                     """,
                     (task_id,),
                 ).fetchone()
                 if row is not None:
                     return str(row["turn_id"])
             if session_id:
+                linked = connection.execute(
+                    "SELECT turn_id FROM scope_v2_session_links WHERE child_session_id = ?",
+                    (session_id,),
+                ).fetchone()
+                if linked is not None:
+                    return str(linked["turn_id"])
                 row = connection.execute(
                     """
                     SELECT turn_id FROM scope_v2_turns
-                    WHERE session_id = ? ORDER BY updated_at DESC LIMIT 1
+                    WHERE session_id = ?
+                    ORDER BY (state = 'completed') ASC, updated_at DESC, rowid DESC
+                    LIMIT 1
                     """,
                     (session_id,),
                 ).fetchone()
@@ -539,10 +694,23 @@ class ScopeV2Store:
         turn = self.get_turn(turn_id)
         if turn is None:
             raise ValueError("unknown scope turn")
-        if turn["state"] not in {"inference-pending", "review-blocked"}:
+        # A locked or audit-blocked turn may be re-reviewed: when the work
+        # diverges from the initial inference the executor returns to the
+        # current instruction, re-infers the frame, and the previous
+        # evaluation is superseded (never silently kept). ``completed`` is
+        # final: completion closes execution.
+        if turn["state"] not in {
+            "inference-pending",
+            "review-blocked",
+            "locked",
+            "audit-blocked",
+        }:
             raise ValueError(f"turn cannot be reviewed from {turn['state']}")
         if _instruction_digest(instruction) != turn["instruction_sha256"]:
             raise ValueError("current instruction does not match the bound digest")
+        previous_review = turn.get("review") if isinstance(turn.get("review"), dict) else None
+        sticky_assurance = bool(turn["additional_assurance_required"])
+        effects_so_far = self.observed_effects(turn_id)
         frame = self._validate_scope_frame(dict(scope_frame))
         if not isinstance(plan, Sequence) or isinstance(plan, (str, bytes)) or not plan:
             raise ValueError("plan must be a non-empty string array")
@@ -604,6 +772,15 @@ class ScopeV2Store:
                 "natural_language_deterministic_classification_forbidden": True,
             },
         }
+        if previous_review is not None or effects_so_far:
+            # Re-evaluation: the reviewer sees what was already done under the
+            # superseded evaluation so it can judge the revised frame against
+            # real effects, not only against the new plan.
+            request["re_evaluation"] = {
+                "superseded_review": previous_review,
+                "observed_effects_so_far": effects_so_far,
+                "additional_assurance_already_required": sticky_assurance,
+            }
         try:
             reviewed = self._validate_review(reviewer.review(request))
         except Exception as exc:
@@ -633,6 +810,22 @@ class ScopeV2Store:
         self.monitor.evaluate(
             "scope.prework.additional-assurance-required", cutoff=self.clock()
         )
+        # The assurance flag is monotonic within a turn: once an independent
+        # review required a post-work audit, no later re-review submitted by
+        # the executor can lower it. The reviewer's own value is kept in the
+        # review record so the monitor still sees the raw decision.
+        effective_assurance = bool(reviewed["additional_assurance_required"]) or sticky_assurance
+        if previous_review is not None:
+            history = list(previous_review.get("superseded_reviews") or [])
+            history.append(
+                {
+                    key: value
+                    for key, value in previous_review.items()
+                    if key != "superseded_reviews"
+                }
+            )
+            reviewed["superseded_reviews"] = history
+        reviewed["effective_additional_assurance_required"] = effective_assurance
         next_state = "reviewed" if reviewed["scope_verdict"] == "pass" else "review-blocked"
         with self._connect() as connection:
             connection.execute(
@@ -648,7 +841,7 @@ class ScopeV2Store:
                     _canonical(normalized_plan),
                     _canonical(normalized_containment),
                     _canonical(reviewed),
-                    int(bool(reviewed["additional_assurance_required"])),
+                    int(effective_assurance),
                     self.clock(),
                     turn_id,
                 ),
@@ -657,7 +850,9 @@ class ScopeV2Store:
         assert result is not None
         return result
 
-    def lock_turn(self, *, turn_id: str) -> dict[str, Any]:
+    def lock_turn(
+        self, *, turn_id: str, reviewer: ScopeReviewer | None = None
+    ) -> dict[str, Any]:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             turn = connection.execute(
@@ -669,6 +864,16 @@ class ScopeV2Store:
                 raise ValueError(f"turn cannot lock from {turn['state']}")
             if not turn["containment_json"] or not turn["review_json"]:
                 raise ValueError("reviewed containment is missing")
+            if bool(turn["additional_assurance_required"]) and not reviewer_audit_available(
+                reviewer
+            ):
+                # Detected before any effect: a required audit path that does
+                # not exist must stop the work here, not leave it "awaiting
+                # audit" after mutation.
+                raise ValueError(
+                    "independent audit is required but no audit path is available; "
+                    "blocked before effects"
+                )
             connection.execute(
                 "UPDATE scope_v2_turns SET state = 'locked', updated_at = ? WHERE turn_id = ?",
                 (self.clock(), turn_id),
@@ -771,6 +976,9 @@ class ScopeV2Store:
                         return reserved
                 connection.commit()
                 return read_decision
+            if tool_name in _RUN_SIGNAL_TOOLS:
+                connection.commit()
+                return self._admit_run_signal(turn_id, state)
             if state != "locked":
                 connection.commit()
                 return GateDecision(
@@ -801,6 +1009,26 @@ class ScopeV2Store:
             connection.commit()
             return decision
 
+    def _admit_run_signal(self, turn_id: str, state: str) -> GateDecision:
+        """Terminal board transitions are the worker's final reflection.
+
+        They pass only after the final scope audit closed the turn, or when
+        the turn never produced an effect (a report-only or blocked run has
+        nothing whose scope conformance is still open).
+        """
+
+        if state == "completed":
+            return GateDecision(True, "run-signal-after-audit", "final scope audit passed")
+        if state in {"inference-pending", "reviewed", "review-blocked"} and not self.observed_effects(
+            turn_id
+        ):
+            return GateDecision(True, "run-signal-no-effects", "turn produced no effect")
+        return GateDecision(
+            False,
+            "final-audit-required",
+            "terminal board transition requires scope_gate complete to pass first",
+        )
+
     def _admit_locked(
         self,
         tool_name: str,
@@ -822,14 +1050,16 @@ class ScopeV2Store:
             return GateDecision(True, "reviewed-file-write", "target is inside reviewed containment", target)
         if tool_name == "terminal":
             return self._admit_terminal(args, containment)
-        effect_by_tool = {
-            "memory": "memory-write",
-            "cronjob": "schedule-write",
-        }
-        needed = effect_by_tool.get(tool_name)
-        if needed and needed in containment["allowed_effects"]:
+        needed = _EFFECT_BY_TOOL.get(tool_name)
+        if needed is None:
+            return GateDecision(
+                False, "unknown-effect", "tool effect has no reviewed deterministic mapping"
+            )
+        if needed in containment["allowed_effects"]:
             return GateDecision(True, needed, "effect kind was independently reviewed")
-        return GateDecision(False, "unknown-effect", "tool effect has no reviewed deterministic mapping")
+        return GateDecision(
+            False, "effect-not-reviewed", f"effect kind {needed} was not reviewed"
+        )
 
     @staticmethod
     def _admit_terminal(
@@ -946,6 +1176,9 @@ class ScopeV2Store:
                 kind, target = "service-reload", tokens[3]
             elif command in turn["containment"]["command_allowlist"]:
                 kind, target = "process-manage", "command:" + _hash(command)
+        elif tool_name in _EFFECT_BY_TOOL:
+            kind = _EFFECT_BY_TOOL[tool_name]
+            target = "tool:" + tool_name
         if not kind:
             return
         exit_code = result.get("exit_code") if isinstance(result, dict) else None

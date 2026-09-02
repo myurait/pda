@@ -24,7 +24,8 @@ budgets, stale arguments, completion state, and telemetry.
 - `__init__.py` registers one `scope_gate` tool, a byte-stable policy section,
   the Hermes lifecycle hooks, and the post-hook execution recheck.
 - `plugin_runtime_v2.py` binds each Hermes turn to the current instruction
-  digest, invokes fresh safe-mode Terra sessions, observes tool effects, and
+  digest, invokes fresh safe-mode Terra sessions (`hermes -z … --safe-mode -t todo`,
+  the smallest valid toolset), observes tool effects, and
   adapts the v2 store to Hermes.
 - `scope_v2.py` persists ScopeFrames, reviewed plans, deterministic
   containment, observed effects, and final audit state. It contains no
@@ -61,6 +62,23 @@ Before the first mutation, the agent calls:
    final_scope_conformant=..., completion_summary=...)` before claiming
    completion.
 
+If the work diverges from the reviewed frame, the agent returns to the current
+instruction and calls `review` again; re-review is allowed from `locked` and
+`audit-blocked`. The previous evaluation is kept as superseded history, the
+reviewer receives the effects observed so far, and
+`additional_assurance_required` is sticky: once true it cannot be lowered by a
+later re-review. `lock` refuses a turn that requires an independent audit when
+no audit path exists, so that condition stops before any effect.
+
+Board annotations (`kanban_heartbeat`, `kanban_comment`, `kanban_block`,
+`kanban_unblock`, `kanban_show`, `kanban_list`, `kanban_attachments`) and
+`delegate_task` are control actions admitted in every state. A delegated child
+session is bound to the parent's current turn at `pre_llm_call`
+(`parent_session_id`) and never opens a turn of its own, because its "user
+message" was authored by the parent model. Terminal board transitions
+(`kanban_complete`, `kanban_request_review`) pass only after `complete`
+succeeded, or when the turn produced no effect.
+
 Review timeout, process failure, invalid JSON, `revise`, or `block` leaves
 mutation closed. An assignment seed from the autonomous improvement router is a
 hard ceiling: the Terra-reviewed containment may narrow it but never widen it.
@@ -94,7 +112,14 @@ The runtime admits:
   were reviewed;
 - exact service units only when service reload was reviewed;
 - an exact command only when both the command and the `process-manage` effect
-  were reviewed.
+  were reviewed;
+- tools whose effect is fixed by the tool name only when that effect kind was
+  reviewed: `memory` → `memory-write`, `cronjob` → `schedule-write`,
+  `skill_manage` → `skill-write`, `kanban_create` / `kanban_link` /
+  `kanban_attach*` / `kanban_request_changes` → `board-write`,
+  `execute_code` → `code-exec`, `process` / `close_terminal` / `setup_mcp` →
+  `process-manage`, browser interaction, messaging, Home Assistant calls, and
+  media generation → `external-send`.
 
 Unknown effectful tools, compound shell syntax, target drift, history rewrite,
 hook bypass, and effect kinds without a deterministic mapping fail closed.
@@ -168,7 +193,12 @@ duplicate/conflicting/missing events, unknown monitor attribution, fresh Terra
 adapter behavior, reviewer and auditor fail-closed paths, assignment-seed
 narrowing, observed effects, shell-hook revalidation, transactional install and
 rollback, and a real Hermes plugin-dispatch subprocess against an isolated
-`HERMES_HOME`.
+`HERMES_HOME`. It also fixes the owner's acceptance checks: a new explicit
+instruction is not capped by a previous report-only turn, tool-result text
+cannot replace the bound instruction, re-review keeps the assurance flag, an
+effect outside the re-reviewed containment blocks completion, a required audit
+without an audit path stops at lock, board annotations and delegation stay
+admitted, and the shell hook never routes into the v1 classifier.
 
 ## Rollback
 

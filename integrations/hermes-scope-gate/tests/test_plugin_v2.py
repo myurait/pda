@@ -343,3 +343,110 @@ def test_shell_validator_blocks_unbound_mutation_but_keeps_read_diagnostics(
     assert blocked["action"] == "block"
     assert "v2-turn-required" in blocked["message"]
     assert allowed == {}
+
+
+def test_pre_llm_call_binds_delegated_child_session_to_parent_turn(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    runtime = ScopeGateV2PluginRuntime(tmp_path / "scope.db", reviewer=FakeReviewer())
+    parent = {"turn_id": "parent-turn", "task_id": "", "session_id": "parent"}
+    runtime.pre_llm_call(**parent, user_message="直して")
+    runtime.handle_scope_gate(
+        {
+            "action": "review",
+            "scope_frame": _frame(),
+            "plan": ["write"],
+            "containment": _containment(root),
+        },
+        **parent,
+    )
+    assert runtime.handle_scope_gate({"action": "lock"}, **parent)["ok"] is True
+
+    child = {"turn_id": "child-turn", "task_id": "", "session_id": "child"}
+    context = runtime.pre_llm_call(
+        **child,
+        parent_session_id="parent",
+        user_message="親モデルが書いた委譲文: src/one.py を書け",
+    )
+    assert context is not None
+    assert runtime.store.get_turn("child-turn") is None, "child must not open its own turn"
+    assert runtime.pre_tool_call(
+        **child,
+        tool_call_id="cw",
+        tool_name="write_file",
+        args={"path": str(root / "src" / "one.py"), "content": "x"},
+    ) is None
+    outside = runtime.pre_tool_call(
+        **child,
+        tool_call_id="cw2",
+        tool_name="write_file",
+        args={"path": str(root / "other.py"), "content": "x"},
+    )
+    assert outside is not None and "target-outside-reviewed-scope" in outside["message"]
+
+    orphan = {"turn_id": "orphan-turn", "task_id": "", "session_id": "orphan"}
+    runtime.pre_llm_call(**orphan, parent_session_id="unknown-parent", user_message="書け")
+    blocked = runtime.pre_tool_call(
+        **orphan,
+        tool_call_id="ow",
+        tool_name="write_file",
+        args={"path": str(root / "src" / "one.py"), "content": "x"},
+    )
+    assert blocked is not None and "unbound-turn" in blocked["message"]
+
+
+def test_shell_validator_never_routes_into_legacy_classifier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import plugin_runtime_v2
+
+    assert not hasattr(plugin_runtime_v2, "validate_legacy_shell_payload")
+    for name in ("validate_shell_payload", "classify_task"):
+        monkeypatch.setattr(
+            scope_gate,
+            name,
+            lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError(name)),
+        )
+    state = tmp_path / "scope.db"
+    root = tmp_path / "repo"
+    root.mkdir()
+    # A legacy assignment seed exists for the task, exactly the situation that
+    # used to route seeded workers into the v1 validator.
+    scope_gate.GateStore(state).record_contract_seed(
+        task_id="task",
+        worktree=str(root),
+        branch="main",
+        write_paths=["src/**"],
+        base_commit="a" * 40,
+    )
+    payload = {
+        "hook_event_name": "pre_tool_call",
+        "tool_name": "write_file",
+        "tool_input": {"path": str(root / "src" / "one.py"), "content": "x"},
+        "session_id": "worker",
+        "extra": {"turn_id": "", "task_id": "task", "tool_call_id": "call"},
+    }
+
+    blocked = validate_shell_payload_v2(payload, state_path=state)
+
+    assert blocked["action"] == "block"
+    assert "v2-turn-required" in blocked["message"]
+
+
+def test_terra_adapter_pins_minimal_toolset_and_reports_audit_path(tmp_path: Path) -> None:
+    import sys
+
+    calls: list[list[str]] = []
+
+    def runner(command, env, timeout):
+        del env, timeout
+        calls.append(command)
+        return json.dumps({"audit_verdict": "pass", "findings": [], "scope_conformant": True})
+
+    reviewer = TerraReviewer(hermes_binary=sys.executable, runner=runner)
+    reviewer.audit({"instruction": "x"})
+
+    assert calls[0][calls[0].index("-t") + 1] == "todo"
+    assert reviewer.audit_available() is True
+    missing = TerraReviewer(hermes_binary=str(tmp_path / "no-such-hermes"), runner=runner)
+    assert missing.audit_available() is False

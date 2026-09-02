@@ -63,7 +63,7 @@
   - 同ファイル: `test_terminal_work_outside_the_locked_worktree_is_denied` / `test_read_only_git_reads_outside_the_locked_worktree_are_denied`（いずれも workdir 専用コードを固定）
 - **受入項目の縮小による整合の空振り**（受入項目を必須手順ではなく実装の許可範囲へ合わせて書き、免除される形のみを固定する）
   - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling`（承認 metadata 収集手順を列に含む）/ `test_replay_the_worker_flow_survives_one_refused_read`（未 admit subcommand と admit 済み subcommand の allowlist 外引数形の両類型）
-- **artifact-change の強制状態を通す incident replay**（強制状態での通常フロー完走、拒否混在時の非座礁、必須手順の拒否件数が上限を超えても非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜18）
+- **artifact-change の強制状態を通す incident replay**（v1 legacy suite の回帰固定。現行の指示意味判断は v2 scope 制御が担い、v1 の task class は新規 turn の admission へ使われない。強制状態での通常フロー完走、拒否混在時の非座礁、必須手順の拒否件数が上限を超えても非座礁、元事例 expansion の拒否維持。設計 §10 受入項目 15〜18）
   - 同ファイル: `test_replay_the_worker_flow_completes_without_spending_the_deny_ceiling` / `test_replay_the_worker_flow_survives_one_refused_read` / `test_repeated_refused_reads_do_not_strand_the_required_flow` / `test_replay_the_enforced_flow_still_refuses_the_incident_expansions`
 - **強制層の回帰**（closeout 専用ガードの弱化）
   - `integrations/hermes-scope-gate/tests/test_closeout_guards.py`
