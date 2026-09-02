@@ -1271,7 +1271,9 @@ class ScopeV2Store:
             join_key=request_id,
             event_id=_hash("scope-final-audit-required/v1", turn_id, request_id),
             occurred_at=now,
-            due_at=now,
+            # The same grace as an explicit completion: a decision recorded a
+            # few milliseconds after the boundary is on time, not late.
+            due_at=now + 300,
             metadata={"turn_id": turn_id, "implicit_final_boundary": True},
         )
         marker = {"final_audit_request_id": request_id, "required_at": now}
