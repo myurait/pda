@@ -50,6 +50,16 @@ action=complete succeeded or when the turn produced no effect."""
 
 CommandRunner = Callable[[list[str], dict[str, str], float], str]
 
+# Set in the environment of every fresh Terra review/audit session. A process
+# carrying it is a reviewer, not an executor: it never opens a v2 turn (so it
+# cannot feed the degeneration monitor with its own no-effect decisions) and
+# mutation stays closed for it through the unbound path.
+REVIEWER_SESSION_ENV = "PDA_SCOPE_REVIEWER_SESSION"
+
+
+def _is_reviewer_session() -> bool:
+    return os.environ.get(REVIEWER_SESSION_ENV, "").strip() == "1"
+
 
 def _canonical(value: Any) -> str:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
@@ -153,6 +163,7 @@ class TerraReviewer:
         env = os.environ.copy()
         env.pop("HERMES_KANBAN_TASK", None)
         env.pop("PDA_SCOPE_GATE_STATE", None)
+        env[REVIEWER_SESSION_ENV] = "1"
         command = [
             self.binary,
             "-z",
@@ -241,6 +252,8 @@ class ScopeGateV2PluginRuntime:
         return f"{scope}:{digest}"
 
     def pre_llm_call(self, **kwargs: Any) -> dict[str, str] | None:
+        if _is_reviewer_session():
+            return None
         instruction = str(kwargs.get("user_message") or "")
         task_id, session_id = self._binding(kwargs)
         turn_id = self._turn_key(
@@ -283,13 +296,21 @@ class ScopeGateV2PluginRuntime:
 
     def pre_tool_call(self, **kwargs: Any) -> dict[str, str] | None:
         try:
-            turn_id = self._resolved_turn(kwargs)
+            raw_args = kwargs.get("args")
+            turn_id = "" if _is_reviewer_session() else self._resolved_turn(kwargs)
             if not turn_id:
+                # Same rule as the out-of-process hook: deterministic reads
+                # pass, every effect needs a current source-bound turn.
+                decision = admit_unbound_tool(
+                    str(kwargs.get("tool_name") or ""),
+                    raw_args if isinstance(raw_args, dict) else {},
+                )
+                if decision.allowed:
+                    return None
                 return {
                     "action": "block",
-                    "message": "PDA scope v2 [unbound-turn]: no current instruction is bound",
+                    "message": f"PDA scope v2 [{decision.action}]: {decision.reason}",
                 }
-            raw_args = kwargs.get("args")
             decision = self.store.admit_tool(
                 turn_id=turn_id,
                 tool_call_id=str(kwargs.get("tool_call_id") or ""),
@@ -401,6 +422,8 @@ class ScopeGateV2PluginRuntime:
             return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
     def post_tool_call(self, **kwargs: Any) -> None:
+        if _is_reviewer_session():
+            return
         try:
             turn_id = self._resolved_turn(kwargs)
             raw_args = kwargs.get("args")
@@ -418,6 +441,8 @@ class ScopeGateV2PluginRuntime:
             return
 
     def post_llm_call(self, **kwargs: Any) -> None:
+        if _is_reviewer_session():
+            return
         try:
             turn_id = self._resolved_turn(kwargs)
             if not turn_id:

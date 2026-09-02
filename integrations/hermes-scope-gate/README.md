@@ -25,7 +25,8 @@ budgets, stale arguments, completion state, and telemetry.
   the Hermes lifecycle hooks, and the post-hook execution recheck.
 - `plugin_runtime_v2.py` binds each Hermes turn to the current instruction
   digest, invokes fresh safe-mode Terra sessions (`hermes -z … --safe-mode -t todo`,
-  the smallest valid toolset), observes tool effects, and
+  the smallest valid toolset, with `PDA_SCOPE_REVIEWER_SESSION=1` so the reviewer
+  session never opens a v2 turn nor feeds the monitor), observes tool effects, and
   adapts the v2 store to Hermes.
 - `scope_v2.py` persists ScopeFrames, reviewed plans, deterministic
   containment, observed effects, and final audit state. It contains no

@@ -392,7 +392,7 @@ def test_pre_llm_call_binds_delegated_child_session_to_parent_turn(tmp_path: Pat
         tool_name="write_file",
         args={"path": str(root / "src" / "one.py"), "content": "x"},
     )
-    assert blocked is not None and "unbound-turn" in blocked["message"]
+    assert blocked is not None and "v2-turn-required" in blocked["message"]
 
 
 def test_shell_validator_never_routes_into_legacy_classifier(
@@ -494,3 +494,33 @@ def test_child_final_response_never_finalizes_parent_turn(tmp_path: Path) -> Non
         **parent,
     )
     assert completed["ok"] is True
+
+
+def test_reviewer_session_never_opens_a_turn_or_feeds_the_monitor(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from plugin_runtime_v2 import REVIEWER_SESSION_ENV
+
+    calls: list[list[str]] = []
+
+    def runner(command, env, timeout):
+        del timeout
+        calls.append(command)
+        assert env[REVIEWER_SESSION_ENV] == "1"
+        return json.dumps({"audit_verdict": "pass", "findings": [], "scope_conformant": True})
+
+    TerraReviewer(hermes_binary="/usr/bin/hermes", runner=runner).audit({"instruction": "x"})
+    assert calls
+
+    monkeypatch.setenv(REVIEWER_SESSION_ENV, "1")
+    runtime = ScopeGateV2PluginRuntime(tmp_path / "scope.db", reviewer=FakeReviewer())
+    common = {"turn_id": "terra-turn", "task_id": "", "session_id": "terra-session"}
+    assert runtime.pre_llm_call(**common, user_message="監査依頼") is None
+    assert runtime.store.get_turn("terra-turn") is None
+    assert runtime.pre_tool_call(**common, tool_call_id="r", tool_name="read_file", args={"path": "/x"}) is None
+    blocked = runtime.pre_tool_call(
+        **common, tool_call_id="w", tool_name="write_file", args={"path": "/x", "content": "y"}
+    )
+    assert blocked is not None and "v2-turn-required" in blocked["message"]
+    runtime.post_llm_call(**common)
+    assert runtime.monitor.evaluate("scope.final.final-scope-conformant")["N"] == 0

@@ -23,6 +23,20 @@ stale-plan protection only. Review/audit failure blocks effects but never rewrit
 A prior turn is context, not authority. Read-only answers need no pre-work review."""
 
 _STRING_ARRAY = {"type": "array", "items": {"type": "string"}}
+_EFFECT_KINDS = [
+    "file-write",
+    "git-stage",
+    "git-commit",
+    "git-push",
+    "service-reload",
+    "process-manage",
+    "external-send",
+    "memory-write",
+    "schedule-write",
+    "skill-write",
+    "board-write",
+    "code-exec",
+]
 _SCOPE_FRAME_SCHEMA = {
     "type": "object",
     "properties": {
@@ -53,28 +67,22 @@ _SCOPE_FRAME_SCHEMA = {
 _CONTAINMENT_SCHEMA = {
     "type": "object",
     "properties": {
-        "worktrees": _STRING_ARRAY,
-        "write_paths": _STRING_ARRAY,
-        "test_paths": _STRING_ARRAY,
+        "worktrees": {
+            **_STRING_ARRAY,
+            "description": "Absolute directories the turn may write under (1-8). Required and non-empty.",
+        },
+        "write_paths": {
+            **_STRING_ARRAY,
+            "description": (
+                "Glob patterns relative to a worktree root, e.g. 'src/**' or 'tmp/out/file.txt'. "
+                "Never absolute paths. Do not list the gate's own state files."
+            ),
+        },
+        "test_paths": {**_STRING_ARRAY, "description": "Relative glob patterns for test assets."},
         "allowed_effects": {
             "type": "array",
-            "items": {
-                "type": "string",
-                "enum": [
-                    "file-write",
-                    "git-stage",
-                    "git-commit",
-                    "git-push",
-                    "service-reload",
-                    "process-manage",
-                    "external-send",
-                    "memory-write",
-                    "schedule-write",
-                    "skill-write",
-                    "board-write",
-                    "code-exec",
-                ],
-            },
+            "description": "Effect kinds this turn may cause; anything not listed fails closed.",
+            "items": {"type": "string", "enum": _EFFECT_KINDS},
         },
         "command_allowlist": _STRING_ARRAY,
         "services": _STRING_ARRAY,
@@ -106,8 +114,15 @@ _CONTAINMENT_SCHEMA = {
 _EFFECT_SCHEMA = {
     "type": "object",
     "properties": {
-        "kind": {"type": "string"},
-        "target": {"type": "string"},
+        "kind": {
+            "type": "string",
+            "enum": _EFFECT_KINDS,
+            "description": "Effect kind from the shared vocabulary; the gate's own records are not effects.",
+        },
+        "target": {
+            "type": "string",
+            "description": "Absolute file path, worktree, service unit, or remote ref the effect touched.",
+        },
         "result": {"type": "string"},
     },
     "required": ["kind", "target"],

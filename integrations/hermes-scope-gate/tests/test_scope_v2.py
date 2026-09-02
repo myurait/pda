@@ -619,3 +619,38 @@ def test_child_session_is_bound_to_parent_turn(tmp_path: Path) -> None:
         args={"path": str(root / "src" / "child.py"), "content": "x"},
     )
     assert inside.allowed
+
+
+def test_made_up_claimed_effect_kind_is_refused_without_recording_a_decision(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    reviewer = FakeReviewer()
+    _start(store, "turn", "直して")
+    store.review_scope(
+        turn_id="turn",
+        instruction="直して",
+        scope_frame=_frame(),
+        plan=["edit"],
+        containment=_containment(root),
+        reviewer=reviewer,
+    )
+    store.lock_turn(turn_id="turn")
+
+    try:
+        store.complete_turn(
+            turn_id="turn",
+            status="success",
+            observed_effects=[{"kind": "scope-gate-record", "target": "scope-gate.db"}],
+            final_scope_conformant=True,
+            completion_summary="done",
+            instruction="直して",
+            reviewer=reviewer,
+        )
+    except ValueError as exc:
+        assert "is not an effect kind" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("made-up effect kind was accepted")
+    assert store.get_turn("turn")["state"] == "locked"
+    assert monitor.evaluate("scope.final.final-scope-conformant", cutoff=NOW)["N"] == 0

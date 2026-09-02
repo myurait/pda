@@ -1356,6 +1356,18 @@ class ScopeV2Store:
         if _instruction_digest(instruction) != turn["instruction_sha256"]:
             raise ValueError("current instruction does not match the bound digest")
         claimed_effects = [dict(item) for item in observed_effects]
+        for index, item in enumerate(claimed_effects):
+            kind = str(item.get("kind") or "")
+            if kind not in _ALLOWED_EFFECTS:
+                # A made-up effect kind is an input error, not an audit
+                # finding: it is refused before any decision is recorded so
+                # the executor can restate its effects in the shared vocabulary.
+                raise ValueError(
+                    f"observed_effects[{index}].kind {kind!r} is not an effect kind; "
+                    "use one of " + ", ".join(sorted(_ALLOWED_EFFECTS))
+                )
+            if not str(item.get("target") or "").strip():
+                raise ValueError(f"observed_effects[{index}].target is required")
         actual_effects = self.observed_effects(turn_id)
         effects_by_key: dict[tuple[str, str], dict[str, Any]] = {
             (str(item.get("kind") or ""), str(item.get("target") or "")): item
