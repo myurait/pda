@@ -162,11 +162,13 @@ approval, or finalization.
 From the canonical checkout:
 
 ```text
-python integrations/hermes-scope-gate/install.py
+~/.hermes/hermes-agent/venv/bin/python integrations/hermes-scope-gate/install.py
 systemctl --user daemon-reload
 systemctl --user enable --now pda-process-monitor.timer
 ```
 
+Run the installer with the Hermes venv interpreter: the monitor unit embeds that
+interpreter, and Kanban delivery imports `hermes_cli`, which system Python cannot.
 The installer itself does not manipulate a running process. A Hermes process
 must be reloaded after changing the active source. Verify the installed paths:
 

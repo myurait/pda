@@ -450,3 +450,47 @@ def test_terra_adapter_pins_minimal_toolset_and_reports_audit_path(tmp_path: Pat
     assert reviewer.audit_available() is True
     missing = TerraReviewer(hermes_binary=str(tmp_path / "no-such-hermes"), runner=runner)
     assert missing.audit_available() is False
+
+
+def test_child_final_response_never_finalizes_parent_turn(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    (root / "src").mkdir(parents=True)
+    runtime = ScopeGateV2PluginRuntime(tmp_path / "scope.db", reviewer=FakeReviewer())
+    parent = {"turn_id": "parent-turn", "task_id": "", "session_id": "parent"}
+    runtime.pre_llm_call(**parent, user_message="直して")
+
+    # Child finishes read-only research before the parent has even reviewed.
+    early = {"turn_id": "child-a", "task_id": "", "session_id": "child-a"}
+    runtime.pre_llm_call(**early, parent_session_id="parent", user_message="調べて")
+    runtime.post_llm_call(**early)
+    assert runtime.store.get_turn("parent-turn")["state"] == "inference-pending"
+
+    runtime.handle_scope_gate(
+        {
+            "action": "review",
+            "scope_frame": _frame(),
+            "plan": ["write"],
+            "containment": _containment(root),
+        },
+        **parent,
+    )
+    assert runtime.handle_scope_gate({"action": "lock"}, **parent)["ok"] is True
+
+    # Child finishes after the parent locked.
+    late = {"turn_id": "child-b", "task_id": "", "session_id": "child-b"}
+    runtime.pre_llm_call(**late, parent_session_id="parent", user_message="書いて")
+    runtime.post_llm_call(**late)
+    runtime.on_session_end(**late)
+    assert runtime.store.get_turn("parent-turn")["state"] == "locked"
+
+    completed = runtime.handle_scope_gate(
+        {
+            "action": "complete",
+            "status": "success",
+            "observed_effects": [],
+            "final_scope_conformant": True,
+            "completion_summary": "done",
+        },
+        **parent,
+    )
+    assert completed["ok"] is True

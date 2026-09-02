@@ -259,9 +259,6 @@ class ScopeGateV2PluginRuntime:
                 parent_session_id=parent_session_id,
                 turn_id=parent_turn,
             ):
-                self._instructions.setdefault(
-                    parent_turn, self._instructions.get(parent_turn, "")
-                )
                 return {"context": _V2_CONTEXT}
             # No parent turn: the child stays unbound and fails closed for
             # mutation (admit_unbound_tool) instead of self-authorizing.
@@ -427,6 +424,11 @@ class ScopeGateV2PluginRuntime:
                 return
             turn = self.store.get_turn(turn_id)
             if turn is None:
+                return
+            session_id = str(kwargs.get("session_id") or "")
+            if session_id and turn["session_id"] != session_id:
+                # A linked child session's final response never finalizes the
+                # parent's turn; only the parent's own final response does.
                 return
             if turn["state"] in {"completed", "audit-blocked"}:
                 self._instructions.pop(turn_id, None)
