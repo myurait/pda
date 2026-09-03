@@ -1153,6 +1153,13 @@ class ScopeV2Store:
             # A call the gate refused never ran, so it produced no effect;
             # recording it would turn the refusal itself into an audit finding.
             return
+        if isinstance(result, dict) and result.get("error") and "exit_code" not in result:
+            # Refused before the tool did anything: the safety layer, an
+            # approval prompt, or the gate's own middleware answered with an
+            # error payload and no execution evidence. A command that really
+            # ran always carries its exit code, including when it failed, so
+            # a genuinely unresolved effect is still recorded below.
+            return
         kind = ""
         target = ""
         if tool_name in {"write_file", "patch"}:

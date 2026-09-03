@@ -773,3 +773,53 @@ def test_reviewed_exact_command_needs_no_extra_effect_kind(tmp_path: Path) -> No
     )
     assert blocked["ok"] is False
     assert blocked["audit"]["mechanical_findings"]
+
+
+def test_calls_refused_before_execution_are_not_effects(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    reviewer = FakeReviewer()
+    approved = "hermes kanban show t_x"
+    _start(store, "turn", "確認して")
+    store.review_scope(
+        turn_id="turn",
+        instruction="確認して",
+        scope_frame=_frame(),
+        plan=["inspect"],
+        containment={
+            **_containment(root),
+            "write_paths": [],
+            "test_paths": [],
+            "allowed_effects": ["board-write"],
+            "command_allowlist": [approved],
+        },
+        reviewer=reviewer,
+    )
+    store.lock_turn(turn_id="turn")
+    args = {"command": approved, "workdir": str(root)}
+
+    # Refused by an outer safety layer: an error payload with no exit code.
+    store.record_tool_result(
+        turn_id="turn",
+        tool_call_id="denied",
+        tool_name="terminal",
+        args=args,
+        status="error",
+        result={"error": "command blocked before start"},
+    )
+    assert store.observed_effects("turn") == []
+
+    # A command that actually ran and failed stays an unresolved effect.
+    store.record_tool_result(
+        turn_id="turn",
+        tool_call_id="ran",
+        tool_name="terminal",
+        args=args,
+        status="ok",
+        result={"output": "", "exit_code": 3, "error": "boom"},
+    )
+    effects = store.observed_effects("turn")
+    assert len(effects) == 1
+    assert effects[0]["result"] == "failed-or-unresolved"
