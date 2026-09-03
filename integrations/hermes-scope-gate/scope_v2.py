@@ -1079,13 +1079,13 @@ class ScopeV2Store:
         if _terminal_is_read_only(tokens):
             return GateDecision(True, "read-only-terminal", "deterministic read-only command", workdir)
         if command in containment["command_allowlist"]:
-            if "process-manage" not in containment["allowed_effects"]:
-                return GateDecision(
-                    False,
-                    "effect-not-reviewed",
-                    "an exact command also requires the process-manage effect kind",
-                )
-            return GateDecision(True, "reviewed-exact-command", "exact command was independently reviewed", workdir)
+            # The reviewer approved this exact command string, which is a
+            # narrower decision than any effect kind: demanding a particular
+            # kind on top of it added nothing and refused work whose reviewed
+            # command was already the authorization.
+            return GateDecision(
+                True, "reviewed-exact-command", "exact command was independently reviewed", workdir
+            )
         if tokens[:2] == ["git", "add"]:
             if "git-stage" not in containment["allowed_effects"]:
                 return GateDecision(False, "effect-not-reviewed", "git staging was not reviewed")
@@ -1234,10 +1234,16 @@ class ScopeV2Store:
         effects: Sequence[Mapping[str, Any]], containment: Mapping[str, Any]
     ) -> tuple[bool, list[str]]:
         findings: list[str] = []
+        allowlist_digests = {_hash(item) for item in containment["command_allowlist"]}
         for index, effect in enumerate(effects):
             kind = str(effect.get("kind") or "")
             target = str(effect.get("target") or "")
-            if kind not in containment["allowed_effects"]:
+            reviewed_command = (
+                kind == "process-manage"
+                and target.startswith("command:")
+                and target[len("command:") :] in allowlist_digests
+            )
+            if kind not in containment["allowed_effects"] and not reviewed_command:
                 findings.append(f"effect[{index}] kind {kind!r} was not reviewed")
                 continue
             if kind == "file-write" and not _path_in_scope(target, containment)[0]:
@@ -1254,6 +1260,11 @@ class ScopeV2Store:
                     findings.append(f"effect[{index}] remote target was not reviewed")
             elif kind == "service-reload" and target not in containment["services"]:
                 findings.append(f"effect[{index}] service target was not reviewed")
+            elif kind == "process-manage" and target.startswith("command:"):
+                if target[len("command:") :] not in {
+                    _hash(item) for item in containment["command_allowlist"]
+                }:
+                    findings.append(f"effect[{index}] command was not reviewed")
         return not findings, findings
 
     def mark_final_audit_required(self, turn_id: str) -> dict[str, Any]:

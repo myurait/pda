@@ -684,3 +684,92 @@ def test_blocked_tool_calls_are_not_recorded_as_effects(tmp_path: Path) -> None:
         completion_summary="nothing written", instruction="直して", reviewer=reviewer,
     )
     assert completed["ok"] is True
+
+
+def test_reviewed_exact_command_needs_no_extra_effect_kind(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    reviewer = FakeReviewer()
+    _start(store, "turn", "カードを起票して")
+    approved = "hermes kanban create --title x"
+    store.review_scope(
+        turn_id="turn",
+        instruction="カードを起票して",
+        scope_frame=_frame(),
+        plan=["file one card"],
+        containment={
+            **_containment(root),
+            "write_paths": [],
+            "test_paths": [],
+            "allowed_effects": ["board-write"],
+            "command_allowlist": [approved],
+        },
+        reviewer=reviewer,
+    )
+    store.lock_turn(turn_id="turn")
+
+    admitted = store.admit_tool(
+        turn_id="turn",
+        tool_call_id="c1",
+        tool_name="terminal",
+        args={"command": approved, "workdir": str(root)},
+    )
+    assert admitted.allowed, admitted.reason
+    assert admitted.action == "reviewed-exact-command"
+    store.record_tool_result(
+        turn_id="turn",
+        tool_call_id="c1",
+        tool_name="terminal",
+        args={"command": approved, "workdir": str(root)},
+        status="ok",
+        result={"exit_code": 0},
+    )
+    other = store.admit_tool(
+        turn_id="turn",
+        tool_call_id="c2",
+        tool_name="terminal",
+        args={"command": "hermes kanban delete --id x", "workdir": str(root)},
+    )
+    assert other.allowed is False
+    assert other.action == "command-not-reviewed"
+
+    completed = store.complete_turn(
+        turn_id="turn",
+        status="success",
+        observed_effects=[],
+        final_scope_conformant=True,
+        completion_summary="filed one card",
+        instruction="カードを起票して",
+        reviewer=reviewer,
+    )
+    assert completed["ok"] is True, completed.get("audit")
+
+    # An unreviewed command claimed as an effect is still refused.
+    _start(store, "turn2", "別の作業")
+    store.review_scope(
+        turn_id="turn2",
+        instruction="別の作業",
+        scope_frame=_frame(),
+        plan=["x"],
+        containment={
+            **_containment(root),
+            "write_paths": [],
+            "allowed_effects": ["board-write"],
+            "command_allowlist": [approved],
+        },
+        reviewer=reviewer,
+    )
+    store.lock_turn(turn_id="turn2")
+    blocked = store.complete_turn(
+        turn_id="turn2",
+        status="success",
+        observed_effects=[{"kind": "process-manage", "target": "command:" + "0" * 64}],
+        final_scope_conformant=True,
+        completion_summary="claimed an unreviewed command",
+        instruction="別の作業",
+        reviewer=reviewer,
+    )
+    assert blocked["ok"] is False
+    assert blocked["audit"]["mechanical_findings"]
