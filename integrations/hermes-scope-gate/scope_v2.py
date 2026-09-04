@@ -158,6 +158,10 @@ _TERMINAL_READ_ONLY = {
     ("systemctl", "--user", "is-enabled"),
     ("systemctl", "--user", "list-units"),
     ("systemctl", "--user", "list-unit-files"),
+    ("systemctl", "--user", "list-timers"),
+    # Container inventory. `docker ps` only lists; every mutating docker verb
+    # is a different subcommand, so the two-token prefix cannot widen into one.
+    ("docker", "ps"),
     ("hermes", "status"),
     ("hermes", "plugins", "list"),
     ("hermes", "hooks", "doctor"),

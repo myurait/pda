@@ -823,3 +823,45 @@ def test_calls_refused_before_execution_are_not_effects(tmp_path: Path) -> None:
     effects = store.observed_effects("turn")
     assert len(effects) == 1
     assert effects[0]["result"] == "failed-or-unresolved"
+
+
+def test_state_inventory_reads_are_admitted_before_review(tmp_path: Path) -> None:
+    """A read-only reporter must reach runtime state without opening a contract.
+
+    The daily state report runs with no `scope_gate` tool, so its turn stays
+    `inference-pending` for its whole life. Timer and container inventory are
+    deterministic reads, so they must not be treated as mutation.
+    """
+
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    _start(store, "turn", "状態を報告して")
+
+    for command in (
+        "systemctl --user list-timers --all --no-pager",
+        "docker ps --format {{.Names}}",
+    ):
+        decision = store.admit_tool(
+            turn_id="turn",
+            tool_call_id=command,
+            tool_name="terminal",
+            args={"command": command, "workdir": str(tmp_path)},
+        )
+        assert decision.allowed is True, command
+
+    assert store.observed_effects("turn") == []
+
+
+def test_container_mutation_stays_blocked_before_review(tmp_path: Path) -> None:
+    monitor = ProcessMonitorStore(tmp_path / "monitor.db", clock=lambda: NOW)
+    store = ScopeV2Store(tmp_path / "scope.db", monitor=monitor, clock=lambda: NOW)
+    _start(store, "turn", "状態を報告して")
+
+    for command in ("docker restart openwebui", "docker rm -f openwebui", "docker psql"):
+        decision = store.admit_tool(
+            turn_id="turn",
+            tool_call_id=command,
+            tool_name="terminal",
+            args={"command": command, "workdir": str(tmp_path)},
+        )
+        assert decision.allowed is False, command
