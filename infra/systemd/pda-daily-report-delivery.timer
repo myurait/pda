@@ -1,0 +1,12 @@
+[Unit]
+Description=Deliver the PDA daily owner state report at 07:50 JST
+
+[Timer]
+OnCalendar=*-*-* 07:50:00 Asia/Tokyo
+Persistent=true
+AccuracySec=1s
+RandomizedDelaySec=0
+Unit=pda-daily-report-delivery.service
+
+[Install]
+WantedBy=timers.target

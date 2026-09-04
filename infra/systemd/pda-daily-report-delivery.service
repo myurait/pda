@@ -1,0 +1,14 @@
+[Unit]
+Description=PDA daily owner state report delivery
+Documentation=file://%h/projects/pda/docs/operations/daily-report-delivery.md
+After=default.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=30min
+TimeoutStopSec=1min
+UMask=0077
+ExecStart=%h/.hermes/hermes-agent/venv/bin/python %h/projects/pda/operations/report/pda_daily_report.py deliver --config %h/.config/pda/daily-report.json
+Nice=10
+StandardOutput=journal
+StandardError=journal

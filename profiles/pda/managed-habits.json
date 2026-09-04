@@ -92,6 +92,40 @@
           "reason": "進捗可視化の不備修正を優先するため、所有者指示で自律改善の自動起動を全面停止。再開は所有者の明示指示による。"
         }
       }
+    },
+    {
+      "id": "daily-owner-state-report-delivery",
+      "status": "managed-desired-state",
+      "desired_status": "active",
+      "class": "communication",
+      "owner_intent": "毎朝の状態報告をオーナーへ確実に届ける。生成できただけで届いていない状態を残さない。",
+      "policy_source": "continuity/daily-report.json",
+      "runtime_units": [
+        "pda-daily-report-delivery.service",
+        "pda-daily-report-delivery.timer"
+      ],
+      "schedule": {
+        "report_local_time": "07:45:00",
+        "delivery_local_time": "07:50:00",
+        "timezone": "Asia/Tokyo"
+      },
+      "observed_status": {
+        "source": "deployment verification: systemd timer + pda_daily_report.py status + 実機push",
+        "stored_in_git": false,
+        "activation_requires": [
+          "timer-enabled-and-active",
+          "push-settings-readable",
+          "one-real-report-delivered"
+        ]
+      },
+      "self_recognition": {
+        "managed_communication_asset": true,
+        "meaning": "報告が届かない状態は報告が無い状態と同じものとして扱い、配信失敗を黙って放置しない。"
+      },
+      "limitations": {
+        "delivers_to": "オーナーのpush topic。Open WebUIの会話へは配信できない。",
+        "report_generation": "Hermes scheduled job 4d9f09797922 が生成し、本習慣は配信のみを担う。"
+      }
     }
   ]
 }

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "habit_id": "daily-owner-state-report-delivery",
+  "timezone": "Asia/Tokyo",
+  "schedule": {
+    "local_time": "07:50:00",
+    "timezone": "Asia/Tokyo"
+  },
+  "report": {
+    "job_id": "4d9f09797922",
+    "output_root": "~/.hermes/cron/output",
+    "response_heading": "## Response",
+    "not_before_local_time": "07:45:00"
+  },
+  "wait": {
+    "max_seconds": 1200,
+    "poll_seconds": 30
+  },
+  "state_path": "~/.local/state/pda/daily-report-delivery.json",
+  "notification": {
+    "env_file": "~/openwebui/.env",
+    "server_url_variable": "PDA_NTFY_SERVER_URL",
+    "topic_variable": "PDA_NTFY_TOPIC",
+    "title": "PDA日次状態報告",
+    "max_body_chars": 1200
+  }
+}
