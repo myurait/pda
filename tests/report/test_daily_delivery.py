@@ -217,3 +217,25 @@ def test_a_japanese_title_is_encoded_for_transport() -> None:
     encoded = encode_header_text("PDA日次状態報告")
     assert encoded.startswith("=?UTF-8?B?") and encoded.endswith("?=")
     encoded.encode("latin-1")
+
+
+def test_a_new_run_is_still_delivered_after_an_already_sent_one(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    env_file = write_env(tmp_path)
+    policy = load_policy(write_policy(tmp_path, output_root=output_root, env_file=env_file))
+    now = datetime(2026, 9, 5, 7, 50, tzinfo=JST)
+    write_run(output_root, name="first.md", body="一度目です。", written=now)
+    poster = Recorder()
+
+    run(policy, now=lambda: now, sleep=lambda _: None, post=poster)
+
+    waits: list[float] = []
+
+    def sleep(seconds: float) -> None:
+        waits.append(seconds)
+        write_run(output_root, name="second.md", body="二度目です。", written=now)
+
+    result = run(policy, now=lambda: now, sleep=sleep, post=poster)
+    assert result["delivered"] is True
+    assert result["run"] == "second.md"
+    assert poster.calls[-1][2] == "二度目です。"

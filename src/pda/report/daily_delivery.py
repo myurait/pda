@@ -256,16 +256,33 @@ def run(
     state = _load_state(policy)
 
     deadline_checks = max(1, policy.max_wait_seconds // policy.poll_seconds + 1)
+    already_sent = state.get("last_delivered_run")
     candidate: Path | None = None
+    seen_already_sent = False
     for attempt in range(deadline_checks):
         candidate = latest_run_file(policy)
         if candidate is not None:
             written = datetime.fromtimestamp(candidate.stat().st_mtime, policy.timezone)
             if written >= window_start:
-                break
+                if candidate.name != already_sent:
+                    break
+                # The newest run in the window is the one already sent. A run
+                # that is still being written would be lost by returning here,
+                # so spend the remaining wait on it.
+                seen_already_sent = True
         candidate = None
         if attempt + 1 < deadline_checks:
             sleep(policy.poll_seconds)
+
+    if candidate is None and seen_already_sent:
+        return {
+            "schema": RESULT_SCHEMA,
+            "ok": True,
+            "delivered": False,
+            "reason": "already-delivered",
+            "run": already_sent,
+            "job_id": policy.job_id,
+        }
 
     if candidate is None:
         return {
@@ -277,7 +294,7 @@ def run(
             "job_id": policy.job_id,
         }
 
-    if state.get("last_delivered_run") == candidate.name:
+    if candidate.name == already_sent:
         return {
             "schema": RESULT_SCHEMA,
             "ok": True,
