@@ -208,3 +208,12 @@ def test_job_id_must_stay_a_single_path_component(tmp_path: Path) -> None:
     )
     with pytest.raises(DeliveryError):
         load_policy(path)
+
+
+def test_a_japanese_title_is_encoded_for_transport() -> None:
+    from pda.report.daily_delivery import encode_header_text
+
+    assert encode_header_text("PDA state report") == "PDA state report"
+    encoded = encode_header_text("PDA日次状態報告")
+    assert encoded.startswith("=?UTF-8?B?") and encoded.endswith("?=")
+    encoded.encode("latin-1")

@@ -16,6 +16,7 @@ a retry, a catch-up activation, or a manual run cannot repeat a delivery.
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -200,13 +201,29 @@ def _save_state(policy: Policy, state: dict[str, Any]) -> None:
     os.replace(temporary, policy.state_path)
 
 
+def encode_header_text(value: str) -> str:
+    """Make a header value transmittable when it is not ASCII.
+
+    HTTP headers carry bytes, and the client library refuses anything outside
+    latin-1. A Japanese title therefore cannot be sent literally. RFC 2047 is
+    the encoding push servers accept for exactly this case.
+    """
+
+    try:
+        value.encode("ascii")
+    except UnicodeEncodeError:
+        encoded = base64.b64encode(value.encode("utf-8")).decode("ascii")
+        return f"=?UTF-8?B?{encoded}?="
+    return value
+
+
 def post_to_topic(url: str, *, title: str, body: str) -> int:
     request = urllib.request.Request(
         url,
         data=body.encode("utf-8"),
         method="POST",
         headers={
-            "Title": title,
+            "Title": encode_header_text(title),
             "Priority": "default",
             "Content-Type": "text/plain; charset=utf-8",
         },
