@@ -1,11 +1,23 @@
 # Current PDA priority
 
-Status: active
-Latest owner decision date: 2026-08-22
+Status: active design reassessment; autonomous mutation remains stopped
+Latest owner decision date: 2026-09-06
+
+## Current owner decision — 2026-09-06
+
+The first roadmap for PDA v2 is **whole-system design reassessment**, not implementation of the old improvement plan. See [v2-01-whole-system-reassessment.md](v2-01-whole-system-reassessment.md), its [gap assessment](../design/v2-gap-assessment-2026-09-06.md), and the [primary-source platform comparison](../research/pda-v2-platform-landscape-2026-09-06.md).
+
+Self-improvement is a core value, and self-integrity is its first user experience: a failed improvement must not return recovery and context reconstruction to the owner. The [charter](../../pda_charter.md) was amended accordingly. Hermes, memory architecture, execution framework, and UI are all candidates for comparison, with future maintenance and exit cost central to the decision; a full custom rewrite is not the default.
+
+Scope control v2 remains stopped and is not to be patched or re-enabled. Current authorization covers owner-directed documentation, research, isolated disposable research probes, and the requested commit/push, not production changes or renewed autonomous implementation. Restart requires postmortem-led planning, independent evaluation, staged shadow/canary evidence, independent stop/rollback paths, and owner approval. Kanban `t_395213b7` remains unassigned Triage.
+
+The communication integrity rules below remain cross-cutting constraints. The dated 2026-08-22 status and the later identity-injection/core-defer sequencing are historical; where they conflict with this section, **this section and v2-01 govern the next work**. Existing safety/approval boundaries are not relaxed. This change also does not alter the separately configured bounded Kanban review/capture habits.
+
+## Historical sequence (retained as evidence; not execution permission)
 
 ## Owner decision update — 2026-08-22
 
-1. Priority 0 (communication integrity) is **not closed**. The five-minute cadence contract, stall display, and plan-registration enforcement were implemented, deployed, and live-probe verified on 2026-08-22, but the owner defined a stricter completion condition: a standing external communication audit (advisory) performed by the local Claude runtime. That work is captured as Kanban card `t_5c02eea5`.
+1. Priority 0 (communication integrity) is **not closed**. The 2026-08-22 status recorded implementation/deployment/probe progress for three partial contracts: five-minute cadence, stall display, and plan registration. These are historical claims, not completion of Priority 0 or independent revalidation of the current installation. Individual original probe artifacts were not re-established by this design review, so this paragraph must not be used as current operational evidence. Related dated implementation history is retained in [`autonomous-improvement-goal.md` §2](autonomous-improvement-goal.md). The owner required a standing external communication audit (advisory) by the local Claude runtime; that historical follow-up is Kanban `t_5c02eea5` and is not resumed by this document.
 2. **Scope change**: the subordination rule in Priority 0 ("new delegation architecture, Fable pilot work, and identity-injection feature work are subordinate") was premised on the PDA running its own improvement cycle. It does **not** apply to the externally driven upper-layer redesign of the autonomous improvement cycle described in [`autonomous-improvement-goal.md`](autonomous-improvement-goal.md). That redesign is the currently active workstream.
 3. The daily reconciler (morning AI sweep) stays frozen. Queued-on-arrival processing via Kanban replaces the daily sweep; a redesigned "normalization process" (a queue of runtime-normalization actions such as required restarts, executed in a defined morning window only when the queue is non-empty) may reintroduce a daily step — see the goal document, milestone M2.
 

@@ -1,5 +1,7 @@
 # 設計ドラフト: 改善サイクル・オーケストレーター (M2)
 
+> 2026-09-06: 旧実装案として保存する。自律改変は停止中で、次の正本は [v2第1ロードマップ](../roadmap/v2-01-whole-system-reassessment.md)。二重dispatcherや正本乱立を避ける原則は再利用するが、Hermes dispatcher/Kanbanの採用を比較前の固定条件にしない。既製durable execution等の比較は、並行dispatcherを追加する許可ではない。
+
 - Status: draft（M2 実装の設計入力。効力は M1 exit gate 通過後のオーナー承認で生じる。ADR レビュー結果に依存する箇所は「ADR 依存」と明記した）
 - 日付: 2026-08-22
 - 要求の正本: `docs/roadmap/autonomous-improvement-goal.md` M2、Kanban カード t_c5638264（オーナー要件 1-15）、2026-08-22 オーナー決定3（日次正常化プロセス）、`docs/operations/worktree-lifecycle.md`

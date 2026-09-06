@@ -1,0 +1,35 @@
+{
+  "package": "dbos",
+  "version": "2.31.0",
+  "database": "SQLite local",
+  "restart_owner": "test harness starts a fresh process; DBOS does not restart a dead process",
+  "cases": [
+    {
+      "case": "completed-checkpoint",
+      "process_exit": -9,
+      "recovery_elapsed_seconds": 2.416,
+      "completed_step_count": 1,
+      "non_idempotent_external_effect_count": 0,
+      "output": "{\"recovered\": {\"first\": \"saved-result\", \"second\": \"finished\"}}",
+      "path": "completed-checkpoint",
+      "verdict": "passed"
+    },
+    {
+      "case": "duplicate-window",
+      "process_exit": -9,
+      "recovery_elapsed_seconds": 3.402,
+      "completed_step_count": 1,
+      "non_idempotent_external_effect_count": 2,
+      "output": "{\"recovered\": {\"first\": \"saved-result\", \"second\": \"finished\"}}",
+      "path": "duplicate-window",
+      "verdict": "passed"
+    }
+  ],
+  "limitations": [
+    "synthetic local data only",
+    "no paid/model calls",
+    "not a PDA integration test",
+    "not HA, disk loss, rollback, stop-token or approval verification",
+    "one trial per case; elapsed time is not an SLO"
+  ]
+}
