@@ -1,5 +1,7 @@
 # ADR: 自律改善の統治 (self-improvement governance)
 
+> 2026-09-06 状態注記: 本ADRの統治・承認境界は維持するが、ここにある自動化可能範囲や過去の批准は、現在停止中の自律改変を再開する許可ではない。scope control v2をpatch/再有効化しない。次の設計判断と実行順は [v2第1ロードマップ](../roadmap/v2-01-whole-system-reassessment.md) が優先し、postmortem・独立評価・shadow/canary・独立停止/rollback・オーナー承認を経る。今回は憲章に基づく文書と調査の改訂で、既存境界の緩和は行わない。
+
 - Status: approved（2026-08-22 オーナー承認。Open Questions は全て決定済み — 末尾「確定済みオーナー決定」参照。goal M1 の統治正本）
 - 日付: 2026-08-22
 - 改訂: 2026-08-29 オーナー批准（`docs/design/auto-integration-gate.md` 16節 決定1-4）により D1 第1項を改訂。同批准が本 ADR 13行目の「境界の変更は本 ADR の改訂に固定する」を満たす承認記録である。

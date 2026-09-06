@@ -1,5 +1,7 @@
 # PDA Identity Portability and Strict Hermes Injection Implementation Plan
 
+> 2026-09-06: 実装は延期・停止中の参照計画。次作業の順序は [v2全体設計見直し](../../docs/roadmap/v2-01-whole-system-reassessment.md) が優先する。以下のHermes固定・同一runtimeへの可搬性の先行案は比較前の採用条件ではなく、以下の実装指示は現在の実行許可ではない。
+
 > **For Hermes:** Load the `test-driven-development` skill and use `coding-agent-orchestration` or isolated task-by-task execution. Do not mix this work with the pre-existing Open WebUI working-tree changes.
 
 **Goal:** 現在のPDA実行実体を、同一PCの破損後も同一Hermes runtime上へ復元できる可搬な状態にし、PDA憲章に由来するsource-bound identityをHermesのbuilt-in人格ではなく実際のidentity slotへ決定論的・検証可能・段階的にfail-closeで注入する。

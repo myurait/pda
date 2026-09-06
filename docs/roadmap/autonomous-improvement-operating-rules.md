@@ -1,6 +1,6 @@
 # 自律改善再設計 運用細則
 
-- Status: active（2026-08-22 オーナー指示。フォークでの律速分析に基づく）
+- Status: historical operating rules; autonomous implementation suspended。2026-09-06以降の次作業は [v2第1ロードマップ](v2-01-whole-system-reassessment.md) が優先する。下記の旧実行手順は再開許可ではなく、既存の承認・停止・資源境界を維持した参照資料である。
 - 位置付け: `docs/roadmap/autonomous-improvement-goal.md` と `docs/design/self-improvement-governance-adr.md` に**従属する**運用細則。ADR D1 第1項（main統合・push）は 2026-08-29 批准の監査ゲート群（`docs/design/auto-integration-gate.md`）全通過を条件とする自動執行であり、不変条件は C5 から C5'（goal 6節）へ改定済み。それ以外の「オーナー固定判断」（統治変更・再有効化・秘密・課金・外部公開・不可逆削除）と C1-C9 の残りは一切緩和しない。
 - 適用対象: goal 実行主体（外部Fableサイクル）の作業運用、および自動統合パイプライン（実装後）。
 

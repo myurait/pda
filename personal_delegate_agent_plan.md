@@ -1,5 +1,7 @@
 # Personal Delegate Agent（PDA）構想・開発計画
 
+> 2026-09-06: 本書は従来構想・設計資産として保持する。最新規範は [PDA憲章](pda_charter.md)、v2最初の作業順は [全体設計見直しロードマップ](docs/roadmap/v2-01-whole-system-reassessment.md)、現行gapは [再評価](docs/design/v2-gap-assessment-2026-09-06.md) を参照する。Hermes中心・identity/core交換を後段とする本書のPhase順序は今後の既定ではない。自己改善と自己完全性を最初に実証し、保守と退出コストを基準に既製品・managed・組合せ・交換を比較する。自律実装の停止は継続する。
+
 ## 1. 文書の目的
 
 本書は、これまで「代行体（Agency Entity）」と仮称していた構想を、**Personal Delegate Agent（PDA）**として再定義し、その目的、基本思想、対象範囲および実現までの段階計画を整理するものである。

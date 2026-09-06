@@ -1,0 +1,665 @@
+[
+  {
+    "id": 1,
+    "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/memory-providers/",
+    "title": "Hermes external memory provider contract",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "880c54a12e0b8d432072b71d7bfd3917a24e42a2f4c9f31192baf3a55efd27b8",
+    "quotes": [
+      "Only **one** external provider can be active at a time — the built-in memory is always active alongside it.",
+      "Prefetches relevant memories** before each turn (background, non-blocking)\n3.  **Syncs conversation turns** to the provider after each response\n4.  **Extracts memories on session end** (for providers that support it)\n5.  "
+    ]
+  },
+  {
+    "id": 2,
+    "url": "https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/",
+    "title": "Hermes built-in memory and session continuity",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "0a88d42cd9fd9049b26c0c956d66ca8834631fd0e6b380758cba7681c456ed46",
+    "quotes": [
+      "Memory does **not** auto-compact: when a write would exceed the limit, the `memory` tool returns an error instead of silently dropping entries. The agent then makes room itself — consolidating or removing entries in the same turn before retrying (see [What Happens When Memory is Full](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory/#what-happens-when-memory-is-full)\n). Note that `replace` is als",
+      "Setting **both** `memory_enabled` and `user_profile_enabled` to `false` turns the built-in stores off completely: the `memory` tool is dropped from the schema and its guidance block is dropped from the system prompt, so the model is never told about a tool it cannot use. An external provider set via `memory.provider` (Hindsight, Mem0, Honcho, …) is unaffected and keeps its own tools — use this when you want a third-p",
+      "Both are stored in `~/.hermes/memories/` and are injected into the system prompt as a frozen snapshot at session start.",
+      "All CLI and messaging sessions are stored in SQLite (`~/.hermes/state.db`) with FTS5 full-text search",
+      "Memory does **not** auto-compact: when a write would exceed the limit, the `memory` tool returns an error instead of silently dropping entries."
+    ]
+  },
+  {
+    "id": 3,
+    "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/memory-provider-plugin/",
+    "title": "Hermes memory-provider plugin contract",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "790848d3e454105375a4cc967437b1c51db72715276de535dbd0a1a56de25b6a",
+    "quotes": [
+      "Memory providers are one of two **provider plugin** types. The other is [Context Engine Plugins](https://hermes-agent.nousresearch.com/docs/developer-guide/context-engine-plugin)\n, which replace the built-in context compressor. Both follow the same pattern: single-select, config-driven, managed via `hermes plugins`."
+    ]
+  },
+  {
+    "id": 6,
+    "url": "https://docs.letta.com/self-hosting",
+    "title": "Letta local state and legacy export",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "10db7c7270105d7ddd23192df1fe33d4ee4c14064e03332d7ead4562f0cffd77",
+    "quotes": [
+      "all agent state, including messages, memory, and provider connections, stays on-device, and no Letta account is required.\n*   **Self-hosted App Server**: Run the Letta App Server to host local agents on a central, always-on machine and expose them to client applications through the [Agent SDK](https://docs.letta.com/agent-sdk)\n    . Run messaging channels in a separate server process on the same machine.",
+      "all agent state, including messages, memory, and provider connections, stays on-device, and no Letta account is required.",
+      "Run the Letta App Server to host local agents on a central, always-on machine"
+    ]
+  },
+  {
+    "id": 7,
+    "url": "https://docs.letta.com/v1-sdk/concepts/agent-file",
+    "title": "Letta AgentFile portability caveat",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "28d346df526f9159c4f359b73adb71cb16af60ff4be51b53991ecff361d3675d",
+    "quotes": [
+      "You can import and export agents to and from any Letta server (including both Docker servers and the Letta API) using the `.af` file format."
+    ]
+  },
+  {
+    "id": 13,
+    "url": "https://github.com/plastic-labs/honcho",
+    "title": "Honcho",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "2c7eefab778b590039e9bcdc1e2393b81f4257c33a5752f6cb3ffd378d75d2c5",
+    "quotes": [
+      "Honcho is memory infrastructure for building stateful agents that understand changing people, agents, groups, projects, and ideas over time.",
+      "Honcho utilizes \\[Postgres\\](https://www.postgresql.org/) for its database with pgvector.",
+      "starts API + deriver + Postgres + Redis."
+    ]
+  },
+  {
+    "id": 23,
+    "url": "https://docs.mem0.ai/open-source/overview",
+    "title": "Mem0",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "f4b4ccc26bd6015076585415aefc358e21c67bed51e88dfbfdf59eed1c0b5f02",
+    "quotes": [
+      "Mem0 Open Source is the same memory engine as the Platform, running on your own infrastructure. You own the stack, the data, and every component, and you choose where each one runs. Run it two ways:",
+      "Mem0 Open Source is the same memory engine as the Platform, running on your own infrastructure.",
+      "Local Qdrant at `/tmp/qdrant`",
+      "History store | SQLite at `~/.mem0/history.db`"
+    ]
+  },
+  {
+    "id": 27,
+    "url": "https://docs.dbos.dev/python/programming-guide",
+    "title": "Learn DBOS Python | DBOS Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "87fd6a282c17c2e5f50995281e4ad0ec79d401b915feae231785562cfec2d374",
+    "quotes": [
+      "DBOS helps you add reliability to your Python programs. The key feature of DBOS is **workflow functions** comprised of **steps**. DBOS checkpoints the state of your workflows and steps to its system database. If your program crashes or is interrupted, DBOS uses this checkpointed state to recover each of your workflows from its last completed step. Thus, DBOS makes your application **resilient to any failure**.",
+      "By default, it uses SQLite, which requires no configuration. For production use, we recommend connecting your DBOS application to a Postgres database. You can optionally run these examples with Postgres by setting the `DBOS_SYSTEM_DATABASE_URL` environment variable to a connection string to your Postgres database."
+    ]
+  },
+  {
+    "id": 32,
+    "url": "https://docs.restate.dev/server/overview",
+    "title": "Self-hosted Restate Overview - Restate",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "a85c7a02d551c8fdd77ca48cfc179eb7cb1172b8d3d2b08cb3c1dd327fed3a79",
+    "quotes": [
+      "Restate is distributed as a single binary that implements all features required to run a single- or multi-node cluster, making it easy to run it on a variety of platforms, from your local machine, to a VM, to Kubernetes. This page gives an overview of the different deployment strategies and requirements."
+    ]
+  },
+  {
+    "id": 35,
+    "url": "https://docs.restate.dev/foundations/key-concepts",
+    "title": "Key Concepts - Restate",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "aacf919ae21917f51aaba76e9832f691787b87f17d500337fb0dfc8b142ddc49",
+    "quotes": [
+      "The **Restate Server** sits in front of your services, similar to a reverse proxy or message broker. It handles incoming requests, manages service discovery, and provides durable execution capabilities. The server is a single binary written in Rust with a stream-processing architecture for **low latency and high throughput**. It can be deployed in a high-availability cluster or as a single-node instance."
+    ]
+  },
+  {
+    "id": 36,
+    "url": "https://docs.openclaw.ai/cli/memory",
+    "title": "Memory - OpenClaw",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "5a34a5488aa8246179630fc21741860d6499938bf62a1b37b7a5a247d540d572",
+    "quotes": [
+      "Manage semantic memory indexing, search, promotion into `MEMORY.md`, and provenance-based deletion. Provided by the bundled `memory-core` plugin, available when `plugins.slots.memory` selects `memory-core` (the default). Other memory plugins expose their own CLI namespaces."
+    ]
+  },
+  {
+    "id": 37,
+    "url": "https://docs.openclaw.ai/cli/doctor",
+    "title": "Doctor - OpenClaw",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "687716828b890d56804c9c61b4dd5f8a89c1cbf86b1eb2fe6049ae13fb863e0f",
+    "quotes": [
+      "Health checks and quick fixes for the gateway, channels, plugins, skills, model routing, local state, and config migrations. Use it whenever something is not behaving as expected and you want one command to explain what is wrong."
+    ]
+  },
+  {
+    "id": 41,
+    "url": "https://docs.langchain.com/oss/python/langgraph/persistence",
+    "title": "Persistence - Docs by LangChain",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "4a4f45b6047e17bcebd24c6b642019073623ec6bce5e1b703a2b9e88bdee1995",
+    "quotes": [
+      "persist a thread’s graph state as checkpoints. Use them for short-term, thread-scoped memory, including conversation continuity, human-in-the-loop workflows, time travel, and fault tolerance.\n*   **[Stores](https://docs.langchain.com/oss/python/langgraph/stores)\n    ** persist application-defined data outside the graph state. Use them for long-term, cross-thread memory, including user preferences, facts, and shared k",
+      "persist application-defined data outside the graph state. Use them for long-term, cross-thread memory, including user preferences, facts, and shared knowledge."
+    ]
+  },
+  {
+    "id": 43,
+    "url": "https://docs.langchain.com/oss/python/langgraph/interrupts",
+    "title": "Interrupts - Docs by LangChain",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "56a2c9ff406938587fcdc0d6f58f3417fc69ea1cad2ac1e144add77740d1e860",
+    "quotes": [
+      "Interrupts allow you to pause graph execution at specific points and wait for external input before continuing. This enables human-in-the-loop patterns where you need external input to proceed. When an interrupt is triggered, LangGraph saves the graph state using its [persistence](https://docs.langchain.com/oss/python/langgraph/persistence)\n layer and waits indefinitely until you resume execution. Interrupts work by"
+    ]
+  },
+  {
+    "id": 62,
+    "url": "https://docs.openwebui.com/features/extensibility/plugin/functions/",
+    "title": "Open WebUI Functions: trust boundary",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "9edeb9dad8fd1071ef77e6b7c577b5ec60602ebab27be46f1feece521949cd62",
+    "quotes": [
+      "Functions execute arbitrary Python code on your server.** Function creation is restricted to administrators only. Only install from trusted sources and review code before importing. A malicious Function could access your file system, exfiltrate data, or compromise your entire system. For full details, see the [Plugin Security Warning](https://docs.openwebui.com/features/extensibility/plugin/)\n."
+    ]
+  },
+  {
+    "id": 63,
+    "url": "https://docs.openwebui.com/features/extensibility/plugin/development/events/",
+    "title": "Open WebUI event emitter",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "8618738fb9f181d9c7f87fba4e21bf6dea8d7c9b3e874a1e67c753ec60f6867d",
+    "quotes": [
+      "Open WebUI's plugin architecture is not just about processing input and producing output: **it's about real-time, interactive communication with the UI and users**. To make your Tools, Functions, and Pipes more dynamic, Open WebUI provides a built-in event system via the `__event_emitter__` and `__event_call__` helpers."
+    ]
+  },
+  {
+    "id": 66,
+    "url": "https://docs.ag-ui.com/concepts/state",
+    "title": "State Management - Agent User Interaction Protocol",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "784cdc1707eadc07b285480ac0c70ceba5caa9f178fa69125c395cbcd43893dc",
+    "quotes": [
+      "When a frontend receives a `STATE_SNAPSHOT` event, it should replace its existing state model entirely with the contents of the snapshot."
+    ]
+  },
+  {
+    "id": 71,
+    "url": "https://docs.copilotkit.ai/human-in-the-loop",
+    "title": "HITL Overview",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "aabd41f06d913578e82cd2a9d0ef82c11bdc4469450d9b97392dee156b7dd853",
+    "quotes": [
+      "Allow your agent and users to collaborate on complex tasks."
+    ]
+  },
+  {
+    "id": 75,
+    "url": "https://github.com/letta-ai/letta",
+    "title": "Letta current runtime transition",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "0b6bf24612d4a2233b28e668d6cab33ae2bb661628999cb4be72614661c8862c",
+    "quotes": [
+      "The current source code lives in [`letta-ai/letta-code`](https://github.com/letta-ai/letta-code)\n, which includes the agent harness, interactive terminal UI, App Server, channels, and the runtime used by the desktop and web apps.",
+      "The current source code lives in \\[\\`letta-ai/letta-code\\`\\](https://github.com/letta-ai/letta-code), which includes the agent harness, interactive terminal UI, App Server, channels, and the runtime used by the desktop and web apps.",
+      "This repository now serves as a landing page for the Letta project."
+    ]
+  },
+  {
+    "id": 76,
+    "url": "https://docs.letta.com/platform/app-server",
+    "title": "Letta App Server | Letta Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "8110f79e7c073611578c2d64c52d8066dbef992bca7b1dfb3f056dca5dd81d0b",
+    "quotes": [
+      "The **Letta App Server** lets you deploy the Letta agent harness as a service. Whereas [headless mode](https://docs.letta.com/platform/cli/headless)\n allows you to interface with Letta agents by spinning up the agent harness as a one-time ephemeral process, the App Server is an always-on service and can manage running multiple agents in parallel in a single process.",
+      "It can run with agent state stored locally or in Letta Cloud."
+    ]
+  },
+  {
+    "id": 78,
+    "url": "https://docs.openhands.dev/sdk/arch/agent-server",
+    "title": "Agent Server Package - OpenHands Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "2f14b9d43eb431f2b6e520dbe6da95da87135b82b1fc5ec1cea28d5c87e20916",
+    "quotes": [
+      "The Agent Server package (`openhands-agent-server`) runs the OpenHands Software Agent SDK behind an HTTP and WebSocket API. Use it when another service, such as an Agent Canvas backend, needs to start conversations, stream events, and run file or command operations in a workspace without embedding the SDK directly in the same process."
+    ]
+  },
+  {
+    "id": 83,
+    "url": "https://docs.temporal.io/activity-definition",
+    "title": "Activity Definition | Temporal Documentation",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "e3a8882731dd323fbbb95ac13a206dfd3c1408c050af6e20c1d4371247929054",
+    "quotes": [
+      "Idempotence means that performing an operation multiple times has the same result as performing it once. In the context of Temporal, Activities should be designed to be safely executed multiple times without causing unexpected or undesired side effects."
+    ]
+  },
+  {
+    "id": 86,
+    "url": "https://code.claude.com/docs/en/agent-sdk/hooks",
+    "title": "Intercept and control agent behavior with hooks - Claude Code Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "a92f4a2670a4cb54975405663e8f8a7cd7fb80cab21d92fc13b3464cc70b7ce8",
+    "quotes": [
+      "When an event fires, all matching hooks run in parallel. For permission decisions, the most restrictive result applies: a single `deny` blocks the tool call regardless of what the other hooks return. Because completion order is non-deterministic, write each hook to act independently rather than relying on another hook having run first. The example below registers three independent checks for every tool call:"
+    ]
+  },
+  {
+    "id": 87,
+    "url": "https://code.claude.com/docs/en/agent-sdk/permissions",
+    "title": "Configure permissions - Claude Code Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "fb8f9749dc0149aaf86c198de126c278dfe1166ccf69c89bab7f675b120f1e0d",
+    "quotes": [
+      "The Claude Agent SDK provides permission controls to manage how Claude uses tools. Use permission modes and rules to define what’s allowed automatically, and the [`canUseTool` callback](https://code.claude.com/docs/en/agent-sdk/user-input)\n to handle everything else at runtime."
+    ]
+  },
+  {
+    "id": 97,
+    "url": "https://docs.nvidia.com/openshell/sandboxes/policies",
+    "title": "Customize Sandbox Policies | NVIDIA OpenShell",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "997403cd7b33ebe10830f12293204b03fcb6bb173ccc707e1e495f252261dd4a",
+    "quotes": [
+      "A policy has static sections `filesystem_policy`, `landlock`, and `process` that are locked at sandbox creation, and dynamic `network_policies` and `network_middlewares` sections that are hot-reloadable on a running sandbox.",
+      "Static sections are locked at sandbox creation. Changing them requires destroying and recreating the sandbox. Dynamic sections can be updated on a running sandbox with `openshell policy update` for incremental merges or `openshell policy set` for full replacement, and take effect without restarting. When a hot reload changes rules, the supervisor publishes a new policy generation and closes connections pinned to the"
+    ]
+  },
+  {
+    "id": 108,
+    "url": "https://rauc.readthedocs.io/en/latest/integration.html",
+    "title": "Integration — RAUC 1.15.1.532-1a41 documentation",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "16edf4f3d948899420be4c551475771180124f6b9e24b756189fc3382cdfbd53",
+    "quotes": [
+      "RAUC as an update framework, this chapter will guide you through the required steps and show the different ways you can choose."
+    ]
+  },
+  {
+    "id": 111,
+    "url": "https://docs.temporal.io/self-hosted-guide/deployment",
+    "title": "Deploying a Temporal Service | Temporal Documentation",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "3fd2c9be663da9095b6a2846868a52e915acf6f1be9f1304893b668e1ace9cb3",
+    "quotes": [
+      "In self-hosted deployments, the Temporal Service is a critical control and persistence component and should be secured similarly to a database. Temporal services should run on hosts that are not accessible from the public internet, with network configurations that restrict access to trusted internal networks only."
+    ]
+  },
+  {
+    "id": 122,
+    "url": "https://learn.microsoft.com/en-us/agent-framework/overview/",
+    "title": "Microsoft Agent Framework Overview | Microsoft Learn",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "d1a190ede7ec0744fb320bfc7d71a4872e8803cd8eba3f84674a0c01b8d338e5",
+    "quotes": [
+      "The Agent Framework is the direct successor, created by the same teams. It combines AutoGen's simple abstractions for single- and multi-agent patterns with Semantic Kernel's enterprise-grade features such as session-based state management, type safety, filters, telemetry, and extensive model and embedding support. Beyond merging the two, Agent Framework introduces workflows that give developers explicit control over"
+    ]
+  },
+  {
+    "id": 131,
+    "url": "https://raw.githubusercontent.com/temporalio/temporal/891d1b648b7252925142cc36f13e40a0e2ed4244/README.md",
+    "title": "temporalio/temporal README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "269838d3de5da90d4c2c0b45bf7fc745b384a5a05c0932582e923638e8994189",
+    "quotes": [
+      "Temporal is a durable execution platform that enables developers to build scalable applications without sacrificing productivity or reliability.\nThe Temporal server executes units of application logic called Workflows in a resilient manner that automatically handles intermittent failures, and retries failed operations."
+    ]
+  },
+  {
+    "id": 132,
+    "url": "https://raw.githubusercontent.com/dbos-inc/dbos-transact-py/833794f7a1138bacf75ff6d88647a33eb5e35e52/LICENSE",
+    "title": "dbos-inc/dbos-transact-py LICENSE",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "546662b7f6b9fa4770f564fa7d8e63c40595c0643380b1723d6adc55552154d5",
+    "quotes": [
+      "Permission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following"
+    ]
+  },
+  {
+    "id": 136,
+    "url": "https://raw.githubusercontent.com/restatedev/restate/64d12f01368b66cf88a3f78ba4397f129b623fc9/LICENSE",
+    "title": "restatedev/restate LICENSE",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "ea4fd504ffe508ce7ece0727a714a4fffc7208ad5a9618ae33f794d713450f02",
+    "quotes": [
+      "Business Source License 1.1",
+      "Additional Use Grant: You may make use of the Licensed Work, provided that you may not use\n                      the Licensed Work for a Public Restate Platform Service."
+    ]
+  },
+  {
+    "id": 142,
+    "url": "https://raw.githubusercontent.com/NVIDIA/OpenShell/320d4ef79dd572c642133f175f12bafc20d89fd9/README.md",
+    "title": "NVIDIA/OpenShell README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "47981eb7ea71fcb86218efa759ffda961e2bda9b2d649e64b8299247e1f22853",
+    "quotes": [
+      "OpenShell is the safe, private runtime for autonomous AI agents. It provides sandboxed execution environments that protect your data, credentials, and infrastructure — governed by declarative YAML policies that prevent unauthorized file access, data exfiltration, and uncontrolled network activity."
+    ]
+  },
+  {
+    "id": 145,
+    "url": "https://raw.githubusercontent.com/agentgateway/agentgateway/748b38b25d6e8c981c42e40b5e808d84c483c1bf/README.md",
+    "title": "agentgateway/agentgateway README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "13aeec0b54803619ffc031922ca26079521d6f8c50c9608f6ddefd57fcc44132",
+    "quotes": [
+      "**Security & Observability**<br>\n  Auth (JWT, API keys, OAuth), fine-grained RBAC with CEL policy engine, rate limiting, TLS, and OpenTelemetry metrics/logs/tracing.\n<br>"
+    ]
+  },
+  {
+    "id": 154,
+    "url": "https://raw.githubusercontent.com/CopilotKit/CopilotKit/b5727e49ae893590d3969d300b92b8544388e34e/README.md",
+    "title": "CopilotKit/CopilotKit README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "cb61d94fbd06e6d155c992f2901e5bc962309e400f2276c2f4760fbe94b136c3",
+    "quotes": [
+      "**Threads & persistence** – Full interaction history — generative UI, human-in-the-loop, shared state — captured across sessions.",
+      "Available via CopilotKit Cloud or self-hosted."
+    ]
+  },
+  {
+    "id": 156,
+    "url": "https://raw.githubusercontent.com/openai/codex/ac192cd7937b0d73edc6dffe009940ae53782dd4/codex-rs/app-server/README.md",
+    "title": "openai/codex codex-rs/app-server/README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "3d9cbe420b5028285fa1bd740ad1cfddffdb3a85fd50ac4b87e0763522e6a3a0",
+    "quotes": [
+      "Websocket transport is currently experimental and unsupported. Do not rely on it for production workloads.",
+      "supports bidirectional communication using JSON-RPC 2.0 messages (with the `\"jsonrpc\":\"2.0\"` header omitted on the wire)."
+    ]
+  },
+  {
+    "id": 158,
+    "url": "https://raw.githubusercontent.com/langgenius/dify/dde1d500b5bcbf8a05b37b3615ebaff6219b84b4/README.md",
+    "title": "langgenius/dify README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "51647e1180794278e006c7e1925eec056d5b68a036893143849ef83ad695e7e2",
+    "quotes": [
+      "Dify is an open-source LLM app development platform. Its intuitive interface combines AI workflow, RAG pipeline, agent capabilities, model management, observability features (including [Opik](https://www.comet.com/docs/opik/integrations/dify), [Langfuse](https://docs.langfuse.com), and [Arize Phoenix](https://docs.arize.com/phoenix)) and more, letting you quickly go from prototype to production. Here's a list of the"
+    ]
+  },
+  {
+    "id": 162,
+    "url": "https://raw.githubusercontent.com/langgenius/dify/dde1d500b5bcbf8a05b37b3615ebaff6219b84b4/LICENSE",
+    "title": "langgenius/dify LICENSE",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "232cf91474932d5110ed304e53b6b742a58463857c571fae803fdf2ac36d7bb3",
+    "quotes": [
+      "Dify is licensed under a modified version of the Apache License 2.0, with the following additional conditions:",
+      "Multi-tenant service: Unless explicitly authorized by Dify in writing, you may not use the Dify source code to operate a multi-tenant environment.\n    - Tenant Definition: Within the context of Dify, one tenant corresponds to one workspace. The workspace provides a separated area for each tenant's data and configurations."
+    ]
+  },
+  {
+    "id": 165,
+    "url": "https://raw.githubusercontent.com/cloudflare/agents/ec93caf6ec1efebb521aa9ab30c0a8cb2b4d50d5/README.md",
+    "title": "cloudflare/agents README.md",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "1b9e278ac4d6399f57901b43bea70cfe7e904795df5cf73786a0620f44a106bf",
+    "quotes": [
+      "Agents are persistent, stateful execution environments for agentic workloads, powered by Cloudflare [Durable Objects](https://developers.cloudflare.com/durable-objects/). Each agent has its own state, storage, and lifecycle — with built-in support for real-time communication, scheduling, AI model calls, MCP, workflows, and more."
+    ]
+  },
+  {
+    "id": 176,
+    "url": "https://docs.dbos.dev/python/tutorials/workflow-tutorial",
+    "title": "Workflows | DBOS Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "358d278f46451f46a33cb615cf990d9294f8636a7a94d1856168cea4851a7fa5",
+    "quotes": [
+      "If a workflow is interrupted for any reason, DBOS automatically recovers its execution from the last completed step."
+    ]
+  },
+  {
+    "id": 179,
+    "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/plugins/",
+    "title": "Hermes plugins: capabilities and in-process trust",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "91a12a1e46c6e243fc6b066521b057221fb622054ed769bbe64165a7f2579b4b",
+    "quotes": [
+      "This is not a sandbox: plugin code still executes in-process with the current user's permissions and can spawn subprocesses, so only run Doctor on code you trust enough to import.",
+      "Plugins that integrate **someone else's product or project** — observability/metrics backends, vendor SaaS connectors, analytics dashboards, paid-service tie-ins — are built and distributed as **standalone plugin repos**, not merged into `NousResearch/hermes-agent`. Users install them into `~/.hermes/plugins/` or via a pip entry point; everything in this guide works the same way from a standalone repo. This is a coup"
+    ]
+  },
+  {
+    "id": 180,
+    "url": "https://hermes-agent.nousresearch.com/docs/developer-guide/context-engine-plugin/",
+    "title": "Hermes context-engine plugin",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "92b3fdfd1c4f85784cf8c8e8b37ea333b92fc19ca98dc3699e73a4a9c4adf670",
+    "quotes": [
+      "Context engine plugins replace the built-in `ContextCompressor` with an alternative strategy for managing conversation context. For example, a Lossless Context Management (LCM) engine that builds a knowledge DAG instead of lossy summarization."
+    ]
+  },
+  {
+    "id": 186,
+    "url": "https://inspect.aisi.org.uk/sandboxing.html",
+    "title": "Sandboxing – Inspect",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "f8ec8dc41795b9850eae2f278fafe629891c159d1a40106d5e31704420c99da1",
+    "quotes": [
+      "Model tool calls are executed within the main process running the evaluation task. However, the work that tools perform — such as running shell commands or executing Python code — very often needs to happen in a dedicated, isolated environment (for example, [bash()](https://inspect.aisi.org.uk/reference/inspect_ai.tool.html#bash)\n runs its shell commands in a sandbox). This might be the case if:"
+    ]
+  },
+  {
+    "id": 190,
+    "url": "https://www.promptfoo.dev/docs/providers/",
+    "title": "LLM Providers | Promptfoo",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "80df6e75dfdf2a3fd4990f5ded25b289c02b4387547eeb64479e82ae7a1e3df0",
+    "quotes": [
+      "Providers in promptfoo are the interfaces to various language models and AI services. They can also be specified as `targets` in your config — the two keys are interchangeable. This guide will help you understand how to configure and use providers in your promptfoo evaluations."
+    ]
+  },
+  {
+    "id": 195,
+    "url": "https://agentskills.io/home",
+    "title": "Agent Skills Overview - Agent Skills",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "63ed567a7a25b383ac077a21211b1dee7f5ee049d6408c158cc078af62baf6a1",
+    "quotes": [
+      "Agent Skills are a lightweight, open format for extending AI agent capabilities with specialized knowledge and workflows. At its core, a skill is a folder containing a `SKILL.md` file. This file includes metadata (`name` and `description`, at minimum) and instructions that tell an agent how to perform a specific task. Skills can also bundle scripts, reference materials, templates, and other resources."
+    ]
+  },
+  {
+    "id": 198,
+    "url": "https://raw.githubusercontent.com/plastic-labs/honcho/main/LICENSE",
+    "title": "Honcho license_url",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "0bf6f10873405c7bbe0636c58726bb9e5e2930f0b228c674286479d7f380eeac",
+    "quotes": [
+      "MITTED BY APPLICABLE LAW. EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM \"AS IS\" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRES"
+    ]
+  },
+  {
+    "id": 199,
+    "url": "https://raw.githubusercontent.com/plastic-labs/honcho/main/pyproject.toml",
+    "title": "Honcho manifest_url",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "93000b5702a59e52fcd9308565abe00caeaae419dbdec995181a1751e0c3371e",
+    "quotes": [
+      "requires-python = \">=3.13\" dependencies = \\[ \"fastapi\\[standard-no-fastapi-cloud-cli\\]>=0.131.0\", \"python-dotenv>=1.0.0\", \"sqlalchemy>=2.0.30\", \"fastapi-pagination>=0.14.2\", \"pgvec"
+    ]
+  },
+  {
+    "id": 200,
+    "url": "https://raw.githubusercontent.com/mem0ai/mem0/main/README.md",
+    "title": "Mem0",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "8e603b9f48e1de993bf7189d7281b0e31c6ce37ce3e52afcc74cd1f280e2379b",
+    "quotes": [
+      "\\*\\*Single-pass ADD-only extraction\\*\\* -- one LLM call, no UPDATE/DELETE. Memories accumulate; nothing is overwritten."
+    ]
+  },
+  {
+    "id": 202,
+    "url": "https://raw.githubusercontent.com/getzep/graphiti/main/README.md",
+    "title": "Graphiti / Zep",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "da63d73da36a702c187fee73edfa034a3f1fdf115aa56fbca084e190d64c0f79",
+    "quotes": [
+      "Facts have validity windows. When information changes, old facts are invalidated — not deleted.",
+      "Every entity and relationship traces back to the episodes (raw data) that produced it.",
+      "Graphiti works best with LLM services that support Structured Output"
+    ]
+  },
+  {
+    "id": 204,
+    "url": "https://raw.githubusercontent.com/vectorize-io/hindsight/main/README.md",
+    "title": "Hindsight",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "31914d261160988e8f7172f455122d00b11d69b80bc7f5717b8d75f940d37a31",
+    "quotes": [
+      "Hindsight is focused on making agents that learn, not just remember.",
+      "PostgreSQL + pgvector, or Oracle AI Database 23ai with full feature parity",
+      "Hindsight works with \\*\\*25+ LLM providers\\*\\* via \\`HINDSIGHT\\_API\\_LLM\\_PROVIDER\\` — hosted (\\`openai\\`, \\`anthropic\\`, \\`gemini\\`, \\`groq\\`, \\`bedrock\\`, \\`vertexai\\`, \\`minimax\\`, \\`deepseek\\`, \\`atlas\\`, \\`meta\\`, …)",
+      "Other scores are self-reported by software vendors."
+    ]
+  },
+  {
+    "id": 206,
+    "url": "https://raw.githubusercontent.com/volcengine/OpenViking/main/README.md",
+    "title": "OpenViking",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "daadcf030180b72951cd9633560f954d4e46e6b9d89122331aa1a8c55c803c88",
+    "quotes": [
+      "OpenViking is an open-source context database for AI agents.",
+      "It stores memories, resources, and skills as one virtual filesystem under the \\`viking://\\` protocol, so an agent browses its own context with \\`ls\\`, \\`tree\\`, and \\`find\\` instead of querying a black-box vector store.",
+      "The memory evaluation used"
+    ]
+  },
+  {
+    "id": 207,
+    "url": "https://raw.githubusercontent.com/volcengine/OpenViking/main/pyproject.toml",
+    "title": "OpenViking manifest_url",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "da231c98668cc2650d065f579f54d1cc8eb4e8d1dfebf43b6d7c7af3b27408f0",
+    "quotes": [
+      "AGPL-3.0\" classifiers = \\[ \"Development Status :: 3 - Alpha\", \"Intended Audience :: Developers\", \"Topic :: Scientific/Engineering :: Artificial Intelligence\", \"Programming Language",
+      "requires-python = \">=3.10\" authors = \\[ {name = \"ByteDance\", email = \"noreply@bytedance.com\"} \\] license = \"AGPL-3.0\" classifiers = \\[ \"Development Status :: 3 - Alpha\", \"Intended ",
+      "Development Status :: 3 - Alpha\", \"Intended Audience :: Developers\", \"Topic :: Scientific/Engineering :: Artificial Intelligence\", \"Programming Language :: Python :: 3\", \"Programmi"
+    ]
+  },
+  {
+    "id": 208,
+    "url": "https://raw.githubusercontent.com/topoteretes/cognee/main/README.md",
+    "title": "Cognee",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "a77a654f6fec54072a479e4045129961472f2650bd827c50a6f619bbdb255c0f",
+    "quotes": [
+      "Cognee is the open-source AI memory platform that gives AI agents persistent long-term memory across sessions.",
+      "Session distillation curates accepted lessons into permanent memory.",
+      "Remove a specific item or dataset.",
+      "Using Postgres as a graph store is currently a released as a demo feature.",
+      "The two settings use different conversations, ingestion models, and retrieval-selection procedures."
+    ]
+  },
+  {
+    "id": 209,
+    "url": "https://raw.githubusercontent.com/topoteretes/cognee/main/pyproject.toml",
+    "title": "Cognee manifest_url",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "52204980dd2176a416146f527885a6898cc2186a46aee30e5e8167fcc6748745",
+    "quotes": [
+      "Apache-2.0\" classifiers = \\[ \"Development Status :: 4 - Beta\", \"Intended Audience :: Developers\", \"License :: OSI Approved :: Apache Software License\", \"Topic :: Software Developme",
+      "requires-python = \">=3.10,<3.15\" readme = \"README.md\" license = \"Apache-2.0\" classifiers = \\[ \"Development Status :: 4 - Beta\", \"Intended Audience :: Developers\", \"License :: OSI A",
+      "Development Status :: 4 - Beta\", \"Intended Audience :: Developers\", \"License :: OSI Approved :: Apache Software License\", \"Topic :: Software Development :: Libraries\", \"Operating S"
+    ]
+  },
+  {
+    "id": 210,
+    "url": "https://github.com/xiaowu0162/LongMemEval-V2/blob/main/README.md",
+    "title": "LongMemEval / LongMemEval-V2 benchmark comparability",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "2fb509e07ba197b4965d160db32e8a52f8825298ec3f76deca9b2a59f21037c9",
+    "quotes": [
+      "The paper runs use Qwen3.5-9B as the fixed reader and Qwen3-Embedding-8B for embedding-based methods.",
+      "The environment does not include vLLM.",
+      "Download and prepare:\n\n```shell\npython data/download_data.py --data-root data/longmemeval-v2\nexport DATA_ROOT=\"$(pwd)/data/longmemeval-v2\"\npython data/prepare_data.py --data-root \"$DATA_ROOT\" --mode symlink\npython data/va"
+    ]
+  },
+  {
+    "id": 214,
+    "url": "https://raw.githubusercontent.com/n8n-io/n8n/master/LICENSE.md",
+    "title": "n8n Sustainable Use License",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "d2f621f59aa4c10eab79b6333e59d9d3d5b53307dcfd16dbd75e40e679e84965",
+    "quotes": [
+      "You may use or modify the software only for your own internal business purposes or for non-commercial or\npersonal use. You may distribute the software or provide it to others only if you do so free of charge for\nnon-commercial purposes. You may not alter, remove, or obscure any licensing, copyright, or other notices of\nthe licensor in the software. Any use of the licensor’s trademarks is subject to applicable law."
+    ]
+  },
+  {
+    "id": 215,
+    "url": "https://hindsight.vectorize.io/api-reference",
+    "title": "Hindsight API: deletion and document transfer",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "817d0bf80a60db7d5a528992b48cc9836fdad36b9e6ca48dba846658164f7763",
+    "quotes": [
+      "Delete a document and all its associated memory units and links.\nThis will cascade delete:\nThe document itself\nAll memory units extracted from this document\nAll links (temporal, semantic, entity) associated with those memory units\nThis operation cannot be undone.",
+      "Submit an async export of a bank's documents (extracted facts, entity names, causal links, chunks) as a transfer ZIP archive. Embeddings and database ids are not included — importing re-embeds with the target bank's model and re-resolves entities.",
+      "Return a portable markdown bundle: a nested index.md, one\n.md per page, and history logs."
+    ]
+  },
+  {
+    "id": 216,
+    "url": "https://docs.letta.com/letta-code/memfs",
+    "title": "MemFS | Letta Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "0d9cc02c2d45d6df574be4b58e9f7ee831c216c61344679bd318fe434ef4d50e",
+    "quotes": [
+      "MemFS does not include a semantic or vector index by default. Agents find memory in its Markdown files with normal file-search and read tools.",
+      "Local-only agents commit to a repository on the current machine, so you are responsible for backing it up."
+    ]
+  },
+  {
+    "id": 217,
+    "url": "https://docs.letta.com/configuration/mods",
+    "title": "Mods | Letta Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "21bf18368c5c41c291ffc04933be843406be37c88e706e7688e9f7eef25c1375",
+    "quotes": [
+      "Mods run as fully trusted code inside your Letta Code process. They let your agent modify its own runtime — adding tools, commands, event hooks, permission policies, and provider adapters that take effect immediately on reload. This makes the harness self-modifying: your agent can extend its own capabilities, shape how turns and tools behave, and adapt the environment around itself over time."
+    ]
+  },
+  {
+    "id": 218,
+    "url": "https://docs.letta.com/letta-code/permissions",
+    "title": "Permissions | Letta Docs",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "2a8eaa181afbe3194c9504ad4c34cbe715ed0a45cef5586aafaebdb31a011095",
+    "quotes": [
+      "By default, the interactive CLI starts in `unrestricted` mode. Switch to `standard` when you want Letta Code to ask before running tools that require approval."
+    ]
+  },
+  {
+    "id": 220,
+    "url": "https://raw.githubusercontent.com/letta-ai/letta-code/701f2a5367828847313876c735ade27b9df97689/README.md",
+    "title": "Letta current harness README (pinned)",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "a5b47480e2470b165c67fc22d752565a00a0909a530fb69c78f97d985543d4a3",
+    "quotes": [
+      "Letta Code is a stateful agent harness for creating agents that are more like people than tools. Letta Code agents have memory, identity, and a sense of experience over time. They learn and evolve over long horizons through rewriting their own memory, skills, prompts, and even the harness itself (through mods)."
+    ]
+  },
+  {
+    "id": 221,
+    "url": "https://raw.githubusercontent.com/letta-ai/letta-code/701f2a5367828847313876c735ade27b9df97689/LICENSE",
+    "title": "Letta current harness Apache-2.0 license (pinned)",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "036e78b9d7dd33ae5b378fdda973b4aad7901c8d8371a0ae40fae1f6659a89d0",
+    "quotes": [
+      "Apache License\n                           Version 2.0, January 2004\n                        http://www.apache.org/licenses/"
+    ]
+  },
+  {
+    "id": 222,
+    "url": "https://raw.githubusercontent.com/letta-ai/letta-code/701f2a5367828847313876c735ade27b9df97689/package.json",
+    "title": "Letta current harness package manifest (pinned)",
+    "observed_date": "2026-09-06",
+    "snapshot_sha256": "b73a42f72582cad5433c98e89d9289e76d298a785699ac40610d46f758d4764f",
+    "quotes": [
+      "\"name\": \"@letta-ai/letta-code\",\n  \"version\": \"0.31.12\",\n  \"description\": \"Letta Code is a CLI tool for interacting with stateful Letta agents from the terminal.\",\n  \"type\": \"module\",\n  \"packageManager\": \"bun@1.3.14\",\n  \"bin\": {\n    \"letta\": \"letta.js\"\n  },\n  \"files\": [\n    \"LICENSE\",\n    \"README.md\",\n    \"letta.js\",\n    \"image-resize-worker.js\",\n    \"assets/tutor-profile.png\",\n    \"scripts\",\n    \"skills\",\n    \"vendor"
+    ]
+  }
+]

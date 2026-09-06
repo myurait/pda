@@ -1,5 +1,7 @@
 # PDA scope control v2
 
+> Operational status (2026-09-06): stopped after the first failed PDA development attempt. Do not patch or re-enable this implementation as part of the new PDA v2 design reassessment. It is retained as evidence; the next sequence is [v2-01](../../docs/roadmap/v2-01-whole-system-reassessment.md). Documentation below describes the historical implementation, not current restart permission.
+
 This directory is the canonical runtime implementation for
 `docs/design/task-scope-admission-gate.md` and
 `docs/design/process-degeneration-monitor.md`.
