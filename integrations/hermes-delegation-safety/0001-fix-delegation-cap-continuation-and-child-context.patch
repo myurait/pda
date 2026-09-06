@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: PDA local patch steward <pda-local@example.invalid>
+Date: Mon, 31 Aug 2026 21:20:00 +0900
+Subject: [PATCH] fix(delegation): continue after spawn cap rejection
+
+Keep the per-turn subagent ceiling as a pre-execution rejection, but do not
+turn that one policy result into a controlled halt of the parent agent loop.
+Report the actual completed spawn count, limit, requested increment, and
+trigger point in structured guardrail metadata, and reject an entire batch
+when it would cross the ceiling.
+
+Also route structured-output retry turns through the same delegated-child
+ContextVar scope as the initial child turn. This keeps Kanban ownership
+isolation active during retry and restores the parent context on success,
+failure, and exception.
+---
+
+diff --git a/agent/tool_guardrails.py b/agent/tool_guardrails.py
+--- a/agent/tool_guardrails.py
++++ b/agent/tool_guardrails.py
+@@ -194,12 +194,15 @@
+ class ToolGuardrailDecision:
+     """Decision returned by the tool-call guardrail controller."""
+ 
+-    action: str = "allow"  # allow | warn | block | halt
++    action: str = "allow"  # allow | warn | reject | block | halt
+     code: str = "allow"
+     message: str = ""
+     tool_name: str = ""
+     count: int = 0
+     signature: ToolCallSignature | None = None
++    limit: int | None = None
++    requested_count: int | None = None
++    trigger: str = ""
+ 
+     @property
+     def allows_execution(self) -> bool:
+@@ -219,6 +222,12 @@
+         }
+         if self.signature is not None:
+             data["signature"] = self.signature.to_metadata()
++        if self.limit is not None:
++            data["limit"] = self.limit
++        if self.requested_count is not None:
++            data["requested_count"] = self.requested_count
++        if self.trigger:
++            data["trigger"] = self.trigger
+         return data
+ 
+ 
+@@ -490,21 +499,26 @@
+                 # block: once the spawn cap is hit, steering/stopping the
+                 # existing children is exactly what should still work.
+                 return None
+-            if self._turn_subagent_count >= cap:
++            if self._turn_subagent_count + spawn_count > cap:
+                 decision = ToolGuardrailDecision(
+-                    action="block",
++                    action="reject",
+                     code="loop_subagent_cap",
+                     message=(
+-                        f"Blocked delegate_task: this turn has already spawned "
+-                        f"{self._turn_subagent_count} subagents (limit {cap}). "
+-                        "This looks like a runaway delegation loop. Finish the "
+-                        "work with the results you have and answer the user."
++                        "Rejected delegate_task spawn before execution: this turn "
++                        f"has already spawned {self._turn_subagent_count} subagents "
++                        f"(limit {cap}), and this call requested {spawn_count} more. "
++                        "No child was started. Continue the current turn without "
++                        "another delegate_task spawn: use completed child results or "
++                        "another in-scope tool. If direct execution is impossible, "
++                        "report the exact unfinished work and blocker once."
+                     ),
+                     tool_name=tool_name,
+                     count=self._turn_subagent_count,
+                     signature=signature,
++                    limit=cap,
++                    requested_count=spawn_count,
++                    trigger="before_call",
+                 )
+-                self._halt_decision = decision
+                 return decision
+             self._turn_subagent_count += spawn_count
+             return None
+diff --git a/tools/delegate_tool.py b/tools/delegate_tool.py
+--- a/tools/delegate_tool.py
++++ b/tools/delegate_tool.py
+@@ -2654,16 +2654,19 @@
+             except Exception as e:
+                 logger.debug("Child text relay failed: %s", e)
+ 
+-        def _run_with_thread_capture():
+-            _worker_thread_holder["t"] = threading.current_thread()
++        def _run_child_turn(user_message: str):
+             from agent.delegation_context import delegated_child_context
+ 
+             with delegated_child_context(str(getattr(child, "session_id", "") or "")):
+                 return child.run_conversation(
+-                    user_message=goal,
++                    user_message=user_message,
+                     task_id=child_task_id,
+                     stream_callback=_relay_child_text,
+                 )
++
++        def _run_with_thread_capture():
++            _worker_thread_holder["t"] = threading.current_thread()
++            return _run_child_turn(goal)
+ 
+         _child_context = contextvars.copy_context()
+         _child_future = _timeout_executor.submit(
+@@ -2824,10 +2827,8 @@
+                 _schema_retries = 1
+                 _retry_result = None
+                 try:
+-                    _retry_result = child.run_conversation(
+-                        user_message=build_retry_message(_schema_errors),
+-                        task_id=child_task_id,
+-                        stream_callback=_relay_child_text,
++                    _retry_result = _run_child_turn(
++                        build_retry_message(_schema_errors)
+                     )
+                 except Exception as _retry_exc:
+                     logger.warning(
+-- 
+2.43.0
