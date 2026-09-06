@@ -1,0 +1,35 @@
+{
+  "base_files": {
+    "agent/tool_guardrails.py": {
+      "sha256": "d4ebeded7abcb36dd0d10d235313fb7bfd05309a30850a0c3a008844f1d62d40"
+    },
+    "tools/delegate_tool.py": {
+      "sha256": "4c0d85c0ca936269037057f7bea7d258854576f76a7aeca2e3b5f3067869231f"
+    },
+    "tools/environments/base.py": {
+      "sha256": "0903f43aff1dc26b156ecb31ce787e09166c3c715a49b85579e76042453c690b"
+    }
+  },
+  "patches": [
+    {
+      "file": "0001-fix-delegation-cap-continuation-and-child-context.patch",
+      "sha256": "2d1cd357e956bf294c8e9fafda3ddcc61546d7d526d8173712b26b0af6925db1"
+    },
+    {
+      "file": "0002-fix-delegated-child-shell-snapshot.patch",
+      "sha256": "5f9421ef95d1f8035c93aeac6892f53a10787f56a93f2d6c52d311de29129f32"
+    }
+  ],
+  "schema_version": 1,
+  "base_commit": "5112f51749ac744923a702900730149dfc8634da",
+  "purpose": "Combined recovery: bounded spawn rejection, schema retry isolation, and no delegated-child identity in a shared shell snapshot.",
+  "task_id": "t_06ff17af",
+  "upstream_url": "https://github.com/NousResearch/hermes-agent.git",
+  "live_checkout_modified": false,
+  "contains_secrets": false,
+  "expected_tree": "28ffe8951d7592b2b88ef28a7f6dad875ae37a6d",
+  "runtime_restart_required": "hermes-gateway.service",
+  "approval_required": true,
+  "stale_snapshot_policy": "No hot-patching or marker clearing. Reload the patched runtime into a newly constructed terminal environment after approved restart.",
+  "verify_command": "python integrations/hermes-delegation-safety/verify_recovery_series.py --source /home/user/.hermes/hermes-agent --upstream-tests"
+}

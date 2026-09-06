@@ -1,43 +1,52 @@
-# Hermes delegation safety patch series
+# Hermes delegation safety recovery series
 
-このディレクトリは、`delegate_task`のper-turn spawn上限に達した親agentが誤ってhaltせず、既存child結果・別tool・正確なblocker報告へ同じturn内で切り替えられるようにするHermes用patchとfocused回帰資産です。併せて、structured-output retryもdelegated-child context内で実行し、成功・失敗・例外後に親のKanban所有権へ戻ることを固定します。
+このディレクトリは、委任上限だけで親agentが停止する問題、structured-output retryのchild context欠落、子の端末識別情報が共有shell snapshotから親へ漏れる問題の修復資産です。
 
-適用基点はHermes commit `5112f51749ac744923a702900730149dfc8634da`です。対象ファイルと基点SHA-256、patch SHA-256は`manifest.json`を正本とします。現在のlive Hermes checkoutは未変更です。
+適用基点はHermes commit `5112f51749ac744923a702900730149dfc8634da`です。現在のlive Hermes checkoutは未変更です。2026-09-06の追加調査で、従来の0001だけでは通常端末の漏洩を直せないことを実再現しました。旧0001と`manifest.json`は保存し、現在の結合seriesの正本を`recovery-manifest.json`とします。古い承認を新しいseriesへ流用してはいけません。
 
 ## 影響
 
-patchが変更するのは次の2ファイルだけです。
+結合seriesが変更する実行時sourceは次の3ファイルだけです。
 
-- `agent/tool_guardrails.py`: capを越えるspawn要求を実行前の`reject`として返し、親loopをhaltさせません。batch全体が上限を越える場合もchildを1件も開始せず、完了済みspawn数、上限、今回要求数、発火点をstructured metadataへ残します。
-- `tools/delegate_tool.py`: 初回child turnとschema retry turnを同じ`delegated_child_context` helper経由にし、ContextVarを各経路で復元します。
+- `agent/tool_guardrails.py` (0001): 上限を越えるspawn要求だけを実行前の`reject`として返し、親loopをhaltさせません。cap値、control action、web-search cap、repeated-failure hard stopは変更しません。
+- `tools/delegate_tool.py` (0001): 初回child turnとschema retry turnを同じcontext helper経由にし、各経路で親contextを復元します。
+- `tools/environments/base.py` (0002): `HERMES_DELEGATED_CHILD_CONTEXT`をsnapshotへ書き出す専用subshellだけで除外します。実行中の子の環境印・Kanban guardは維持し、後続の親が古い子の識別情報をsourceしないようにします。環境印の手動解除、DB直接更新、guard無効化はしません。
 
-cap値、control action、web-search cap、repeated-failure hard stopは変更しません。`loop_subagent_cap`以外のguardrail halt挙動も維持します。
+scope制御v2、自律改善timer、profile設定、既存の並行worktree、資格情報は変更対象外です。
 
 ## 検証
 
-PDA repository rootから次を実行します。
+PDA task worktreeから、実際の親プロセスで実行します。
 
 ```bash
-pytest -q integrations/hermes-delegation-safety/tests
+python -B -m pytest -q integrations/hermes-delegation-safety/tests
+python -B integrations/hermes-delegation-safety/verify_recovery_series.py --source /home/user/.hermes/hermes-agent --upstream-tests
 python -m compileall -q integrations/hermes-delegation-safety
 ```
 
-focused testは同一probeを2回使います。未変更の基点では、cap境界、親loop継続、child retry context＋親Kanban mutationの3シナリオがすべて失敗することを確認します。次に基点2ファイルだけの一時overlayへpatchを適用し、同じ3シナリオが通ること、patch外ファイルを変更しないこと、rendered patch・manifest・source hashが一致することを確認します。一時overlayとscratchはテスト終了時に削除します。
+新しいprobeは旧版でparent-beforeのKanban作成成功、childの拒否、parent-afterの誤拒否を実測してREDにします。修正後は成功、終了code非0、context例外、child-first、親子の並行実行という5条件を実際のLocalEnvironmentで検証します。子の通常/独立プロセス両方のKanban拒否、親の作成成功、通常のshell変数保存も確認します。HOME・Kanban DBは使い捨て領域に固定され、本番盤面を試験に使用しません。genuine childから親probeを起動すると明示的に拒否されます。その拒否を環境解除で回避してはいけません。
+
+結合検証は使い捨てcloneに0001→0002を順に適用します。3つの既存cap/retryシナリオ、新5シナリオ、既存Hermesの関連5ファイルをcanonical runner・2並列で実行し、最終Git treeをmanifestへ照合します。逆順rollbackで基点treeへ完全に戻ることも確認します。2026-09-06の初回検証はartifact suite 14 passed、Hermes既存回帰35 passedです。実行時sourceの新規書込は使い捨てcloneだけです。
 
 ## 適用
 
-適用は、task・head・changed-files・対象・ordered stepsが一致するdigest-boundなオーナー承認後だけ行います。承認時は次の順序を変えません。
+task・head・changed-files・対象・ordered stepsが一致する新しいdigest-boundなオーナー承認後だけ適用します。
 
-1. PDA task branchを承認済みheadのままPDA mainへ統合する。
-2. live Hermes HEADと対象2ファイルのhashが`manifest.json`の基点と一致することを確認する。不一致なら適用せず、新しい基点でpatchを再生成して再承認を得る。
-3. live checkoutでpatchの事前checkを行い、同じartifactを適用する。
-4. focused probeをpatch済みlive sourceへ実行する。
-5. Hermes gatewayを再起動し、healthを確認する。
+1. 正規`operations/improvement/install.py --check-approval`が`ok=true, mode=checked`を返すことを確認する。古い承認ID、blocked状態のままの承認、HEAD変更後の承認を再使用しない。
+2. PDA mainがcleanで他スレッドの変更を含まないことを確認し、承認済みtask headだけをPDA mainへ統合する。pushはしない。
+3. live HermesのHEAD、clean状態、3対象ファイルhashが`recovery-manifest.json`の基点と一致することを確認する。不一致なら追加修正やresetをせず停止する。
+4. 0001→0002を`git apply --check --index` / `git apply --index`で順に適用する。`git write-tree`がmanifestのexpected_treeと一致し、staged対象が3ファイルだけであることを確認し、当該3ファイルだけをローカルcommitする。remote pushはしない。
+5. 承認済みsourceへの新probeを隔離HOMEで実行する。実サービスの再起動直前に現在の会話へ短い中断予告を返す。
+6. `hermes-gateway.service`だけを再起動し、bounded health確認後、実会話で親→Luna委任→親の通常端末とKanban読み取りを検証する。終了時はカードへ実測結果を記録する。再起動・E2E不成功時はrollbackへ進み、同じ切替を繰り返さない。
 
-patchは標準の`git apply --check`と`git apply`で扱えるunified mail patchです。承認前のlive適用、gateway再起動、main統合は行いません。
+既に汚染されたsnapshotをhot patchや環境印の削除で直す設計ではありません。修正sourceのロードと新しいterminal環境の構築が必要なため、gateway再起動が最終反映に含まれます。保存された会話は同じチャットから継続する方針ですが、実行中runの中断・利用者による次の一言が必要になる可能性は残ります。
 
 ## rollback
 
-runtime rollbackは承認済みpatchをlive checkoutで`git apply --reverse --check`してから`git apply --reverse`し、Hermes gatewayを再起動してhealthを確認します。PDA側の管理artifactは監査・再適用判断のため保持します。逆適用checkが失敗した場合は別修正を加えず停止し、driftとして再判断します。
+本番反映前に記録したHermesの基点HEADを正本とします。反映直後のHEAD・clean状態・対象hashが想定どおりの時だけ0002→0001を`git apply --reverse --check --index` / `git apply --reverse --index`で戻し、基点treeとの一致を確認してrollback commitし、gatewayだけを再起動します。driftや予期しない変更があれば自動reset・stash・破棄をせず停止します。PDA側の管理artifactは監査用に保持します。
 
-残存リスクは、patchが指定Hermes基点へ厳密に拘束されるためupstream更新後はそのまま適用できないことと、focused probeがsynthetic agent loopを検証する一方、実gatewayの再起動後healthは最終適用工程で別途確認する必要があることです。
+## 現セッションの暫定経路と限界
+
+正当な親の`terminal(background=true)`は共有snapshotを経由せず、Kanban操作を継続できます。genuine childは同経路でも拒否されることを別途検証済みです。通常foreground端末の恒久修復ではありません。`notify_unsupported`が返るAPI runでは`process`で結果を取得します。Kanban専用tool schemaが会話開始時点で非公開の場合も、正常なCLI経路と区別して報告します。
+
+修復assetはlocal task branchに保存します。本番反映、remote custody、upstream統合はいずれも今回の実装完了とは別です。
