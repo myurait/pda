@@ -39,7 +39,7 @@
 
 ### R2/R3への明示entry gate
 
-R1の文書が完成しただけでは、R2/R3の実証batchは開始しない。対象candidate、隔離環境、変更対象、データ種別、外部送信先、credential/課金経路、時間・費用の上限、停止・cleanup/破棄範囲を提示し、**オーナーの明示entry承認**を得る。この許可はR4の採用判断やR5の本番canary/自律改善再開とは別である。
+R2/R3の実証batchへ入る前提は、R0の証拠付きpostmortemと失敗fixtureの確定、およびR1の比較条件の固定である。R1の文書が完成しただけでは開始しない。対象candidate、隔離環境、変更対象、データ種別、外部送信先、credential/課金経路、時間・費用の上限、停止・cleanup/破棄範囲を提示し、**オーナーの明示entry承認**を得る。この許可はR4の採用判断やR5の本番canary/自律改善再開とは別である。
 
 承認前に継続できるのは、現許可内の公開source調査、既存証拠・合成fixtureの分析、read-only確認である。R2/R3用のruntime install/update、provider credential利用、課金、managedへのデータ送信、実データmigration、環境の破棄を包括許可しない。今回既に行ったDBOS単体の合成・使い捨てprobeは調査証拠であり、R2/R3のentry承認取得や完了を意味しない。
 
