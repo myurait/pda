@@ -1,0 +1,454 @@
+{
+  "decision": "NO-GO",
+  "M2_complete": false,
+  "M3_started": false,
+  "runtime_code_committed": false,
+  "recorded_at": "2026-09-08T08:53:37.223222+09:00",
+  "current_runtime_artifact": "5b62eb5221c731b779e634fe403c483864ce1acef8e007443e32e080d681087b",
+  "unit_tests": {
+    "command": "python -m pytest tests/v2/recovery -q",
+    "passed": 83,
+    "last_elapsed_seconds": 35.85
+  },
+  "candidate": {
+    "kind": "verified-development-evidence-not-full-M2-acceptance",
+    "recorded_at": "2026-09-08T08:27:11.748650+09:00",
+    "artifact": "5b62eb5221c731b779e634fe403c483864ce1acef8e007443e32e080d681087b",
+    "runtime_hashes": {
+      "control.py": "9589a855b398f8911160919b63273c523af437d79e431b98f3e521ba619a4a6e",
+      "service.py": "8cfa829a42306141c8462814d6a81f12d8f6b091555f8af3443df10fed2ed247",
+      "sink.py": "417d844ca151476f450ca52f817ef5fbd49b3ccb481838a414f056385495c1ce",
+      "worker.py": "7c55795623eeff43eb05bffade9a3804731f09f0d146fa921e7ca6f7380b7e5b",
+      "launcher.py": "779e3b62f67f37347568b48efe15c8358635d7573884aad4ce39fc2dd0ee2fe9",
+      "observe.py": "c3894d4d9a1283668a164db5b4deeabc57d4700f4e8d2638812036a4fb5a9629",
+      "model_once.py": "4298306dd9de78348665718d929b9e09a8ba3f842eeeaa511d13e88d439b9e66",
+      "model_fixture.py": "28d5e248cce63615f5127eb3e70d97bdf27dd416a28c7cedcf11369cb8422216",
+      "hermes_fixture.py": "cfa6d625effa97169b30fc67bfc49788e1293fa7e74031eb06277f45a75ba8ec",
+      "restore.py": "4bbbe45bcda661b74a874df2e6833a896c6558aa6bc7b3f4f2cd93f6a7c8137c",
+      "sandbox.py": "234e3fc665f8792e9b774d61f5e0bec97e46d3699ffeb37a9951c838c06871ff"
+    },
+    "actual_Hermes_source": "b5ae2debe7c51bf728127c7314e75f4f19b80b9a",
+    "real_model": "openai-codex:gpt-6-astra/max",
+    "model_calls": 37,
+    "model_usage": {
+      "prompt_tokens": 3552,
+      "completion_tokens": 9075,
+      "total_tokens": 12627
+    },
+    "matrix_groups": {
+      "F1 worker crash": 6,
+      "F6 authority restart + F5 stops": 6,
+      "F8 after receipt/checkpoint": 6,
+      "F5 revoked": 6,
+      "F1/F8 parent-exit handoff": 6
+    },
+    "max_fault_to_result_seconds": 36.74209435842931,
+    "budget_trials": 6,
+    "config_trials": 30,
+    "restore_trials": 18,
+    "resource_trials": 12,
+    "local_endpoint_fault_trials": 18,
+    "external_receipts": 40,
+    "duplicate_receipts": 0,
+    "entry_reservations": {
+      "limit": 935,
+      "used": 40
+    },
+    "prior_consumption": {
+      "lineage": [
+        {
+          "source": "/home/user/.hermes/workspaces/pda-v2-m2/20260907/control/control.db",
+          "entry": null
+        },
+        {
+          "source": "/home/user/.hermes/workspaces/pda-v2-m2/serial-20260907/ledger/control.db",
+          "entry": {
+            "limit": 1000,
+            "used": 53
+          }
+        }
+      ],
+      "prior_used": 53,
+      "new_cap": 947,
+      "not_reset": true
+    },
+    "prior_consumption_correction": {
+      "reason": "oldest schema had no entry metadata; account observed per-activity reservations, retain original allocation evidence",
+      "additional_prior_used": 12,
+      "prior_known_total": 65,
+      "new_limit": 935,
+      "current_used": 40,
+      "no_grants_renewed": true
+    },
+    "runtime_logical_lines": 800,
+    "aggregate_declared_caps": {
+      "CPU_cores": 1.7,
+      "tasks": 128,
+      "RAM_MiB": 1888
+    },
+    "invalid_driver_trials_retained": [
+      {
+        "case": "f8-0",
+        "error_type": "RuntimeError",
+        "reason": "subprocess selected historical root; its already-staged guard refused before work. Fresh trial remained unclaimed and was later exercised with corrected driver."
+      }
+    ],
+    "restore_driver_invalid_retained": "restores/clean-0-invalid-driver-call; missing namespace TypeError before restore executed",
+    "known_blockers": [
+      "worker persistent bind mount has no enforced byte/inode quota; Docker storage-opt accepted 32MiB but allowed40MiB; tmpfs would weaken persistence and is rejected",
+      "Fresh whole-deployment review pending; previous partial reviews are not approval for changed bytes",
+      "F7 read-only/doc-edit scoped agent behavior not fully connected in this prototype",
+      "F8 full before-send/lost-response/delayed-content matrix and F9 whole connected-outage variants not all covered by current groups",
+      "F10 variants alter prototype metadata markers, not real historical schema migrations; restored execution remains held; SIGKILL staging cleanup unproven"
+    ],
+    "full_M2": "NO-GO for unrestricted worker storage; remaining coverage INCONCLUSIVE",
+    "M3": "NOT-STARTED",
+    "production": "gateway PID2309694 unchanged and Open WebUI health true during resource probes"
+  },
+  "review": {
+    "kind": "fresh-stateless-context-not-independent-OS-principal",
+    "group": "all",
+    "digest": "2befc6a1f238bab76ac054035948e59d285295d56aa9192c2f946c1b31770ca6",
+    "hashes": {
+      "experiments/v2/recovery/control.py": "9589a855b398f8911160919b63273c523af437d79e431b98f3e521ba619a4a6e",
+      "experiments/v2/recovery/hermes_fixture.py": "cfa6d625effa97169b30fc67bfc49788e1293fa7e74031eb06277f45a75ba8ec",
+      "experiments/v2/recovery/launcher.py": "779e3b62f67f37347568b48efe15c8358635d7573884aad4ce39fc2dd0ee2fe9",
+      "experiments/v2/recovery/model_fixture.py": "28d5e248cce63615f5127eb3e70d97bdf27dd416a28c7cedcf11369cb8422216",
+      "experiments/v2/recovery/model_once.py": "4298306dd9de78348665718d929b9e09a8ba3f842eeeaa511d13e88d439b9e66",
+      "experiments/v2/recovery/observe.py": "c3894d4d9a1283668a164db5b4deeabc57d4700f4e8d2638812036a4fb5a9629",
+      "experiments/v2/recovery/restore.py": "4bbbe45bcda661b74a874df2e6833a896c6558aa6bc7b3f4f2cd93f6a7c8137c",
+      "experiments/v2/recovery/sandbox.py": "234e3fc665f8792e9b774d61f5e0bec97e46d3699ffeb37a9951c838c06871ff",
+      "experiments/v2/recovery/service.py": "8cfa829a42306141c8462814d6a81f12d8f6b091555f8af3443df10fed2ed247",
+      "experiments/v2/recovery/sink.py": "417d844ca151476f450ca52f817ef5fbd49b3ccb481838a414f056385495c1ce",
+      "experiments/v2/recovery/worker.py": "7c55795623eeff43eb05bffade9a3804731f09f0d146fa921e7ca6f7380b7e5b",
+      "tests/v2/recovery/serial_lab.py": "af88ae57612c8c57b84fdbfeaa98b3c10227dcecc63b5fb7291f2021da76253f",
+      "tests/v2/recovery/final_lab.py": "1460aeb77dea5b3263888a5e85e5e1c77588613dd36cedd6a5bdcd074c592076",
+      "tests/v2/recovery/final_config_cases.py": "4d8a665bc2f3e8998509e7a0c3a6d9fe23552538124fac65ba64a802038e55b8",
+      "tests/v2/recovery/final_fault_cases.py": "31b60e0f3c7867907284ebdc56acd7bdd7d34447dd3f79c15ef23f269402a150",
+      "tests/v2/recovery/summarize_final.py": "b2e767d2a812e142a3cfa620f18f2b87fc542c5f6497ad76e31c504dd2153d38",
+      "evidence/candidate-summary.json": "1d7fd4658c54856e10b99b52af9a150e996edc7ade77c18f8ffb5363b46f5af7",
+      "evidence/storage-quota-probe.json": "ff2a1cdb2fe440a0fd2c89f598705d417085ea6822d34ab4915b9f87b168e626"
+    },
+    "verdict": {
+      "passed": false,
+      "security_concerns": [
+        {
+          "file": "experiments/v2/recovery/launcher.py",
+          "line": 27,
+          "impact": "The untrusted durable worker has an unrestricted writable host bind mount at /state. Memory, CPU, PID and /tmp limits do not bound durable bytes or inodes. A worker can exhaust the shared filesystem and impair authority commits, receipts and independent observation. This is a concrete isolation gap within the disposable experiment, not a production-only requirement. The supplied evidence also explicitly acknowledges it.",
+          "reproduction": "In a disposable, separately capacity-limited test filesystem, run a UID65534 worker using container_command and create files in /state beyond the intended durable allowance, including a bounded many-small-files probe. There is no per-worker byte or inode enforcement in this command. Do not perform a host-wide exhaustion test. The supplied storage probe concerns a different Docker storage arrangement and does not establish a quota on this bind mount.",
+          "fix": "Back /state with persistent storage having verified byte and inode quotas, and refuse launch if enforcement cannot be established. Test both enforcement and restart persistence. Do not substitute tmpfs for the required durable state."
+        },
+        {
+          "file": "experiments/v2/recovery/model_fixture.py",
+          "line": "26–33, 50–51",
+          "impact": "Model admission is a check-then-dispatch race. authorized_prompt releases its authority connection before infer_once reserves the call and invokes the transport. Stop, revoke or claim replacement can commit and acknowledge during this gap, after which the old request can initiate a new provider call. This concerns dispatch after acknowledged revocation, not cancellation of an already-dispatched call, and does not assume exactly-once behavior from the provider.",
+          "reproduction": "Use a registered, previously unused call_id and a valid UID65531 infer request. Pause the handler immediately after authorized_prompt returns. Through the owner endpoint, stop or revoke the activity, or replace its claim, and wait for acknowledgment. Resume the handler. infer_once does not revalidate authority and invokes the transport under the obsolete authorization. A deterministic counting transport can demonstrate this without a paid call.",
+          "fix": "Introduce a dispatch linearization barrier shared with stop, revoke and claim replacement. Validate the current epoch, fence, lease and recovery hold while protected by that barrier, and make revocation acknowledgment order against the actual transport handoff. Preserve the durable pending-before-send record and no-resend treatment. An additional unsynchronized authorization read alone does not close the race."
+        },
+        {
+          "file": "experiments/v2/recovery/launcher.py",
+          "line": "27, 30–55",
+          "impact": "The durable worker's 180-second lifetime bound exists only in its launcher. Unlike the model sandbox, the worker container has no independent watchdog. If the launcher and Docker client are killed without forwarding a termination signal, Docker can retain a running untrusted worker indefinitely. --rm removes a container after exit; it does not impose a lifetime. Claim expiry prevents new authorized effects but does not reclaim the container or its writable storage.",
+          "reproduction": "In an isolated test, launch a worker that remains running, wait until its CID is recorded, then SIGKILL the launcher and client process group. Check whether the Docker-daemon-owned container remains running beyond 180 seconds. A subsequent launcher uses the same container name, can fail with a name conflict, and its new CID file does not identify the old container for cleanup. This reproduction is proposed, not claimed as executed.",
+          "fix": "Add an independent trusted worker watchdog or a host supervisor that tracks owned container IDs durably and enforces deadlines even when the launcher dies. On restart, reconcile existing owned containers and fail closed until cleanup is verified. This is separate from the acknowledged, unproven SIGKILL cleanup of restore staging directories."
+        }
+      ],
+      "logic_errors": [
+        {
+          "file": "experiments/v2/recovery/worker.py",
+          "line": "43–58",
+          "impact": "A temporarily unavailable receipt query can become a permanently cached workflow result even after the cooperative sink has a durable receipt. effect returns uncertain after only one retry, so DBOS can persist that result as a completed step/workflow. Later launches retrieve the cached result without querying control again. Automatic recovery therefore cannot converge to confirmed for this crash/response-loss case, although the authority supports safe query-only reconciliation.",
+          "reproduction": "Let dispatch commit at the sink while its response is lost. Make the worker's immediate retry query unavailable, but allow both control RPCs to return state=uncertain. Let the workflow finish and record held. Restore sink availability and relaunch with a fresh valid claim. The existing-workflow branch retrieves uncertain, performs no receipt query, and reports held again. Repeat: the durable sink receipt is never discovered by the worker.",
+          "fix": "Separate durable computation completion from receipt reconciliation. Before completing a retrieved uncertain workflow result, query the existing operation through control using the current claim and the original payload/digest; never redispatch it. Alternatively, provide a bounded trusted reconciliation path and explicitly expose that it is needed. Ensure same-fence completion idempotency does not prevent held-to-confirmed reconciliation once evidence becomes available."
+        }
+      ],
+      "suggestions": [
+        "Add deterministic interleaving tests for model admission versus stop, revoke and claim replacement, and for sink receipt persistence followed by repeated response/query loss. Assert transport dispatch counts and independently read receipt counts, rather than relying only on worker result files.",
+        "Keep acceptance gaps separate from implementation defects: SIGKILL restore-staging cleanup, the full delayed/lost-response matrix, connected-outage variants, and historical schema migrations remain unproven. The supplied 83-test count and candidate summary do not establish full acceptance.",
+        "Expose recovery-hold explicitly in owner status summaries and observer output. A readable restored database is intentionally held, and owner resume/grant/claim operations must not make that global restriction invisible to an operator.",
+        "Review and supply the imported fault_matrix implementation and relevant dependency behavior before treating the complete harness as reviewed. It is referenced by final_lab.py but is not included in SOURCE; DBOS and Hermes internals likewise cannot be verified from these files alone.",
+        "Exercise container cleanup under launcher SIGKILL, relay SIGKILL, Docker-client startup interruption and cleanup-command failure. Measure surviving containers and owned staging paths after the supervisor deadline, not merely process exit codes or declared resource caps."
+      ],
+      "summary": "Static review of the supplied source found three concrete security/isolation issues and one receipt-recovery logic issue. No tools or tests were run. The trusted owner's Docker authority and the trusted cooperative sink are accepted as scoped, not treated as attacks. For the normal single-control-service path, committed intent before dispatch, query-only handling of uncertain operations, and the sink's rollback-journal read transaction provide meaningful safeguards against duplicate effects and acknowledged stop/revoke races at the synthetic sink. Restore also installs a permanent recovery hold before publishing the database; refusing semantic execution is consistent with the stated prototype boundary and is not itself a defect. However, model dispatch lacks equivalent revocation ordering, durable worker storage is unbounded, worker lifetime cleanup depends on a surviving launcher, and cached uncertain workflow results can prevent later receipt reconciliation. The supplied evidence remains development evidence, not a PASS for full acceptance."
+    },
+    "model": "gpt-6-astra",
+    "provider": "openai-codex",
+    "usage": {
+      "prompt_tokens": 26625,
+      "completion_tokens": 4077,
+      "total_tokens": 30702
+    },
+    "seconds": 171.90627121645957
+  },
+  "parent_reproductions": [
+    {
+      "finding": "DBOS caches uncertain receipt; relaunch cannot converge",
+      "reproduced": true,
+      "first_rpc_operations": [
+        "effect",
+        "effect",
+        "complete"
+      ],
+      "second_rpc_operations": [
+        "complete"
+      ],
+      "calculation_count": 1,
+      "second_phase": "held",
+      "method": "real DBOS2.31.0 and worker; deterministic control-RPC test double; no external effect"
+    },
+    {
+      "finding": "model admission/dispatch race",
+      "action": "claim",
+      "reproduced": true,
+      "dispatches_after_ack": 1,
+      "state_at_dispatch": {
+        "stop": false,
+        "revoked": false,
+        "fence": 2
+      },
+      "real_provider_calls": 0,
+      "method": "real handler/admission/SQLite + deterministic interleaving; peer and transport test doubles"
+    },
+    {
+      "finding": "model admission/dispatch race",
+      "action": "revoke",
+      "reproduced": true,
+      "dispatches_after_ack": 1,
+      "state_at_dispatch": {
+        "stop": false,
+        "revoked": true,
+        "fence": 1
+      },
+      "real_provider_calls": 0,
+      "method": "real handler/admission/SQLite + deterministic interleaving; peer and transport test doubles"
+    },
+    {
+      "finding": "model admission/dispatch race",
+      "action": "stop",
+      "reproduced": true,
+      "dispatches_after_ack": 1,
+      "state_at_dispatch": {
+        "stop": true,
+        "revoked": false,
+        "fence": 1
+      },
+      "real_provider_calls": 0,
+      "method": "real handler/admission/SQLite + deterministic interleaving; peer and transport test doubles"
+    },
+    {
+      "finding": "worker outlives its parent-enforced 180s deadline",
+      "reproduced": true,
+      "seconds_alive": 185.02033636253327,
+      "client_and_launcher_exit": "SIGKILL",
+      "running_after_deadline": true,
+      "method": "actual container_command/run_container; full systemd restart/name-collision path remains untested",
+      "control_and_provider_calls": 0
+    }
+  ],
+  "closed": {
+    "phase": "closed-development-no-go",
+    "stopped_activities": 68,
+    "snapshot": "/home/user/.hermes/workspaces/pda-v2-m2/final-20260908/closed-control-snapshot.db",
+    "snapshot_sha256": "78b318b6738bd5ecd3b59c028bd2477fbc1afb957744e883fbcd402d0f3699d7",
+    "units_stopped": [
+      "pda-v2-m2-serial-final-model",
+      "pda-v2-m2-serial-final-sink",
+      "pda-v2-m2-serial-final-control"
+    ],
+    "test_containers_remaining": 0,
+    "active_test_units": 0,
+    "production_PID": "2309694",
+    "recorded_at": "2026-09-08T08:36:06.871998+09:00"
+  },
+  "fixture_calls_exclude_stateless_reviews": true,
+  "accounting_correction": {
+    "reason": "oldest schema had no entry metadata; account observed per-activity reservations, retain original allocation evidence",
+    "additional_prior_used": 12,
+    "prior_known_total": 65,
+    "new_limit": 935,
+    "current_used": 40,
+    "no_grants_renewed": true
+  },
+  "limits": [
+    "Same-host primitive only; not full PDA recovery",
+    "Final static review used no tools and no independent OS principal",
+    "Parent reproductions use explicit test doubles where recorded",
+    "No historical schema migration or automatic recovery-hold reconciliation claim",
+    "Raw ledgers and capabilities remain private and are excluded from this record/archive"
+  ],
+  "dependencies": {
+    "dbos": {
+      "external_path": "/home/user/.hermes/workspaces/pda-v2-m2/20260907/deps",
+      "versions": {
+        "typing_extensions": "4.16.0",
+        "six": "1.17.0",
+        "click": "8.5.0",
+        "psycopg-binary": "3.3.5",
+        "dbos": "2.31.0",
+        "SQLAlchemy": "2.0.52",
+        "python-dateutil": "2.9.0.post0",
+        "psycopg": "3.3.5",
+        "websockets": "17.1",
+        "PyYAML": "6.0.3",
+        "greenlet": "3.5.5"
+      }
+    },
+    "hermes": {
+      "external_path": "/home/user/.hermes/hermes-agent/venv/lib/python3.11/site-packages",
+      "versions": {
+        "modal": "1.5.3",
+        "hpack": "4.2.0",
+        "referencing": "0.37.0",
+        "httptools": "0.7.1",
+        "msal": "1.37.0",
+        "proto-plus": "1.27.2",
+        "attrs": "25.4.0",
+        "tqdm": "4.67.3",
+        "ptyprocess": "0.7.0",
+        "pygount": "3.2.0",
+        "six": "1.17.0",
+        "youtube-transcript-api": "1.2.4",
+        "Jinja2": "3.1.6",
+        "distro": "1.9.0",
+        "simple-term-menu": "1.6.6",
+        "googleapis-common-protos": "1.73.0",
+        "aiosignal": "1.4.0",
+        "pytest-asyncio": "1.3.0",
+        "smmap": "5.0.3",
+        "pathspec": "1.1.1",
+        "requests": "2.33.0",
+        "jsonschema": "4.26.0",
+        "firecrawl-py": "4.17.0",
+        "Markdown": "3.10.2",
+        "pytest": "9.1.1",
+        "idna": "3.18",
+        "agent-client-protocol": "0.9.0",
+        "nemo-relay": "0.7.3",
+        "microsoft-teams-api": "2.0.14",
+        "filelock": "3.32.3",
+        "toml": "0.10.2",
+        "mcp": "2.0.0",
+        "pyparsing": "3.3.2",
+        "fastapi": "0.133.1",
+        "onnxruntime": "1.29.0",
+        "numpy": "2.4.3",
+        "google-auth-httplib2": "0.3.1",
+        "nest-asyncio": "1.6.0",
+        "croniter": "6.0.0",
+        "rich": "14.3.3",
+        "fire": "0.7.1",
+        "sse-starlette": "3.3.2",
+        "watchfiles": "1.1.1",
+        "microsoft-teams-apps": "2.0.13.4",
+        "MarkupSafe": "3.0.3",
+        "huggingface_hub": "1.27.0",
+        "protobuf": "6.33.5",
+        "yarl": "1.22.0",
+        "types-certifi": "2021.10.8.3",
+        "mdurl": "0.1.2",
+        "python-dotenv": "1.2.2",
+        "edge-tts": "7.2.7",
+        "pydantic": "2.13.4",
+        "h11": "0.16.0",
+        "pluggy": "1.6.0",
+        "packaging": "26.0",
+        "requests-oauthlib": "2.0.0",
+        "markdown-it-py": "4.0.0",
+        "websockets": "15.0.1",
+        "mcp-types": "2.0.0",
+        "av": "18.1.0",
+        "httpcore2": "2.7.0",
+        "oauthlib": "3.3.1",
+        "rpds-py": "0.30.0",
+        "ctranslate2": "4.8.1",
+        "aiohappyeyeballs": "2.6.1",
+        "uritemplate": "4.2.0",
+        "httpx-sse": "0.4.3",
+        "grpclib": "0.4.9",
+        "pydantic-settings": "2.13.1",
+        "boto3": "1.42.89",
+        "PyJWT": "2.13.0",
+        "typing-inspection": "0.4.2",
+        "chardet": "5.2.0",
+        "jmespath": "1.1.0",
+        "gitdb": "4.0.12",
+        "tabulate": "0.10.0",
+        "pillow": "12.3.0",
+        "tokenizers": "0.23.1",
+        "uvloop": "0.22.1",
+        "hf-xet": "1.6.0",
+        "aiohttp": "3.14.3",
+        "sounddevice": "0.5.5",
+        "typing_extensions": "4.15.0",
+        "ruamel.yaml.clib": "0.2.15",
+        "multidict": "6.7.1",
+        "beautifulsoup4": "4.15.0",
+        "jiter": "0.13.0",
+        "truststore": "0.10.4",
+        "s3transfer": "0.16.1",
+        "pytz": "2025.2",
+        "urllib3": "2.7.0",
+        "cbor2": "6.1.4",
+        "wcwidth": "0.6.0",
+        "botocore": "1.42.97",
+        "synchronicity": "0.12.5",
+        "pyasn1_modules": "0.4.2",
+        "google-auth": "2.55.1",
+        "httpx": "0.28.1",
+        "pyasn1": "0.6.4",
+        "jsonschema-specifications": "2025.9.1",
+        "setuptools": "79.0.1",
+        "certifi": "2026.5.20",
+        "pip": "24.0",
+        "pycparser": "3.0",
+        "microsoft-teams-common": "2.0.14",
+        "types-toml": "0.10.8.20260518",
+        "starlette": "1.3.1",
+        "socksio": "1.0.0",
+        "GitPython": "3.1.57",
+        "Pygments": "2.19.2",
+        "h2": "4.4.1",
+        "click": "8.4.2",
+        "cffi": "2.0.0",
+        "httpx2": "2.7.0",
+        "python-dateutil": "2.9.0.post0",
+        "openai": "2.24.0",
+        "anyio": "4.12.1",
+        "frozenlist": "1.8.0",
+        "hyperframe": "6.1.0",
+        "termcolor": "3.3.0",
+        "fsspec": "2026.7.0",
+        "dependency-injector": "4.49.1",
+        "cryptography": "50.0.0",
+        "sniffio": "1.3.1",
+        "ruamel.yaml": "0.18.17",
+        "uvicorn": "0.41.0",
+        "tenacity": "9.1.4",
+        "propcache": "0.4.1",
+        "iniconfig": "2.3.0",
+        "soupsieve": "2.9.1",
+        "flatbuffers": "25.12.19",
+        "faster-whisper": "1.2.1",
+        "httpcore": "1.0.9",
+        "pydantic_core": "2.46.4",
+        "annotated-doc": "0.0.4",
+        "psutil": "7.2.2",
+        "google-auth-oauthlib": "1.3.1",
+        "hermes-agent": "0.20.2",
+        "google-api-python-client": "2.194.0",
+        "opentelemetry-api": "1.44.0",
+        "PyYAML": "6.0.3",
+        "annotated-types": "0.7.0",
+        "microsoft-teams-cards": "2.0.14",
+        "charset-normalizer": "3.4.4",
+        "google-api-core": "2.30.3",
+        "prompt_toolkit": "3.0.52",
+        "httplib2": "0.32.0",
+        "defusedxml": "0.7.1",
+        "python-multipart": "0.0.32"
+      }
+    }
+  },
+  "docker_image": "sha256:35d3a4a3d5e42e02ab916d44513a050689f12c0533d45598d229672503fe77ca"
+}
