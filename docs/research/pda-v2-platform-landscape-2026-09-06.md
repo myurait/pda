@@ -2,6 +2,8 @@
 
 観測日: 2026-09-06 JST。対象は公開一次資料、公式リポジトリの固定snapshot、および無認証・無課金・本番非接続の小規模probeです。
 
+2026-09-07追補: [注意の切替と記憶・skillの部分的忘却](../design/v2-attention-memory-lifecycle-2026-09-07.md)。追加の公開一次資料7件により、階層context・休眠skill・意味的な抽象化・不要想起の抑制を比較要件へ追加しました。既存の観測日・実測結果は変更せず、製品採用や追加実証をした扱いにはしません。
+
 これは製品導入の承認書ではありません。[現行設計のgap](../design/v2-gap-assessment-2026-09-06.md) と [v2第1ロードマップ](../roadmap/v2-01-whole-system-reassessment.md) の判断材料です。現在の自律改変停止を維持します。
 
 ## 1. 結論
@@ -83,9 +85,11 @@ local App Serverはon-device stateを持つ候補であり、Letta accountなし
 
 Hindsightについては、最初のREADME中心の調査ではexport/deleteを未確認としていました。公式API referenceまで追跡し、上表の契約を確認して判断を更新しました。特にdocument transferは抽出済みfact・entity名・causal link・chunkを持ち、embedding/DB IDを除外します。observationとknowledge baseの付帯exportは既定falseの別optionです。存在だけでなく、**何が入らないか**が退出コストの証拠になります。[215]
 
-最初のmemory比較はbaselineを必須とし、Hindsightの経験記憶、Honchoのuser modeling、Graphitiの時間・関係という異なる仮説を同じ小fixtureで段階比較する提案です。三つを同時運用する提案ではありません。導入負担が過大ならMem0を軽量対照へ切り替えます。OpenViking/Cogneeは固有のgapが残った時の次候補です。
+最初のmemory比較はbaselineを必須とします。2026-09-07の要求追補で、場面ごとの選択と索引の抽象度が必須になったため、OpenVikingの階層contextとHindsightの経験統合・階層参照・更新制御を一次比較へ引き上げました。files/FTSにも通常の抽象索引と詳細取得の区別を持つ最小対照を置き、Hermes/Lettaの既存能力で同じ効果を得る案と比較します。Honchoのuser modeling、Graphitiの時間・関係、軽量対照のMem0、統合pipelineのCogneeも異なる仮説として保持します。同時運用の提案ではありません。公開契約・限界・保守費と比較条件は上記追補が正本です。
 
 vendor benchmark順位は採否根拠にしません。LongMemEval-V2はreader/embedding構成を固定した実験であり、各社READMEのscoreは同じ条件とは限りません。[210] Hindsight自身も他社scoreにself-reported値があると記載し、Cogneeも比較条件差を明示しています。[204][208] 日本語での訂正、出典、適用期限、不採用の記憶、privacy境界、削除後の再出現、失敗後の継続を同条件で測ります。
+
+追加評価では「覚えていても今は出さない」こと、退場した案件を出典付きの抽象経験へ降格すること、休眠skillを名前なしで再発見し適用性を再検証することも測ります。履歴量・skill数を増やした場合のcatalog/context・探索費・要約メンテナンス費を含めます。archive、TTL削除、全文のlazy loading、graph表現のどれか一つを、部分的忘却全体の達成としません。
 
 ## 6. 活動stateと復帰 — 既製の永続実行を使う価値と限界
 
