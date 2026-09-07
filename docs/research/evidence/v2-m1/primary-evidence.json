@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "kind": "normalized-primary-evidence",
+  "scope": "v2-m1-limited-read-only-forensics",
+  "production_incident_replay": false,
+  "db_access": {
+    "sqlite_mode": "ro",
+    "query_only": true,
+    "query_only_value": 1,
+    "relevant_tables": [
+      "scope_v2_turns",
+      "scope_v2_tool_calls",
+      "scope_v2_effects",
+      "scope_v2_session_links",
+      "pm_decisions",
+      "pm_failures"
+    ],
+    "db_sha256": "132e427cccdb5be2e68afce077dde127f37f3215d086823e816e0315d71693b3"
+  },
+  "incident_candidate": {
+    "session_match_in_scope_db": true,
+    "first_locked_turn": {
+      "state": "locked",
+      "scope_verdict": "pass",
+      "configured_max_tool_calls": 6,
+      "recorded_tool_calls": 8,
+      "superseded_review_count": 4,
+      "completion_status": null,
+      "created_at": "2026-09-04T13:24:19.726599+09:00",
+      "updated_at": "2026-09-04T13:34:10.548116+09:00",
+      "tool_call_decision_counts": {
+        "reviewed-exact-command": 3,
+        "reserved": 4,
+        "command-not-reviewed": 1
+      },
+      "effect_kind_counts": {
+        "process-manage": 3
+      },
+      "explicit_tool_budget_exhausted_rows_in_scope_v2_tool_calls": 0
+    },
+    "persisted_cap_counter_mismatch_confirmed": true,
+    "direct_denial_row_confirmed": false,
+    "all_effects_zero_confirmed": false
+  },
+  "designated_same_shape_log": {
+    "result_lines_with_explicit_budget_exhausted": 10,
+    "same_incident_as_candidate_session": false,
+    "excerpt_sha256": "63fca3124f5ff4f8d5ddf76ed6f635e18aa0e81489b2f0c0d0d64296301928aa"
+  },
+  "offline_same_shape_witness": {
+    "configured_budgets": [
+      1,
+      8,
+      96
+    ],
+    "observed_self_blocking": true,
+    "recorded_external_effects": 0,
+    "source_unchanged": true,
+    "live_gate_enabled_by_probe": false,
+    "original_incident_trigger_established": false
+  },
+  "evidence_limits": [
+    "The pre-tool denial itself is not directly persisted in the selected DB rows.",
+    "The cap-change payload order and prior cap history are absent.",
+    "The first denied call and card-create/complete dispatch sequence are absent.",
+    "The postmortem session locator has no matching runtime turn row in the selected DB tables."
+  ],
+  "publication_safety": {
+    "raw_logs_included": false,
+    "raw_prompts_included": false,
+    "reviewer_full_text_included": false,
+    "secrets_included": false,
+    "personal_conversation_included": false
+  }
+}
