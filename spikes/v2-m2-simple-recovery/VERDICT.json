@@ -1,0 +1,171 @@
+{
+  "task_id": "t_ec4c52b9",
+  "technical_verdict": "LIMITED_M3_CANDIDATE_SELECTED",
+  "independent_review": false,
+  "production_adoption": false,
+  "production_change": false,
+  "selected": "Hermes 0.21.1 clean source, minimal standard Docker deployment",
+  "cases": [
+    {
+      "id": "hermes-final-crash-1",
+      "control_s": 3.911,
+      "readback_s": 14.58,
+      "pass": true,
+      "sum_of_recorded_components_s": 18.491
+    },
+    {
+      "id": "hermes-final-crash-2",
+      "control_s": 3.78,
+      "readback_s": 15.463,
+      "pass": true,
+      "sum_of_recorded_components_s": 19.243
+    },
+    {
+      "id": "hermes-final-crash-3",
+      "control_s": 3.759,
+      "readback_s": 15.654,
+      "pass": true,
+      "sum_of_recorded_components_s": 19.413
+    },
+    {
+      "id": "hermes-final-crash-4",
+      "control_s": 3.735,
+      "readback_s": 14.28,
+      "pass": true,
+      "sum_of_recorded_components_s": 18.015
+    },
+    {
+      "id": "hermes-final-resource-bytes",
+      "control_s": 0,
+      "injection_s": 0.149,
+      "readback_s": 9.059,
+      "pass": true,
+      "scope": "work tmpfs or container memory only; persistent home is not hard-quota bounded",
+      "sum_of_recorded_components_s": 9.059
+    },
+    {
+      "id": "hermes-final-resource-inodes",
+      "control_s": 0,
+      "injection_s": 0.171,
+      "readback_s": 14.074,
+      "pass": true,
+      "scope": "work tmpfs or container memory only; persistent home is not hard-quota bounded",
+      "sum_of_recorded_components_s": 14.074
+    },
+    {
+      "id": "hermes-final-resource-memory",
+      "control_s": 0,
+      "injection_s": 1.087,
+      "readback_s": 18.075,
+      "pass": true,
+      "scope": "work tmpfs or container memory only; persistent home is not hard-quota bounded",
+      "sum_of_recorded_components_s": 18.075
+    },
+    {
+      "id": "hermes-final-inflight-stop",
+      "control_s": 3.804,
+      "readback_s": 11.065,
+      "native_effect_assessment_s": 17.936,
+      "pass": true,
+      "sum_of_recorded_components_s": 32.805
+    },
+    {
+      "id": "hermes-final-inflight-orphan",
+      "control_s": 3.787,
+      "readback_s": 12.065,
+      "native_effect_assessment_s": 12.761,
+      "pass": true,
+      "sum_of_recorded_components_s": 28.613
+    },
+    {
+      "id": "hermes-bad-update",
+      "control_s": 7.694,
+      "standard_restore_s": 7.694,
+      "readback_s": 13.589,
+      "pass": true,
+      "sum_of_recorded_components_s": 21.283
+    },
+    {
+      "id": "hermes-compatible-restore",
+      "control_s": 8.616,
+      "standard_restore_s": 8.616,
+      "readback_s": 14.445,
+      "pass": true,
+      "sum_of_recorded_components_s": 23.061
+    },
+    {
+      "id": "hermes-final-memory-outage",
+      "control_s": 3.89,
+      "standard_restore_s": 3.939,
+      "readback_s": 17.176,
+      "pass": true,
+      "sum_of_recorded_components_s": 21.066
+    },
+    {
+      "id": "hermes-model-outage",
+      "control_s": 6.353,
+      "standard_restore_s": 6.311,
+      "readback_s": 13.452,
+      "pass": true,
+      "sum_of_recorded_components_s": 19.805
+    },
+    {
+      "id": "hermes-repair-capability-verification",
+      "model_s": 16.075,
+      "pass": true,
+      "scope": "bounded file repair, not body/host update authority",
+      "sum_of_recorded_components_s": 0
+    }
+  ],
+  "selected_case_count": 14,
+  "max_control_or_standard_restore_s": 8.616,
+  "max_sum_of_recorded_components_s": 32.805,
+  "timing_caveat": "Sums combine separate recorded intervals and exclude observer bookkeeping; they are not a separately sampled whole-drill wall clock. State/model-available recovery thresholds remain 120/300 seconds. Model-provider outage itself is not healed by restarting the body.",
+  "custody": {
+    "source": "quiesced native state before incompatible-generation fixture",
+    "old_message_count": 87,
+    "restored_or_later_message_count": 124,
+    "missing_ids": [],
+    "changed_committed_message_ids": []
+  },
+  "tested_violation_counts": {
+    "owner_rescue": 0,
+    "committed_message_loss_at_restore": 0,
+    "stopped_job_auto_restart": 0,
+    "blind_replay_effects": 0
+  },
+  "letta": {
+    "decision": "NOT_SELECTED_THIS_CONFIGURATION",
+    "baseline": "INCONCLUSIVE; no successful Letta-mediated model readback",
+    "source": "official npm 0.31.13; gitHead a501f8c4557e49812d66c7b801eff0ade5516343",
+    "plain_restart": {
+      "ready": true,
+      "control_s": 1.733,
+      "before_restart_count": 0,
+      "after_restart_count": 1,
+      "committed_prefixes_preserved": true,
+      "retained_files": 5,
+      "model_readback": "NOT PASSED: three baseline attempts did not return within their bounds; never infer model comprehension from HTTP readiness",
+      "native_agent_restored": true
+    },
+    "not_run": "Full fault matrix: baseline precondition unmet"
+  },
+  "managed_hybrid": {
+    "decision": "UNVERIFIED_NOT_REJECTED_ON_PERFORMANCE",
+    "representatives": [
+      "Letta Cloud managed sandbox",
+      "Letta Cloud with BYOM",
+      "Cloudflare Agents / Durable Objects",
+      "OpenAI Responses / Conversations with local execution"
+    ]
+  },
+  "limits": [
+    "Stopped/quiesced pre-change full-state restore; not arbitrary rollback zero RPO",
+    "Persistent state mount lacks hard aggregate byte/inode quota",
+    "Synthetic file effect, not real business sink or universal stop/send fence",
+    "Native API idempotency retention is finite; long-window reconciliation remains M3",
+    "No whole-host/disk loss, external-provider continuity, actual production ingress preservation during network reconfiguration",
+    "No proof of candidate self-update authority or independent recovery of current production PDA",
+    "Attention, forgetting, dormant skills, activity UI, real work handoff, migration and exit remain M3"
+  ]
+}

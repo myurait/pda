@@ -1,0 +1,323 @@
+{
+  "sent": {
+    "type": "abort_message",
+    "request_id": "letta-v2-abort",
+    "runtime": {
+      "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+      "conversation_id": "local-conv-3"
+    }
+  },
+  "events": [
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "WAITING_ON_INPUT",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+        "conversation_id": "local-conv-3"
+      },
+      "event_seq": 1,
+      "emitted_at": "2026-09-08T08:25:14.596Z",
+      "idempotency_key": "update_loop_status:1:d821632b-dca7-41d1-9204-1d777c40948c"
+    },
+    {
+      "type": "update_device_status",
+      "device_status": {
+        "current_connection_id": "app-server",
+        "connection_name": "6055ca34dae2",
+        "is_online": true,
+        "is_processing": false,
+        "current_permission_mode": "unrestricted",
+        "current_working_directory": "/work",
+        "git_context": null,
+        "letta_code_version": null,
+        "current_toolset": "default",
+        "current_toolset_preference": "auto",
+        "current_loaded_tools": [
+          "Bash",
+          "Monitor",
+          "TaskOutput",
+          "EnterWorktree",
+          "ExitWorktree",
+          "SetWorkingDirectory",
+          "Edit",
+          "TaskStop",
+          "memory",
+          "Read",
+          "Skill",
+          "Agent",
+          "TaskCreate",
+          "TaskGet",
+          "TaskList",
+          "TaskUpdate",
+          "Write"
+        ],
+        "current_available_skills": [
+          {
+            "id": "acquiring-skills",
+            "name": "acquiring-skills",
+            "description": "Discover and install skills from Hermes, ClawHub, GitHub, and other registries. Load this skill whenever a user asks for a capability you don't already have — image generation, social media, email, calendar, finance, DevOps, search, browser automation, etc.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/acquiring-skills/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "browser-use",
+            "name": "browser-use",
+            "description": "Control a real browser to navigate pages, click, type, fill forms, inspect rendered UI, take screenshots, or record video. Load only when the user asks to open or automate a browser, interact with or test rendered page UI, scrape a site that needs browser execution, or capture a browser screenshot or video. Do not load for backend logs, traces, API or stream events, source-code inspection, or plain HTTP or web research that does not require a browser.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/browser-use/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "context-doctor",
+            "name": "Context Doctor",
+            "description": "Identify and repair degradation in system prompt, external memory, and skills preventing you from following instructions or remembering information as well as you should.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/context-doctor/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "converting-mcps-to-skills",
+            "name": "converting-mcps-to-skills",
+            "description": "Connect to MCP (Model Context Protocol) servers and create skills for repeated use. Load when a user wants to use an MCP server, connect to external tools via MCP, or when they mention MCP, model context protocol, or specific MCP servers.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/converting-mcps-to-skills/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "creating-mods",
+            "name": "creating-mods",
+            "description": "Creates and edits trusted local Letta Code mods, including tools, slash commands, local-only model providers, lifecycle/turn events, scoped conversation helpers, panels, and capability-gated behavior. Use when asked to make a mod, add an agent-callable tool, add a slash command, add a local provider/model adapter, transform turns, react to app events, or add lightweight mod UI outside the dedicated /statusline flow.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/creating-mods/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "creating-skills",
+            "name": "creating-skills",
+            "description": "Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Letta Code's capabilities with specialized knowledge, workflows, or tool integrations.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/creating-skills/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "customizing-commands",
+            "name": "customizing-commands",
+            "description": "Creates, edits, and enables Letta Code mod-provided slash commands. Use when the user asks to add a custom /command, slash command, command shortcut, scoped conversation-backed command, or command-driven panel behavior.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/customizing-commands/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "customizing-statusline",
+            "name": "customizing-statusline",
+            "description": "Creates, edits, and migrates Letta Code statusline mods. Use when handling the /statusline command or continuing work started by /statusline.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/customizing-statusline/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "dispatching-coding-agents",
+            "name": "dispatching-coding-agents",
+            "description": "Dispatch stateless coding agents through Claude Code or Codex. Model catalog checked 2026-08-25: Claude Code includes Sonnet 5, Opus 5, and Fable 5; Codex includes GPT-5.6 Luna, Terra, and Sol. Use when you're stuck, need a second opinion, or need parallel research on a hard problem. They have no memory, so you must provide all context.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/dispatching-coding-agents/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "editing-letta-code-desktop-preferences",
+            "name": "editing-letta-code-desktop-preferences",
+            "description": "Edits Letta Code Desktop (LCD) preferences by safely reading and updating ~/.letta/desktop_preferences.json. Use only when the user asks to change current Desktop/LCD settings such as theme, default working directory, remote access preference, or remote environment name via the preferences JSON.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/editing-letta-code-desktop-preferences/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "finding-agents",
+            "name": "finding-agents",
+            "description": "Find other agents on the same server. Use when the user asks about other agents, wants to migrate memory from another agent, or needs to find an agent by name or tags.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/finding-agents/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "initializing-memory",
+            "name": "initializing-memory",
+            "description": "Comprehensive guide for initializing or reorganizing agent memory. Load this skill when running /init, when the user asks you to set up your memory, or when you need guidance on creating effective memory files.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/initializing-memory/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "letta-guide",
+            "name": "letta-guide",
+            "description": "Read the official Letta documentation (docs.letta.com) through its cached, ETag-checked fetch route. Load before ANY docs.letta.com retrieval — answering how Letta works, what Letta (or you) can do, setting up providers, models, channels, skills, memory, schedules, permissions, self-hosting, pricing, or billing, AND looking up Letta API, Agent SDK, or Letta Code reference while writing code. Do not use fetch_webpage or web_search on docs.letta.com; this skill's helper is the docs route. Never answer Letta product questions from memory alone.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/letta-guide/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "messaging-agents",
+            "name": "messaging-agents",
+            "description": "Send messages to other agents on your server. Use when you need to communicate with, query, or delegate tasks to another agent.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/messaging-agents/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "migrating-memory",
+            "name": "migrating-memory",
+            "description": "Migrate memory blocks from an existing agent to the current agent. Use when the user wants to copy or share memory from another agent, or during /init when setting up a new agent that should inherit memory from an existing one.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/migrating-memory/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "scheduling-tasks",
+            "name": "scheduling-tasks",
+            "description": "Schedules reminders and recurring tasks via the letta cron CLI. Use when the user asks to be reminded of something, wants periodic work or check-ins, or needs to list, inspect, replace, or cancel scheduled tasks.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/scheduling-tasks/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "self-configuration",
+            "name": "self-configuration",
+            "description": "Inspect or modify Letta Code's own memory, model, context window, system prompt, compaction, permissions, toolsets, mods, skills, channels, schedules, agent secrets, and local runtime settings. Use when the user asks how this agent or conversation is configured, asks you to change how you behave or how the harness runs you, or renames you.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/self-configuration/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "submitting-feedback",
+            "name": "submitting-feedback",
+            "description": "Submits user-approved product feedback and bug reports about Letta Code to the Letta team. Load when the user reports a Letta Code bug, requests a product or developer change, or explicitly asks to send feedback. Do not load for corrections to the current agent's behavior or preferences; those are memory edits. Works with cloud-hosted and local agents. Ask before submitting unless the user already explicitly requested submission.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/submitting-feedback/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "syncing-memory-filesystem",
+            "name": "syncing-memory-filesystem",
+            "description": "Diagnose and repair MemFS repository setup, remote sync, authentication failures, optional backup remotes, or merge/rebase conflicts. Do not load for routine memory reads or edits.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/syncing-memory-filesystem/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "teleporting-between-environments",
+            "name": "teleporting-between-environments",
+            "description": "Moves the current agent conversation to Cloud, Desktop Local, or another connected computer while coordinating machine-local files and setup. Use when the user says \"let's continue this task on cloud\", asks to continue or move work on another connected computer, wants to teleport between computers, or needs to upload or download artifacts before a handoff.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/teleporting-between-environments/SKILL.md",
+            "source": "bundled"
+          },
+          {
+            "id": "using-mcp-tools",
+            "name": "using-mcp-tools",
+            "description": "Reference for the `letta mcp` CLI, which finds and invokes MCP tools available to this agent. A system reminder already lists your connected MCP servers and the basic search/schema/call commands; invoke this skill when you need more — browsing a server's tools, passing large or file-based arguments, tuning search, or troubleshooting missing servers, tools, and errors.",
+            "path": "/opt/letta/node_modules/@letta-ai/letta-code/skills/using-mcp-tools/SKILL.md",
+            "source": "bundled"
+          }
+        ],
+        "background_processes": [],
+        "pending_control_requests": [],
+        "experiments": [
+          {
+            "id": "artifacts",
+            "label": "artifacts",
+            "description": "Expose Letta Code Desktop artifact creation tools and artifact UI surfaces.",
+            "envVar": "LETTA_ARTIFACTS",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "conversation_titles",
+            "label": "conversation titles",
+            "description": "Generate AI conversation titles automatically when possible.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "desktop_conversation_bootstrap",
+            "label": "conversation bootstrap",
+            "description": "Inject lightweight prior-conversation context into the first turn of brand-new Letta Code conversations.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "diffs",
+            "label": "diffs",
+            "description": "Open browser-based worktree diff previews powered by Diffs from Pierre.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "reflection_arena",
+            "label": "reflection arena",
+            "description": "Run blind A/B comparisons between reflection models on the same transcript sample.",
+            "envVar": "LETTA_REFLECTION_ARENA",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "tui_cron",
+            "label": "TUI cron scheduler",
+            "description": "Fire scheduled tasks from the CLI when the desktop app isn't running.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          }
+        ],
+        "memory_directory": "/home/node/.letta/lc-local-backend/memfs/agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d/memory",
+        "cwd_revision": 0,
+        "should_doctor": false,
+        "supported_commands": [
+          "clear",
+          "clear-messages",
+          "doctor",
+          "init",
+          "remember",
+          "compact",
+          "reload",
+          "context-limit",
+          "channels",
+          "upgrade-letta-code",
+          "toolset",
+          "secret"
+        ],
+        "reflection_settings": {
+          "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+          "trigger": "step-count",
+          "step_count": 25,
+          "merge": "auto",
+          "merge_instructions": ""
+        }
+      },
+      "runtime": {
+        "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+        "conversation_id": "local-conv-3"
+      },
+      "event_seq": 2,
+      "emitted_at": "2026-09-08T08:25:14.596Z",
+      "idempotency_key": "update_device_status:2:cd2c4157-6e3a-4c1f-8cfa-3480a4009f96"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "lifecycle-51e77a4b-7daa-4210-b4fc-8e16aa2934ae",
+        "date": "2026-09-08T08:25:14.596Z",
+        "message_type": "status",
+        "message": "Interrupted",
+        "level": "warning"
+      },
+      "runtime": {
+        "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+        "conversation_id": "local-conv-3"
+      },
+      "event_seq": 3,
+      "emitted_at": "2026-09-08T08:25:14.596Z",
+      "idempotency_key": "stream_delta:3:af09a059-7a00-48a0-948d-506a0fbe7dcb"
+    },
+    {
+      "type": "abort_message_response",
+      "request_id": "letta-v2-abort",
+      "runtime": {
+        "agent_id": "agent-local-27024590-c243-4c7a-8dd4-5b9cf0e5277d",
+        "conversation_id": "local-conv-3"
+      },
+      "aborted": true,
+      "success": true
+    }
+  ],
+  "wall_s": 0.006
+}
