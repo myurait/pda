@@ -1,0 +1,7 @@
+# Dependency outage fixture; preserves loopback API while denying routed egress.
+services:
+  hermes:
+    networks: [offline]
+networks:
+  offline:
+    internal: true

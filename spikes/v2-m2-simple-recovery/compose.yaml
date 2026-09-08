@@ -1,0 +1,41 @@
+# Standard Docker Compose declaration for the isolated proof only.
+services:
+  hermes:
+    image: ${HERMES_IMAGE:?}
+    container_name: m2proof-hermes
+    init: true
+    restart: unless-stopped
+    user: "1000:1000"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2
+    pids_limit: 96
+    working_dir: /work
+    env_file: ["${HERMES_ENV_FILE:?}"]
+    environment:
+      HOME: /home/proof
+      HERMES_HOME: /home/proof/.hermes
+      PYTHONDONTWRITEBYTECODE: "1"
+      HERMES_YOLO_MODE: "1"
+    volumes:
+      - ${HERMES_SOURCE:?}:${HERMES_SOURCE_TARGET:?}:ro
+      - ${HERMES_PYTHON_ROOT:?}:${HERMES_PYTHON_TARGET:?}:ro
+      - ${HERMES_STATE:?}:/home/proof/.hermes
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,size=128m,nr_inodes=4096,uid=1000,gid=1000
+      - /work:rw,nosuid,nodev,size=64m,nr_inodes=2048,uid=1000,gid=1000
+      - /home/proof:rw,nosuid,nodev,size=16m,uid=1000,gid=1000
+    ports: ["127.0.0.1:19450:19450"]
+    command: ["${HERMES_SOURCE_TARGET}/.venv/bin/python", "-m", "hermes_cli.main", "gateway", "run"]
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; assert urllib.request.urlopen('http://127.0.0.1:19450/health', timeout=1).status == 200"]
+      interval: 1s
+      timeout: 2s
+      retries: 5
+      start_period: 5s
+    logging:
+      driver: json-file
+      options: {max-size: 4m, max-file: "2"}

@@ -1,0 +1,23 @@
+{
+  "scope": "synthetic transient permission failure on builtin memory; fixed-mode restoration is predeclared, no diagnostic agent",
+  "control_s": 3.89,
+  "health": true,
+  "direct_memory_read": {
+    "exit_code": 1,
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1058, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/home/proof/.hermes/memories/MEMORY.md'\n"
+  },
+  "saved_session": {
+    "http": 200,
+    "body": {
+      "created_at": 1788852695.6322985,
+      "error": "The gateway restarted before this run settled.",
+      "last_event": "run.interrupted",
+      "model": "hermes-agent",
+      "object": "hermes.run",
+      "run_id": "run_fb0163e8201e495d9bed5a1b563026fe",
+      "session_id": "hermes-final-inflight-orphan",
+      "status": "interrupted",
+      "updated_at": 1788852706.3642821
+    }
+  }
+}

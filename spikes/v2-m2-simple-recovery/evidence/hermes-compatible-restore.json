@@ -1,0 +1,154 @@
+{
+  "backup_output": "Scanning ~/.hermes ...\nBacking up 394 files ...\n\nBackup complete: /home/proof/.hermes/backups/m2-recovery.zip\n  Files:       394\n  Original:    46.0 MB\n  Compressed:  16.5 MB\n  Time:        1.6s\n\n  Excluded directories:\n    backups/\n\nRestore with: hermes import m2-recovery.zip\n",
+  "archive_sha256": "38051b55b0cade8871687fd9090b87282f1d3d556af9661d14ac6f572727a091",
+  "before": {
+    "pid": 470262,
+    "started": "2026-09-08T07:35:30.738456172Z",
+    "status": "running",
+    "restart_count": 0,
+    "state_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe",
+    "memory_sha256": "1c75b5fbdb069fe118b7b7a534fc9e62cf6d0960626efe34d17a9e82b620fe85",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "sessions": [
+      "hermes-final-inflight-orphan",
+      "hermes-final-inflight-stop",
+      "m2proof-live-uncertain",
+      "m2proof-seed-session",
+      "run_15f8264d48294328a894948795a86821",
+      "run_2974c811e8974bdb84f63634fb78b33a",
+      "run_317834764ab848cfb67b98f4b54d5af3",
+      "run_36051c2d845842b98541c049a166bfb1",
+      "run_3b57d54acecd4f6db459790357e0996a",
+      "run_4c9f53caf69d462f82d9f029e750a58a",
+      "run_4f7b886437264ca08436a7d2c4b8cb1c",
+      "run_55fa6195718e44f9b84d0a6ccbf1ddbf",
+      "run_604c58eadc244c20939f81e80a3be2c8",
+      "run_768c94b22f0a4a2c905db2dd881f75f8",
+      "run_915745aee7cd453da5398eabdc26a290",
+      "run_920d64cc7bcf4f5583b55cacd026410e",
+      "run_dc50381fc46a41bca2a49d32ee238c5c",
+      "run_e263e16a762a4facb35cfba8dc86468e",
+      "run_ee7fad12ed1f43ea9e9ca0003099cd06",
+      "run_efee972b845d4b30b68bd91fcdb085cb"
+    ]
+  },
+  "scope": "quiesced pre-change snapshot; no accepted work between snapshot and fault; arbitrary later writes are NOT covered",
+  "fault_confirmed": "file is not a database",
+  "restore_exit": 0,
+  "restore_stdout": "Backup contains 394 files\nTarget: ~/.hermes\n\nImporting 394 files ...\n\nImport complete: 392 files restored in 1.7s\n  Target: ~/.hermes\n\n  Preserved 2 runtime state file(s) (kept this machine's, not the backup's):\n    gateway.lock\n    gateway_state.json\n\nNote: The hermes-agent codebase was not included in the backup.\n  If this is a fresh install, run: hermes update\n\n  Start the gateway to bring your bots online:\n     hermes gateway run          # Run as container main process\n  \n  For automatic restarts, use a Docker restart policy:\n     docker run --restart unless-stopped ...\nDone. Your Hermes configuration has been restored.\n",
+  "restore_stderr": " Container m2proof-hermes Stopping \n Container m2proof-hermes Stopped \n Container m2proof-hermes-run-e021e360ba62 Creating \n Container m2proof-hermes-run-e021e360ba62 Created \n Container m2proof-hermes Starting \n Container m2proof-hermes Started \n Container m2proof-hermes Waiting \n Container m2proof-hermes Healthy \n",
+  "standard_restore_s": 8.616,
+  "after": {
+    "pid": 475992,
+    "started": "2026-09-08T07:38:24.924155726Z",
+    "status": "running",
+    "restart_count": 0,
+    "state_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe",
+    "memory_sha256": "1c75b5fbdb069fe118b7b7a534fc9e62cf6d0960626efe34d17a9e82b620fe85",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "sessions": [
+      "hermes-final-inflight-orphan",
+      "hermes-final-inflight-stop",
+      "m2proof-live-uncertain",
+      "m2proof-seed-session",
+      "run_15f8264d48294328a894948795a86821",
+      "run_2974c811e8974bdb84f63634fb78b33a",
+      "run_317834764ab848cfb67b98f4b54d5af3",
+      "run_36051c2d845842b98541c049a166bfb1",
+      "run_3b57d54acecd4f6db459790357e0996a",
+      "run_4c9f53caf69d462f82d9f029e750a58a",
+      "run_4f7b886437264ca08436a7d2c4b8cb1c",
+      "run_55fa6195718e44f9b84d0a6ccbf1ddbf",
+      "run_604c58eadc244c20939f81e80a3be2c8",
+      "run_768c94b22f0a4a2c905db2dd881f75f8",
+      "run_915745aee7cd453da5398eabdc26a290",
+      "run_920d64cc7bcf4f5583b55cacd026410e",
+      "run_dc50381fc46a41bca2a49d32ee238c5c",
+      "run_e263e16a762a4facb35cfba8dc86468e",
+      "run_ee7fad12ed1f43ea9e9ca0003099cd06",
+      "run_efee972b845d4b30b68bd91fcdb085cb"
+    ]
+  },
+  "preserved": true,
+  "native_runs": {
+    "stop": {
+      "state": {
+        "http": 200,
+        "body": {
+          "created_at": 1788852655.6124027,
+          "last_event": "run.cancelled",
+          "model": "hermes-agent",
+          "object": "hermes.run",
+          "run_id": "run_d84c572d123240a6b1df10b371691705",
+          "session_id": "hermes-final-inflight-stop",
+          "status": "cancelled",
+          "updated_at": 1788852660.8006837
+        }
+      },
+      "replay": {
+        "http": 202,
+        "body": {
+          "run_id": "run_d84c572d123240a6b1df10b371691705",
+          "status": "cancelled",
+          "replayed": true
+        }
+      },
+      "receipt": "accepted-1\n"
+    },
+    "orphan": {
+      "state": {
+        "http": 200,
+        "body": {
+          "created_at": 1788852695.6322985,
+          "error": "The gateway restarted before this run settled.",
+          "last_event": "run.interrupted",
+          "model": "hermes-agent",
+          "object": "hermes.run",
+          "run_id": "run_fb0163e8201e495d9bed5a1b563026fe",
+          "session_id": "hermes-final-inflight-orphan",
+          "status": "interrupted",
+          "updated_at": 1788852706.3642821
+        }
+      },
+      "replay": {
+        "http": 202,
+        "body": {
+          "run_id": "run_fb0163e8201e495d9bed5a1b563026fe",
+          "status": "interrupted",
+          "replayed": true
+        }
+      },
+      "receipt": "accepted-1\n"
+    }
+  },
+  "semantic": {
+    "passed": true,
+    "output": {
+      "request_id": "request-orchid-01",
+      "request_text": "Prepare an offline ORCHID summary",
+      "memory_marker": "violet-739",
+      "stopped_id": "activity-stop-17",
+      "stopped_state": "stopped",
+      "uncertain_id": "operation-unknown-29",
+      "uncertain_state": "outcome_unknown",
+      "uncertain_receipt": "synthetic-receipt-582",
+      "allowed_id": "activity-safe-03",
+      "resume": [
+        "activity-safe-03"
+      ],
+      "hold": [
+        "activity-stop-17",
+        "operation-unknown-29"
+      ]
+    },
+    "elapsed_s": 14.445
+  }
+}

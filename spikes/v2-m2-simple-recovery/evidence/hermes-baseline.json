@@ -1,0 +1,17 @@
+{
+  "image": "sha256:35d3a4a3d5e42e02ab916d44513a050689f12c0533d45598d229672503fe77ca",
+  "memory": 2147483648,
+  "memory_swap": 2147483648,
+  "pids_limit": 96,
+  "tmpfs": {
+    "/home/proof": "rw,nosuid,nodev,size=16m,uid=1000,gid=1000",
+    "/tmp": "rw,nosuid,nodev,size=128m,nr_inodes=4096,uid=1000,gid=1000",
+    "/work": "rw,nosuid,nodev,size=64m,nr_inodes=2048,uid=1000,gid=1000"
+  },
+  "readonly": true,
+  "restart": {
+    "Name": "on-failure",
+    "MaximumRetryCount": 3
+  },
+  "activity_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe"
+}

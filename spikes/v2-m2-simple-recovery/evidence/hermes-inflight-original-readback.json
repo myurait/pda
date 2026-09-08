@@ -1,0 +1,26 @@
+{
+  "scope": "Readback of the original trial after explicit setup correction; not automatic recovery",
+  "replay": {
+    "http": 202,
+    "body": {
+      "run_id": "run_5f2300117d8542f5952ec42fd990e3e7",
+      "status": "cancelled",
+      "replayed": true
+    }
+  },
+  "state": {
+    "http": 200,
+    "body": {
+      "created_at": 1788851960.1896977,
+      "last_event": "run.cancelled",
+      "model": "hermes-agent",
+      "object": "hermes.run",
+      "run_id": "run_5f2300117d8542f5952ec42fd990e3e7",
+      "session_id": "m2proof-live-uncertain",
+      "status": "cancelled",
+      "updated_at": 1788851966.4011202
+    }
+  },
+  "receipt": "{\"operation_id\":\"operation-live-61\",\"receipt\":\"accepted-1\"}\n",
+  "processes": "PID                 PPID                COMMAND\n450090              450066              /sbin/docker-init -- /home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/.venv/bin/python -m hermes_cli.main gateway run\n450150              450090              /home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/.venv/bin/python -m hermes_cli.main gateway run\n"
+}

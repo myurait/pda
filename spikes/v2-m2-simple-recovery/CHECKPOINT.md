@@ -1,0 +1,19 @@
+# M2 simple-recovery proof checkpoint
+
+Task: default / pda-improvement / t_ec4c52b9. Main PDA alone, serial; no delegates, external coding agents, new profile/cron/dispatcher or production cutover. Latest execution plan: /home/user/.hermes/plans/2026-09-08_154242-pda-v2-m2-execution-cycle.md. Current spec: /home/user/projects/pda-v2-m2-reassessment/docs/roadmap/v2-m2-simple-recovery-reassessment.md. Historical DBOS/control prototype remains NO-GO, no more patches.
+
+Worktree: /home/user/projects/pda-v2-m2-proof; branch spike/v2-m2-simple-recovery; base main b17d3916f3196fe667bf38b8f9a0446e3b47b650. Other worktrees and main's unrelated files remain outside scope. A 16:13 supplemental card comment about instruction-composition effects adds no M2 entry gate; this trial already uses clean upstream plus synthetic instructions, not the locally customized production prompt stack.
+
+## Current position
+
+Hermes candidate closed as a limited M3 candidate; HERMES-VERDICT.md is the current detailed decision, not a whole-PDA adoption statement. Final raw results are evidence/hermes-final-*.json plus hermes-bad-update.json, hermes-compatible-restore.json, hermes-model-outage.json and hermes-repair-capability-verification.json. Invalid observer/setup trials are retained and excluded. Neither independent review nor a finalization ledger has been claimed.
+
+Completed: official clean 0.21.1 source and frozen installation; real existing-provider synthetic model runs; final repeated SIGKILLs, work byte/inode/memory limits, actual terminal receipt then native stop/orphan interruption and idempotency replay, startup-incompatible release rollback, official quiesced full backup/import after incompatible DB fixture, memory read denial, model-network outage, post-recovery bounded file repair. The report preserves restricted restore/RPO/egress/authority boundaries rather than claiming universal autonomous recovery.
+
+Services: Hermes trial container and both candidate Docker networks are stopped/removed; evidence/hermes-cleanup.json verifies no remaining m2proof Compose containers. No Letta candidate service has been started. All source, venv, synthetic persistent state, known-good/quarantine generations and credential-bearing backups remain in ignored .runtime, not in commits or attachments. A cleanup command first used the wrong cwd and performed no action; rerun in the correct directory succeeded. No target effects are pending beyond the deliberately interrupted synthetic receipts; native cancelled/interrupted records are retained.
+
+## Next exact action
+
+Close the Hermes checkpoint commit after secret scanning. Continue to Letta App Server: official current self-hosting docs replaced the old Python/Docker server recommendation with local Letta Code/App Server. Pinned public source is already at .runtime/letta, reported package 0.31.13; source-pins.json records its SHA/archive hash. Inspect supported local authentication/provider connection, storage and App Server protocol. Install the official released package in an isolated prefix, without using a new login or copying subscription OAuth to a different product. If no permitted provider path is available, label inference unverified (not performance failure) and still exercise what is meaningfully supported without inventing outputs. Managed/hybrid representatives (Letta hosted and Cloudflare Agents/Durable Objects) have documentary evidence but no deployment/account permission checked yet; no account creation or cloud resource mutation is authorized.
+
+Final deliverable remains one candidate comparison/decision report, minimal declarations, raw evidence and this checkpoint; update the same unassigned non-dispatch card. M3 work itself is not part of this request. Retain old failures, do not restore prior control design, do not add a general recovery service to force a PASS.

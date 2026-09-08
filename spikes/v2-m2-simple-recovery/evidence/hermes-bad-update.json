@@ -1,0 +1,98 @@
+{
+  "exit_code": 0,
+  "stdout": "running exit=0 restarts=2\nCANDIDATE_REJECTED_RESTORE_PINNED_GOOD\n",
+  "stderr": " Container m2proof-hermes Recreate \n Container m2proof-hermes Recreated \n Container m2proof-hermes Starting \n Container m2proof-hermes Started \n Container m2proof-hermes Waiting \ncontainer m2proof-hermes is unhealthy\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/hermes_cli/main.py\", line 1, in <module>\n    raise RuntimeError(\"SYNTHETIC_STARTUP_INCOMPATIBLE_RELEASE\")\nRuntimeError: SYNTHETIC_STARTUP_INCOMPATIBLE_RELEASE\nTraceback (most recent call last):\n  File \"<frozen runpy>\", line 198, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/hermes_cli/main.py\", line 1, in <module>\n    raise RuntimeError(\"SYNTHETIC_STARTUP_INCOMPATIBLE_RELEASE\")\nRuntimeError: SYNTHETIC_STARTUP_INCOMPATIBLE_RELEASE\n Container m2proof-hermes Recreate \n Container m2proof-hermes Recreated \n Container m2proof-hermes Starting \n Container m2proof-hermes Started \n Container m2proof-hermes Waiting \n Container m2proof-hermes Healthy \n",
+  "standard_restore_s": 7.694,
+  "before": {
+    "pid": 468137,
+    "started": "2026-09-08T07:34:38.768588156Z",
+    "status": "running",
+    "restart_count": 0,
+    "state_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe",
+    "memory_sha256": "1c75b5fbdb069fe118b7b7a534fc9e62cf6d0960626efe34d17a9e82b620fe85",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "sessions": [
+      "hermes-final-inflight-orphan",
+      "hermes-final-inflight-stop",
+      "m2proof-live-uncertain",
+      "m2proof-seed-session",
+      "run_15f8264d48294328a894948795a86821",
+      "run_317834764ab848cfb67b98f4b54d5af3",
+      "run_36051c2d845842b98541c049a166bfb1",
+      "run_3b57d54acecd4f6db459790357e0996a",
+      "run_4c9f53caf69d462f82d9f029e750a58a",
+      "run_4f7b886437264ca08436a7d2c4b8cb1c",
+      "run_55fa6195718e44f9b84d0a6ccbf1ddbf",
+      "run_604c58eadc244c20939f81e80a3be2c8",
+      "run_768c94b22f0a4a2c905db2dd881f75f8",
+      "run_915745aee7cd453da5398eabdc26a290",
+      "run_920d64cc7bcf4f5583b55cacd026410e",
+      "run_dc50381fc46a41bca2a49d32ee238c5c",
+      "run_e263e16a762a4facb35cfba8dc86468e",
+      "run_ee7fad12ed1f43ea9e9ca0003099cd06",
+      "run_efee972b845d4b30b68bd91fcdb085cb"
+    ]
+  },
+  "after": {
+    "pid": 470262,
+    "started": "2026-09-08T07:35:30.738456172Z",
+    "status": "running",
+    "restart_count": 0,
+    "state_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe",
+    "memory_sha256": "1c75b5fbdb069fe118b7b7a534fc9e62cf6d0960626efe34d17a9e82b620fe85",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "sessions": [
+      "hermes-final-inflight-orphan",
+      "hermes-final-inflight-stop",
+      "m2proof-live-uncertain",
+      "m2proof-seed-session",
+      "run_15f8264d48294328a894948795a86821",
+      "run_317834764ab848cfb67b98f4b54d5af3",
+      "run_36051c2d845842b98541c049a166bfb1",
+      "run_3b57d54acecd4f6db459790357e0996a",
+      "run_4c9f53caf69d462f82d9f029e750a58a",
+      "run_4f7b886437264ca08436a7d2c4b8cb1c",
+      "run_55fa6195718e44f9b84d0a6ccbf1ddbf",
+      "run_604c58eadc244c20939f81e80a3be2c8",
+      "run_768c94b22f0a4a2c905db2dd881f75f8",
+      "run_915745aee7cd453da5398eabdc26a290",
+      "run_920d64cc7bcf4f5583b55cacd026410e",
+      "run_dc50381fc46a41bca2a49d32ee238c5c",
+      "run_e263e16a762a4facb35cfba8dc86468e",
+      "run_ee7fad12ed1f43ea9e9ca0003099cd06",
+      "run_efee972b845d4b30b68bd91fcdb085cb"
+    ]
+  },
+  "recovery_owner": "predeclared one-shot Compose health-gated rollback; no inference, no owner intervention, no resident service",
+  "preserved": true,
+  "semantic": {
+    "passed": true,
+    "output": {
+      "request_id": "request-orchid-01",
+      "request_text": "Prepare an offline ORCHID summary",
+      "memory_marker": "violet-739",
+      "stopped_id": "activity-stop-17",
+      "stopped_state": "stopped",
+      "uncertain_id": "operation-unknown-29",
+      "uncertain_state": "outcome_unknown",
+      "uncertain_receipt": "synthetic-receipt-582",
+      "allowed_id": "activity-safe-03",
+      "resume": [
+        "activity-safe-03"
+      ],
+      "hold": [
+        "activity-stop-17",
+        "operation-unknown-29"
+      ]
+    },
+    "elapsed_s": 13.589
+  }
+}

@@ -1,0 +1,37 @@
+model:
+  default: gpt-6-astra
+  provider: openai-codex
+agent:
+  max_turns: 6
+  reasoning_effort: low
+terminal:
+  backend: local
+  cwd: /work
+  timeout: 30
+platform_toolsets:
+  api_server: [file, memory, session_search, terminal]
+  cli: [file, memory, session_search, terminal]
+kanban:
+  dispatch_in_gateway: false
+curator:
+  enabled: false
+cron:
+  enabled: false
+memory:
+  memory_enabled: true
+  user_profile_enabled: false
+  provider: none
+checkpoints:
+  enabled: false
+compression:
+  enabled: false
+skills:
+  disabled: true
+approvals:
+  mode: off
+platforms:
+  api_server:
+    enabled: true
+    extra:
+      host: 0.0.0.0
+      port: 19450
