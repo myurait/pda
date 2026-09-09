@@ -1,0 +1,54 @@
+services:
+  model:
+    image: ollama/ollama@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
+    container_name: m2r2-ollama
+    user: '1000:1000'
+    restart: unless-stopped
+    mem_limit: 4608m
+    memswap_limit: 4608m
+    cpus: 4.0
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      HOME: /home/proof
+      OLLAMA_NUM_PARALLEL: '1'
+      OLLAMA_MAX_LOADED_MODELS: '1'
+      OLLAMA_CONTEXT_LENGTH: '8192'
+      OLLAMA_KEEP_ALIVE: '5m'
+      OLLAMA_NO_CLOUD: '1'
+    volumes: [../.runtime/ollama:/home/proof]
+    ports: ['127.0.0.1:19552:11434']
+    logging:
+      driver: json-file
+      options: {max-size: 4m, max-file: '2'}
+  app:
+    image: m2proof-letta:0.31.13
+    container_name: m2r2-letta
+    init: true
+    restart: unless-stopped
+    user: '1000:1000'
+    read_only: true
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      HOME: /home/node
+      LETTA_LOCAL_BACKEND_DIR: /home/node/.letta/lc-local-backend
+      LETTA_SKIP_KEYCHAIN_CHECK: '1'
+      DO_NOT_TRACK: '1'
+      LETTA_CODE_TELEM: '0'
+      DISABLE_AUTOUPDATER: '1'
+    volumes: [../.runtime/resume-20260909/letta-home:/home/node]
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /work:size=48m,nr_inodes=512,uid=1000,gid=1000,mode=0700
+    working_dir: /work
+    ports: ['127.0.0.1:19551:4500']
+    command: [--backend, local, server, --listen, 'ws://0.0.0.0:4500', --openai-api, --ws-auth, capability-token, --ws-token-file, /home/node/.letta/appserver-token]
+    logging:
+      driver: json-file
+      options: {max-size: 4m, max-file: '2'}

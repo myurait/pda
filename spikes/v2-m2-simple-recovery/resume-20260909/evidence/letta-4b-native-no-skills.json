@@ -1,0 +1,3336 @@
+{
+  "command": {
+    "type": "input",
+    "runtime": {
+      "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+      "conversation_id": "local-conv-8"
+    },
+    "payload": {
+      "kind": "create_message",
+      "client_tool_allowlist": [
+        "Read",
+        "Write",
+        "Bash"
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "content": "Read your saved memory. Return JSON: memory_marker (the saved marker string), pending_job (the saved waiting job ID), paused_job (the saved owner-paused job ID), unknown_operation (the saved uncertain operation ID), allowed_to_resume_paused (boolean), allowed_to_retry_unknown (boolean). IDs must be copied exactly from memory, not replaced with status or null. Do not use tools or execute any job.",
+          "client_message_id": "letta-4b-native-no-skills"
+        }
+      ]
+    }
+  },
+  "wall_s": 173.01613208744675,
+  "error": null,
+  "events": [
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "SENDING_API_REQUEST",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 1,
+      "emitted_at": "2026-09-09T00:43:51.726Z",
+      "idempotency_key": "update_loop_status:1:5123581e-f25d-4531-a6df-b35114e45217"
+    },
+    {
+      "type": "update_device_status",
+      "device_status": {
+        "current_connection_id": "app-server",
+        "connection_name": "ddc4a70dbb11",
+        "is_online": true,
+        "is_processing": true,
+        "current_permission_mode": "unrestricted",
+        "current_working_directory": "/work",
+        "git_context": null,
+        "letta_code_version": null,
+        "current_toolset": null,
+        "current_toolset_preference": "auto",
+        "current_loaded_tools": [],
+        "current_available_skills": [],
+        "background_processes": [],
+        "pending_control_requests": [],
+        "experiments": [
+          {
+            "id": "artifacts",
+            "label": "artifacts",
+            "description": "Expose Letta Code Desktop artifact creation tools and artifact UI surfaces.",
+            "envVar": "LETTA_ARTIFACTS",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "conversation_titles",
+            "label": "conversation titles",
+            "description": "Generate AI conversation titles automatically when possible.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "desktop_conversation_bootstrap",
+            "label": "conversation bootstrap",
+            "description": "Inject lightweight prior-conversation context into the first turn of brand-new Letta Code conversations.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "diffs",
+            "label": "diffs",
+            "description": "Open browser-based worktree diff previews powered by Diffs from Pierre.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "reflection_arena",
+            "label": "reflection arena",
+            "description": "Run blind A/B comparisons between reflection models on the same transcript sample.",
+            "envVar": "LETTA_REFLECTION_ARENA",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "tui_cron",
+            "label": "TUI cron scheduler",
+            "description": "Fire scheduled tasks from the CLI when the desktop app isn't running.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          }
+        ],
+        "memory_directory": "/home/node/.letta/lc-local-backend/memfs/agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176/memory",
+        "cwd_revision": 0,
+        "should_doctor": false,
+        "supported_commands": [
+          "clear",
+          "clear-messages",
+          "doctor",
+          "init",
+          "remember",
+          "compact",
+          "reload",
+          "context-limit",
+          "channels",
+          "upgrade-letta-code",
+          "toolset",
+          "secret"
+        ],
+        "reflection_settings": {
+          "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+          "trigger": "step-count",
+          "step_count": 25,
+          "merge": "auto",
+          "merge_instructions": ""
+        }
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 2,
+      "emitted_at": "2026-09-09T00:43:51.728Z",
+      "idempotency_key": "update_device_status:2:8ca33e48-4e2b-4483-be73-f752d7031fa7"
+    },
+    {
+      "type": "update_device_status",
+      "device_status": {
+        "current_connection_id": "app-server",
+        "connection_name": "ddc4a70dbb11",
+        "is_online": true,
+        "is_processing": true,
+        "current_permission_mode": "unrestricted",
+        "current_working_directory": "/work",
+        "git_context": null,
+        "letta_code_version": null,
+        "current_toolset": null,
+        "current_toolset_preference": "auto",
+        "current_loaded_tools": [],
+        "current_available_skills": [],
+        "background_processes": [],
+        "pending_control_requests": [],
+        "experiments": [
+          {
+            "id": "artifacts",
+            "label": "artifacts",
+            "description": "Expose Letta Code Desktop artifact creation tools and artifact UI surfaces.",
+            "envVar": "LETTA_ARTIFACTS",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "conversation_titles",
+            "label": "conversation titles",
+            "description": "Generate AI conversation titles automatically when possible.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "desktop_conversation_bootstrap",
+            "label": "conversation bootstrap",
+            "description": "Inject lightweight prior-conversation context into the first turn of brand-new Letta Code conversations.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "diffs",
+            "label": "diffs",
+            "description": "Open browser-based worktree diff previews powered by Diffs from Pierre.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "reflection_arena",
+            "label": "reflection arena",
+            "description": "Run blind A/B comparisons between reflection models on the same transcript sample.",
+            "envVar": "LETTA_REFLECTION_ARENA",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "tui_cron",
+            "label": "TUI cron scheduler",
+            "description": "Fire scheduled tasks from the CLI when the desktop app isn't running.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          }
+        ],
+        "memory_directory": "/home/node/.letta/lc-local-backend/memfs/agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176/memory",
+        "cwd_revision": 0,
+        "should_doctor": false,
+        "supported_commands": [
+          "clear",
+          "clear-messages",
+          "doctor",
+          "init",
+          "remember",
+          "compact",
+          "reload",
+          "context-limit",
+          "channels",
+          "upgrade-letta-code",
+          "toolset",
+          "secret"
+        ],
+        "reflection_settings": {
+          "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+          "trigger": "step-count",
+          "step_count": 25,
+          "merge": "auto",
+          "merge_instructions": ""
+        }
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 3,
+      "emitted_at": "2026-09-09T00:43:51.735Z",
+      "idempotency_key": "update_device_status:3:ccdf28ff-b675-4c7a-baeb-ce808912f9e8"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "SENDING_API_REQUEST",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 4,
+      "emitted_at": "2026-09-09T00:43:51.735Z",
+      "idempotency_key": "update_loop_status:4:9a043ccd-9b4c-4aef-9a05-08d0efdc6fd7"
+    },
+    {
+      "type": "update_queue",
+      "queue": [],
+      "removed": [],
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 5,
+      "emitted_at": "2026-09-09T00:43:51.735Z",
+      "idempotency_key": "update_queue:5:6f946d0a-d10f-41d3-85f1-b356d52b9691"
+    },
+    {
+      "type": "update_subagent_state",
+      "subagents": [],
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 6,
+      "emitted_at": "2026-09-09T00:43:51.736Z",
+      "idempotency_key": "update_subagent_state:6:1ce290bf-e81f-4e02-9cad-3c3ef4bfc61c"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "WAITING_FOR_API_RESPONSE",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 7,
+      "emitted_at": "2026-09-09T00:43:51.986Z",
+      "idempotency_key": "update_loop_status:7:39d4fefc-e372-4464-86f8-953a12ad0ac4"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "PROCESSING_API_RESPONSE",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 8,
+      "emitted_at": "2026-09-09T00:43:51.997Z",
+      "idempotency_key": "update_loop_status:8:9254d8c4-41ca-4871-b77b-74f906e24947"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "PROCESSING_API_RESPONSE",
+        "active_run_ids": [
+          "local-run-1"
+        ],
+        "client_message_ids_by_run_id": {
+          "local-run-1": [
+            "letta-4b-native-no-skills"
+          ]
+        },
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 9,
+      "emitted_at": "2026-09-09T00:46:19.410Z",
+      "idempotency_key": "update_loop_status:9:15c5ee72-628d-4999-8234-2dd4923a4721"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-1",
+        "date": "2026-09-09T00:46:19.407Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": "The",
+        "run_id": "local-run-1",
+        "seq_id": 1,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 10,
+      "emitted_at": "2026-09-09T00:46:19.411Z",
+      "idempotency_key": "stream_delta:10:ecbe4b4d-abf7-4e30-a223-469cd7e9f443"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-2",
+        "date": "2026-09-09T00:46:19.595Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " user",
+        "run_id": "local-run-1",
+        "seq_id": 2,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 11,
+      "emitted_at": "2026-09-09T00:46:19.596Z",
+      "idempotency_key": "stream_delta:11:5d110196-5753-46ab-aaa3-21349e975a7b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-3",
+        "date": "2026-09-09T00:46:19.749Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " is",
+        "run_id": "local-run-1",
+        "seq_id": 3,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 12,
+      "emitted_at": "2026-09-09T00:46:19.750Z",
+      "idempotency_key": "stream_delta:12:c7b367c7-c14b-4441-9be6-60e214e9ebce"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-4",
+        "date": "2026-09-09T00:46:19.938Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " asking",
+        "run_id": "local-run-1",
+        "seq_id": 4,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 13,
+      "emitted_at": "2026-09-09T00:46:19.939Z",
+      "idempotency_key": "stream_delta:13:90217ac5-b74d-460a-bf43-54f4610a52ce"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-5",
+        "date": "2026-09-09T00:46:20.128Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " me",
+        "run_id": "local-run-1",
+        "seq_id": 5,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 14,
+      "emitted_at": "2026-09-09T00:46:20.129Z",
+      "idempotency_key": "stream_delta:14:2f1a654e-dccb-4325-a6f7-76ac3bea5463"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-6",
+        "date": "2026-09-09T00:46:20.318Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " to",
+        "run_id": "local-run-1",
+        "seq_id": 6,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 15,
+      "emitted_at": "2026-09-09T00:46:20.319Z",
+      "idempotency_key": "stream_delta:15:d12b7ad4-d316-4abe-8a8e-a0cf4c2ef2a2"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-7",
+        "date": "2026-09-09T00:46:20.503Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " read",
+        "run_id": "local-run-1",
+        "seq_id": 7,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 16,
+      "emitted_at": "2026-09-09T00:46:20.505Z",
+      "idempotency_key": "stream_delta:16:166601c0-90bd-4238-a89d-4059ad2b65e0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-8",
+        "date": "2026-09-09T00:46:20.655Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " and",
+        "run_id": "local-run-1",
+        "seq_id": 8,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 17,
+      "emitted_at": "2026-09-09T00:46:20.655Z",
+      "idempotency_key": "stream_delta:17:1c772563-da2a-4923-9764-4e067a9e41f0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-9",
+        "date": "2026-09-09T00:46:20.848Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " return",
+        "run_id": "local-run-1",
+        "seq_id": 9,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 18,
+      "emitted_at": "2026-09-09T00:46:20.850Z",
+      "idempotency_key": "stream_delta:18:a8d23ed2-023a-4fe0-bef9-8a4c2ebb3dbc"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-10",
+        "date": "2026-09-09T00:46:21.037Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " my",
+        "run_id": "local-run-1",
+        "seq_id": 10,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 19,
+      "emitted_at": "2026-09-09T00:46:21.038Z",
+      "idempotency_key": "stream_delta:19:3a1d8a56-be24-457a-9184-a8cc8e43b449"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-11",
+        "date": "2026-09-09T00:46:21.225Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " saved",
+        "run_id": "local-run-1",
+        "seq_id": 11,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 20,
+      "emitted_at": "2026-09-09T00:46:21.226Z",
+      "idempotency_key": "stream_delta:20:c438ab0f-f63b-40a0-85c2-3a61421a8dc0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-12",
+        "date": "2026-09-09T00:46:21.417Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " memory",
+        "run_id": "local-run-1",
+        "seq_id": 12,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 21,
+      "emitted_at": "2026-09-09T00:46:21.418Z",
+      "idempotency_key": "stream_delta:21:a0f04ba6-fc5d-4600-8ce7-089e10955518"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-13",
+        "date": "2026-09-09T00:46:21.606Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " in",
+        "run_id": "local-run-1",
+        "seq_id": 13,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 22,
+      "emitted_at": "2026-09-09T00:46:21.607Z",
+      "idempotency_key": "stream_delta:22:319ea8b9-5088-49c2-a41d-975760844cc4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-14",
+        "date": "2026-09-09T00:46:21.795Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " a",
+        "run_id": "local-run-1",
+        "seq_id": 14,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 23,
+      "emitted_at": "2026-09-09T00:46:21.796Z",
+      "idempotency_key": "stream_delta:23:7122c033-9112-458f-8478-c8d707fafe3c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-15",
+        "date": "2026-09-09T00:46:21.949Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " specific",
+        "run_id": "local-run-1",
+        "seq_id": 15,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 24,
+      "emitted_at": "2026-09-09T00:46:21.950Z",
+      "idempotency_key": "stream_delta:24:1e64f929-b33b-4c79-92d1-2b376e31d9c1"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-16",
+        "date": "2026-09-09T00:46:22.138Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " JSON",
+        "run_id": "local-run-1",
+        "seq_id": 16,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 25,
+      "emitted_at": "2026-09-09T00:46:22.139Z",
+      "idempotency_key": "stream_delta:25:1ec5d618-fd5f-4d30-bb68-8ea5323c3669"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-17",
+        "date": "2026-09-09T00:46:22.330Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " format",
+        "run_id": "local-run-1",
+        "seq_id": 17,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 26,
+      "emitted_at": "2026-09-09T00:46:22.332Z",
+      "idempotency_key": "stream_delta:26:ca65211b-f9f3-4a9f-b525-63f49c5ea1ec"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-18",
+        "date": "2026-09-09T00:46:22.522Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " based",
+        "run_id": "local-run-1",
+        "seq_id": 18,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 27,
+      "emitted_at": "2026-09-09T00:46:22.523Z",
+      "idempotency_key": "stream_delta:27:6f5edd50-bb29-4b50-b0d5-1e939fab4368"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-19",
+        "date": "2026-09-09T00:46:22.711Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " on",
+        "run_id": "local-run-1",
+        "seq_id": 19,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 28,
+      "emitted_at": "2026-09-09T00:46:22.712Z",
+      "idempotency_key": "stream_delta:28:9f56c235-b772-425f-b621-a35a9ffaf759"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-20",
+        "date": "2026-09-09T00:46:22.895Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " the",
+        "run_id": "local-run-1",
+        "seq_id": 20,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 29,
+      "emitted_at": "2026-09-09T00:46:22.897Z",
+      "idempotency_key": "stream_delta:29:f1b20f8b-1251-4520-bd35-6a0442630e51"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-21",
+        "date": "2026-09-09T00:46:23.053Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " system",
+        "run_id": "local-run-1",
+        "seq_id": 21,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 30,
+      "emitted_at": "2026-09-09T00:46:23.054Z",
+      "idempotency_key": "stream_delta:30:f9b422f0-8c28-45f1-a99b-302bf689bdbf"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-22",
+        "date": "2026-09-09T00:46:23.255Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " reminders",
+        "run_id": "local-run-1",
+        "seq_id": 22,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 31,
+      "emitted_at": "2026-09-09T00:46:23.255Z",
+      "idempotency_key": "stream_delta:31:c15869b3-b5b5-4d99-b166-e3eb993d1bd7"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-23",
+        "date": "2026-09-09T00:46:23.456Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " I",
+        "run_id": "local-run-1",
+        "seq_id": 23,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 32,
+      "emitted_at": "2026-09-09T00:46:23.457Z",
+      "idempotency_key": "stream_delta:32:d875e36a-162b-4d02-bba7-83292d0dc6f4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-24",
+        "date": "2026-09-09T00:46:23.658Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " received",
+        "run_id": "local-run-1",
+        "seq_id": 24,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 33,
+      "emitted_at": "2026-09-09T00:46:23.659Z",
+      "idempotency_key": "stream_delta:33:0d21a0dd-97b5-4d50-bd81-c60a456d1018"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-25",
+        "date": "2026-09-09T00:46:23.850Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": ".",
+        "run_id": "local-run-1",
+        "seq_id": 25,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 34,
+      "emitted_at": "2026-09-09T00:46:23.851Z",
+      "idempotency_key": "stream_delta:34:051fb743-02ef-464e-9a7c-5dd6239b2d35"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-26",
+        "date": "2026-09-09T00:46:24.037Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " This",
+        "run_id": "local-run-1",
+        "seq_id": 26,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 35,
+      "emitted_at": "2026-09-09T00:46:24.038Z",
+      "idempotency_key": "stream_delta:35:c2649a9e-8cd9-4641-93ee-e13de02439a4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-27",
+        "date": "2026-09-09T00:46:24.234Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " is",
+        "run_id": "local-run-1",
+        "seq_id": 27,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 36,
+      "emitted_at": "2026-09-09T00:46:24.235Z",
+      "idempotency_key": "stream_delta:36:114109b5-a987-42c2-b392-576992730d6f"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-28",
+        "date": "2026-09-09T00:46:24.425Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " a",
+        "run_id": "local-run-1",
+        "seq_id": 28,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 37,
+      "emitted_at": "2026-09-09T00:46:24.426Z",
+      "idempotency_key": "stream_delta:37:75a4deb8-7368-4e06-a538-2fba59fd34ea"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-29",
+        "date": "2026-09-09T00:46:24.619Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " straightforward",
+        "run_id": "local-run-1",
+        "seq_id": 29,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 38,
+      "emitted_at": "2026-09-09T00:46:24.620Z",
+      "idempotency_key": "stream_delta:38:28792a2c-1198-4f2d-bcfd-7af9cb3a0a63"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-30",
+        "date": "2026-09-09T00:46:24.814Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " data",
+        "run_id": "local-run-1",
+        "seq_id": 30,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 39,
+      "emitted_at": "2026-09-09T00:46:24.815Z",
+      "idempotency_key": "stream_delta:39:1485b7de-c751-46eb-9a54-0c218342428f"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-31",
+        "date": "2026-09-09T00:46:24.999Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " output",
+        "run_id": "local-run-1",
+        "seq_id": 31,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 40,
+      "emitted_at": "2026-09-09T00:46:25.000Z",
+      "idempotency_key": "stream_delta:40:331f8344-2dc5-4d45-aab3-86084262f4f5"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-32",
+        "date": "2026-09-09T00:46:25.150Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " task",
+        "run_id": "local-run-1",
+        "seq_id": 32,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 41,
+      "emitted_at": "2026-09-09T00:46:25.151Z",
+      "idempotency_key": "stream_delta:41:22e4471c-f06b-44ac-8c2f-a88738c4f22b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-33",
+        "date": "2026-09-09T00:46:25.341Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " that",
+        "run_id": "local-run-1",
+        "seq_id": 33,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 42,
+      "emitted_at": "2026-09-09T00:46:25.342Z",
+      "idempotency_key": "stream_delta:42:92dfbd9c-860a-451d-a862-7213f1dfc81e"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-34",
+        "date": "2026-09-09T00:46:25.532Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " doesn",
+        "run_id": "local-run-1",
+        "seq_id": 34,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 43,
+      "emitted_at": "2026-09-09T00:46:25.533Z",
+      "idempotency_key": "stream_delta:43:e35f90af-8484-4814-98ff-21a280ba9f6a"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-35",
+        "date": "2026-09-09T00:46:25.723Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": "'t",
+        "run_id": "local-run-1",
+        "seq_id": 35,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 44,
+      "emitted_at": "2026-09-09T00:46:25.724Z",
+      "idempotency_key": "stream_delta:44:e4f0ad3c-4979-4c7e-bce9-51acf37f7a3c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-36",
+        "date": "2026-09-09T00:46:25.913Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " require",
+        "run_id": "local-run-1",
+        "seq_id": 36,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 45,
+      "emitted_at": "2026-09-09T00:46:25.914Z",
+      "idempotency_key": "stream_delta:45:6dc9dbf8-82c5-4e42-a9bc-edfb6d139064"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-37",
+        "date": "2026-09-09T00:46:26.101Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " any",
+        "run_id": "local-run-1",
+        "seq_id": 37,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 46,
+      "emitted_at": "2026-09-09T00:46:26.102Z",
+      "idempotency_key": "stream_delta:46:fd25f13e-f8a3-4201-960d-be9613920a7d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-38",
+        "date": "2026-09-09T00:46:26.251Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " tools",
+        "run_id": "local-run-1",
+        "seq_id": 38,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 47,
+      "emitted_at": "2026-09-09T00:46:26.252Z",
+      "idempotency_key": "stream_delta:47:e9ac3a21-64a9-4d5c-b02e-ee8555541c64"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-39",
+        "date": "2026-09-09T00:46:26.442Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " since",
+        "run_id": "local-run-1",
+        "seq_id": 39,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 48,
+      "emitted_at": "2026-09-09T00:46:26.443Z",
+      "idempotency_key": "stream_delta:48:0634d708-4af1-4f0a-aa27-795f247b73a1"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-40",
+        "date": "2026-09-09T00:46:26.633Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " all",
+        "run_id": "local-run-1",
+        "seq_id": 40,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 49,
+      "emitted_at": "2026-09-09T00:46:26.634Z",
+      "idempotency_key": "stream_delta:49:4fb29351-32b5-44ec-be4d-a90cff511f74"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-41",
+        "date": "2026-09-09T00:46:26.825Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " the",
+        "run_id": "local-run-1",
+        "seq_id": 41,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 50,
+      "emitted_at": "2026-09-09T00:46:26.826Z",
+      "idempotency_key": "stream_delta:50:79557594-6b16-4c85-8159-731e283d17ee"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-42",
+        "date": "2026-09-09T00:46:27.012Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " information",
+        "run_id": "local-run-1",
+        "seq_id": 42,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 51,
+      "emitted_at": "2026-09-09T00:46:27.014Z",
+      "idempotency_key": "stream_delta:51:d3e2dad0-69b7-400e-9512-fe147addd9a4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-43",
+        "date": "2026-09-09T00:46:27.200Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " is",
+        "run_id": "local-run-1",
+        "seq_id": 43,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 52,
+      "emitted_at": "2026-09-09T00:46:27.201Z",
+      "idempotency_key": "stream_delta:52:d501616a-9b01-49fe-ac11-6d8792eaf2b7"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-44",
+        "date": "2026-09-09T00:46:27.350Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " already",
+        "run_id": "local-run-1",
+        "seq_id": 44,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 53,
+      "emitted_at": "2026-09-09T00:46:27.351Z",
+      "idempotency_key": "stream_delta:53:52e8600e-1f9a-451f-bdc0-021ff2b07d86"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-45",
+        "date": "2026-09-09T00:46:27.542Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " available",
+        "run_id": "local-run-1",
+        "seq_id": 45,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 54,
+      "emitted_at": "2026-09-09T00:46:27.543Z",
+      "idempotency_key": "stream_delta:54:fe1459ac-a87a-45d0-828c-5af7b8314f12"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-46",
+        "date": "2026-09-09T00:46:27.732Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " in",
+        "run_id": "local-run-1",
+        "seq_id": 46,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 55,
+      "emitted_at": "2026-09-09T00:46:27.733Z",
+      "idempotency_key": "stream_delta:55:3b29c1d6-3e60-4f83-b115-3442680c0eb8"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-47",
+        "date": "2026-09-09T00:46:27.925Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " the",
+        "run_id": "local-run-1",
+        "seq_id": 47,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 56,
+      "emitted_at": "2026-09-09T00:46:27.926Z",
+      "idempotency_key": "stream_delta:56:a32da998-12c8-4f40-9a31-4e05b9e75a90"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-48",
+        "date": "2026-09-09T00:46:28.112Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " MCP",
+        "run_id": "local-run-1",
+        "seq_id": 48,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 57,
+      "emitted_at": "2026-09-09T00:46:28.114Z",
+      "idempotency_key": "stream_delta:57:a51dd605-7a87-477b-9b42-62b38e436010"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-49",
+        "date": "2026-09-09T00:46:28.303Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " server",
+        "run_id": "local-run-1",
+        "seq_id": 49,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 58,
+      "emitted_at": "2026-09-09T00:46:28.304Z",
+      "idempotency_key": "stream_delta:58:3fce1148-6732-44b8-9bc4-77524304f299"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-50",
+        "date": "2026-09-09T00:46:28.455Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": " reminders",
+        "run_id": "local-run-1",
+        "seq_id": 50,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 59,
+      "emitted_at": "2026-09-09T00:46:28.456Z",
+      "idempotency_key": "stream_delta:59:c75121b7-939f-4a73-9716-c033cc4ffb3c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-51",
+        "date": "2026-09-09T00:46:28.649Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "reasoning_message",
+        "otid": "provider-reasoning-0-633270f9-10cf-4a04-a923-88a62c755d45",
+        "reasoning": ".",
+        "run_id": "local-run-1",
+        "seq_id": 51,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 60,
+      "emitted_at": "2026-09-09T00:46:28.650Z",
+      "idempotency_key": "stream_delta:60:1a727ced-04d4-44df-a9dc-aa2a2b6476c6"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-52",
+        "date": "2026-09-09T00:46:29.452Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "```"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 52,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 61,
+      "emitted_at": "2026-09-09T00:46:29.453Z",
+      "idempotency_key": "stream_delta:61:163bf7df-cb5e-4ed1-b61b-747185f9ac94"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-53",
+        "date": "2026-09-09T00:46:29.644Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "json"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 53,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 62,
+      "emitted_at": "2026-09-09T00:46:29.646Z",
+      "idempotency_key": "stream_delta:62:228ec0ab-e742-46d9-adff-0f1a2f9d52a0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-54",
+        "date": "2026-09-09T00:46:30.023Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n{"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 54,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 63,
+      "emitted_at": "2026-09-09T00:46:30.024Z",
+      "idempotency_key": "stream_delta:63:f85ecf61-31f2-4e38-ac84-2e1b691970d3"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-55",
+        "date": "2026-09-09T00:46:30.595Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 55,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 64,
+      "emitted_at": "2026-09-09T00:46:30.596Z",
+      "idempotency_key": "stream_delta:64:a3ff709e-7f87-47ea-b369-c7b97f6bc94d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-56",
+        "date": "2026-09-09T00:46:30.748Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "memory"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 56,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 65,
+      "emitted_at": "2026-09-09T00:46:30.749Z",
+      "idempotency_key": "stream_delta:65:d0c2daeb-4ddc-4f2c-ac72-ef7e853d9a5c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-57",
+        "date": "2026-09-09T00:46:30.942Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_marker"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 57,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 66,
+      "emitted_at": "2026-09-09T00:46:30.943Z",
+      "idempotency_key": "stream_delta:66:99e7798f-6798-4311-b7c6-668703ffb9cb"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-58",
+        "date": "2026-09-09T00:46:31.131Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 58,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 67,
+      "emitted_at": "2026-09-09T00:46:31.132Z",
+      "idempotency_key": "stream_delta:67:9fdcb5b1-dc75-4a1c-8f76-9b3d1786d9b4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-59",
+        "date": "2026-09-09T00:46:31.325Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 59,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 68,
+      "emitted_at": "2026-09-09T00:46:31.326Z",
+      "idempotency_key": "stream_delta:68:f6598732-fdb9-43a1-9c64-c8992c60ac9b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-60",
+        "date": "2026-09-09T00:46:31.515Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "M"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 60,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 69,
+      "emitted_at": "2026-09-09T00:46:31.516Z",
+      "idempotency_key": "stream_delta:69:235f38c8-a71d-4a77-91e8-e8957eb4e607"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-61",
+        "date": "2026-09-09T00:46:31.704Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "2"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 61,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 70,
+      "emitted_at": "2026-09-09T00:46:31.705Z",
+      "idempotency_key": "stream_delta:70:dee3193f-d8b5-4ac9-ad7c-2cd37afc40e0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-62",
+        "date": "2026-09-09T00:46:31.857Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "-"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 62,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 71,
+      "emitted_at": "2026-09-09T00:46:31.857Z",
+      "idempotency_key": "stream_delta:71:bf036c0a-e0c4-4ea5-b5cd-7f5c145f674a"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-63",
+        "date": "2026-09-09T00:46:32.048Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "LE"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 63,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 72,
+      "emitted_at": "2026-09-09T00:46:32.049Z",
+      "idempotency_key": "stream_delta:72:1d3a803b-356e-44c7-986a-bfab44fd269b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-64",
+        "date": "2026-09-09T00:46:32.237Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "TT"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 64,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 73,
+      "emitted_at": "2026-09-09T00:46:32.238Z",
+      "idempotency_key": "stream_delta:73:abaa7f0d-2dad-4aa6-b0c2-ba1b09799d1a"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-65",
+        "date": "2026-09-09T00:46:32.428Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "A"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 65,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 74,
+      "emitted_at": "2026-09-09T00:46:32.429Z",
+      "idempotency_key": "stream_delta:74:b0440826-b56f-4e91-b596-9f025b450f2d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-66",
+        "date": "2026-09-09T00:46:32.621Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "-S"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 66,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 75,
+      "emitted_at": "2026-09-09T00:46:32.622Z",
+      "idempotency_key": "stream_delta:75:3fd98ae5-f25e-4470-b293-3bb1a58ec1ed"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-67",
+        "date": "2026-09-09T00:46:32.811Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "ABLE"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 67,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 76,
+      "emitted_at": "2026-09-09T00:46:32.812Z",
+      "idempotency_key": "stream_delta:76:2701d37e-938b-49b6-abb5-821f47421161"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-68",
+        "date": "2026-09-09T00:46:32.997Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\","
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 68,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 77,
+      "emitted_at": "2026-09-09T00:46:32.998Z",
+      "idempotency_key": "stream_delta:77:dd8649a9-c9a7-4040-8872-3e658aaf5abd"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-69",
+        "date": "2026-09-09T00:46:33.531Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 69,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 78,
+      "emitted_at": "2026-09-09T00:46:33.533Z",
+      "idempotency_key": "stream_delta:78:7f3bbd32-a85d-42bb-8452-4c847dc8af47"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-70",
+        "date": "2026-09-09T00:46:33.721Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "pending"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 70,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 79,
+      "emitted_at": "2026-09-09T00:46:33.722Z",
+      "idempotency_key": "stream_delta:79:3a6bd2d3-fa5d-4567-b775-ab99fa7db35c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-71",
+        "date": "2026-09-09T00:46:33.912Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_job"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 71,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 80,
+      "emitted_at": "2026-09-09T00:46:33.913Z",
+      "idempotency_key": "stream_delta:80:b0298245-7f96-48dc-a761-38644e80e727"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-72",
+        "date": "2026-09-09T00:46:34.099Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 72,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 81,
+      "emitted_at": "2026-09-09T00:46:34.100Z",
+      "idempotency_key": "stream_delta:81:7078d54c-e5ed-4cd1-b3f0-edf3391e20e9"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-73",
+        "date": "2026-09-09T00:46:34.250Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 73,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 82,
+      "emitted_at": "2026-09-09T00:46:34.251Z",
+      "idempotency_key": "stream_delta:82:b3eed4d0-8895-4ec9-b76b-767f0bc8d5be"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-74",
+        "date": "2026-09-09T00:46:34.440Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "m"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 74,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 83,
+      "emitted_at": "2026-09-09T00:46:34.441Z",
+      "idempotency_key": "stream_delta:83:0e445478-7fbf-4c42-8acf-37e7556ae424"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-75",
+        "date": "2026-09-09T00:46:34.642Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "2"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 75,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 84,
+      "emitted_at": "2026-09-09T00:46:34.643Z",
+      "idempotency_key": "stream_delta:84:9bfe3b7c-d072-4027-a1bf-ca72ded23702"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-76",
+        "date": "2026-09-09T00:46:34.842Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "-p"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 76,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 85,
+      "emitted_at": "2026-09-09T00:46:34.843Z",
+      "idempotency_key": "stream_delta:85:e6666b97-3f30-4ae4-b9d3-2e0cd9d658da"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-77",
+        "date": "2026-09-09T00:46:35.050Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "ending"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 77,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 86,
+      "emitted_at": "2026-09-09T00:46:35.051Z",
+      "idempotency_key": "stream_delta:86:9141d72e-0784-4705-8323-7a4a9bc71e3d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-78",
+        "date": "2026-09-09T00:46:35.243Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\","
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 78,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 87,
+      "emitted_at": "2026-09-09T00:46:35.244Z",
+      "idempotency_key": "stream_delta:87:7eafb1fe-4a66-44f2-959a-d03ccb0440eb"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-79",
+        "date": "2026-09-09T00:46:35.813Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 79,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 88,
+      "emitted_at": "2026-09-09T00:46:35.814Z",
+      "idempotency_key": "stream_delta:88:25ce57d5-dee2-4335-aab6-7705e3e9f266"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-80",
+        "date": "2026-09-09T00:46:36.005Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "paused"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 80,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 89,
+      "emitted_at": "2026-09-09T00:46:36.006Z",
+      "idempotency_key": "stream_delta:89:7765a9c3-afdf-42dc-9add-49f06367b1b9"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-81",
+        "date": "2026-09-09T00:46:36.157Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_job"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 81,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 90,
+      "emitted_at": "2026-09-09T00:46:36.157Z",
+      "idempotency_key": "stream_delta:90:64aaaafa-8220-45a8-aef4-5ad8e252934a"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-82",
+        "date": "2026-09-09T00:46:36.348Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 82,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 91,
+      "emitted_at": "2026-09-09T00:46:36.349Z",
+      "idempotency_key": "stream_delta:91:0b72f25c-075e-436a-88c6-1e5b903e4357"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-83",
+        "date": "2026-09-09T00:46:36.537Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 83,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 92,
+      "emitted_at": "2026-09-09T00:46:36.538Z",
+      "idempotency_key": "stream_delta:92:4731c03b-7a97-4921-9614-d2524c076222"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-84",
+        "date": "2026-09-09T00:46:36.728Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "m"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 84,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 93,
+      "emitted_at": "2026-09-09T00:46:36.729Z",
+      "idempotency_key": "stream_delta:93:e6c7af97-4a75-41cf-b480-81c64fec14cd"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-85",
+        "date": "2026-09-09T00:46:36.917Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "2"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 85,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 94,
+      "emitted_at": "2026-09-09T00:46:36.918Z",
+      "idempotency_key": "stream_delta:94:cd559fad-24fc-4344-a287-c087735e59a1"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-86",
+        "date": "2026-09-09T00:46:37.103Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "-p"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 86,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 95,
+      "emitted_at": "2026-09-09T00:46:37.104Z",
+      "idempotency_key": "stream_delta:95:f02bd771-549a-4e21-97f6-d980082a36f3"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-87",
+        "date": "2026-09-09T00:46:37.256Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "a"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 87,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 96,
+      "emitted_at": "2026-09-09T00:46:37.257Z",
+      "idempotency_key": "stream_delta:96:485c00be-1b9f-494d-8e7c-585aa005ac0d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-88",
+        "date": "2026-09-09T00:46:37.445Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "used"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 88,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 97,
+      "emitted_at": "2026-09-09T00:46:37.446Z",
+      "idempotency_key": "stream_delta:97:acad8951-39c9-4855-b246-6e36bf0402f5"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-89",
+        "date": "2026-09-09T00:46:37.639Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\","
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 89,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 98,
+      "emitted_at": "2026-09-09T00:46:37.640Z",
+      "idempotency_key": "stream_delta:98:e023ce5c-4969-4b0a-9741-8bb62d8cd929"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-90",
+        "date": "2026-09-09T00:46:38.210Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 90,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 99,
+      "emitted_at": "2026-09-09T00:46:38.211Z",
+      "idempotency_key": "stream_delta:99:ca6b254c-1d14-489d-b809-a859907332dd"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-91",
+        "date": "2026-09-09T00:46:38.398Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "unknown"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 91,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 100,
+      "emitted_at": "2026-09-09T00:46:38.399Z",
+      "idempotency_key": "stream_delta:100:d37bf6f4-f929-4062-936e-e0d3e3dfbb48"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-92",
+        "date": "2026-09-09T00:46:38.549Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_operation"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 92,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 101,
+      "emitted_at": "2026-09-09T00:46:38.550Z",
+      "idempotency_key": "stream_delta:101:1398a393-d70f-4c68-b1bc-deb9ab53755c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-93",
+        "date": "2026-09-09T00:46:38.738Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 93,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 102,
+      "emitted_at": "2026-09-09T00:46:38.739Z",
+      "idempotency_key": "stream_delta:102:b9327263-fbe1-4e13-a4ca-6cfaa37b8230"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-94",
+        "date": "2026-09-09T00:46:38.925Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 94,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 103,
+      "emitted_at": "2026-09-09T00:46:38.927Z",
+      "idempotency_key": "stream_delta:103:169455fc-ed72-4e9a-86f1-c5bccb04396d"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-95",
+        "date": "2026-09-09T00:46:39.116Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "m"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 95,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 104,
+      "emitted_at": "2026-09-09T00:46:39.117Z",
+      "idempotency_key": "stream_delta:104:43b15b3a-aa58-4ebf-b1d6-4281ca15de17"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-96",
+        "date": "2026-09-09T00:46:39.310Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "2"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 96,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 105,
+      "emitted_at": "2026-09-09T00:46:39.311Z",
+      "idempotency_key": "stream_delta:105:6e07bf73-762b-419b-ad4f-ab984f0a5e64"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-97",
+        "date": "2026-09-09T00:46:39.497Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "-"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 97,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 106,
+      "emitted_at": "2026-09-09T00:46:39.498Z",
+      "idempotency_key": "stream_delta:106:20acc8c7-fa8e-4643-9414-0a05e139fa85"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-98",
+        "date": "2026-09-09T00:46:39.650Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "unc"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 98,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 107,
+      "emitted_at": "2026-09-09T00:46:39.651Z",
+      "idempotency_key": "stream_delta:107:c9e8fcee-ebac-4b94-9ded-9599064b1c76"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-99",
+        "date": "2026-09-09T00:46:39.842Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "ertain"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 99,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 108,
+      "emitted_at": "2026-09-09T00:46:39.843Z",
+      "idempotency_key": "stream_delta:108:130e3dca-36c7-4e65-aa2c-c65e6586b122"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-100",
+        "date": "2026-09-09T00:46:40.032Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\","
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 100,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 109,
+      "emitted_at": "2026-09-09T00:46:40.033Z",
+      "idempotency_key": "stream_delta:109:086ce0de-510a-4aaf-9e7f-169459a71811"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-101",
+        "date": "2026-09-09T00:46:40.635Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 101,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 110,
+      "emitted_at": "2026-09-09T00:46:40.636Z",
+      "idempotency_key": "stream_delta:110:41af5bdc-fc6a-430e-aa5c-fb46366cff2c"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-102",
+        "date": "2026-09-09T00:46:40.836Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "allowed"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 102,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 111,
+      "emitted_at": "2026-09-09T00:46:40.837Z",
+      "idempotency_key": "stream_delta:111:72609743-a0c7-4bf1-801a-dbc402d604c4"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-103",
+        "date": "2026-09-09T00:46:41.025Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_to"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 103,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 112,
+      "emitted_at": "2026-09-09T00:46:41.026Z",
+      "idempotency_key": "stream_delta:112:1035a680-3a53-46ee-ba6e-efe3a03b7e79"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-104",
+        "date": "2026-09-09T00:46:41.218Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_resume"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 104,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 113,
+      "emitted_at": "2026-09-09T00:46:41.219Z",
+      "idempotency_key": "stream_delta:113:cb91c13e-e9c8-463c-b96e-756434e2656e"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-105",
+        "date": "2026-09-09T00:46:41.411Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_pa"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 105,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 114,
+      "emitted_at": "2026-09-09T00:46:41.412Z",
+      "idempotency_key": "stream_delta:114:e5032725-6ccc-4672-a258-19ff38ffadc3"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-106",
+        "date": "2026-09-09T00:46:41.596Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "used"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 106,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 115,
+      "emitted_at": "2026-09-09T00:46:41.597Z",
+      "idempotency_key": "stream_delta:115:5c7aa033-b86d-453d-bbca-730f4f4eeddd"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-107",
+        "date": "2026-09-09T00:46:41.751Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 107,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 116,
+      "emitted_at": "2026-09-09T00:46:41.752Z",
+      "idempotency_key": "stream_delta:116:6dedab7c-dcb0-49bd-812c-af05f1b6be97"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-108",
+        "date": "2026-09-09T00:46:41.943Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " false"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 108,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 117,
+      "emitted_at": "2026-09-09T00:46:41.944Z",
+      "idempotency_key": "stream_delta:117:11821df9-f3d1-4fa9-a3f7-c5bb03a8357b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-109",
+        "date": "2026-09-09T00:46:42.132Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": ","
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 109,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 118,
+      "emitted_at": "2026-09-09T00:46:42.133Z",
+      "idempotency_key": "stream_delta:118:2a4bf67b-caf3-4bdd-a728-fa2f25b861d7"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-110",
+        "date": "2026-09-09T00:46:42.702Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n  \""
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 110,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 119,
+      "emitted_at": "2026-09-09T00:46:42.703Z",
+      "idempotency_key": "stream_delta:119:9cb41183-1462-4216-9548-5279bee928f6"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-111",
+        "date": "2026-09-09T00:46:42.894Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "allowed"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 111,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 120,
+      "emitted_at": "2026-09-09T00:46:42.895Z",
+      "idempotency_key": "stream_delta:120:50a11e2e-66dc-44ee-bf28-6a54fdb22a67"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-112",
+        "date": "2026-09-09T00:46:43.050Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_to"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 112,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 121,
+      "emitted_at": "2026-09-09T00:46:43.051Z",
+      "idempotency_key": "stream_delta:121:e275dc13-7655-4df7-8b4f-4ebc0d049757"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-113",
+        "date": "2026-09-09T00:46:43.241Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_retry"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 113,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 122,
+      "emitted_at": "2026-09-09T00:46:43.242Z",
+      "idempotency_key": "stream_delta:122:10f46892-df0d-4898-8d28-0df29637b086"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-114",
+        "date": "2026-09-09T00:46:43.435Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "_unknown"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 114,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 123,
+      "emitted_at": "2026-09-09T00:46:43.436Z",
+      "idempotency_key": "stream_delta:123:0df0a6d9-d179-4a91-a966-1970568bd46b"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-115",
+        "date": "2026-09-09T00:46:43.628Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\":"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 115,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 124,
+      "emitted_at": "2026-09-09T00:46:43.630Z",
+      "idempotency_key": "stream_delta:124:59788a33-378b-436f-966f-d10a3f76a3c0"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-116",
+        "date": "2026-09-09T00:46:43.820Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": " false"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 116,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 125,
+      "emitted_at": "2026-09-09T00:46:43.821Z",
+      "idempotency_key": "stream_delta:125:8d6480b7-ea8f-4b7b-9e30-30ad2d53cbde"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-117",
+        "date": "2026-09-09T00:46:44.200Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n}"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 117,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 126,
+      "emitted_at": "2026-09-09T00:46:44.201Z",
+      "idempotency_key": "stream_delta:126:68ef0e9f-9530-479b-b6f8-ba4bf89b701e"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-118",
+        "date": "2026-09-09T00:46:44.543Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "assistant_message",
+        "otid": "provider-assistant-1-55fafa18-ebc4-449f-914a-e45f19678e69",
+        "content": [
+          {
+            "type": "text",
+            "text": "\n```"
+          }
+        ],
+        "run_id": "local-run-1",
+        "seq_id": 118,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 127,
+      "emitted_at": "2026-09-09T00:46:44.545Z",
+      "idempotency_key": "stream_delta:127:80721bb3-b437-435d-91fd-2c3817123f8e"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "id": "letta-msg-119",
+        "date": "2026-09-09T00:46:44.733Z",
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8",
+        "message_type": "usage_statistics",
+        "prompt_tokens": 4959,
+        "completion_tokens": 137,
+        "total_tokens": 5096,
+        "cached_input_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": 0,
+        "context_tokens": 5096,
+        "run_id": "local-run-1",
+        "seq_id": 119,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 128,
+      "emitted_at": "2026-09-09T00:46:44.733Z",
+      "idempotency_key": "stream_delta:128:7f4e3f99-6ae6-4dca-bbea-516728fafd98"
+    },
+    {
+      "type": "stream_delta",
+      "delta": {
+        "message_type": "stop_reason",
+        "stop_reason": "end_turn",
+        "run_id": "local-run-1",
+        "seq_id": 120,
+        "type": "message"
+      },
+      "runtime": {
+        "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+        "conversation_id": "local-conv-8"
+      },
+      "event_seq": 129,
+      "emitted_at": "2026-09-09T00:46:44.735Z",
+      "idempotency_key": "stream_delta:129:f47909df-fa60-4e66-84f2-6db3fef3415b"
+    }
+  ],
+  "text": "```json\n{\n  \"memory_marker\": \"M2-LETTA-SABLE\",\n  \"pending_job\": \"m2-pending\",\n  \"paused_job\": \"m2-paused\",\n  \"unknown_operation\": \"m2-uncertain\",\n  \"allowed_to_resume_paused\": false,\n  \"allowed_to_retry_unknown\": false\n}\n```",
+  "stops": [
+    "end_turn"
+  ],
+  "tools": [],
+  "usage": [
+    {
+      "id": "letta-msg-119",
+      "date": "2026-09-09T00:46:44.733Z",
+      "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+      "conversation_id": "local-conv-8",
+      "message_type": "usage_statistics",
+      "prompt_tokens": 4959,
+      "completion_tokens": 137,
+      "total_tokens": 5096,
+      "cached_input_tokens": 0,
+      "cache_write_tokens": 0,
+      "reasoning_tokens": 0,
+      "context_tokens": 5096,
+      "run_id": "local-run-1",
+      "seq_id": 119,
+      "type": "message"
+    }
+  ]
+}

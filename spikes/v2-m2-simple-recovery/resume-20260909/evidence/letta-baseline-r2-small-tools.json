@@ -1,0 +1,316 @@
+{
+  "sent": {
+    "type": "input",
+    "runtime": {
+      "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+      "conversation_id": "local-conv-2"
+    },
+    "payload": {
+      "kind": "create_message",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Use saved memory only. Do not use tools or execute jobs. Return one JSON object: memory_marker, pending_job, paused_job, unknown_operation, allowed_to_retry_unknown (boolean).",
+          "client_message_id": "letta-baseline-r2-small-tools-read"
+        }
+      ],
+      "client_tool_allowlist": [
+        "Read",
+        "Write",
+        "Bash"
+      ]
+    }
+  },
+  "events": [
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "SENDING_API_REQUEST",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 1,
+      "emitted_at": "2026-09-09T00:10:24.935Z",
+      "idempotency_key": "update_loop_status:1:630e9358-ea29-4fb3-b815-810b486c270b"
+    },
+    {
+      "type": "update_device_status",
+      "device_status": {
+        "current_connection_id": "app-server",
+        "connection_name": "2c8ddcbac83a",
+        "is_online": true,
+        "is_processing": true,
+        "current_permission_mode": "unrestricted",
+        "current_working_directory": "/work",
+        "git_context": null,
+        "letta_code_version": null,
+        "current_toolset": null,
+        "current_toolset_preference": "auto",
+        "current_loaded_tools": [],
+        "current_available_skills": [],
+        "background_processes": [],
+        "pending_control_requests": [],
+        "experiments": [
+          {
+            "id": "artifacts",
+            "label": "artifacts",
+            "description": "Expose Letta Code Desktop artifact creation tools and artifact UI surfaces.",
+            "envVar": "LETTA_ARTIFACTS",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "conversation_titles",
+            "label": "conversation titles",
+            "description": "Generate AI conversation titles automatically when possible.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "desktop_conversation_bootstrap",
+            "label": "conversation bootstrap",
+            "description": "Inject lightweight prior-conversation context into the first turn of brand-new Letta Code conversations.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "diffs",
+            "label": "diffs",
+            "description": "Open browser-based worktree diff previews powered by Diffs from Pierre.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "reflection_arena",
+            "label": "reflection arena",
+            "description": "Run blind A/B comparisons between reflection models on the same transcript sample.",
+            "envVar": "LETTA_REFLECTION_ARENA",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "tui_cron",
+            "label": "TUI cron scheduler",
+            "description": "Fire scheduled tasks from the CLI when the desktop app isn't running.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          }
+        ],
+        "memory_directory": "/home/node/.letta/lc-local-backend/memfs/agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb/memory",
+        "cwd_revision": 0,
+        "should_doctor": false,
+        "supported_commands": [
+          "clear",
+          "clear-messages",
+          "doctor",
+          "init",
+          "remember",
+          "compact",
+          "reload",
+          "context-limit",
+          "channels",
+          "upgrade-letta-code",
+          "toolset",
+          "secret"
+        ],
+        "reflection_settings": {
+          "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+          "trigger": "step-count",
+          "step_count": 25,
+          "merge": "auto",
+          "merge_instructions": ""
+        }
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 2,
+      "emitted_at": "2026-09-09T00:10:24.935Z",
+      "idempotency_key": "update_device_status:2:c648bb59-6753-4942-8be3-b1a2245a198f"
+    },
+    {
+      "type": "update_device_status",
+      "device_status": {
+        "current_connection_id": "app-server",
+        "connection_name": "2c8ddcbac83a",
+        "is_online": true,
+        "is_processing": true,
+        "current_permission_mode": "unrestricted",
+        "current_working_directory": "/work",
+        "git_context": null,
+        "letta_code_version": null,
+        "current_toolset": null,
+        "current_toolset_preference": "auto",
+        "current_loaded_tools": [],
+        "current_available_skills": [],
+        "background_processes": [],
+        "pending_control_requests": [],
+        "experiments": [
+          {
+            "id": "artifacts",
+            "label": "artifacts",
+            "description": "Expose Letta Code Desktop artifact creation tools and artifact UI surfaces.",
+            "envVar": "LETTA_ARTIFACTS",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "conversation_titles",
+            "label": "conversation titles",
+            "description": "Generate AI conversation titles automatically when possible.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "desktop_conversation_bootstrap",
+            "label": "conversation bootstrap",
+            "description": "Inject lightweight prior-conversation context into the first turn of brand-new Letta Code conversations.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "diffs",
+            "label": "diffs",
+            "description": "Open browser-based worktree diff previews powered by Diffs from Pierre.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "reflection_arena",
+            "label": "reflection arena",
+            "description": "Run blind A/B comparisons between reflection models on the same transcript sample.",
+            "envVar": "LETTA_REFLECTION_ARENA",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          },
+          {
+            "id": "tui_cron",
+            "label": "TUI cron scheduler",
+            "description": "Fire scheduled tasks from the CLI when the desktop app isn't running.",
+            "enabled": false,
+            "source": "default",
+            "override": null
+          }
+        ],
+        "memory_directory": "/home/node/.letta/lc-local-backend/memfs/agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb/memory",
+        "cwd_revision": 0,
+        "should_doctor": false,
+        "supported_commands": [
+          "clear",
+          "clear-messages",
+          "doctor",
+          "init",
+          "remember",
+          "compact",
+          "reload",
+          "context-limit",
+          "channels",
+          "upgrade-letta-code",
+          "toolset",
+          "secret"
+        ],
+        "reflection_settings": {
+          "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+          "trigger": "step-count",
+          "step_count": 25,
+          "merge": "auto",
+          "merge_instructions": ""
+        }
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 3,
+      "emitted_at": "2026-09-09T00:10:24.940Z",
+      "idempotency_key": "update_device_status:3:b74b167e-844a-4a07-8af4-f6e1c37bd1bf"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "SENDING_API_REQUEST",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 4,
+      "emitted_at": "2026-09-09T00:10:24.940Z",
+      "idempotency_key": "update_loop_status:4:5209991a-e7cc-46d5-a3cc-c6eb8a97cf3f"
+    },
+    {
+      "type": "update_queue",
+      "queue": [],
+      "removed": [],
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 5,
+      "emitted_at": "2026-09-09T00:10:24.940Z",
+      "idempotency_key": "update_queue:5:b5a38874-e3ef-4b75-aa63-53a07d1f3ecf"
+    },
+    {
+      "type": "update_subagent_state",
+      "subagents": [],
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 6,
+      "emitted_at": "2026-09-09T00:10:24.940Z",
+      "idempotency_key": "update_subagent_state:6:a7d6f8ea-c125-4365-958b-694e5ab3d602"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "WAITING_FOR_API_RESPONSE",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 7,
+      "emitted_at": "2026-09-09T00:10:24.982Z",
+      "idempotency_key": "update_loop_status:7:0b4fac72-25ed-4bea-9e21-f713088d428c"
+    },
+    {
+      "type": "update_loop_status",
+      "loop_status": {
+        "status": "PROCESSING_API_RESPONSE",
+        "active_run_ids": [],
+        "executing_tool_call_ids": []
+      },
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "event_seq": 8,
+      "emitted_at": "2026-09-09T00:10:25.004Z",
+      "idempotency_key": "update_loop_status:8:d53800bf-7dab-4b63-8692-eb7bbdcd2db5"
+    }
+  ],
+  "wall_s": 180.00050218310207,
+  "terminal_observed": false,
+  "error": null
+}

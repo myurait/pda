@@ -1,0 +1,145 @@
+{
+  "sent": {
+    "type": "runtime_start",
+    "request_id": "letta-baseline-r2-small-tools-create",
+    "create_agent": {
+      "body": {
+        "name": "letta-baseline-r2-small-tools",
+        "model": "ollama/qwen3.5:2b",
+        "model_settings": {
+          "max_tokens": 128,
+          "context_window_limit": 8192,
+          "reasoning": {
+            "reasoning_effort": "none"
+          }
+        },
+        "memory_blocks": [
+          {
+            "label": "persona",
+            "value": "Isolated local synthetic test. No delegation, schedules, cloud tools, or external actions."
+          },
+          {
+            "label": "m2_state",
+            "value": "Memory marker=M2-LETTA-SABLE. Pending job m2-pending is waiting; do not execute. Job m2-paused is paused by owner; never resume. Operation m2-uncertain has an unknown outcome; never retry blindly."
+          }
+        ]
+      }
+    },
+    "create_conversation": {
+      "body": {}
+    },
+    "cwd": "/work",
+    "mode": "unrestricted"
+  },
+  "response": {
+    "type": "runtime_start_response",
+    "request_id": "letta-baseline-r2-small-tools-create",
+    "success": true,
+    "runtime": {
+      "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+      "conversation_id": "local-conv-2"
+    },
+    "agent": {
+      "id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+      "name": "letta-baseline-r2-small-tools",
+      "description": null,
+      "system": "",
+      "tools": [],
+      "tags": [
+        "git-memory-enabled"
+      ],
+      "model": "ollama/qwen3.5:2b",
+      "model_settings": {
+        "provider_type": "ollama",
+        "context_window_limit": 8192,
+        "max_tokens": 128,
+        "reasoning": {
+          "reasoning_effort": "none"
+        }
+      },
+      "message_ids": [],
+      "in_context_message_ids": [],
+      "last_run_completion": "2026-09-09T00:10:24.653Z",
+      "llm_config": {
+        "model": "qwen3.5:2b",
+        "model_endpoint_type": "ollama",
+        "model_endpoint": "https://example.invalid/v1",
+        "context_window": 8192,
+        "reasoning_effort": "none",
+        "max_tokens": 128
+      }
+    },
+    "conversation": {
+      "id": "local-conv-2",
+      "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+      "archived": false,
+      "archived_at": null,
+      "created_at": "2026-09-09T00:10:24.862Z",
+      "updated_at": "2026-09-09T00:10:24.862Z",
+      "last_message_at": null,
+      "summary": null,
+      "in_context_message_ids": []
+    },
+    "created": {
+      "agent": true,
+      "conversation": true
+    }
+  },
+  "events": [
+    {
+      "type": "runtime_start_response",
+      "request_id": "letta-baseline-r2-small-tools-create",
+      "success": true,
+      "runtime": {
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "conversation_id": "local-conv-2"
+      },
+      "agent": {
+        "id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "name": "letta-baseline-r2-small-tools",
+        "description": null,
+        "system": "",
+        "tools": [],
+        "tags": [
+          "git-memory-enabled"
+        ],
+        "model": "ollama/qwen3.5:2b",
+        "model_settings": {
+          "provider_type": "ollama",
+          "context_window_limit": 8192,
+          "max_tokens": 128,
+          "reasoning": {
+            "reasoning_effort": "none"
+          }
+        },
+        "message_ids": [],
+        "in_context_message_ids": [],
+        "last_run_completion": "2026-09-09T00:10:24.653Z",
+        "llm_config": {
+          "model": "qwen3.5:2b",
+          "model_endpoint_type": "ollama",
+          "model_endpoint": "https://example.invalid/v1",
+          "context_window": 8192,
+          "reasoning_effort": "none",
+          "max_tokens": 128
+        }
+      },
+      "conversation": {
+        "id": "local-conv-2",
+        "agent_id": "agent-local-84f56e66-2e74-4e9f-b75f-c0d8e7247bbb",
+        "archived": false,
+        "archived_at": null,
+        "created_at": "2026-09-09T00:10:24.862Z",
+        "updated_at": "2026-09-09T00:10:24.862Z",
+        "last_message_at": null,
+        "summary": null,
+        "in_context_message_ids": []
+      },
+      "created": {
+        "agent": true,
+        "conversation": true
+      }
+    }
+  ],
+  "wall_s": 0.2790520656853914
+}

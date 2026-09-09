@@ -1,0 +1,28 @@
+{
+  "wall_s": 157.42466675303876,
+  "actual": {
+    "code": 0,
+    "stdout": "M2-REPAIR-COMPLETE\n",
+    "stderr": ""
+  },
+  "tool_requests": [
+    {
+      "tool_call_id": "call_q3qt3fd6",
+      "name": "Write",
+      "arguments": "{\"file_path\":\"/work/m2-repair.txt\",\"file_content\":\"M2-REPAIR-COMPLETE\\n\"}"
+    },
+    {
+      "tool_call_id": "call_k3qkzlfz",
+      "name": "Bash",
+      "arguments": "{\"command\":\"printf 'M2-REPAIR-COMPLETE\\\\n' > /work/m2-repair.txt\",\"description\":\"Replace entire content of m2-repair.txt\"}"
+    }
+  ],
+  "text": "Done. The file `/work/m2-repair.txt` has been replaced with exactly `M2-REPAIR-COMPLETE` followed by a newline.",
+  "stops": [
+    "requires_approval",
+    "requires_approval",
+    "end_turn"
+  ],
+  "passed": true,
+  "scope": "Synthetic repair through native Bash; not self-update and not unattended whole-body recovery."
+}

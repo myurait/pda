@@ -1,0 +1,7 @@
+# Request inspection only. Not an adopted runtime or a recovery component.
+services:
+  app:
+    environment:
+      NODE_OPTIONS: '--require /m2/observe-fetch.cjs'
+    volumes:
+      - ./observe-fetch.cjs:/m2/observe-fetch.cjs:ro

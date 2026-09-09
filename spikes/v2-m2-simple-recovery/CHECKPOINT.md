@@ -1,4 +1,6 @@
-# M2 simple-recovery proof — CLOSED checkpoint
+# M2 simple-recovery proof — REOPENED / INCOMPLETE
+
+Owner correction and resumption, 2026-09-09: the earlier CLOSED/limited-candidate conclusion below is withdrawn. Original M2 acceptance criteria remain unchanged. Hermes selection and Letta rejection are not established by the previous incomplete comparison. Resume evidence and current state are in resume-20260909/. Historical observations below are retained, not accepted as a current verdict.
 
 Task: default / pda-improvement / t_ec4c52b9. Main PDA alone, serial. User scope was candidate selection through isolated proof and verdict, not M3 execution or production adoption. Input plan: /home/user/.hermes/plans/2026-09-08_154242-pda-v2-m2-execution-cycle.md. Current specification: /home/user/projects/pda-v2-m2-reassessment/docs/roadmap/v2-m2-simple-recovery-reassessment.md. Old DBOS/control prototype remains NO-GO, no additional patching or resumption.
 

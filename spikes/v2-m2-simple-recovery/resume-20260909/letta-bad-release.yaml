@@ -1,0 +1,9 @@
+# Deliberately unbootable test release; never a deployable candidate.
+services:
+  app:
+    entrypoint: [node, -e, 'process.exit(42)']
+    command: []
+    healthcheck:
+      test: [CMD, node, -e, 'process.exit(1)']
+      interval: 1s
+      retries: 2

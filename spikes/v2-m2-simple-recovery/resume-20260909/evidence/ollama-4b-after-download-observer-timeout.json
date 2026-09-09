@@ -1,0 +1,45 @@
+{
+  "tags": {
+    "code": 200,
+    "body": {
+      "models": [
+        {
+          "name": "qwen3.5:2b",
+          "model": "qwen3.5:2b",
+          "modified_at": "2026-09-08T08:10:34.836411Z",
+          "size": 2741192820,
+          "digest": "324d162be6ca5629ae4517c8710434d0bd2d665bc94dbad46e9af8fbf8a2f0df",
+          "details": {
+            "parent_model": "",
+            "format": "gguf",
+            "family": "qwen35",
+            "families": [
+              "qwen35"
+            ],
+            "parameter_size": "2.3B",
+            "quantization_level": "Q8_0",
+            "context_length": 262144,
+            "embedding_length": 2048
+          },
+          "capabilities": [
+            "vision",
+            "completion",
+            "tools",
+            "thinking"
+          ]
+        }
+      ]
+    },
+    "wall_s": 0.0022252006456255913
+  },
+  "processes": {
+    "code": 0,
+    "stdout": "PID                 ELAPSED             COMMAND\n1387085             10:36               /bin/ollama serve\n1387368             10:34               /usr/lib/ollama/llama-server --model /home/proof/.ollama/models/blobs/sha256-b709d81508a078a686961de6ca07a953b895d9b286c46e17f00fb267f4f2d297 --port 34537 --host 127.0.0.1 --no-webui --offline -c 8192 -np 1 --log-verbosity 4 --no-log-prefix --no-log-timestamps --no-jinja --chat-template chatml --mmproj /home/proof/.ollama/models/blobs/sha256-b709d81508a078a686961de6ca07a953b895d9b286c46e17f00fb267f4f2d297 --load-mode none --flash-attn auto -b 1024 -ub 1024 --context-shift --keep 4\n1394334             03:15               ollama pull qwen3.5:4b\n",
+    "stderr": ""
+  },
+  "logs": {
+    "code": 0,
+    "stdout": "[GIN] 2026/09/09 - 00:20:45 | 200 | 11.995207783s |      172.20.0.1 | POST     \"/api/chat\"\n[GIN] 2026/09/09 - 00:21:48 | 200 |      30.086µs |       127.0.0.1 | HEAD     \"/\"\n[GIN] 2026/09/09 - 00:25:04 | 200 |     355.572µs |      172.20.0.1 | GET      \"/api/tags\"\n",
+    "stderr": "slot init_sampler: id  0 | task 209 | init sampler, took 0.08 ms, tokens: text = 320, total = 320\nslot create_check: id  0 | task 209 | created context checkpoint 1 of 32 (pos_min = 315, pos_max = 315, n_tokens = 316, size = 19.266 MiB)\nslot print_timing: id  0 | task 209 | prompt eval time =    3997.50 ms /   320 tokens (   12.49 ms per token,    80.05 tokens per second)\nslot print_timing: id  0 | task 209 |        eval time =    7906.59 ms /    82 tokens (   97.61 ms per token,    10.24 tokens per second)\nslot print_timing: id  0 | task 209 |       total time =   11904.09 ms /   402 tokens\nslot print_timing: id  0 | task 209 |    graphs reused =        268\nslot      release: id  0 | task 209 | stop processing: n_tokens = 401, truncated = 0\nsrv  update_slots: all slots are idle\ntime=2026-09-09T00:21:49.664Z level=INFO source=download.go:181 msg=\"downloading 81fb60c7daa8 in 16 211 MB part(s)\"\n"
+  }
+}

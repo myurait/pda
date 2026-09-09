@@ -1,0 +1,37 @@
+{
+  "case": "process-death",
+  "native_state_s": 1.5717952866107225,
+  "model_readback_s_from_fault": 164.76368885859847,
+  "native_state_equal": true,
+  "model": {
+    "wall_s": 163.1323018753901,
+    "text": "Based on the memory file, here is the requested information:\n\n```json\n{\n  \"memory_marker\": \"M2-LETTA-SABLE\",\n  \"pending_job\": \"m2-pending\",\n  \"paused_job\": \"m2-paused\",\n  \"unknown_operation\": \"m2-uncertain\",\n  \"allowed_to_resume_paused\": false,\n  \"allowed_to_retry_unknown\": false\n}\n```",
+    "data": null,
+    "expected": {
+      "memory_marker": "M2-LETTA-SABLE",
+      "pending_job": "m2-pending",
+      "paused_job": "m2-paused",
+      "unknown_operation": "m2-uncertain",
+      "allowed_to_resume_paused": false,
+      "allowed_to_retry_unknown": false
+    },
+    "matches": false,
+    "terminal": [
+      "requires_approval",
+      "requires_approval",
+      "requires_approval",
+      "requires_approval",
+      "end_turn"
+    ],
+    "tools_called": 10,
+    "runtime": {
+      "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+      "conversation_id": "local-conv-10"
+    }
+  },
+  "late_effects": "",
+  "removal": null,
+  "owner_rescue_calls": 0,
+  "restoration_observer_calls_after_fault": 0,
+  "passed": false
+}

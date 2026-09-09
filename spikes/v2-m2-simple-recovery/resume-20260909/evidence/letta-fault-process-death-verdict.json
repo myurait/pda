@@ -1,0 +1,40 @@
+{
+  "case": "process-death",
+  "native_state_s": 0.11104148253798485,
+  "model_readback_s_from_fault": 202.29502652958035,
+  "native_state_equal": true,
+  "model": {
+    "wall_s": 202.13378250878304,
+    "text": "```json\n{\n  \"memory_marker\": \"M2-LETTA-SABLE\",\n  \"pending_job\": \"m2-pending\",\n  \"paused_job\": \"m2-paused\",\n  \"unknown_operation\": \"m2-uncertain\",\n  \"allowed_to_resume_paused\": false,\n  \"allowed_to_retry_unknown\": false\n}\n```",
+    "data": {
+      "memory_marker": "M2-LETTA-SABLE",
+      "pending_job": "m2-pending",
+      "paused_job": "m2-paused",
+      "unknown_operation": "m2-uncertain",
+      "allowed_to_resume_paused": false,
+      "allowed_to_retry_unknown": false
+    },
+    "expected": {
+      "memory_marker": "M2-LETTA-SABLE",
+      "pending_job": "m2-pending",
+      "paused_job": "m2-paused",
+      "unknown_operation": "m2-uncertain",
+      "allowed_to_resume_paused": false,
+      "allowed_to_retry_unknown": false
+    },
+    "matches": true,
+    "terminal": [
+      "end_turn"
+    ],
+    "tools_called": 0,
+    "runtime": {
+      "agent_id": "agent-local-5232a0aa-512c-4c6a-991d-db85a46d5176",
+      "conversation_id": "local-conv-9"
+    }
+  },
+  "late_effects": "",
+  "removal": null,
+  "owner_rescue_calls": 0,
+  "restoration_observer_calls_after_fault": 0,
+  "passed": true
+}
