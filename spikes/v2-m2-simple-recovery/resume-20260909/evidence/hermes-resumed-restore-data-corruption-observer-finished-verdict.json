@@ -1,0 +1,36 @@
+{
+  "logical_state_preserved": true,
+  "expected_counts": {
+    "sessions": 44,
+    "messages": 193
+  },
+  "repair_after_correct_import_s": 27.334,
+  "semantic": {
+    "passed": true,
+    "output": {
+      "request_id": "request-orchid-01",
+      "request_text": "Prepare an offline ORCHID summary",
+      "memory_marker": "violet-739",
+      "stopped_id": "activity-stop-17",
+      "stopped_state": "stopped",
+      "uncertain_id": "operation-unknown-29",
+      "uncertain_state": "outcome_unknown",
+      "uncertain_receipt": "synthetic-receipt-582",
+      "allowed_id": "activity-safe-03",
+      "resume": [
+        "activity-safe-03"
+      ],
+      "hold": [
+        "activity-stop-17",
+        "operation-unknown-29"
+      ]
+    },
+    "elapsed_s": 18.458
+  },
+  "original_trial_invalid_for_rto": true,
+  "unattended_recovery_proven": false,
+  "errors_in_observer": [
+    "ConnectionResetError not initially handled",
+    "Used unsupported restore --yes instead of documented import --force; corrected after CLI help and original verified script review"
+  ]
+}

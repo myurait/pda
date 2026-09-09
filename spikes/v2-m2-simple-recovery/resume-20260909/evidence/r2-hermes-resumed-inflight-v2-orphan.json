@@ -1,0 +1,61 @@
+{
+  "created": {
+    "http": 202,
+    "body": {
+      "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+      "status": "started",
+      "replayed": false
+    }
+  },
+  "payload": {
+    "input": "Synthetic isolated test only. Do not delegate, schedule, or use the network. Call terminal exactly once with timeout 110 and this command; never retry it even after an error:\npython3 -c 'import os,time;f=open(\"/home/proof/.hermes/hermes-resumed-inflight-v2-orphan-receipt.jsonl\",\"a\");f.write(\"accepted-1\\n\");f.flush();os.fsync(f.fileno());f.close();time.sleep(90)'\nAfter this one command completes, say RECEIPT_ACKNOWLEDGED. Do nothing else.",
+    "session_id": "hermes-resumed-inflight-v2-orphan"
+  },
+  "mode": "orphan",
+  "scope": "actual model/tool run; effect is synthetic fsynced file receipt, not a business API",
+  "native_state_before": {
+    "http": 200,
+    "body": {
+      "object": "hermes.run",
+      "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+      "status": "running",
+      "updated_at": 1788919351.641352,
+      "created_at": 1788919342.6623,
+      "session_id": "hermes-resumed-inflight-v2-orphan",
+      "model": "hermes-agent",
+      "last_event": "tool.started"
+    }
+  },
+  "injection_rc": 0,
+  "injection_stderr": "",
+  "receipt_before": "accepted-1\n",
+  "recovery_s": 3.771,
+  "native_state_after": {
+    "http": 200,
+    "body": {
+      "created_at": 1788919342.6623,
+      "model": "hermes-agent",
+      "object": "hermes.run",
+      "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+      "session_id": "hermes-resumed-inflight-v2-orphan",
+      "status": "interrupted",
+      "updated_at": 1788919355.635696,
+      "error": "The gateway restarted before this run settled.",
+      "last_event": "run.interrupted"
+    }
+  },
+  "replay": {
+    "http": 202,
+    "body": {
+      "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+      "status": "interrupted",
+      "replayed": true
+    }
+  },
+  "receipt_after": "accepted-1\n",
+  "processes_after": "PID                 PPID                COMMAND\n1502558             1502534             /sbin/docker-init -- /home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/.venv/bin/python -m hermes_cli.main gateway run\n1502635             1502558             /home/user/projects/pda-v2-m2-proof/spikes/v2-m2-simple-recovery/.runtime/hermes/.venv/bin/python -m hermes_cli.main gateway run\n",
+  "single_effect": true,
+  "delayed_tool_remaining": false,
+  "native_terminal_preserved": true,
+  "same_run_replayed": true
+}

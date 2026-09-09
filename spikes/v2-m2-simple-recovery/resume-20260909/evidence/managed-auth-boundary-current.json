@@ -1,0 +1,40 @@
+{
+  "observed_at": "2026-09-09T02:32:05.103485+00:00",
+  "environment_presence": {
+    "LETTA_API_KEY": false,
+    "CLOUDFLARE_API_TOKEN": false,
+    "CF_API_TOKEN": false,
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "OPENAI_API_KEY": false
+  },
+  "hermes_dotenv_presence": {
+    "LETTA_API_KEY": false,
+    "CLOUDFLARE_API_TOKEN": false,
+    "CF_API_TOKEN": false,
+    "CLOUDFLARE_ACCOUNT_ID": false,
+    "OPENAI_API_KEY": false
+  },
+  "standard_configs": {
+    ".letta/settings.json": false,
+    ".config/.wrangler/config/default.toml": false,
+    ".wrangler/config/default.toml": false
+  },
+  "scope": "This execution environment and named standard config paths only; not proof the owner lacks an account or browser login",
+  "anonymous_gets": {
+    "letta": {
+      "code": 403,
+      "body": "error code: 1010\n",
+      "wall_s": 0.05840703286230564
+    },
+    "cloudflare": {
+      "code": 400,
+      "body": "{\"success\":false,\"errors\":[{\"code\":1001,\"message\":\"Missing \\\"Authorization\\\" header\"}],\"messages\":[],\"result\":null}",
+      "wall_s": 0.21939766686409712
+    },
+    "openai": {
+      "code": 401,
+      "body": "{\n  \"error\": {\n    \"message\": \"Missing bearer authentication in header\",\n    \"type\": \"invalid_request_error\",\n    \"param\": null,\n    \"code\": null\n  }\n}",
+      "wall_s": 0.22499030083417892
+    }
+  }
+}

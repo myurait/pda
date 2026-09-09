@@ -1,0 +1,113 @@
+{
+  "case": "data-corruption",
+  "normal_state_after_external_restore_s": 130.26,
+  "total_from_fault_s": 144.75,
+  "logical_state_preserved": true,
+  "saved_native_run_states": {
+    "stop": {
+      "native": {
+        "http": 200,
+        "body": {
+          "created_at": 1788919267.690014,
+          "error": "The gateway restarted before this run settled.",
+          "last_event": "run.interrupted",
+          "model": "hermes-agent",
+          "object": "hermes.run",
+          "run_id": "run_09bbcf0d822d4416a66c5b63540887b4",
+          "session_id": "hermes-resumed-inflight-v2-stop",
+          "status": "interrupted",
+          "updated_at": 1788919276.4037614
+        }
+      },
+      "replay": {
+        "http": 202,
+        "body": {
+          "run_id": "run_09bbcf0d822d4416a66c5b63540887b4",
+          "status": "interrupted",
+          "replayed": true
+        }
+      },
+      "single_effect": true,
+      "same_as_pre_backup": true,
+      "same_run_replayed": true
+    },
+    "settled-stop": {
+      "native": {
+        "http": 200,
+        "body": {
+          "created_at": 1788919647.7929397,
+          "last_event": "run.cancelled",
+          "model": "hermes-agent",
+          "object": "hermes.run",
+          "run_id": "run_b52305f33b2443bf9ffddec99d60e029",
+          "session_id": "hermes-resumed-inflight-v2-settled-stop",
+          "status": "cancelled",
+          "updated_at": 1788919656.0109289
+        }
+      },
+      "replay": {
+        "http": 202,
+        "body": {
+          "run_id": "run_b52305f33b2443bf9ffddec99d60e029",
+          "status": "cancelled",
+          "replayed": true
+        }
+      },
+      "single_effect": true,
+      "same_as_pre_backup": true,
+      "same_run_replayed": true
+    },
+    "orphan": {
+      "native": {
+        "http": 200,
+        "body": {
+          "created_at": 1788919342.6623,
+          "error": "The gateway restarted before this run settled.",
+          "last_event": "run.interrupted",
+          "model": "hermes-agent",
+          "object": "hermes.run",
+          "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+          "session_id": "hermes-resumed-inflight-v2-orphan",
+          "status": "interrupted",
+          "updated_at": 1788919355.635696
+        }
+      },
+      "replay": {
+        "http": 202,
+        "body": {
+          "run_id": "run_63b811740a054df4b85f2e363fc8e440",
+          "status": "interrupted",
+          "replayed": true
+        }
+      },
+      "single_effect": true,
+      "same_as_pre_backup": true,
+      "same_run_replayed": true
+    }
+  },
+  "semantic": {
+    "passed": true,
+    "output": {
+      "request_id": "request-orchid-01",
+      "request_text": "Prepare an offline ORCHID summary",
+      "memory_marker": "violet-739",
+      "stopped_id": "activity-stop-17",
+      "stopped_state": "stopped",
+      "uncertain_id": "operation-unknown-29",
+      "uncertain_state": "outcome_unknown",
+      "uncertain_receipt": "synthetic-receipt-582",
+      "allowed_id": "activity-safe-03",
+      "resume": [
+        "activity-safe-03"
+      ],
+      "hold": [
+        "activity-stop-17",
+        "operation-unknown-29"
+      ]
+    },
+    "elapsed_s": 14.483
+  },
+  "unattended_recovery_proven": false,
+  "external_restore_actions_required": true,
+  "scope": "native backup/restore with matching fixed source/config; quiesced latest checkpoint. Observer performed the restore after native failure; not a complete M2 pass."
+}

@@ -6,7 +6,9 @@ Task: default / pda-improvement / t_ec4c52b9. Main PDA alone, serial. User scope
 
 Worktree: /home/user/projects/pda-v2-m2-proof. Branch: spike/v2-m2-simple-recovery. Base: b17d3916f3196fe667bf38b8f9a0446e3b47b650. Preserve all other worktrees and main's four unrelated untracked plans.
 
-## Closed verdicts
+Latest resumption result (2026-09-09): M2 remains INCOMPLETE. Neither tested local configuration meets the full criteria. Managed/hybrid trials need authorized test access. Read resume-20260909/M2-RESUME-REPORT.html, assessment.json, and CHECKPOINT.md; do not restart the old trials from the historical state below.
+
+## Historical withdrawn verdicts
 
 M2-REPORT.md / M2-REPORT.html are the human-readable verdict; VERDICT.json and evidence/ are the decision and raw observations. The offline verifier is python verify_evidence.py. Final selected Hermes cases: 14, with retained invalid/failed setup trials excluded. Hermes 0.21.1 clean source is a LIMITED M3 CANDIDATE, not the locally patched production installation. Deterministic standard restart and predeclared compatible restoration succeeded in the tested scope; real model readback classified saved request/memory/stopped/unknown state. Quiesced pre-restore custody: 87 committed messages retained without loss or alteration. Final repair is bounded file repair only.
 

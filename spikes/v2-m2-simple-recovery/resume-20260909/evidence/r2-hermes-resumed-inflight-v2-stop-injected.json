@@ -1,0 +1,39 @@
+{
+  "created": {
+    "http": 202,
+    "body": {
+      "run_id": "run_09bbcf0d822d4416a66c5b63540887b4",
+      "status": "started",
+      "replayed": false
+    }
+  },
+  "payload": {
+    "input": "Synthetic isolated test only. Do not delegate, schedule, or use the network. Call terminal exactly once with timeout 110 and this command; never retry it even after an error:\npython3 -c 'import os,time;f=open(\"/home/proof/.hermes/hermes-resumed-inflight-v2-stop-receipt.jsonl\",\"a\");f.write(\"accepted-1\\n\");f.flush();os.fsync(f.fileno());f.close();time.sleep(90)'\nAfter this one command completes, say RECEIPT_ACKNOWLEDGED. Do nothing else.",
+    "session_id": "hermes-resumed-inflight-v2-stop"
+  },
+  "mode": "stop",
+  "scope": "actual model/tool run; effect is synthetic fsynced file receipt, not a business API",
+  "native_state_before": {
+    "http": 200,
+    "body": {
+      "object": "hermes.run",
+      "run_id": "run_09bbcf0d822d4416a66c5b63540887b4",
+      "status": "running",
+      "updated_at": 1788919272.406237,
+      "created_at": 1788919267.690014,
+      "session_id": "hermes-resumed-inflight-v2-stop",
+      "model": "hermes-agent",
+      "last_event": "tool.started"
+    }
+  },
+  "stop_ack": {
+    "http": 200,
+    "body": {
+      "run_id": "run_09bbcf0d822d4416a66c5b63540887b4",
+      "status": "stopping"
+    }
+  },
+  "injection_rc": 0,
+  "injection_stderr": "",
+  "receipt_before": "accepted-1\n"
+}

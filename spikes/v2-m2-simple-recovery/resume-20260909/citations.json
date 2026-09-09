@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": 1,
+      "url": "https://docs.letta.com/agent-sdk/deployment/index.md",
+      "title": "letta-deployment",
+      "accessed": "2026-09-09",
+      "quotes": [
+        {
+          "text": "If you do not pass a \\`computer\\`, the SDK creates a managed sandbox for the session. The sandbox is where tools run; the agent’s memory and conversation state remain hosted in Letta Cloud.",
+          "added": "2026-09-09"
+        },
+        {
+          "text": "Only retry automatically for this pre-send expiration error. If a connection fails after \\`send()\\` succeeds, inspect the conversation history before retrying because the original message may already have reached the runtime.",
+          "added": "2026-09-09"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "url": "https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api",
+      "title": "cloudflare-sqlite",
+      "accessed": "2026-09-09",
+      "quotes": [
+        {
+          "text": ", the following point-in-time-recovery (PITR) API methods are available to restore a Durable Object's embedded SQLite database to any point in time in the past 30 days. These methods apply to the entire SQLite database contents, including both the object's stored SQL data and stored key-value data using the key-value `put()` API. The PITR API is not supported in local development because a durable log of data changes is not stored locally.",
+          "added": "2026-09-09"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "url": "https://developers.cloudflare.com/agents/runtime/execution/durable-execution",
+      "title": "cloudflare-fibers",
+      "accessed": "2026-09-09",
+      "quotes": [
+        {
+          "text": "No automatic retries. Recovery logic belongs in `onFiberRecovered`, where you have the snapshot and full context about what went wrong.",
+          "added": "2026-09-09"
+        },
+        {
+          "text": "In `wrangler dev`, fiber recovery works identically to production. SQLite and alarm state persist to disk between restarts.",
+          "added": "2026-09-09"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "url": "https://platform.openai.com/docs/guides/conversation-state",
+      "title": "OpenAI Conversation state",
+      "accessed": "2026-09-09",
+      "quotes": [
+        {
+          "text": "to persist conversation state as a long-running object with its own durable identifier. After creating a conversation object, you can keep using it across sessions, devices, or jobs.",
+          "added": "2026-09-09"
+        }
+      ]
+    }
+  ]
+}

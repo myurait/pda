@@ -1,0 +1,70 @@
+{
+  "attachments": [
+    {
+      "id": 30,
+      "file": "M2-RESUME-REPORT.html",
+      "stored_path": "/home/user/.hermes/kanban/attachments/t_ec4c52b9/M2-RESUME-REPORT.html",
+      "sha256": "f4cb7c3d58e25e22aabbfd997772df565e75da533e7a4616858630194a4495c1",
+      "url": "https://pda-web.tailaff53a.ts.net/hermes/api/plugins/kanban/attachments/30?board=default"
+    },
+    {
+      "id": 31,
+      "file": "M2-EVIDENCE-SELECTED.zip",
+      "stored_path": "/home/user/.hermes/kanban/attachments/t_ec4c52b9/M2-EVIDENCE-SELECTED.zip",
+      "sha256": "4b36b82ac278aeb9e131855a925f8d03ce16ab08297fae6107438820b1a3ce74",
+      "url": "https://pda-web.tailaff53a.ts.net/hermes/api/plugins/kanban/attachments/31?board=default"
+    },
+    {
+      "id": 32,
+      "file": "card-current-body-proposed.md",
+      "stored_path": "/home/user/.hermes/kanban/attachments/t_ec4c52b9/card-current-body-proposed.md",
+      "sha256": "2a717241bd09f032e6b4e6145aeef3458c36c0f759176a13a079427cd6d7ae17",
+      "url": "https://pda-web.tailaff53a.ts.net/hermes/api/plugins/kanban/attachments/32?board=default"
+    }
+  ],
+  "url_unauthenticated_probe": {
+    "error": "URLError"
+  },
+  "local_render_verified": true,
+  "authenticated_web_access_verified": false,
+  "task_status": "triage",
+  "unassigned": true,
+  "comment_readback_verified": true,
+  "card_body_updated": false,
+  "m2_complete": false,
+  "delivery_checks": {
+    "https://pda-web.tailaff53a.ts.net/hermes/api/plugins/kanban/attachments/30?board=default": {
+      "error": "URLError",
+      "reason": "[Errno -2] Name or service not known"
+    },
+    "http://127.0.0.1:9120/hermes/api/plugins/kanban/attachments/30?board=default": {
+      "http": 200,
+      "content_type": "text/html; charset=utf-8",
+      "report_bytes_match": false,
+      "note": "Open WebUI SPA fallback, not the attachment route; not a delivery pass"
+    },
+    "http://127.0.0.1:9121/hermes/api/plugins/kanban/attachments/30?board=default": {
+      "http": 401,
+      "body": "{\"error\":\"unauthenticated\",\"detail\":\"Unauthorized\",\"reason\":\"no_cookie\",\"login_url\":\"/hermes/login\"}"
+    }
+  },
+  "tailnet_serve_mapping": {
+    "TCP": {
+      "443": {
+        "HTTPS": true
+      }
+    },
+    "Web": {
+      "pda-web.tailaff53a.ts.net:443": {
+        "Handlers": {
+          "/": {
+            "Proxy": "http://127.0.0.1:9120"
+          },
+          "/hermes": {
+            "Proxy": "http://127.0.0.1:9121/hermes"
+          }
+        }
+      }
+    }
+  }
+}

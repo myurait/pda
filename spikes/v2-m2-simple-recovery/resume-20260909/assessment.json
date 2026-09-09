@@ -1,0 +1,151 @@
+{
+  "m2_status": "incomplete",
+  "admitted_candidates": [],
+  "thresholds": {
+    "state_s": 120,
+    "recovery_s": 300
+  },
+  "candidates": [
+    {
+      "id": "hermes-local",
+      "name": "Hermes 0.21.1 最小標準構成",
+      "capability": "native Runs・停止・idempotency、標準backup/import、Docker再起動",
+      "observed": "実プロセス停止・資源故障・依存障害後の読取り、実ツール修復、保存状態を含む外部復元を確認。停止受理直後の状態保持に反例。",
+      "custody": "正常版・互換データ・復元を起動する主体、永続領域の保護は自分側に残る。今回のread-only本体では自己更新も未実証。",
+      "verdict": "今回構成は未達。M3へ進めない"
+    },
+    {
+      "id": "letta-local",
+      "name": "Letta Code 0.31.13 ローカル",
+      "capability": "公式App Server/local backend、MemFS、標準Docker監督",
+      "observed": "4B最小設定で保存状態を読める。読取り専用の故障試験と、別試験の実Bash修復が成立。破損indexでは起動不能。",
+      "custody": "ローカル推論と保存データ、正常版・保存データの復元主体、永続領域保護が残る。",
+      "verdict": "今回構成は未達。旧「読取り不成立」を理由にしない"
+    },
+    {
+      "id": "letta-managed",
+      "name": "Letta Cloud 管理sandbox",
+      "capability": "状態はCloud、ツールは管理sandboxで実行。[1]",
+      "observed": "一次資料・認証境界まで。管理sandbox・履歴照会・復元の実機試験は未実施。",
+      "custody": "管理先の可用性・費用・保持/復元・export、送信後の不明結果の照会が必要。[1]",
+      "verdict": "認証・利用条件待ち。未検証"
+    },
+    {
+      "id": "letta-hybrid",
+      "name": "Letta Cloud＋自前runner",
+      "capability": "状態はCloudに置き、ツール実行環境を自己管理できる。[1]",
+      "observed": "一次資料のみ。自前runner消失とCloud状態の再接続は未試験。",
+      "custody": "Cloudだけでなくrunnerの復帰責任も残る。管理型と同じ保証ではない。",
+      "verdict": "認証・利用条件待ち。未検証"
+    },
+    {
+      "id": "cloudflare-agents",
+      "name": "Cloudflare Agents",
+      "capability": "Durable Objectsの保存・PITR、durable fiber。復帰フックは利用側コード。[2][3]",
+      "observed": "PITRはローカル非対応。fiberのローカル動作は検証可能だが、クラウド復元の代替証拠にはならない。[2][3]",
+      "custody": "復帰フック・作用照合等のアプリ責任、Cloudflare依存と退出の検証が残る。",
+      "verdict": "実機未検証。枠組みを完成済み本体と扱わない"
+    },
+    {
+      "id": "openai-plus-runner",
+      "name": "OpenAI保存API＋自前実行機",
+      "capability": "Conversationsで会話・tool call/output等の状態を保持できる。[4]",
+      "observed": "会話保存の資料確認のみ。提案した実行機・復元主体は未構築。",
+      "custody": "本体実行・停止・照合・復帰の接続を新規に保守する案であり、保存API自体の保証と区別する。",
+      "verdict": "参考案。本体候補としては未成立"
+    }
+  ],
+  "criteria": [
+    [
+      "状態表示120秒",
+      "プロセス停止・依存/資源障害では限定確認。DB破損はHTTP200でも保存状態を読めず未達。",
+      "読取り専用6ケースは閾値内。index破損では120秒後も起動不能。"
+    ],
+    [
+      "正常版復帰300秒",
+      "外部試験側のimport＋正常版起動なら閾値内。無人復帰は未実証。",
+      "読取りの復帰は成立。破損/不良更新の復元試験は観測中断を含み、無人RTO合格に使わない。"
+    ],
+    [
+      "依頼・記憶・停止・未確定記録",
+      "最新の静止点backupから論理状態を保持。任意の古いbackupからの無損失ではない。",
+      "nativeメモリを前後一致。静止点コピーの復元も一致。"
+    ],
+    [
+      "停止の保持",
+      "停止受理直後はstopping→interrupted。取消完了後のcancelled保持と分ける。",
+      "事前保存した停止印の読取りのみ。実際の停止要求の競合・継続実行は未実証。"
+    ],
+    [
+      "不明結果・盲目的再送の抑止",
+      "実ツールのfsync済み模擬作用で、同じIDの再送は元runを返し追加作用なし。実業務APIではない。",
+      "未確定印を返せた。読取り専用呼出しのため実行可能状態での非再送保証ではない。"
+    ],
+    [
+      "作業による資源侵食の防止",
+      "作業用一時領域とOOMの限定試験は成立。永続HOMEへ上限を超えて書けるため保護は未達。",
+      "作業領域上限では読取り可。永続HOMEは同様に上限を超えて書ける。"
+    ],
+    [
+      "オーナー救出・複雑な独自復旧を不要にする",
+      "試験者の外部復元を、停止したPDA自身の無人復帰へ読み替えない。未達。",
+      "同左。モデル依存の解除も試験側が実施。未達。"
+    ],
+    [
+      "応答だけでなく修復へ戻る",
+      "実ツールによる模擬ファイル修復は成立。本体自己更新は今回構成で未実証。",
+      "実Bashによる模擬ファイル修復は成立。自己更新・安全な実仕事再開は未実証。"
+    ]
+  ],
+  "corrections": {
+    "external_dependency_restore": "Letta model-unavailableのraw verdictにあるrestoration_observer_calls_after_fault=0は誤り。別の実行記録どおり試験側がOllamaを1回startした。依存解除を含む限定試験として扱い、無人復帰のゼロ介入根拠から除外する。",
+    "stale_run_id": "旧Hermes依存障害probeは存在しない旧run IDに404を返した。保存状態の合格根拠から除外。memory-v3/model-v4では実在する取消済みIDのHTTP200を要求して再確認した。",
+    "intermediate_stop": "Letta requires_approvalはクライアントturn終端ではない。元の早期終了判定を撤回し、native終端まで追跡。",
+    "noop_signal": "LettaのPID1 signal成功だけでは実停止していなかった試行を復帰合格から除外。採用したread-only試行では世代・再起動数変化を要求。",
+    "response_wrapper": "有効なJSONが通常文に包まれた応答を誤って失敗とした試行は観測側のparse不備。訂正履歴を残し、再試験と区別。",
+    "restore_observer": "再起動中のExitCodeサンプリング、ConnectionResetError、restoreではなくimportを使うCLI差で中断した元試行は通算RTO合格に使わない。Hermesは別名の再試験、Lettaは外部継続復元の証拠として扱う。",
+    "early_health_gate": "Hermes model-v3ではComposeのunhealthy判定で観測を早く打ち切った。元の120秒条件を変えず、v4でnative healthを有限時間追跡して再確認。"
+  },
+  "unresolved": [
+    "M3へ渡せる実証済み本体候補が未確定。M2全体は未完了。",
+    "Letta Cloud管理型/混成の試験用認証、利用枠、許可済み送信条件。",
+    "Cloudflareの実クラウドPITR・復帰責任・退出検証。ローカルfiberだけでは代替不能。",
+    "本体停止中に誰が正常版と互換データを戻すかを、ユーザー救出も複雑な独自復旧も要さない形で実証する。",
+    "永続状態を作業侵食から守りつつ、必要な本体更新ができる構成の実証。",
+    "実業務APIの作用照合、注意/忘却/skill・UI・退出、独立レビュー・本番反映は後続段階で未実施。"
+  ],
+  "evidence_files": [
+    "final-dependency-retest-cleanup.json",
+    "hermes-resumed-live-repair-verdict.json",
+    "hermes-resumed-resource-permission-boundary.json",
+    "hermes-resumed-restore-bad-update-unattended-observation.json",
+    "hermes-resumed-restore-bad-update-verdict.json",
+    "hermes-resumed-restore-data-corruption@verified-unattended-observation.json",
+    "hermes-resumed-restore-data-corruption@verified-verdict.json",
+    "hermes-source-reverification.json",
+    "letta-candidate-summary.json",
+    "letta-data-corruption-120s-verdict.json",
+    "letta-fault-byte-full@read-only-verdict.json",
+    "letta-fault-inode-full@read-only-verdict.json",
+    "letta-fault-model-unavailable@read-only-dependency-restored-by-injector.json",
+    "letta-fault-model-unavailable@read-only-verdict.json",
+    "letta-fault-oom@read-only-verdict.json",
+    "letta-fault-process-death@read-only-verdict.json",
+    "letta-fault-worker-disappearance@read-only-verdict.json",
+    "letta-live-bash-repair-verdict.json",
+    "letta-persistent-home-bounded-probe.json",
+    "letta-restore-bad-update-continued-verdict.json",
+    "letta-restore-data-corruption-continued-verdict.json",
+    "managed-auth-boundary-current.json",
+    "r2-hermes-baseline-semantic-verdict.json",
+    "r2-hermes-memory-outage-v3.json",
+    "r2-hermes-model-outage-v4.json",
+    "r2-hermes-resumed-bytes.json",
+    "r2-hermes-resumed-crash.json",
+    "r2-hermes-resumed-inflight-v2-orphan.json",
+    "r2-hermes-resumed-inflight-v2-settled-stop.json",
+    "r2-hermes-resumed-inflight-v2-stop.json",
+    "r2-hermes-resumed-inodes.json",
+    "r2-hermes-resumed-memory-limit.json"
+  ]
+}

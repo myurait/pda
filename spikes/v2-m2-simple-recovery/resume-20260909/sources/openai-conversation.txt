@@ -1,0 +1,80 @@
+We recommend using the [Responses API](https://platform.openai.com/api/docs/guides/conversation-state?api-mode=responses)
+ instead. Because it’s stateful, managing context across conversations is a simple parameter.
+
+If you’re using the Chat Completions endpoint, you’ll need to either manually manage state, as documented above.
+
+### Using the Conversations API
+
+The [Conversations API](https://platform.openai.com/api/docs/api-reference/conversations/create)
+ works with the [Responses API](https://platform.openai.com/api/docs/api-reference/responses/create)
+ to persist conversation state as a long-running object with its own durable identifier. After creating a conversation object, you can keep using it across sessions, devices, or jobs.
+
+Conversations store items, which can be messages, tool calls, tool outputs, and other data.
+
+Create a conversation
+
+Python
+
+    const conversation = await client.conversations.create();
+
+    conversation = openai.conversations.create()
+
+    conversation, err := client.Conversations.New(context.Background(), conversations.ConversationNewParams{})
+    if err != nil {
+    	panic(err)
+    }
+
+    import com.openai.client.OpenAIClient;
+    import com.openai.client.okhttp.OpenAIOkHttpClient;
+    
+    var conversation = client.conversations().create();
+    
+    System.out.println(conversation.id());
+
+    conversation = client.conversations.create
+
+In a multi-turn interaction, you can pass the `conversation` into subsequent responses to persist state and share context across subsequent responses, rather than having to chain multiple response items together.
+
+Manage conversation state with Conversations and Responses APIs
+
+Python
+
+    1
+    2
+    3
+    4
+    5
+    6
+    7const response = await client.responses.create({
+      model: "gpt-6-astra",
+      input: [{ role: "user", content: "What are the five Ds of dodgeball?" }],
+      conversation: conversation.id,
+    });
+    
+    console.log(response.output_text);
+
+    1
+    2
+    3
+    4
+    5response = openai.responses.create(
+        model="gpt-6-astra",
+        input=[{"role": "user", "content": "What are the 5 Ds of dodgeball?"}],
+        conversation=conversation.id,
+    )
+
+    1
+    2
+    3
+    4
+    5
+    6
+    7
+    8
+    9
+    10
+    11
+    12
+    13response, err := client.Responses.New(context.Background(), responses.ResponseNewParams{
+    	Model: "gpt-6-astra",
+    	Conversation: responses.ResponseNewParamsConversationUnion{

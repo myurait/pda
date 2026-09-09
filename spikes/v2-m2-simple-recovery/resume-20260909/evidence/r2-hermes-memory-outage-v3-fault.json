@@ -1,0 +1,20 @@
+{
+  "scope": "synthetic transient permission failure on builtin memory; fixed-mode restoration is predeclared, no diagnostic agent",
+  "control_s": 3.61,
+  "health": true,
+  "direct_memory_read": {
+    "exit_code": 1,
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1058, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/home/proof/.hermes/memories/MEMORY.md'\n"
+  },
+  "saved_session": {
+    "http": 404,
+    "body": {
+      "error": {
+        "message": "Run not found: run_fb0163e8201e495d9bed5a1b563026fe",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "run_not_found"
+      }
+    }
+  }
+}

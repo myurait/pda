@@ -32,6 +32,8 @@ def http(path,body=None,timeout=40,base=BASE,auth=True):
         return {'code':status,'body':data,'wall_s':time.monotonic()-start}
     except urllib.error.HTTPError as e:
         return {'code':e.code,'body':e.read().decode(),'wall_s':time.monotonic()-start}
+    except OSError as e:
+        return {'code':0,'body':None,'error':type(e).__name__+': '+str(e),'wall_s':time.monotonic()-start}
 
 def wait_ready(base=BASE,path='/readyz',seconds=45):
     start=time.monotonic();errors=[]

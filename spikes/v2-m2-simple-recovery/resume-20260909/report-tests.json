@@ -1,0 +1,20 @@
+[
+  {
+    "command": "python spikes/v2-m2-simple-recovery/resume-20260909/build_report.py",
+    "output": "{\"candidates\": 6, \"criteria\": 8, \"evidence_files\": 32, \"m2_status\": \"incomplete\", \"html_bytes\": 22031}",
+    "exit_code": 0,
+    "error": null
+  },
+  {
+    "command": "python -m unittest discover -s spikes/v2-m2-simple-recovery/resume-20260909 -p 'test_*.py' -v",
+    "output": "test_connection_reset_is_recorded_as_transport_failure (test_observer.ObserverContract.test_connection_reset_is_recorded_as_transport_failure) ... ok\ntest_noop_fault_is_not_a_recovery_pass (test_observer.ObserverContract.test_noop_fault_is_not_a_recovery_pass) ... ok\ntest_requires_approval_is_not_client_turn_completion (test_observer.ObserverContract.test_requires_approval_is_not_client_turn_completion) ... ok\ntest_state_json_inside_native_reply_wrapper (test_observer.ObserverContract.test_state_json_inside_native_reply_wrapper) ... ok\ntest_original_scope_is_not_closed_by_partial_results (test_report.ReportContract.test_original_scope_is_not_closed_by_partial_results) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 10.022s\n\nOK",
+    "exit_code": 0,
+    "error": null
+  },
+  {
+    "command": "python /home/user/.hermes/skills/research/grounded-citations/scripts/sources.py --ledger spikes/v2-m2-simple-recovery/resume-20260909/citations.json verify spikes/v2-m2-simple-recovery/resume-20260909/M2-RESUME-REPORT.md --strict --evidence",
+    "output": "info: stats: 6 prose sentence(s), 1 with declared provenance (17%) — 1 cited, 0 marked [unverified] (a sentence may be both); 4 distinct source(s) cited, 4 in ledger (4 with evidence quotes)\ncitations OK",
+    "exit_code": 0,
+    "error": null
+  }
+]

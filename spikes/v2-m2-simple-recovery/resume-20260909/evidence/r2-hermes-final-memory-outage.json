@@ -1,0 +1,126 @@
+{
+  "scope": "synthetic transient permission failure on builtin memory; fixed-mode restoration is predeclared, no diagnostic agent",
+  "control_s": 3.917,
+  "health": true,
+  "direct_memory_read": {
+    "exit_code": 1,
+    "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1058, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/usr/local/lib/python3.11/pathlib.py\", line 1044, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/home/proof/.hermes/memories/MEMORY.md'\n"
+  },
+  "saved_session": {
+    "http": 404,
+    "body": {
+      "error": {
+        "message": "Run not found: run_fb0163e8201e495d9bed5a1b563026fe",
+        "type": "invalid_request_error",
+        "param": null,
+        "code": "run_not_found"
+      }
+    }
+  },
+  "degraded_model": {
+    "created": {
+      "http": 202,
+      "body": {
+        "run_id": "run_45006121123c4eac8743fa25c5d41cf2",
+        "status": "started",
+        "replayed": false
+      }
+    },
+    "last": {
+      "elapsed_s": 18.296,
+      "state": {
+        "http": 200,
+        "body": {
+          "object": "hermes.run",
+          "run_id": "run_45006121123c4eac8743fa25c5d41cf2",
+          "status": "completed",
+          "updated_at": 1788919066.253341,
+          "created_at": 1788919048.1309566,
+          "session_id": "run_45006121123c4eac8743fa25c5d41cf2",
+          "model": "hermes-agent",
+          "last_event": "run.completed",
+          "output": "/home/proof/.hermes/activities.json is available and was read successfully.\n\n/home/proof/.hermes/memories/MEMORY.md could not be read: the tool reported an environment/stat error, and the retry returned no content. Its existence and contents remain unverified.\n\nNo files or permissions were changed.",
+          "usage": {
+            "input_tokens": 15995,
+            "output_tokens": 179,
+            "total_tokens": 16174
+          }
+        }
+      }
+    },
+    "elapsed_s": 18.296
+  },
+  "dependency_restore_s": 3.898,
+  "after": {
+    "pid": 1492906,
+    "started": "2026-09-09T01:57:46.829949788Z",
+    "status": "running",
+    "restart_count": 0,
+    "state_sha256": "ffacab958210f766bcf33261e135b9f31be0dcd734e4fca92f375bf408d89abe",
+    "memory_sha256": "1c75b5fbdb069fe118b7b7a534fc9e62cf6d0960626efe34d17a9e82b620fe85",
+    "integrity": [
+      [
+        "ok"
+      ]
+    ],
+    "sessions": [
+      "hermes-final-inflight-orphan",
+      "hermes-final-inflight-stop",
+      "m2proof-live-uncertain",
+      "m2proof-seed-session",
+      "run_15f40cf52e2e4a1ba7f2cf682fa61945",
+      "run_15f8264d48294328a894948795a86821",
+      "run_218ab012f0e64bfca33c36d1a365d0b7",
+      "run_2974c811e8974bdb84f63634fb78b33a",
+      "run_2d418bccb68b4caea5f816312b44b9d2",
+      "run_317834764ab848cfb67b98f4b54d5af3",
+      "run_36051c2d845842b98541c049a166bfb1",
+      "run_3b57d54acecd4f6db459790357e0996a",
+      "run_3c49d7c0e7ea4ad1b6dc0c27bf64f596",
+      "run_45006121123c4eac8743fa25c5d41cf2",
+      "run_4778fb35b3db466183b0295e86ec82c5",
+      "run_4c9f53caf69d462f82d9f029e750a58a",
+      "run_4f7b886437264ca08436a7d2c4b8cb1c",
+      "run_55fa6195718e44f9b84d0a6ccbf1ddbf",
+      "run_604c58eadc244c20939f81e80a3be2c8",
+      "run_692bb7ba1954437c8f5512ed978c3007",
+      "run_768c94b22f0a4a2c905db2dd881f75f8",
+      "run_78443110d2054ede807f232ecbe9b336",
+      "run_915745aee7cd453da5398eabdc26a290",
+      "run_920d64cc7bcf4f5583b55cacd026410e",
+      "run_a6173e8358784f9bb1498764885760d4",
+      "run_c22e56e8c69947adb8c791c71bef07ac",
+      "run_d33fab167af846d784d50da59c5b05fe",
+      "run_d6030a588fc74b628fbd8664d57a0aaa",
+      "run_d8602b4008094e069eee6be9be01c154",
+      "run_d92e368d62fb4b0992869ae4dd481fbd",
+      "run_dc50381fc46a41bca2a49d32ee238c5c",
+      "run_e263e16a762a4facb35cfba8dc86468e",
+      "run_ee7fad12ed1f43ea9e9ca0003099cd06",
+      "run_efee972b845d4b30b68bd91fcdb085cb"
+    ]
+  },
+  "preserved": true,
+  "semantic": {
+    "passed": true,
+    "output": {
+      "request_id": "request-orchid-01",
+      "request_text": "Prepare an offline ORCHID summary",
+      "memory_marker": "violet-739",
+      "stopped_id": "activity-stop-17",
+      "stopped_state": "stopped",
+      "uncertain_id": "operation-unknown-29",
+      "uncertain_state": "outcome_unknown",
+      "uncertain_receipt": "synthetic-receipt-582",
+      "allowed_id": "activity-safe-03",
+      "resume": [
+        "activity-safe-03"
+      ],
+      "hold": [
+        "activity-stop-17",
+        "operation-unknown-29"
+      ]
+    },
+    "elapsed_s": 15.448
+  }
+}

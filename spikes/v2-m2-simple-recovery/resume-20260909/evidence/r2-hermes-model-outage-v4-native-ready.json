@@ -1,0 +1,38 @@
+{
+  "polls": [
+    {
+      "elapsed_s": 0.814,
+      "http": 0
+    },
+    {
+      "elapsed_s": 1.314,
+      "http": 0
+    },
+    {
+      "elapsed_s": 1.815,
+      "http": 0
+    },
+    {
+      "elapsed_s": 2.316,
+      "http": 0
+    },
+    {
+      "elapsed_s": 2.816,
+      "http": 0
+    },
+    {
+      "elapsed_s": 3.317,
+      "http": 0
+    },
+    {
+      "elapsed_s": 3.818,
+      "http": 0
+    },
+    {
+      "elapsed_s": 4.321,
+      "http": 200
+    }
+  ],
+  "docker_health": "{\"Status\":\"starting\",\"FailingStreak\":0,\"Log\":[]}\n",
+  "logs": "2026-09-09 02:49:23,442 WARNING gateway.run: No env user allowlists configured. Messaging platforms default to pairing/allowlist policies and will deny unknown senders unless you configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id) or explicitly opt in with GATEWAY_ALLOW_ALL_USERS=true plus dm_policy/group_policy: open on the platform.\n2026-09-09 02:49:23,573 WARNING gateway.platforms.api_server: [Api_Server] API server is network-accessible (0.0.0.0) AND the terminal backend is 'local' (unsandboxed). Agent work dispatched through this endpoint runs as the host user with full terminal/file access. Strongly consider a sandboxed backend (terminal.backend: docker) and firewalling this port to trusted networks only.\n2026-09-09 02:49:24,043 WARNING tools.registry: check_fn _a2a_tools_available returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,045 WARNING tools.registry: check_fn check_browser_back_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,046 WARNING tools.registry: check_fn _browser_cdp_check returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,047 WARNING tools.registry: check_fn check_browser_click_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,048 WARNING tools.registry: check_fn check_browser_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,049 WARNING tools.registry: check_fn _browser_dialog_check returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,050 WARNING tools.registry: check_fn is_browser_use_cli_mode returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,051 WARNING tools.registry: check_fn check_browser_navigate_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,052 WARNING tools.registry: check_fn check_browser_press_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,053 WARNING tools.registry: check_fn check_browser_scroll_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,054 WARNING tools.registry: check_fn check_browser_snapshot_requirements returned False; dependent tools will be unavailable this turn\n2026-09-09 02:49:24,055 WARNING tools.registry: check_fn check_browser_type_requirements returned False; dependent tools will be unavailable this turn\n"
+}

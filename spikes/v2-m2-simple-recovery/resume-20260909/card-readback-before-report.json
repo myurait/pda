@@ -1,0 +1,556 @@
+{
+  "task": {
+    "id": "t_ec4c52b9",
+    "title": "V2-M2: 単純に復帰できる本体候補を選別・隔離実証する",
+    "body": "現行仕様（2026-09-08改訂）。旧DBOS＋独自control＋Docker試作品はNO-GO、追加修正は実行対象外。コメント追記ではなくM2の目的・実行順・完了条件を置換した。新候補の実証は未実施。\n\n目的: 復旧機構を先に完成させるのではなく、標準的な再起動・既知正常版への復元で、ユーザーの救出なしに応答・修復能力と保存済み活動を引き継げる本体を選別する。復帰にAI診断や複雑な独自サービス連携を要する候補は、周辺部品を足す前に本体・機能の持たせ方を棄却または見直す。既製品の寄せ集めでも保守が複雑なら同じ。\n\n一回の自走単位: M3に置いていた本体の予備比較を先頭へ移す。Hermes最小標準構成を対照に現行Letta公式構成と管理型/混成代表を、一次資料・標準復帰方式・将来保守負担で選別。許可範囲の候補を実行し、主process停止・起動不能更新・依存障害・担当消滅・限定資源上限・停止中/結果不明での再起動を隔離試験する。不適合なら対抗へ切替え、実証済み候補と棄却理由を返す。資料選別だけでは完了にしない。\n\n完了条件: 状態表示2分/正常版復帰5分という既存目標を維持。owner救出、committed状態喪失、停止済み仕事の誤再開、未確定外部操作の盲目的再送は試験内0。モデル利用可能時は保存済み依頼・記憶・停止・未確定操作を復帰後のPDAが読めることまで確認する。HTTP正常だけ、再起動だけ、問題件数を消化しただけではPASSにしない。対応故障・復帰時間・保全状態・独自保守責任・未確認範囲を示す。全候補失格ならNO-GOで、汎用復旧基盤の自作へ戻らない。\n\n残すもの: 旧M1/M2の原因証拠と失敗ケース。捨てるもの: 旧launcher用watchdog、旧制御を延命する汎用送信proxy/照合service、M1で決めたcontrol DB・DBOS DB・800行上限を必須設計として継承する仕事。停止の保持と未確定操作の記録はM2に残し、実活動ごとの停止競合・結果照合・安全な引継ぎはM3で実接続検証する。その完了前にM4へ進めない。仕事の未確定をPDA全体の不通へ連座させないが、永久保留を全体の自己完全性完成とも呼ばない。\n\n現在の実行仕様: /home/user/projects/pda-v2-m2-reassessment/docs/roadmap/v2-m2-simple-recovery-reassessment.md （本カードの添付にも保存）。旧2026-09-07自走計画のM2/M3順序とstate-custody実装継承必須条項、旧NO-GO報告の次の境界は置換済み。歴史資料・旧レビューは保全し、新仕様へのPASSに流用しない。\n\n委任: 同一owner会話 owui_6bf97ec037c5e8e9176ee76c7c3c7e97 の直列・時間無制限の委任内で主PDAが実行。subagentは起動しない。段階名・旧時間枠だけを理由に再確認しない。明示停止、認証、情報/新規契約/作用境界は維持。旧scope control v2は再開しない。未割当Triageは非dispatch追跡で、owner再承認待ちを意味しない。関連epic t_395213b7、後続M3 t_0a0c6ad7。",
+    "assignee": null,
+    "status": "triage",
+    "priority": 0,
+    "tenant": "pda-improvement",
+    "workspace_kind": "worktree",
+    "workspace_path": null,
+    "branch_name": null,
+    "project_id": null,
+    "created_by": "pda-owner-directed-planning",
+    "created_at": 1788746117,
+    "started_at": null,
+    "completed_at": null,
+    "result": null,
+    "skills": [],
+    "max_retries": null,
+    "model_override": null,
+    "provider_override": null,
+    "session_id": null,
+    "workflow_template_id": null,
+    "current_step_key": null
+  },
+  "latest_summary": null,
+  "parents": [
+    "t_bb976fc1"
+  ],
+  "children": [
+    "t_0a0c6ad7"
+  ],
+  "comments": [
+    {
+      "author": "pda-owner-directed-planning",
+      "body": "計画の契約明確化（このコメント自体は開始許可・本番承認ではない）: M2の開始条件はM1の証拠付きpostmortem・実行済みfixture・比較条件の確定と、対象/予算/送信先/credential/隔離/cleanupを含むM2契約へのowner明示entry承認。個別fixtureや範囲内修正には重ねて承認を要求しない。",
+      "created_at": 1788746571
+    },
+    {
+      "author": "pda-owner-directed-planning",
+      "body": "詳細計画の保存先: 全体カードt_395213b7の添付1 pda-v2-autonomous-milestones.md。source SHA256=baccbc56e0997d3c8b9dd270b9785452acf02b47baefe520c499b0b353856af6。共通契約と当該段階の節を実行時に読む。M2以降は各段階のowner明示entryを照合し、PASS/ADR/doneを権限代替にしない。M3の安全・停止・独立復帰・認可・退出・必須注意品質の未実測はM4開始を解放しない。M5非作用はworker独立の拒否/送信境界と対象receipt・positive-controlで照合し、計測欠落は合格にしない。M2は許可済みの有界bootstrap→無作用引継ぎpreflight→本試験の順。この登録は段階内の裁量を具体化する計画で、各実証は未着手。",
+      "created_at": 1788746921
+    },
+    {
+      "author": "pda-owner-directed-planning",
+      "body": "計画追補版: 全体カードt_395213b7の添付4 pda-v2-autonomous-milestones-r2.md、SHA256=f69566fa4788420e2739db99114db3c0f8e3f6b071c517e40a7abc0e556d14b3。旧添付1/baccbc56...は追補前の履歴として保全。遅延した初回レビューの所見1/3は既修正だが所見2/4が未反映だったため、state-custody契約→実物control primitive→後段再試験の依存と、M5/M6/M7各観測窓の同一activity長期continuity試験を合格必須条件へ追補した。共有本番への故障注入や停止解除は許可せず、試験不能はINCONCLUSIVE。新しい追補箇所の独立再レビュー中で、旧hashへのPASSを新しいhashへ使い回さない。計画のみ、全マイルストンは未着手。",
+      "created_at": 1788747727
+    },
+    {
+      "author": "pda-owner-directed-m2",
+      "body": "オーナーの現在指示「問題が発生してなくて、推奨方針が明確なら、勝手に始めてくれよ。それが自走だろう。」を受け、直前に提示したM2隔離復帰試験へ進む。M1技術exit PASSをread-back済み。段階移行そのものを再確認する運用は撤回し、同一目的・無追加課金・合成データ・隔離実験・既存上限内を自走する。本番反映、旧gate/dispatcher再開、私的データ移行、新認証/課金は含まない。実行期限は元の16:23:55 JSTを維持し残時間を再計測。作業はowner会話から手動で実行し、未割当を維持して自動workerは起動しない。M2 worktree=pda-auto/t_ec4c52b9、M1=c5d949a、制御契約v2-custody-2。コメントは指示来歴と追跡であり本番artifact承認台帳ではない。",
+      "created_at": 1788759737
+    },
+    {
+      "author": "pda-owner-directed-m2",
+      "body": "M2 checkpoint: 隔離worktree内でTDD/実装を進め、実systemd+nonroot network-none Docker+DBOS+SQLite control+別UDS sinkを接続。12回のworker abrupt-exit復帰でstep実行1・sink書込み1・新claim2を実測。control SIGKILL連続試験は3回の復帰後OS rate limitで停止し、失敗証拠を保持して修正中。M2総合はINCONCLUSIVE。main gatewayはactive継続。並行読取りでDBOS/LettaのM1 source SHA不整合を発見、親がGitHub APIを再照合（該当SHA 422）し、同じdbos2.31.0 packageと公式release sourceの主要4file hash一致を確認。版上げ/本番反映/追加課金なし。現在private runtime /home/user/.hermes/workspaces/pda-v2-m2/20260907/live-evidence.json、review-1 snapshotで独立レビュー中。",
+      "created_at": 1788761775
+    },
+    {
+      "author": "pda-owner-directed-m2",
+      "body": "M2 checkpoint: control backoff30s、独立observerで6回の停止記録保持/自動復帰（約30.3s）を実測。source-only model preflightの親照合では、実Hermes Codex backendはmax_tokensをmax_output_tokensに渡さない条件分岐があり、推奨された上限recipeは不成立。実験モデル呼出0、M2全PASS/M3開始なし。独立コードレビューはFAIL、指摘をTDDで修正中。第三修正contextのspawnはloop_subagent_cap（同一turn4子）で拒否。迂回はせず親が修正・再試験し、独立再レビュー未了として保存する。現在runtime glue667 logical LOC、800上限維持。",
+      "created_at": 1788763526
+    },
+    {
+      "author": "default",
+      "body": "BLOCKED: M2実行済み・今回roundはINCONCLUSIVE。開始承認待ちではなく、実model上限/認証経路、trusted control/broker境界、親修正版の独立再レビュー、F1-F10全体の復元/引継ぎが未完了。実験停止・残留unit/container0、本体PID維持。変更したartifactで旧reviewや旧approvalを流用しない。次段M3へは進出しない。未割当のまま、最終チェックポイント添付を正本とする。",
+      "created_at": 1788764981
+    },
+    {
+      "author": "pda-owner-directed-m2",
+      "body": "最終checkpoint: 作業は実行済み、M2総合INCONCLUSIVE/M3進出不可。添付12は日本語報告、13は全F1-F10の実測/不足を分離した判定JSON、14はsource・生証拠・初回FAIL・修正版snapshot bundle。3添付を保存先からhash一致read-back済み。修正版39 tests PASSだが独立再レビュー未了、未commit/未反映。実験23活動stop保持、SQLite backup整合ok、実験unit/container残留0、本体PID2309694 active維持。実model上限/権限分離/引継ぎが具体的な残課題。CLI blockはcannot blockで拒否されたので管理列はTriage・未割当を保持し、状態を偽ってdoneにしない。このコメントが旧bodyの未着手記述に優先する最新実施記録。再開時は累積予算・期限・stopとdigestを照合し、通常進行の再確認は不要だが未達gateを飛ばさない。",
+      "created_at": 1788765136
+    },
+    {
+      "author": "pda-owner-directed-serial",
+      "body": "現在のowner指示を受領: クレジット更新済み、時間無制限・クレジット上限なし、主PDAが直列で目的達成まで自走。subagent/並列workerは起動しない。旧16:23:55締切と累積model上限は今回の継続指示で更新し、過去の消費・停止・失敗証拠は保持する。本番は自己閉塞せず可用性を損なわない実証を条件とする。現gateway/旧scope gate/dispatcherは変更しない。実成果read-back済み、M2はまだ未完了。entry追補=docs/status/v2-serial-continuation-2026-09-07.md。通常の段階移行は再確認せず技術条件を満たして進む。",
+      "created_at": 1788766145
+    },
+    {
+      "author": "pda-owner-directed-serial",
+      "body": "M2は未完了。直列の実モデル故障試験とF3/F7補足試験を進めたが、旧成果は旧artifactの証拠として保持する。ディスク上限の未適用を実測し、モデル処理をtmpfs・別UIDへ分離する変更と単体/結合試験を実施。認証側relayへDocker CLI/socket権限を追加するバッチはツールがuser deniedで拒否、tool_calls_made=0。未実施であり迂回しない。本番gatewayは最終確認19:04:44 JSTにPID2309694 active、未変更。新境界のlive統合、F4/F7/F9/F10全体、最終artifact再試験・独立レビューは未了。権限を増やさない別構成への見直しを推奨。checkpoint=docs/status/v2-m2-permission-checkpoint.md。未割当を維持、完了や本番承認とは扱わない。",
+      "created_at": 1788776109
+    },
+    {
+      "author": "pda-owner-directed-permissions",
+      "body": "現在のowner指示で、以前拒否された実験用認証relayへのDocker操作権限追加が明示的に許可された。過去の拒否記録は保持し、今回は新しい許可に基づく。自己完全性の要求へ十分な自己改変権限・都度ポップアップで保守を止めないことを追記。標準CLIでdefault profile approvals.mode=offを反映した。独立復帰/明示stop/秘密保護/旧scope-v2停止は維持し、モデル作業プロセスにはDocker socketを渡さない。主PDAが直列で実装・実接続検証する。これは通常Kanban workerのfinalization ledger偽造ではなく、現在owner会話からの指示実行。",
+      "created_at": 1788783496
+    },
+    {
+      "author": "pda-owner-directed-permissions",
+      "body": "owner要求の権限追加と通常実行承認offは反映・実接続確認済み。修正版artifact 88940af9ab3bfa80821786f9cfe8c49bf60694a3849b965d327778732f176e76で64 tests PASS、実モデル6回のreceipt/checkpoint強制終了→35.17〜36.88秒で自動復帰、各1 inference/1 sink effect/2 worker launches。過去拒否・起動失敗・review timeout/通信断は保持。別コンテキストreviewは3回とも完了応答なしでINCOMPLETE、残りF1/F2/F5/F6/F8全条件とF4/F7/F9/F10証拠も要再照合。M2 PASS/M3 entry/本番コード反映はしていない。成果は添付15〜17。試験workerなし、実験relay/sink停止・container除去済み、controlの6件完了記録は存続、本体PIDと両HTTP200維持。現在APIセッションは背景完了通知非対応とツールが返したため、背景実行を放置せず終了まで回収した。権限上のblockerは解消、未完箇所は技術検証/reviewとして保持。",
+      "created_at": 1788786327
+    },
+    {
+      "author": "pda-owner-directed-serial",
+      "body": "最新指示で直列自走を再開。前回artifact・残課題と実control稼働を照合済み。M2復元と最終結線故障試験・レビューを閉じ、技術条件を満たしてM3へ進む。subagentは起動しない。既存stop/失敗証拠と本体を保全。",
+      "created_at": 1788817880
+    },
+    {
+      "author": "pda-owner-directed-serial",
+      "body": "09/08直列レビューで停止後旧claim、restore authority巻戻し、反復完了audit成長、status応答肥大、復元失敗残骸、slow-input deadline、cleanup timeoutのstop漏れ、nested usage保存不全を反例→修正。現回帰83 passed。実connected現行artifact試験はこれから。worker永続領域のbyte/inode上限は未証明。ディスク整形系probeはtool hardline、sudoはpassword-requiredで未実施。迂回せずDocker標準volumeで同じ耐障害性を保てるか検討。M2未合格を維持。",
+      "created_at": 1788820029
+    },
+    {
+      "author": "pda-owner-directed-serial",
+      "body": "09/08最終判定: M2現行案NO-GO、M2未合格/M3未着手。本日の現行artifact5b62eb52で回帰83passed、実model37回、主要5群各6回、最大36.7421s、合成sink40receipt/重複0。最終stateless review FAILを受け、stop/revoke/claim ACK後のモデル送信競合、DBOS uncertain結果の再照合不能、launcher/client喪失後185s存続を親が限定再現。worker永続byte/inode上限も未成立。SIGKILL restore/全F7/F8/F9/F10など不足は資料へ明記。追加patchループは停止しM2設計見直しが必要。68活動stop保持・online backup integrity ok・実験unit/container残留0、本体PID2309694/OWUI health維持。codeは未commit/未承認、資料だけc44bee8。添付18日本語報告、19判定JSON、20source/test構造を保った未承認snapshot。全3添付を格納先からhash/size照合済み（archive7bce9892）。旧metadata欠落の12消費を追加照合し既知過去65、現limit935/used40へ減額、grant更新やstop解除なし。旧bodyの未着手表現ではなく本コメントと最新添付が現状。未割当Triageを維持し、通常の段階移行承認待ちや完了とは扱わない。",
+      "created_at": 1788825364
+    },
+    {
+      "author": "pda-owner-correction",
+      "body": "オーナー訂正をM2再検討条件へ統合（同一owner会話、親t_395213b7へ指示適用失敗も記録）。現行NO-GOと追加patchループ停止を維持。必要なのは複雑な復旧系の完成ではなく、AIの診断や独自の複雑なサービス連携を復帰の前提にしない本体構成。既製部品の寄せ集めも、運用する復旧経路が複雑なら適合とはしない。次の比較では、本体の再起動・既知正常版への復元・保存済み状態からの再開という標準的な手段で、どの故障範囲から戻れるかを示す。これだけで全要件を満たすという未検証の断定はしない。外部作用の結果照合など個別仕事の整合処理と、PDAが再び応答・修復できる可用性復帰を混同し、前者の完了を全体復帰の前提にしない。複雑な復旧を必要とする場合は、復旧部品の追加より先に本体の方式・結合・候補を棄却または見直す。追加独自実装を正当化する前に、より簡単な本体構成で要求を満たせないかと将来保守・退出負担を比較する。新たな制御・監視・承認サービスはこの訂正の対応として実装しない。実験・本番の状態変更なし。",
+      "created_at": 1788847798
+    },
+    {
+      "author": "pda-owner-directed-reassessment",
+      "body": "2026-09-08課題再定義: 最新のtitle/bodyと今回添付のv2-m2-simple-recovery-reassessment.mdが現行実行仕様。旧コメント・旧計画にあるcontrol実装の先行完成/M1 primitive継承を必須とする指示は置換。旧M2修正案は実行対象外、候補を棄却する反例としてのみ保持。M3の本体予備比較をM2へ移し、単純復帰できる本体の選別・隔離実証を先に行う。停止・未確定作用・活動継承の要求は残し、実仕事の整合はM3で必須検証。新仕様への改訂は実証PASSではなく、旧試作NO-GO・明示停止を維持する。主PDA直列での既存委任内、段階名だけで再確認しない。status/assignee/dependencyは変更していない。",
+      "created_at": 1788849016
+    },
+    {
+      "author": "pda-owner-directed-m2-proof",
+      "body": "現owner指示で現行M2実行サイクルを開始。主PDA単独・直列、subagent/外部coding agent/旧dispatcherなし。基点main b17d3916、実証専用branch spike/v2-m2-simple-recovery、worktree /home/user/projects/pda-v2-m2-proof。main未追跡4計画と他worktreeを保全。旧試作NO-GO/追加patch停止維持。資料選別→各候補隔離試験→採否→cleanupを閉じる。未割当Triageは非dispatch追跡のまま。候補は合成データのみ、既存認証の許可経路以外を使わず、新規契約/本番故障注入なし。再開票予定 spikes/v2-m2-simple-recovery/CHECKPOINT.md。",
+      "created_at": 1788850421
+    },
+    {
+      "author": "PDA",
+      "body": "2026-09-08 本体候補比較の補足証拠: t_395213b7にAstra公式guidance×現行Hermes指示の静的監査と比較引継ぎを添付。現行の指示混在での挙動だけをHermes本体の限界と断定しない。まず同一モデル・同一課題で指示構成の寄与を分ける比較を提案。現在の単純復帰実証の本文・開始条件・状態は変更せず、新たな実行前ゲートは追加しない。モデル行動比較は未実施。",
+      "created_at": 1788851635
+    },
+    {
+      "author": "pda-owner-directed-m2-proof",
+      "body": "Hermes公式source 0.21.1の隔離最小構成で実model保存・読取り、SIGKILL3回、tmpfs byte/inode上限、cgroup OOMの状態保全を実測。注入器のPID誤選択3試行は無効試験として保全。有限restart:3が累積4回目で停止したため標準unless-stoppedへ訂正し再試験中。M2採否は未確定、HTTPだけのPASSなし。証拠/再開票は実証worktree spikes/v2-m2-simple-recovery/。本番・旧実験・他スレッドは未変更、単独直列を継続。",
+      "created_at": 1788852344
+    },
+    {
+      "author": "pda-owner-directed-m2-proof",
+      "body": "2026-09-08 現行仕様のM2選別・隔離実証・採否判定は終了。主PDA単独・直列。Hermes公式0.21.1最小構成を限定M3候補に選定。最終14ケースを生証拠から再照合し、主process故障はDocker自身で再起動、固定した正常版／互換データ復元と実modelの保存状態分類・限定ファイル修復を確認。制御／標準復元の記録区間最大8.616秒。静止復元前87messageは内容一致で保持、対象試験内でowner救出・停止誤再開・盲目再送による追加作用0。Letta公式npm0.31.13＋local/Ollamaは基礎model読取り未成立で今回構成不採用／INCONCLUSIVE。管理型・混成は利用条件未確認で未検証、性能棄却ではない。永続home quota、任意の旧backup zero-RPO、実仕事の停止競合・作用照合・長期idempotency、自己更新権限・注意/忘却/skill/退出はM3境界。M3未着手、独立レビュー未実施、正式承認／本番反映ではない。旧NO-GOとscope-v2停止を維持。trial container/network/unit残留0、現gateway PID2309694 activeとGateway/OWUI両HTTP200を確認。実証branch spike/v2-m2-simple-recovery、commit 4f2a0d15694a232b68b7cc58010215d4969bcdf2、worktree /home/user/projects/pda-v2-m2-proof はclean。添付26日本語MD、27HTML、28判定JSON、29証拠ZIP（180files、sha256 b6533766a19d29cdf513a39dcef5e309a31396230d2f2386d742fe96f6187859）。4添付とも保存先からsize/hash一致をread-back。実credential/runtime/backupを添付に含めない。本文の実施状態更新APIは401/no_cookieで未実施、ログイン迂回なし。本文中の「新候補の実証は未実施」は旧時点の状態記述であり、現行の目的・完了条件は変えず、実際の最新実施状態を本コメントと添付へ固定する。未割当Triageは非dispatch追跡のまま、架空のreview/approval/done runは作らない。",
+      "created_at": 1788858334
+    },
+    {
+      "author": "pda-owner-directed-m2-resume",
+      "body": "オーナーの訂正と再開指示を受領。前回18:05のM2終了・Hermes選定・原因未特定Letta不採用の結論を撤回する。M2は未完了。現行本文・2026-09-08再評価仕様の完了条件と閾値を変更せず、未達の境界確認と隔離実証を主PDA単独・直列で再開する。旧証拠は保全して合否へ流用しない。実験container残留なし、worktree cleanを確認。dispatcher、subagent、本番変更、旧scope-v2再開は行わない。認証・物理・情報境界が判明した時点で先に報告する。",
+      "created_at": 1788912137
+    },
+    {
+      "author": "pda-owner-directed-m2-resume",
+      "body": "Letta再開進捗: 残留CPU推論と観測コードの中間stop誤認を切り分け、native WS観測を回帰試験付きで訂正。公式0.31.13＋Ollama qwen3.5:4b/4CPU/標準skill_sources=[]で保存済み依頼ID・記憶・owner停止・結果不明の正しい読取りを173.016秒で実測。旧不採用結論は撤回維持。これから故障復帰試験、M2未完了。管理型認証は標準環境/設定に不在、契約自体の有無は未確認。checkpoint=spikes/v2-m2-simple-recovery/resume-20260909/CHECKPOINT.md",
+      "created_at": 1788915124
+    },
+    {
+      "author": "pda-owner-directed-m2-resume",
+      "body": "Letta検証更新: 標準local 0.31.13＋4B CPUで読取り専用6故障試験とnative Bash修復が成立。原因未特定の基礎不成立による旧不採用は撤回。ただしnative agent JSON破損は121秒後も再起動ループ、外部checkpoint復元は234/240ファイル完全一致で戻るが無人復帰ではない。永続home quota未適用も実測。今回構成はM2条件未達、製品全体の棄却ではない。m2r2実験container/network停止除去済み。Hermesへ同条件を適用して続行、M2未完了。resume-20260909/CHECKPOINT.mdとevidenceへ保存。",
+      "created_at": 1788918576
+    },
+    {
+      "author": "pda-owner-directed-m2-resume",
+      "body": "再開実証の重要反例: Hermes 0.21.1標準Runs APIでstop要求HTTP200/status=stoppingを受理直後、実際のgatewayプロセスを停止すると、復帰後はstatus=interruptedとなり停止意思と自然中断の区別が失われた。idempotency replayは同じrun ID、追加作用0、旧tool残留0。取消完了後の状態保持とは区別して評価し、この反例を除外しない。Letta 0.31.13ローカルもagent.json破損でnative app-serverが起動不能・120秒状態表示不可。両者とも読み取り／限定故障回復の成功を無人復元やM2全完了に拡張しない。生証拠: worktree spikes/v2-m2-simple-recovery/resume-20260909/evidence/。M2未完了・本番変更/M3なし。",
+      "created_at": 1788919578
+    }
+  ],
+  "events": [
+    {
+      "kind": "created",
+      "payload": {
+        "assignee": null,
+        "status": "triage",
+        "parents": [
+          "t_bb976fc1"
+        ],
+        "tenant": "pda-improvement",
+        "workspace_kind": "worktree",
+        "workspace_path": null,
+        "branch_name": null,
+        "project_id": null,
+        "skills": null,
+        "goal_mode": null,
+        "model_override": null,
+        "provider_override": null
+      },
+      "created_at": 1788746117,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-planning",
+        "len": 165
+      },
+      "created_at": 1788746571,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-planning",
+        "len": 388
+      },
+      "created_at": 1788746921,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-planning",
+        "len": 397
+      },
+      "created_at": 1788747727,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2",
+        "len": 365
+      },
+      "created_at": 1788759737,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2",
+        "len": 507
+      },
+      "created_at": 1788761775,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2",
+        "len": 355
+      },
+      "created_at": 1788763526,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "default",
+        "len": 226
+      },
+      "created_at": 1788764981,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-checkpoint-2026-09-07.txt",
+        "size": 4654,
+        "by": "pda-owner-directed-m2"
+      },
+      "created_at": 1788765041,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-checkpoint.json",
+        "size": 5653,
+        "by": "pda-owner-directed-m2"
+      },
+      "created_at": 1788765042,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-evidence-20260907.zip",
+        "size": 143253,
+        "by": "pda-owner-directed-m2"
+      },
+      "created_at": 1788765042,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2",
+        "len": 439
+      },
+      "created_at": 1788765136,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-serial",
+        "len": 306
+      },
+      "created_at": 1788766145,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-serial",
+        "len": 388
+      },
+      "created_at": 1788776109,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-permissions",
+        "len": 310
+      },
+      "created_at": 1788783496,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-self-modification-permissions-2026-09-07.md",
+        "size": 6052,
+        "by": "pda-owner-directed-permissions"
+      },
+      "created_at": 1788786257,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "owner-permissions-20260907.json",
+        "size": 6208,
+        "by": "pda-owner-directed-permissions"
+      },
+      "created_at": 1788786258,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "owner-permissions-checkpoint-88940af9.tar.gz",
+        "size": 70985,
+        "by": "pda-owner-directed-permissions"
+      },
+      "created_at": 1788786258,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-permissions",
+        "len": 529
+      },
+      "created_at": 1788786327,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-serial",
+        "len": 114
+      },
+      "created_at": 1788817880,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-serial",
+        "len": 304
+      },
+      "created_at": 1788820029,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-no-go-2026-09-08.md",
+        "size": 7483,
+        "by": "pda-owner-directed-serial"
+      },
+      "created_at": 1788825243,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "no-go-20260908.json",
+        "size": 24449,
+        "by": "pda-owner-directed-serial"
+      },
+      "created_at": 1788825243,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "m2-no-go-5b62eb52.zip",
+        "size": 267609,
+        "by": "pda-owner-directed-serial"
+      },
+      "created_at": 1788825243,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-serial",
+        "len": 654
+      },
+      "created_at": 1788825364,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-correction",
+        "len": 453
+      },
+      "created_at": 1788847798,
+      "run_id": null
+    },
+    {
+      "kind": "edited",
+      "payload": null,
+      "created_at": 1788848931,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-simple-recovery-reassessment.md",
+        "size": 10339,
+        "by": "pda-owner-directed-reassessment"
+      },
+      "created_at": 1788849015,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-reassessment",
+        "len": 338
+      },
+      "created_at": 1788849016,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-proof",
+        "len": 359
+      },
+      "created_at": 1788850421,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "PDA",
+        "len": 192
+      },
+      "created_at": 1788851635,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-proof",
+        "len": 259
+      },
+      "created_at": 1788852344,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-candidate-verdict-2026-09-08.md",
+        "size": 14991,
+        "by": "pda-owner-directed-m2-proof"
+      },
+      "created_at": 1788858225,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-candidate-verdict-2026-09-08.html",
+        "size": 17880,
+        "by": "pda-owner-directed-m2-proof"
+      },
+      "created_at": 1788858226,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "v2-m2-candidate-verdict-2026-09-08.json",
+        "size": 5794,
+        "by": "pda-owner-directed-m2-proof"
+      },
+      "created_at": 1788858226,
+      "run_id": null
+    },
+    {
+      "kind": "attached",
+      "payload": {
+        "filename": "m2-proof-4f2a0d1.zip",
+        "size": 222085,
+        "by": "pda-owner-directed-m2-proof"
+      },
+      "created_at": 1788858226,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-proof",
+        "len": 1036
+      },
+      "created_at": 1788858334,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-resume",
+        "len": 247
+      },
+      "created_at": 1788912137,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-resume",
+        "len": 284
+      },
+      "created_at": 1788915124,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-resume",
+        "len": 302
+      },
+      "created_at": 1788918576,
+      "run_id": null
+    },
+    {
+      "kind": "commented",
+      "payload": {
+        "author": "pda-owner-directed-m2-resume",
+        "len": 394
+      },
+      "created_at": 1788919578,
+      "run_id": null
+    }
+  ],
+  "runs": []
+}

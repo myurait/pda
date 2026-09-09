@@ -31,4 +31,11 @@ class ObserverContract(unittest.TestCase):
             result=probe.readback('unit-only')
         self.assertEqual(result['data'],probe.EXPECTED)
 
+    def test_connection_reset_is_recorded_as_transport_failure(self):
+        import observe
+        with patch.object(observe.urllib.request,'urlopen',side_effect=ConnectionResetError(104,'Connection reset by peer')):
+            result=observe.http('/health',base='http://127.0.0.1:19450',auth=False)
+        self.assertEqual(result['code'],0)
+        self.assertIn('ConnectionResetError',result['error'])
+
 if __name__=='__main__':unittest.main()
