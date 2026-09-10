@@ -1,0 +1,40 @@
+{
+  "checked_at": "2026-09-10T00:48:11.003246+00:00",
+  "task_id": "t_a1434e21",
+  "scope": "Bash step-2 control flow with simulated macOS commands on Linux; no real sudo or macOS setup execution",
+  "root_cause_confirmed": "stdout redirection suppresses a failing setting command diagnostic, then errexit skips the actionable check",
+  "macos_command_failure_reason": "unknown; no real diagnostic supplied; Full Disk Access refusal is a simulated test case, not an observed Mac error",
+  "red": {
+    "command": "PDA_BOOTSTRAP_TEST_SOURCE=/home/user/bootstrap-main-reverse-ssh.sh python3 -m pytest integrations/claude-history/tests/test_bootstrap.py::test_systemsetup_stdout_failure_is_visible_and_actionable -q",
+    "output": "F                                                                        [100%]\n=================================== FAILURES ===================================\n__________ test_systemsetup_stdout_failure_is_visible_and_actionable ___________\n\n    def test_systemsetup_stdout_failure_is_visible_and_actionable():\n        result = run_remote_login_step(sudo_exit=1)\n        output = result.stdout + result.stderr\n        assert result.returncode != 0\n        assert \"STEP_3_REACHED\" not in output\n>       assert \"simulated Full Disk Access refusal\" in output\nE       AssertionError: assert 'simulated Full Disk Access refusal' in '\\n[2] Enabling macOS Remote Login if localhost:22 is not listening.\\nmacOS will ask for your local administrator password once. Hermes never receives it.\\nSIMULATED_SUDO_CALLED\\n'\n\nintegrations/claude-history/tests/test_bootstrap.py:59: AssertionError\n=========================== short test summary info ============================\nFAILED integrations/claude-history/tests/test_bootstrap.py::test_systemsetup_stdout_failure_is_visible_and_actionable\n1 failed in 0.03s",
+    "exit_code": 1,
+    "error": null
+  },
+  "green": {
+    "command": "python3 -m pytest integrations/claude-history/tests -q",
+    "output": ".................                                                        [100%]\n17 passed in 0.13s",
+    "exit_code": 0,
+    "error": null
+  },
+  "artifacts": {
+    "/home/user/bootstrap-main-reverse-ssh.sh": {
+      "sha256": "4228c2572f42c49b70fb37f001e0b2b982311e22dbeaedd6ba7810b9cddc4ff0",
+      "bytes": 7153
+    },
+    "integrations/claude-history/bootstrap-main-reverse-ssh.sh": {
+      "sha256": "7272da86a467a466d835180485869e90b7ef936479e6997ea3898030a189d0d9",
+      "bytes": 7627
+    },
+    "integrations/claude-history/tests/test_bootstrap.py": {
+      "sha256": "b5f29aa0430477795558f0ec5a84030e4f37832f1d12a0d5b4ecb0bd6d94272f",
+      "bytes": 3265
+    }
+  },
+  "whole_script_bash_syntax_check": "not verified: tool guard rejected bash -n due to referenced launchctl commands; no bypass attempted",
+  "remote_e2e": "blocked: Mac TCP22 and local reverse TCP22037 both refuse connections",
+  "original_distribution_script_modified": false,
+  "independent_review": "not performed",
+  "production_applied": false,
+  "goal_complete": false,
+  "owner_action": "Enable macOS Remote Login for only the current login user through System Settings; then rerun the already-downloaded bootstrap. Existing step 2 skips sudo once localhost:22 is listening."
+}

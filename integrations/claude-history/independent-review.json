@@ -1,0 +1,76 @@
+{
+  "passed": false,
+  "reviewer_identity": {
+    "agent": "Hermes Agent",
+    "role": "focused independent verification subagent",
+    "context": "fresh reasoning context; not an independent OS, account, or control principal",
+    "mac_e2e_status": "not run by this reviewer; the actual Mac E2E was performed by the parent agent"
+  },
+  "git_head": "023a1e8cd979a7d7c07cfbbc6951d98df7c1f931",
+  "scope": {
+    "worktree": "/home/user/projects/pda-autonomous-tasks/t_a1434e21",
+    "inspected_directory": "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history",
+    "inspected_files": [
+      "history.py",
+      "tests/test_history.py",
+      "tests/verify_remote.py",
+      "connection.main.json",
+      "README.md",
+      "skill-entry.md",
+      "finalization-plan.json",
+      "mac-verification.json"
+    ],
+    "live_remote_probe_run": false,
+    "runtime_installation_attempted": false
+  },
+  "test": {
+    "command": "python -B -m pytest integrations/claude-history/tests -q",
+    "cwd": "/home/user/projects/pda-autonomous-tasks/t_a1434e21",
+    "exit_code": 0,
+    "result": "24 passed in 2.36s"
+  },
+  "security_concerns": [
+    {
+      "severity": "medium",
+      "file": "integrations/claude-history/history.py",
+      "lines": "158-160",
+      "issue": "remote_query treats identity_file as optional. If it is absent, SSH is invoked without -i and may select an agent or default key, which violates the documented explicit-principal/no-inference guarantee for trusted existing keys.",
+      "evidence": "The focused remote transport test also supplies host/user without identity_file, and the implementation accepts it; a controlled runner inspection confirmed that -i is absent.",
+      "required_fix": "Require a non-empty explicit identity_file in remote_query, validate its expected path/type as appropriate, and add a regression test that missing identity_file is rejected before any SSH runner is called."
+    }
+  ],
+  "logic_errors": [],
+  "suggestions": [
+    "Keep the existing explicit identity_file in connection.main.json and add a test covering the required-key invariant so future changes cannot reintroduce implicit SSH identity selection."
+  ],
+  "checks": {
+    "no_claude_inference": "Pass: history.py and verify_remote.py do not start, resume, or invoke Claude; the remote path executes only the reader source with python -I -B.",
+    "no_transcript_writes": "Pass: the reader and remote verifier open transcript sources read-only; the verifier emits sanitized metadata/digests and does not persist raw transcript text.",
+    "ssh_bounds": "Pass for the configured path: strict host-key checking, BatchMode, IdentitiesOnly, no forwarding, connect timeout, server-alive bounds, and a 45-second subprocess timeout are present.",
+    "trusted_existing_key": "Fail: connection.main.json names an existing mode-0600 key, but history.py does not require identity_file for arbitrary connection configurations.",
+    "source_identity_and_pagination": "Pass for the reviewed and tested paths: explicit host/user/project/session selection, source paths, message indices, line positions, next_offset, and text pagination are represented; the parent Mac artifact reports source/search/read correspondence.",
+    "size_caps": "Pass: discovery is capped at 10,000 files/1 GiB aggregate, each transcript at 64 MiB, each JSONL line at 8 MiB, malformed records at 1,000, with a 30-second scan deadline; SSH calls are separately time-bounded.",
+    "proposed_skill_install_only": "Pass: finalization-plan.json is approval-gated and proposes artifact installation only; no installation or runtime modification was attempted by this reviewer."
+  },
+  "parent_mac_evidence_review": {
+    "status": "reviewed, not independently rerun",
+    "artifact": "integrations/claude-history/mac-verification.json",
+    "embedded_artifact_hashes_match_current_history_and_connection": true,
+    "source_files": 653,
+    "cli_calls": 11,
+    "sha256_and_mtime_unchanged": true,
+    "private_text_persisted": false,
+    "runtime_deployed": false
+  },
+  "sha256": {
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/history.py": "53804db659d9f18e050fd86253943bd0bd0e0d1164e8b76de08aefe76dd81b70",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/tests/test_history.py": "cd6c244dc736d02c56c35401b023640713b39c127a93120c90fdfeb6e487cde1",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/tests/verify_remote.py": "50c9ceffd026ccac064fe7ccae84268d20fb83ccaf4dfec94c02782548fc8d5c",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/connection.main.json": "3cd7ca308989b3e04fdf13aba45eb1283f77520fa1ac988a975b4fd77f168d2f",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/README.md": "9b29e628bfc1ad3bd622b185da234200c9e1835c692653bc5294748e01e7e258",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/skill-entry.md": "9295802c403d3d4f6719cb47ffd00ef315dad4314a38d748da3413444ca219b6",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/finalization-plan.json": "70f54897e318c1b894593cd98d6d46afeed369e15e7bf3ed690f4d6738f76dcb",
+    "/home/user/projects/pda-autonomous-tasks/t_a1434e21/integrations/claude-history/mac-verification.json": "7e027a168cd4323de997cc7795ff613291db4216ffc3925ce328854dcdd35ae1"
+  },
+  "summary": "Focused verification completed with 24 passing tests and no live remote probe; the reviewed artifacts avoid Claude inference and transcript writes and preserve the parent Mac evidence, but the review fails closed because remote_query permits SSH identity fallback when identity_file is omitted."
+}
