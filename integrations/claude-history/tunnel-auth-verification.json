@@ -1,0 +1,53 @@
+{
+  "task_id": "t_a1434e21",
+  "observed_at": "2026-09-10T09:58:59+09:00",
+  "status": "fix_verified_in_isolated_openssh_not_applied",
+  "root_cause": "The bootstrap registered permitopen=\"none\" in authorized_keys; installed OpenSSH 9.6 rejects the key with bad key options: invalid permission port. Ordinary Mac-to-PDA SSH authentication remains working.",
+  "red": {
+    "command": "python -m pytest integrations/claude-history/tests/test_tunnel_auth.py -q",
+    "exit_code": 1,
+    "result": "1 failed in 0.26s",
+    "sshd_diagnostic": "bad key options: invalid permission port",
+    "isolation": "Disposable keys and unprivileged loopback sshd; no production credentials or listeners changed."
+  },
+  "green": {
+    "command": "python -m pytest integrations/claude-history/tests -q",
+    "exit_code": 0,
+    "result": "21 passed in 1.17s",
+    "real_openssh_checks": [
+      "Dedicated key authenticates and opens approved reverse listener; forwarded SSH banner read",
+      "Unapproved reverse port denied after authentication",
+      "Direct TCP channel to actual listener administratively prohibited",
+      "Requested shell command replaced by /bin/false"
+    ]
+  },
+  "candidate_sha256": {
+    "integrations/claude-history/bootstrap-main-reverse-ssh.sh": "a500c2224004a4ab64a1bfdbab1010f220e301b911610419ebab709e22cede46",
+    "integrations/claude-history/tests/test_bootstrap.py": "b5f29aa0430477795558f0ec5a84030e4f37832f1d12a0d5b4ecb0bd6d94272f",
+    "integrations/claude-history/tests/test_tunnel_auth.py": "4493cc860c8512739187f87223c7ae93f8e319ab48d84c23d6b2af383bcf20a0"
+  },
+  "distributed_script_sha256_unchanged": "4228c2572f42c49b70fb37f001e0b2b982311e22dbeaedd6ba7810b9cddc4ff0",
+  "independent_review": {
+    "passed": true,
+    "reviewer": "sa-0-9456ac2c",
+    "finished_at": "2026-09-10T10:01:23+09:00",
+    "source": "/home/user/.hermes/cache/delegation/live/deleg_d1686249/task-0.log",
+    "scope": "bootstrap and its two test files only; not the pending history reader",
+    "security_concerns": [],
+    "logic_errors": [],
+    "test_result": "9 passed in 1.05s",
+    "digest_match_verified_by_parent": true,
+    "limit": "Separate reasoning context, not a separate OS/control principal. Mac E2E not performed."
+  },
+  "limits": [
+    "Whole-script bash -n refused before execution by gateway tool guard; no bypass attempted",
+    "shellcheck and ruff not installed",
+    "Live PDA key authorization, distribution script, and Mac /tmp script not changed",
+    "Mac SSH 192.168.0.37:22 connected and returned OpenSSH_9.6 banner at 10:00 JST; authentication not established",
+    "Reverse listener 127.0.0.1:22037 absent at latest probe",
+    "macOS launchd and real reverse-SSH authentication remain unverified",
+    "Actual Mac list/search/read and content/mtime immutability remain unverified",
+    "Runtime entry point not finalized; overall owner request incomplete",
+    "Reserved .invalid. direct-forward placeholder is not equivalent to sshd_config remote-only policy"
+  ]
+}
