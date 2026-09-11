@@ -1,0 +1,27 @@
+{
+  "task_id": "t_ac9fbedf",
+  "owner_request": "desktopも対象に",
+  "original_outcome_complete": false,
+  "partial_artifact_scope": "Read-only ordinary Desktop Chat cached snapshots; not live/full cloud, Desktop Code metadata or Cowork",
+  "runtime_targets": [
+    "/home/user/.hermes/skills/autonomous-ai-agents/claude-code/scripts/claude_history.py",
+    "/home/user/.hermes/skills/autonomous-ai-agents/claude-code/SKILL.md"
+  ],
+  "unchanged_connection": "/home/user/.hermes/skills/autonomous-ai-agents/claude-code/references/main-connection.json",
+  "baseline_sha256": {
+    "reader": "1519baac2873d011e9d9f8d88a79b2eceadc92f84a7c48ae5b373dd88ed6a1f0",
+    "skill": "a581722491d1d100de6c59d38a715b9ac4800ab688e2507b2d805117b652a40a",
+    "connection": "3cd7ca308989b3e04fdf13aba45eb1283f77520fa1ac988a975b4fd77f168d2f"
+  },
+  "steps": [
+    "Require independent review pass bound to current source/test/doc SHA256; stage and commit only this task's artifact paths",
+    "Verify live baseline digests and preserve reader+skill in private task-specific rollback backup",
+    "Place exact reviewed history.py bytes at existing installed reader; use skill_manage to insert reviewed desktop-skill-entry before PTY section and expand discovery description to Code/Desktop history; preserve all other skill content",
+    "Re-run verify_desktop_remote.py against installed reader/connection and require every matching source SHA256/mtime unchanged; exercise installed Code list/search/read; require deployed reader equals reviewed artifact",
+    "On verification failure restore exact baseline reader+skill and verify restoration; do not relax acceptance",
+    "Record partial installed capability and unresolved full-cloud access on existing unassigned Kanban card; never mark full request done"
+  ],
+  "rollback_directory": "/home/user/.hermes/backups/claude-desktop-history-t_ac9fbedf",
+  "excluded": ["service restart", "Mac settings", "authentication or key changes", "new daemon", "core plugin", "public PKB", "private transcript persistence", "stopped autonomy cycle/dispatcher/gates", "other worktrees"],
+  "full_cloud_boundary": "Existing Mac session cookie is encrypted. A no-output Keychain lookup failed with nonzero status; no credentials were extracted, no request reached Claude cloud, no OS protection was bypassed. Do not repeat credential probes. Signed-in UI or appropriate user export remains necessary."
+}
