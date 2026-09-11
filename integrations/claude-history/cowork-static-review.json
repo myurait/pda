@@ -1,0 +1,22 @@
+{
+  "kind": "fresh-stateless-context-not-independent-OS-principal",
+  "digest": "2e449ac10f9650c2fb766c4e468d7dc7286934b7d2fb08fc1249cea6ffb4437d",
+  "hashes": {
+    "integrations/claude-history/history.py": "fbd259e276d0011d3a5fc7e9c03757a069a368ec5ab47bb872c4dbd1afa08b43",
+    "integrations/claude-history/enable_mac_gui.py": "8490c28566e2db0d5324e9fa60158ffa2bd5ad10de79a0bc274287e8cd17905c",
+    "integrations/claude-history/gui-capabilities.yaml": "c899d361050971ffcbc09fbb1f8b4d76144723548da71692220f09fb1be95aa5",
+    "integrations/claude-history/tests/test_cowork_history.py": "33823a7c5a1a30881bf290206dd342ce4e040473353ae6f3b6d8541c44e6b129",
+    "integrations/claude-history/tests/test_enable_mac_gui.py": "4ee4d45e29c37a72acda217bca9d69d4d5c302aabf939165c3dfafb54708e4e4",
+    "integrations/claude-history/tests/verify_cowork_remote.py": "6de3c6a6939cf12f5a0a8eebbd1e5805a7720e25e9d38b71f8b77b55abc1798b"
+  },
+  "verdict": {
+    "passed": true,
+    "security_concerns": [],
+    "logic_errors": [],
+    "suggestions": [],
+    "summary": "Static review found no concrete new correctness or security defects within the added Cowork source, optional _load digest feature, or one-time Mac GUI bootstrap. The bootstrap requires interactive owner review before launch and checks daemon health before requesting owner-operated OS permissions. No tools or code were executed during this review. The reported CLI and Cowork verification results were not independently rerun; live GUI retrieval and OS permissions remain explicitly unverified and pending, not code defects."
+  },
+  "model": "gpt-6-astra",
+  "provider": "openai-codex",
+  "seconds": 24.34
+}

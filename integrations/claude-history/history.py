@@ -35,14 +35,18 @@ def _text(record, include_tools=False):
     return "\n".join(parts)
 
 
-def _load(path, warnings, deadline, include_tools=False):
+def _load(path, warnings, deadline, include_tools=False, snapshot=None):
+    import hashlib
     messages = []
+    digest = hashlib.sha256() if snapshot is not None else None
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, "rb") as stream:
         before = os.fstat(stream.fileno())
         if before.st_size > MAX_FILE_BYTES:
             raise ValueError("transcript exceeds size limit")
         for line_no, line in enumerate(iter(lambda: stream.readline(MAX_LINE_BYTES + 1), b""), 1):
+            if digest is not None:
+                digest.update(line)
             if time.monotonic() > deadline:
                 raise TimeoutError("history scan deadline exceeded")
             if len(line) > MAX_LINE_BYTES or stream.tell() > MAX_FILE_BYTES:
@@ -64,6 +68,8 @@ def _load(path, warnings, deadline, include_tools=False):
         after = os.fstat(stream.fileno())
         if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
             warnings.append({"source": str(path), "reason": "transcript changed during read"})
+    if digest is not None and snapshot is not None:
+        snapshot.update(source_sha256=digest.hexdigest(), modified_ns=before.st_mtime_ns)
     return messages
 
 
@@ -289,10 +295,98 @@ def _desktop_query(root, action="list", limit=20, offset=0, session_id=None,
             "next_offset": offset + limit if offset + limit < len(rows) else None}
 
 
+COWORK_AGGREGATE_LIMIT = 1024 * 1024 * 1024
+COWORK_FILE_LIMIT = 10000
+
+
+def _cowork_query(root, action, limit, offset, session_id, project,
+                  text_offset, text_limit, search, include_tools):
+    """Read saved Cowork originals, not model summaries or ordinary Chat."""
+    if action not in ("list", "search", "read"):
+        raise ValueError("unsupported Cowork action")
+    if not 1 <= limit <= 100 or offset < 0 or not 1 <= text_limit <= 100000 or text_offset < 0:
+        raise ValueError("invalid pagination limits")
+    if action == "search" and not search.strip():
+        raise ValueError("nonempty search is required")
+    root = Path(root).expanduser().absolute()
+    if not root.is_dir():
+        raise FileNotFoundError("Cowork sessions root does not exist")
+    if root.resolve() != root:
+        raise ValueError("Cowork root must not contain symlinks")
+    warnings, rows = [], []
+    total_bytes = 0
+    deadline = time.monotonic() + 30
+    for path in root.glob("*/*/local_*/.claude/projects/*/*.jsonl"):
+        if time.monotonic() > deadline:
+            raise TimeoutError("Cowork history scan deadline exceeded")
+        if path.resolve() != path or not path.is_file():
+            continue
+        relative = path.relative_to(root)
+        parts = relative.parts
+        if project and str(relative.parent) != project:
+            continue
+        if session_id and path.stem != session_id:
+            continue
+        before = path.stat()
+        total_bytes += before.st_size
+        if before.st_size > MAX_FILE_BYTES or total_bytes > COWORK_AGGREGATE_LIMIT or len(rows) >= COWORK_FILE_LIMIT:
+            raise ValueError("transcript size limit exceeded")
+        snapshot = {}
+        messages = _load(path, warnings, deadline, include_tools, snapshot=snapshot)
+        after = path.stat()
+        if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
+            warnings.append({"source": str(path), "reason": "source changed during read"})
+        rows.append({"session_id": path.stem, "desktop_session_id": parts[2],
+                     "account_id": parts[0], "organization_id": parts[1],
+                     "project": str(relative.parent), "source": str(path),
+                     **snapshot,
+                     "title": next((m["text"][:200] for m in messages if m["role"] == "user"), ""),
+                     "messages": len(messages), "_messages": messages})
+    rows.sort(key=lambda row: (-row["modified_ns"], row["source"]))
+    if action == "read":
+        if not session_id:
+            raise ValueError("session_id is required for read")
+        if len(rows) != 1:
+            raise ValueError("Cowork session not found or ambiguous; specify project")
+        row = rows[0]
+        messages = row["_messages"]
+        identity = {k: v for k, v in row.items() if not k.startswith("_")}
+        rows = []
+        for index, message in enumerate(messages):
+            start = text_offset if index == offset else 0
+            text = message["text"]
+            rows.append({**identity, **message, "index": index,
+                         "text": text[start:start + text_limit], "text_length": len(text),
+                         "text_offset": start,
+                         "text_next_offset": start + text_limit if start + text_limit < len(text) else None})
+    elif action == "search":
+        hits = []
+        for row in rows:
+            identity = {k: v for k, v in row.items() if not k.startswith("_")}
+            for index, message in enumerate(row["_messages"]):
+                if time.monotonic() > deadline:
+                    raise TimeoutError("Cowork history search deadline exceeded")
+                match = re.search(re.escape(search), message["text"], re.IGNORECASE)
+                if match:
+                    hits.append({**identity, **{k: v for k, v in message.items() if k != "text"},
+                                 "message_index": index,
+                                 "snippet": message["text"][max(0, match.start() - 80):match.end() + 160]})
+        rows = hits
+    else:
+        rows = [{k: v for k, v in row.items() if not k.startswith("_")} for row in rows]
+    return {"ok": True, "action": action, "source_kind": "claude-desktop-cowork",
+            "coverage_complete": False, "scan_complete": not warnings,
+            "coverage_note": "Locally retained top-level Cowork transcripts only; not ordinary Chat, cloud-only tasks, nested subagents, thinking or attachments.",
+            "warnings": warnings, "total": len(rows), "items": rows[offset:offset + limit],
+            "next_offset": offset + limit if offset + limit < len(rows) else None}
+
+
 def query(root, action="list", limit=20, offset=0, session_id=None, project=None,
           text_offset=0, text_limit=12000, search="", include_tools=False, source="code"):
     if source == "desktop-cache":
         return _desktop_query(root, action, limit, offset, session_id, project, text_offset, text_limit, search, include_tools)
+    if source == "desktop-cowork":
+        return _cowork_query(root, action, limit, offset, session_id, project, text_offset, text_limit, search, include_tools)
     if source != "code":
         raise ValueError("unsupported history source")
     if action not in ("list", "read", "search"):
@@ -428,7 +522,7 @@ def main(argv=None):
         return 0 if result["ok"] else 1
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("list", "search", "read"))
-    parser.add_argument("--source", choices=("code", "desktop-cache"), default="code")
+    parser.add_argument("--source", choices=("code", "desktop-cache", "desktop-cowork"), default="code")
     parser.add_argument("--root", help="projects or Desktop Cache_Data directory on selected host; source-specific default")
     parser.add_argument("--connection", type=Path, help="explicit SSH connection JSON; never falls back to local")
     parser.add_argument("--project", help="exact project directory name from list")
@@ -441,7 +535,9 @@ def main(argv=None):
     parser.add_argument("--include-tools", action="store_true", help="include tool calls/results; never thinking blocks")
     args = vars(parser.parse_args(argv))
     if args["root"] is None:
-        args["root"] = "~/.claude/projects" if args["source"] == "code" else "~/Library/Application Support/Claude/Cache/Cache_Data"
+        args["root"] = {"code": "~/.claude/projects",
+                        "desktop-cache": "~/Library/Application Support/Claude/Cache/Cache_Data",
+                        "desktop-cowork": "~/Library/Application Support/Claude/local-agent-mode-sessions"}[args["source"]]
     try:
         connection = args.pop("connection")
         if connection:
