@@ -32,6 +32,58 @@ async def test_config_requires_the_owned_openwebui_session(tmp_path):
         assert response.headers['Cache-Control'] == 'no-store'
 
 
+@pytest.mark.asyncio
+async def test_normal_notification_reuses_subscription_and_opens_its_chat(tmp_path):
+    import asyncio
+    import json
+    import hashlib
+    mod = load_server()
+    sent = []
+
+    async def authenticate(token):
+        return 'owner' if token == 'test-owner' else None
+
+    async def sender(subscription, payload):
+        sent.append(payload)
+        return 201
+
+    app = mod.create_app(tmp_path, 'owner', authenticator=authenticate, sender=sender)
+    owner_headers = {'Authorization': 'Bearer test-owner', 'Origin': mod.ORIGIN}
+    async with TestClient(TestServer(app)) as client:
+        await client.post(mod.BASE + '/api/subscribe', headers=owner_headers, json={
+            'subscription': sample_subscription(), 'mode': 'declarative', 'standalone': True})
+        token_path = tmp_path / 'relay-token'
+        assert token_path.exists(), 'Normal completion relay is not implemented'
+        token = token_path.read_text().strip()
+        response = await client.post(mod.BASE + '/notify/' + token,
+            headers={'Title': '保存済みタイトル', 'Click': mod.ORIGIN + '/c/chat-one'},
+            data='保存済みの最終回答'.encode())
+        assert response.status == 202
+        delivery = await response.json()
+        status = {}
+        for _ in range(100):
+            status = await (await client.get(mod.BASE + '/api/status', headers=owner_headers)).json()
+            if status['notifications'][-1]['state'] == 'sent':
+                break
+            await asyncio.sleep(.01)
+        assert len(sent) == 1
+        notification = sent[0]['notification']
+        assert notification['title'] == '保存済みタイトル'
+        assert notification['body'] == '保存済みの最終回答'
+        assert notification['navigate'] == mod.ORIGIN + mod.BASE + '/landing?notification=' + delivery['id']
+        response = await client.post(mod.BASE + '/api/notification-arrival', headers=owner_headers,
+            json={'id': delivery['id'], 'standalone': True})
+        assert response.status == 200
+        assert (await response.json())['target'] == '/c/chat-one'
+        record = status['notifications'][-1]
+        assert record['push_status'] == 201
+        assert record['body_sha256'] == hashlib.sha256('保存済みの最終回答'.encode()).hexdigest()
+        assert token_path.stat().st_mode & 0o077 == 0
+        assert '保存済み' not in (tmp_path / 'notifications.json').read_text()
+        assert token not in (tmp_path / 'events.jsonl').read_text()
+        assert status['latest'] == {}, 'Normal delivery must not overwrite diagnostic evidence'
+
+
 def load_server():
     spec = importlib.util.spec_from_file_location('push_spike_server', Path(__file__).with_name('server.py'))
     assert spec is not None and spec.loader is not None

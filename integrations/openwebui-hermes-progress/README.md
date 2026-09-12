@@ -1,8 +1,8 @@
 # Open WebUI → Hermes Progress Pipe
 
-PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終応答完了時だけiPhoneへntfy pushを送るローカル統合。
+PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終応答完了時だけiPhoneのホーム画面版へWeb Pushを送るローカル統合。
 
-ホーム画面アプリ内で通知を開くための診断・再設定手順は [iPhone通知テスト](../../spikes/ios-webpush/README.md) を参照。診断入口は通常非表示で、`show_banner` フラグにより再表示可能。これは通常のntfy完了通知の切替とは別機能です。
+通常完了通知のWeb Push切替・旧ntfyへの復帰・再設定手順は [iPhone通知](../../spikes/ios-webpush/README.md) を参照。2026-09-12 owner指示で、実機成功済みのホーム画面版購読を通常完了通知にも接続しました。診断入口は通常非表示で、`show_banner` フラグにより再表示可能です。Pipeの送信契約はntfy互換のままですが、通常の送信先はDocker host-gateway上の本人専用Web Push relayです。端末の登録と通知tapは従来の同一HTTPS originを維持します。以下の`ntfy送信`という実装用語はこの互換インターフェースを含み、ntfy.shへ同時送信する意味ではありません。
 
 ## PDA Kanbanの可視化導線
 
@@ -101,7 +101,7 @@ TAILSCALE_BIN="$HOME/.local/opt/tailscale-1.102.2/tailscale"
 
 ## 完了タイミングと表示内容
 
-実装バージョンは `hermes_progress_pipe` v2.1.0-local.18。
+実装バージョンは `hermes_progress_pipe` v2.1.0-local.19。
 
 ストリーミング時は、Open WebUIへ最終content chunkと `data: [DONE]` を渡した後、async generatorのclose/finalize経路からntfy送信タスクを起動する。Pipe開始時のOpen WebUI host taskの終了を待ってから、Open WebUI DB上の対象assistant messageを読む。success、failure、cancel、timeoutやhost taskの終了状態は通知種別として区別せず、所有者本人のmessageが `done=true` かつ本文が非空なら保存済み内容を通知する。通知タイトルと本文は保存済みレコードだけから読み、Hermesのterminal outputやユーザー入力を代用しない。outlet filterによるredactionを前提にする環境では、filter失敗時にも保存済み本文が通知され得るため、`NTFY_TOPIC`を空にして外部pushを無効化する。
 
@@ -136,7 +136,9 @@ PDA_OPENWEBUI_PUBLIC_URL=https://pda-web.tailaff53a.ts.net
 
 ntfy.shの未認証topicはtopic名自体がpasswordに相当する。192-bit乱数topicを使用し、漏えい時はtopicをローテーションする。
 
-旧版と異なり、現在はユーザーの要望によりチャットタイトルと回答冒頭をホスト版ntfy.shへ送る。通知内容はntfy.sh側のmessage cacheとiPhoneの通知履歴へ残り得るため、機密会話ではこの経路を使わないこと。会話内容を外部ホストへ残したくない場合は、Function Valvesの `NTFY_TOPIC` を空にして停止するか、将来tailnet内へntfyをself-hostする。
+現在の通常完了通知は、ユーザーが承認したチャットタイトルと回答冒頭をtailnet内のrelayで暗号化してAppleへ送り、ntfy.shのmessage cacheへは送りません。iPhoneの通知履歴・ロック画面には表示内容が残ります。旧ntfyへ明示復帰した場合に限りntfy.shへ平文で送られ、message cacheにも残り得ます。今回変更しない日次状態報告は共有`.env`の旧ntfy経路です。
+
+完了通知だけの配備設定はmode0600の `~/openwebui/.completion-push.json` が正本です。更新したinstallerは共有`.env`よりこの設定を優先します。`NTFY_SERVER_URL`と`NTFY_TOPIC`の2項目のみを保持し、秘密tokenはGitへ保存しません。通常の切替・一時停止は前掲の `notifications.py webpush|ntfy|off` を使い、live read-backと永続設定の一致を確認してください。Valveだけを管理画面で変更した場合は次回installerと不一致になる点に注意してください。
 
 ## 更新手順
 
@@ -152,7 +154,7 @@ cd "$HOME/openwebui"
 python install_hermes_progress_pipe.py
 ```
 
-pushだけ一時停止する場合は、Open WebUI管理画面のFunction Valvesで `NTFY_TOPIC` を空にする。Hermes本体、Open WebUIチャット、非同期エージェントの実行には影響しない。
+pushだけ一時停止する場合は `notifications.py off` を使います。Hermes本体、Open WebUIチャット、非同期エージェントの実行には影響しません。今回の通知切替ではinstaller全体を実行せず、現在の他のValvesを保持したまま通知の2項目だけを変更します。
 
 ## テスト
 
@@ -173,7 +175,9 @@ uv run --with aiohttp python tests/live_openwebui_interim_probe.py
 
 成功条件は、中間計画が`done=false`の間に現れ、5秒toolの完了後に最終回答が同じassistant本文へ追記され、両者の観測時刻に4秒以上の差があること。この合成runのntfy pushは抑止し、確認用チャットを1件残す。
 
-実Open WebUIフロントエンド相当のasync経路（DB保存済みタイトル・回答、詳細progress、チャット直リンクを持つpushが1件）:
+現在のWeb Push経路は `spikes/ios-webpush/live_completion_probe.py` で、実Open WebUIフロントエンド相当のasync経路→保存完了→Apple201→title/body一致→旧ntfy重複0件を検証します。実通知を1件送るため、owner指示のある試験時だけ実行します。端末受信・対象chat・Safariタブ非増加は別途実機確認です。
+
+以下は旧ntfyへ戻した場合のlegacy probe（現在のWeb Push設定のまま実行しない）:
 
 ```bash
 uv run --with aiohttp python tests/live_openwebui_notification_probe.py

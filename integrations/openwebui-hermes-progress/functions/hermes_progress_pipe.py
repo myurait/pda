@@ -1,7 +1,7 @@
 """
 title: Hermes Agent (Progress)
 author: Local audited adaptation of Hannah's openwebui-hermes
-version: 2.1.0-local.18
+version: 2.1.0-local.19
 required_open_webui_version: 0.10.2
 description: Hermes Runs API adapter with live interim assistant messages, event-grounded semantic progress, per-chat sessions, interactive approvals, fail-safe cleanup, and titled completion push.
 """
@@ -598,8 +598,9 @@ class Pipe:
         if not valid_hostname:
             return None
         loopback = hostname in {"127.0.0.1", "localhost", "::1"}
+        local_relay = raw == 'http://host.docker.internal:9122/pda-push-test/notify'
         if parsed.scheme != "https" and not (
-            allow_loopback_http and parsed.scheme == "http" and loopback
+            allow_loopback_http and parsed.scheme == "http" and (loopback or local_relay)
         ):
             return None
         if (
