@@ -196,6 +196,10 @@ _SAFE_PROGRESS_TOOL_NAMES = frozenset(_PROGRESS_TOOL_ACTIVITY)
 
 class Pipe:
     class Valves(BaseModel):
+        ENABLE_REPORT_EDITOR: bool = Field(
+            default=False,
+            description="Opt in to the separately configured Hermes report-editor delivery policy. Requires patched Hermes; disabled preserves the legacy path.",
+        )
         HERMES_API_URL: str = Field(
             default="http://host.docker.internal:8642/v1",
             description="Hermes API base URL, including /v1.",
@@ -424,6 +428,18 @@ class Pipe:
                 and __message_id__
             ),
         )
+
+        if self.valves.ENABLE_REPORT_EDITOR and authenticated_user_id:
+            # These are host-injected actor/task facts, not report keywords.
+            # This is an authenticated endpoint-equivalent contract, not a
+            # claim that caller-shaped metadata proves a browser-only action.
+            purpose = "internal" if is_internal else (task_name or "interactive")
+            if message in {"/stop", "/status"}:
+                purpose = "urgent"
+            response_format = body.get("response_format")
+            if isinstance(response_format, dict) and response_format.get("type") in {"json_object", "json_schema"}:
+                purpose = "raw"
+            common["output_delivery_purpose"] = purpose
 
         if stream:
             return StreamingResponse(
@@ -1574,6 +1590,7 @@ class Pipe:
         session_key: str,
         event_emitter: Optional[Callable[[dict], Awaitable[Any]]],
         event_call: Optional[Callable[[dict], Awaitable[Any]]],
+        output_delivery_purpose: Optional[str] = None,
     ) -> AsyncGenerator[dict, None]:
         run_id: Optional[str] = None
         terminal = False
@@ -1621,6 +1638,8 @@ class Pipe:
                 }
                 if instructions:
                     payload["instructions"] = instructions
+                if output_delivery_purpose is not None:
+                    payload["output_delivery"] = {"purpose": output_delivery_purpose}
 
                 async with session.post(
                     f"{base}/runs",
@@ -1852,6 +1871,7 @@ class Pipe:
         accumulated = ""
         interim_prefix = ""
         terminal_output: Optional[str] = None
+        terminal_replace = False
         terminal_error: Optional[str] = None
         cancelled = False
         timed_out = False
@@ -1885,6 +1905,7 @@ class Pipe:
                         )
                 elif event_type == "run.completed":
                     terminal_output = str(event.get("output") or "")
+                    terminal_replace = (event.get('output_delivery') or {}).get('mode') == 'replace'
                 elif event_type in {"run.failed", "adapter.error"}:
                     terminal_error = self._clean_text(
                         event.get("error") or "Hermes run failed", 1000
@@ -1916,7 +1937,19 @@ class Pipe:
                     )
 
         if terminal_output:
-            if not accumulated:
+            if terminal_replace and (accumulated or interim_prefix):
+                # Open WebUI's supported Responses state event replaces both
+                # its UI and persistence accumulator, not only the DOM text.
+                replacement={'type':'response.completed','response':{
+                    'id':completion_id,'status':'completed','output':[{
+                        'id':completion_id+'-final','type':'message','role':'assistant','status':'completed',
+                        'content':[{'type':'output_text','text':terminal_output}],
+                    }],
+                }}
+                yield f"data: {json.dumps(replacement,ensure_ascii=False)}\n\n"
+                accumulated=terminal_output
+                interim_prefix=''
+            elif not accumulated:
                 yield self._completion_chunk(
                     completion_id, {"content": terminal_output}
                 )
@@ -1954,9 +1987,10 @@ class Pipe:
                 },
             )
         elif cancelled and not accumulated:
-            yield self._completion_chunk(
-                completion_id, {"content": "Hermesの実行はキャンセルされました。"}
-            )
+            if run_args.get("output_delivery_purpose") != "interactive":
+                yield self._completion_chunk(
+                    completion_id, {"content": "Hermesの実行はキャンセルされました。"}
+                )
         elif not accumulated and not terminal_output:
             yield self._completion_chunk(
                 completion_id, {"content": "Hermesから応答がありませんでした。"}
@@ -2019,7 +2053,8 @@ class Pipe:
             separator = "\n\n" if content else ""
             content += f"{separator}Hermesの実行時間の上限に達したため停止しました。"
         elif cancelled and not content:
-            content = "Hermesの実行はキャンセルされました。"
+            if run_args.get("output_delivery_purpose") != "interactive":
+                content = "Hermesの実行はキャンセルされました。"
         elif not content:
             content = "Hermesから応答がありませんでした。"
 
