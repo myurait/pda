@@ -11,6 +11,19 @@
     "source": "owner report plus preserved latest.json/events.jsonl"
   },
   "physical_device_retest_after_refactor": false,
+  "independent_review": {
+    "passed": true,
+    "diff_sha256": "87b66c2d63d36349e628987236ab23c6985f4dde0456f06e89bbb3ebcf001dc9",
+    "security_concerns": [],
+    "logic_errors": [],
+    "scope": "Fresh-context read-only review of changed code, tests and unit; docs excluded",
+    "notes": "Banner API has no CAS; concurrent administrative edits are documented as a limitation. service.env was installed with mode 0600."
+  },
+  "custody": {
+    "local_git": true,
+    "remote_push": false,
+    "reason": "origin is public; external publication of operational records was not requested"
+  },
   "focused_tests": {
     "python_passed": 20,
     "node_passed": 4,

@@ -55,7 +55,7 @@ JSON編集だけではUIは変わりません。`show` / `hide` はAPI更新→�
 
 ## 配置・起動・復旧
 
-ソース・テスト・起動定義はこのディレクトリでGit管理します。
+ソース・テスト・起動定義はこのディレクトリでGit管理します。今回の変更はローカルmainへ統合済みです。originは公開リポジトリであるため、運用記録の外部公開を伴うpushは今回行っていません。
 
 - origin: `https://pda-web.tailaff53a.ts.net`
 - 専用経路: `/pda-push-test` → `http://127.0.0.1:9122/pda-push-test`
