@@ -26,6 +26,7 @@ async def test_config_requires_the_owned_openwebui_session(tmp_path):
         value = await response.json()
         assert value['target'] == '/'  # Reusable test does not need a conversation.
         assert len(value['publicKey']) == 87
+        assert value['notifications_enabled'] is True
         assert 'private' not in str(value).lower()
         response = await client.get('/pda-push-test/')
         assert response.status == 200
