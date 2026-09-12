@@ -161,7 +161,7 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
         return web.Response(text=(ASSETS / 'index.html').read_text(), content_type='text/html')
 
     async def config(request):
-        return web.json_response({'publicKey': public_key, 'target': target})
+        return web.json_response({'publicKey': public_key, 'target': target, 'notifications_enabled': True})
 
     async def asset(request):
         filename = request.match_info['file']
