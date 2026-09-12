@@ -148,6 +148,35 @@ systemd-analyze --user verify pda-webpush-spike.service
 
 診断再利用化時の配備状態・非表示/再表示・再起動・既存設定不変の結果は `verification-2026-09-12.json` に記録済みです。hide→show→show→hideで0件→1件→1件→0件、診断サービス再起動後も非表示と購読・鍵・過去試験ログの保持を確認しました。本人認証200・未認証401・別origin書き込み403、配備ソース一致、既存Function/Valves/Serve設定/他バナー不変、Open WebUI health正常を確認しています。通常unitのenableとLinger=yesは確認済みですが、ホスト全体の再起動試験はしていません。テスト送信はボタンを押したときだけで、この旧診断配備確認では新しいPushを送りませんでした。
 
+## 通常通知への反映と確認（2026-09-12）
+
+通常の完了通知をWeb Pushへ反映済みです。Open WebUI/Hermes/Serveは再起動せず、通知専用user serviceだけを更新・再起動しました。Functionはv2.1.0-local.19をAPIからsource更新し、既存Valvesを全保持した後、通知の2項目だけを切り替えています。現行の計画強制停止を維持しています。全体installerは実行していません。
+
+最終sourceでPython 139件、Node 5件が通過。source/runtime/APIの照合は10資産で一致し、元の購読・VAPID鍵・共有env・非表示設定・過去の診断結果・他バナーも不変です。`webpush → ntfy → webpush` の切替・復元・永続値の一致を実環境で確認しました。初回配備の健康確認でcontrollerの必要とするcapability flag不足を検出し、RED→GREENの回帰テストと差分の独立reviewを経て修正してから通常送信へ切り替えました。
+
+実frontend形式の新規チャット「通常通知の切替テスト」で、保存済みdone=true・画面用完了status・通常Web Push 1件・Apple HTTP201・保存タイトル/本文一致・旧ntfy重複0件を確認しました。直接非同期APIも実行完了し、通常Web Push増加0件、旧ntfy増加0件を確認しています。Tailscale userspace netstack経由の既存診断URLもTLS1.3/HTTP200でした。
+
+詳細は `verification-normal-2026-09-12.json`。この記録時点で通常通知の `arrival_standalone` は未記録です。通常経路での実機受信・対象チャット表示・Safariタブが増えないことについてownerの確認が残っており、診断時の成功をその代わりにしていません。Kanban `t_5eccc2cc` は全体Doneにせず、この残条件を保持します。ホスト全体の再起動試験はこの変更ではしていません。
+
+## 通常通知の検証手順
+
+リポジトリrootで実行する対象テスト:
+
+```bash
+uv run --no-project --with pytest --with pytest-asyncio --with aiohttp --with fastapi --with pywebpush --with cryptography --with requests python -m pytest spikes/ios-webpush/ integrations/openwebui-hermes-progress/tests/test_hermes_progress_pipe.py integrations/openwebui-hermes-progress/tests/test_install_hermes_progress_pipe.py -q
+node --test spikes/ios-webpush/test_frontend.cjs
+```
+
+実送信（ownerが試験を指示したときだけ）:
+
+```bash
+~/.local/state/pda/webpush-spike/venv/bin/python ~/.local/state/pda/webpush-spike/runtime/live_completion_probe.py
+```
+
+このprobeは配備済み `~/openwebui/tests/live_openwebui_notification_probe.py` の既存API/helperを利用します。再構築ではintegrationの同ファイルも配置してください。特定の既存チャットを必要とせず、実frontend形式で新規chatを1件作成し、保存された最終回答から通常通知を1件送ります。確認対象は `saved_done`, `completion_push_count=1`, `push_status=201`, title/bodyの保存値一致、`legacy_ntfy_matching_count=0`。成功/失敗を問わず試験chatはタップ確認と調査用に残し、無断削除しません。
+
+ownerは送信前にiPhoneをロックし、届いた通常通知をタップして、ホーム画面版内のその試験chatを開けること、Safariタブが増えないことを確認します。本人用status内の `arrival_standalone=true` は補助証拠であり、ownerの実機報告と合わせるまで端末条件を完了扱いにしません。
+
 ## 完全撤去する場合だけ
 
 通常の非表示は `hide` だけです。完全撤去はownerが撤去を指示した場合に限ります。撤去前に必ず `notifications.py ntfy` で通常完了通知を旧経路へ戻し、`status`で一致を確認してください。
