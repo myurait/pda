@@ -1,7 +1,7 @@
 {
   "captured_at": "2026-09-12T04:59:30.265729+00:00",
   "task_id": "t_5eccc2cc",
-  "status": "server_verified_device_pending",
+  "status": "server_and_owner_device_verified",
   "test_chat_id": "8ef4f821-d11d-4ce5-85de-568d91480f73",
   "test_chat_title": "通常通知の切替テスト",
   "normal_notification": {
@@ -86,7 +86,40 @@
       "sha256": "c3b351fb18533e0d0dd23489b1debb090e79ba96588512c32205133ef55ce190"
     }
   ],
-  "physical_receipt_correct_chat_and_no_safari_tab": "awaiting_owner_confirmation",
+  "physical_receipt_correct_chat_and_no_safari_tab": "owner_confirmed",
+  "owner_device_confirmation": {
+    "recorded_on": "2026-09-12",
+    "source": "owner reply in the existing cutover conversation",
+    "reply_verbatim": "done",
+    "confirmation_requested": "届いた通常通知をタップし、ホーム画面版の対象チャットが開き、Safariのタブが増えなかったか",
+    "evidence_type": "owner_report_not_agent_device_observation",
+    "physical_receipt": true,
+    "correct_chat_in_home_screen_app": true,
+    "no_new_safari_tab": true,
+    "arrival_standalone_in_retained_test_record": null,
+    "telemetry_note": "Retained test notification has no arrival_standalone field; owner confirmation is recorded separately from server telemetry."
+  },
+  "confirmation_time_readback": {
+    "checked_on": "2026-09-12",
+    "notification_mode": "webpush",
+    "persisted_matches": true,
+    "enabled": true,
+    "show_banner": false,
+    "live_count": 0,
+    "banner_matches": true,
+    "service_ready": true,
+    "new_test_push_sent": false,
+    "runtime_modified": false
+  },
+  "existing_maintenance_follow_up": {
+    "task_id": "t_5eccc2cc",
+    "status": "retained_not_resolved_by_device_confirmation",
+    "items": [
+      "Initial ntfy rollback target remains fixed",
+      "Whole-Valves updates have a concurrent admin-edit race window",
+      "Older in-flight notification records can exceed the nominal retained count"
+    ]
+  },
   "independent_review_digests": [
     "a8b131d229911b37902e9cd029c695e663d744bbc4fc8b536c27dd894d0459b3",
     "cc493facd797d17bef3fd8bc86a3950e8407ce30a223ce5ade1e04d66978e5cd"
