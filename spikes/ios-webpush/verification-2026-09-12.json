@@ -1,0 +1,65 @@
+{
+  "verified_at": "2026-09-12T09:49:45.487509+09:00",
+  "scope": "Reusable iPhone Web Push diagnostic only; normal completion notifications unchanged",
+  "physical_device_initial_version": {
+    "owner_report": "完璧",
+    "apple_status": 201,
+    "arrival_standalone": true,
+    "apple_accepted_at": "2026-09-12T09:29:11+09:00",
+    "app_arrival_at": "2026-09-12T09:29:16+09:00",
+    "target_kind": "fixed chat (initial version)",
+    "source": "owner report plus preserved latest.json/events.jsonl"
+  },
+  "physical_device_retest_after_refactor": false,
+  "focused_tests": {
+    "python_passed": 20,
+    "node_passed": 4,
+    "systemd_unit_syntax": "passed"
+  },
+  "live_checks": {
+    "hide_show_show_hide": "passed",
+    "restart_preserves_hidden_flag": "passed",
+    "other_banners_unchanged": true,
+    "default_target": "/",
+    "authenticated_config_status": 200,
+    "unauthenticated_config_status": 401,
+    "cross_origin_write_status": 403,
+    "served_assets_equal_source": true,
+    "source_equal_runtime": true,
+    "subscription_and_key_unchanged": true,
+    "test_events_and_latest_unchanged": true,
+    "new_test_pushes_sent": 0,
+    "normal_function_and_valves_unchanged": true,
+    "all_serve_routes_and_funnel_unchanged": true,
+    "openwebui_health": true,
+    "loopback_only_port": 9122,
+    "banner": {
+      "show_banner": false,
+      "live_count": 0,
+      "matches": true,
+      "service_ready": true
+    },
+    "unit": {
+      "RuntimeMaxUSec": "infinity",
+      "ActiveState": "active",
+      "SubState": "running",
+      "FragmentPath": "/home/user/.config/systemd/user/pda-webpush-spike.service",
+      "Transient": "no"
+    },
+    "unit_enabled": true,
+    "linger": "Linger=yes"
+  },
+  "asset_sha256": {
+    "server.py": "06732fdd87bcca23787534e7551fb898e66a77e55a56494c09654c2fd2b4b985",
+    "index.html": "210855e8b11c04e6a9a5d1a8a7b790f28a6704676933b93abbff5d631bfcb9d0",
+    "app.js": "6fccd9af1bc3c9afe519cc38e6565c4b9ab0a23c7c0a15838097d26327646c40",
+    "sw.js": "7b4c9e8ad4447741f36e67211905da33515da03beefffc19161e9608c6e87437",
+    "control.py": "23f2961c39f050b0d5136e4fcdfd7858fffb5475665bbcd91ec49c093de50c1a",
+    "pda-webpush-spike.service": "9513c1705b1ac82d71eafd0ae944658c554763a794d77c7744720028980206eb"
+  },
+  "limits": [
+    "No new physical-device push was sent after wording/home-target changes.",
+    "Host reboot was not exercised; ordinary diagnostic restart and enabled persistent user unit were verified.",
+    "Normal ntfy completion transport is not switched by this change."
+  ]
+}

@@ -38,7 +38,7 @@ async function main() {
   el('return').href = config.target;
   if (location.pathname.endsWith('/landing')) {
     el('controls').hidden = true;
-    show(standalone?'ホーム画面アプリで開きました。この会話へ戻ります…':'Safari / ブラウザのタブで開きました。この会話へ戻ります…');
+    show(standalone?'ホーム画面アプリで開きました。Open WebUIのトップへ戻ります…':'Safari / ブラウザのタブで開きました。Open WebUIのトップへ戻ります…');
     try { await api('arrival',{test_id:new URLSearchParams(location.search).get('test'),standalone}); }
     catch (error) { fail(error); }
     setTimeout(()=>location.replace(config.target),1500);
@@ -85,7 +85,7 @@ async function main() {
     el('send').disabled = true;
     try {
       await api('send',{});
-      show('20秒後の送信を予約しました。\n今すぐiPhoneをロックしてください。\n「PDA ホーム画面テスト」の通知をタップすると、この会話へ戻ります。\n通常のntfy通知とは別のテストです。');
+      show('20秒後の送信を予約しました。\n今すぐiPhoneをロックしてください。\n「PDA ホーム画面テスト」の通知をタップすると、Open WebUIのトップへ戻ります。\n通常のntfy通知とは別のテストです。');
       setTimeout(()=>refresh().catch(fail),25000);
     } catch(error) { fail(error);el('send').disabled = false; }
   });

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const origin = 'https://pda-web.tailaff53a.ts.net';
-const target = '/c/11111111-1111-4111-8111-111111111111';
+const target = '/';
 
 async function simulate(standalone, landing = false) {
   const file = path.join(__dirname, 'app.js');
@@ -52,11 +52,16 @@ test('permission is requested directly in the button gesture, before saving',asy
   assert.ok(s.events.some(x=>Array.isArray(x)&&x[1].endsWith('/subscribe')));
   assert.equal(s.nodes('send').disabled,false);
 });
-test('tap landing records actual display mode and returns to the fixed chat',async()=>{
+test('tap landing records actual display mode and returns home without chat-dependent copy',async()=>{
   const s=await simulate(true,true);
   const arrival=s.events.find(x=>Array.isArray(x)&&x[1].endsWith('/arrival'));
   assert.equal(JSON.parse(arrival[2]).standalone,true);
   assert.ok(s.events.some(x=>Array.isArray(x)&&x[0]==='navigate'&&x[1]===target));
+  assert.doesNotMatch(s.nodes('status').textContent,/この会話|元の会話/);
+  for (const name of ['app.js','index.html','server.py']) {
+    const content=fs.readFileSync(path.join(__dirname,name),'utf8');
+    assert.doesNotMatch(content,/この会話|元の会話|c682eec9|a7d12bd6/);
+  }
 });
 test('legacy service worker displays the fixed notification and opens only same-origin landing',async()=>{
   const file=path.join(__dirname,'sw.js');

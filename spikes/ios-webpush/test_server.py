@@ -17,14 +17,14 @@ async def test_config_requires_the_owned_openwebui_session(tmp_path):
     async def authenticate(token):
         return 'owner' if token == 'test-owner' else None
 
-    app = mod.create_app(tmp_path, 'owner', '/c/11111111-1111-4111-8111-111111111111', authenticator=authenticate)
+    app = mod.create_app(tmp_path, 'owner', authenticator=authenticate)
     async with TestClient(TestServer(app)) as client:
         response = await client.get('/pda-push-test/api/config')
         assert response.status == 401
         response = await client.get('/pda-push-test/api/config', headers={'Authorization': 'Bearer test-owner'})
         assert response.status == 200
         value = await response.json()
-        assert value['target'].startswith('/c/')
+        assert value['target'] == '/'  # Reusable test does not need a conversation.
         assert len(value['publicKey']) == 87
         assert 'private' not in str(value).lower()
         response = await client.get('/pda-push-test/')
@@ -64,7 +64,7 @@ async def test_owned_subscription_schedules_one_fixed_push_and_records_arrival(t
         sent.append((subscription, payload))
         return 201
 
-    app = mod.create_app(tmp_path, 'owner', '/c/11111111-1111-4111-8111-111111111111', authenticator=authenticate, sender=sender, delay_seconds=0.04)
+    app = mod.create_app(tmp_path, 'owner', authenticator=authenticate, sender=sender, delay_seconds=0.04)
     headers = {'Authorization': 'Bearer test-owner', 'Origin': mod.ORIGIN}
     async with TestClient(TestServer(app)) as client:
         data = {'subscription': sample_subscription(), 'mode': 'declarative', 'standalone': True}
@@ -126,7 +126,7 @@ async def test_real_library_encrypts_payload_without_following_redirects(tmp_pat
     monkeypatch.setattr(requests, 'post', capture_post)
     async def authenticate(token):
         return 'owner'
-    app = mod.create_app(tmp_path, 'owner', '/c/11111111-1111-4111-8111-111111111111', authenticator=authenticate, delay_seconds=0.01)
+    app = mod.create_app(tmp_path, 'owner', authenticator=authenticate, delay_seconds=0.01)
     headers = {'Authorization': 'Bearer test-owner', 'Origin': mod.ORIGIN}
     async with TestClient(TestServer(app)) as client:
         response = await client.post(mod.BASE+'/api/subscribe', json={'subscription':sample_subscription(),'mode':'declarative','standalone':True}, headers=headers)
@@ -162,7 +162,7 @@ async def test_unsubscribe_does_not_label_inflight_delivery_as_unsent(tmp_path):
         started.set()
         await release.wait()
         return 201
-    app = mod.create_app(tmp_path, 'owner', '/c/11111111-1111-4111-8111-111111111111', authenticator=authenticate, sender=slow_sender, delay_seconds=.01)
+    app = mod.create_app(tmp_path, 'owner', authenticator=authenticate, sender=slow_sender, delay_seconds=.01)
     headers = {'Authorization':'Bearer test-owner','Origin':mod.ORIGIN}
     async with TestClient(TestServer(app)) as client:
         await client.post(mod.BASE+'/api/subscribe',json={'subscription':sample_subscription(),'mode':'declarative','standalone':True},headers=headers)

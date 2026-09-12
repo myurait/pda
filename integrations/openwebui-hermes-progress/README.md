@@ -2,6 +2,8 @@
 
 PDAのOpen WebUIユーザーチャットをHermes Runs APIへ接続し、最終応答完了時だけiPhoneへntfy pushを送るローカル統合。
 
+ホーム画面アプリ内で通知を開くための診断・再設定手順は [iPhone通知テスト](../../spikes/ios-webpush/README.md) を参照。診断入口は通常非表示で、`show_banner` フラグにより再表示可能。これは通常のntfy完了通知の切替とは別機能です。
+
 ## PDA Kanbanの可視化導線
 
 PDA改善タスクの正本はHermes標準の`~/.hermes/kanban.db`とし、初期移行タスクにはtenant `pda-improvement`を付ける。独自のタスクDBやOpen WebUI内の複製台帳は作らない。

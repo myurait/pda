@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Disposable, owner-authenticated same-origin iPhone Web Push experiment."""
+"""Reusable, owner-authenticated same-origin iPhone Web Push diagnostic."""
 from __future__ import annotations
 
 import argparse
@@ -54,9 +54,8 @@ def private_json(path, value):
     os.replace(temp, path)
 
 
-def create_app(state_dir, owner_id, target, *, authenticator=None, sender=None, delay_seconds=20):
-    if not re.fullmatch(r'/c/[0-9a-f-]{36}', target):
-        raise ValueError('Target must be the fixed Open WebUI chat path')
+def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_seconds=20):
+    target = '/'  # Diagnostics always return to Open WebUI home, never a chat.
     state = Path(state_dir)
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     state.chmod(0o700)
@@ -158,7 +157,7 @@ def create_app(state_dir, owner_id, target, *, authenticator=None, sender=None, 
     async def deliver(subscription, test_id):
         try:
             await asyncio.sleep(delay_seconds)
-            payload = {'web_push': 8030, 'notification': {'title': 'PDA ホーム画面テスト', 'body': 'タップすると元の会話へ戻ります。Safariではなくホーム画面アプリで開くかを確認します。', 'navigate': ORIGIN + BASE + '/landing?test=' + test_id, 'tag': 'pda-push-spike-' + test_id, 'silent': False}}
+            payload = {'web_push': 8030, 'notification': {'title': 'PDA ホーム画面テスト', 'body': 'タップするとOpen WebUIのトップへ戻ります。Safariではなくホーム画面アプリで開くかを確認します。', 'navigate': ORIGIN + BASE + '/landing?test=' + test_id, 'tag': 'pda-push-spike-' + test_id, 'silent': False}}
             try:
                 latest['state'] = 'publishing'
                 private_json(latest_path, latest)
@@ -235,7 +234,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--state-dir', required=True)
     parser.add_argument('--owner-id', required=True)
-    parser.add_argument('--target', required=True)
     parser.add_argument('--port', type=int, default=9122)
     args = parser.parse_args()
-    web.run_app(create_app(args.state_dir, args.owner_id, args.target), host='127.0.0.1', port=args.port, access_log=None)
+    web.run_app(create_app(args.state_dir, args.owner_id), host='127.0.0.1', port=args.port, access_log=None)
