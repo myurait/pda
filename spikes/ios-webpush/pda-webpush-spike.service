@@ -1,11 +1,11 @@
 [Unit]
-Description=PDA iPhone Home Screen notification diagnostic
+Description=PDA iPhone Home Screen notifications and diagnostic
 After=network.target
 
 [Service]
 Type=simple
 EnvironmentFile=%h/.local/state/pda/webpush-spike/service.env
-ExecStart=%h/.local/state/pda/webpush-spike/venv/bin/python %h/.local/state/pda/webpush-spike/runtime/server.py --state-dir %h/.local/state/pda/webpush-spike --owner-id ${PDA_PUSH_OWNER_ID}
+ExecStart=%h/.local/state/pda/webpush-spike/venv/bin/python %h/.local/state/pda/webpush-spike/runtime/server.py --state-dir %h/.local/state/pda/webpush-spike --owner-id ${PDA_PUSH_OWNER_ID} --bridge-host 172.17.0.1
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=15

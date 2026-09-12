@@ -10,12 +10,37 @@ installer = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(installer)
 
 
+def test_completion_route_override_survives_reinstallation_without_changing_shared_ntfy(tmp_path):
+    assert hasattr(installer, 'completion_route'), 'Persistent completion-specific route is not implemented'
+    env = {'PDA_NTFY_SERVER_URL': 'https://ntfy.sh', 'PDA_NTFY_TOPIC': 'daily-topic'}
+    route = tmp_path / '.completion-push.json'
+    route.write_text('{"NTFY_SERVER_URL":"https://pda-web.example/pda-push-test/notify","NTFY_TOPIC":"relay-token"}')
+    route.chmod(0o600)
+    assert installer.completion_route(env, route) == ('https://pda-web.example/pda-push-test/notify', 'relay-token')
+    assert env['PDA_NTFY_TOPIC'] == 'daily-topic'
+    route.write_text('{"NTFY_SERVER_URL":"https://ntfy.sh","NTFY_TOPIC":""}')
+    assert installer.completion_route(env, route) == ('https://ntfy.sh', '')
+    route.chmod(0o644)
+    with pytest.raises(installer.InstallError):
+        installer.completion_route(env, route)
+
+
 def test_ntfy_topic_validation_accepts_only_runtime_safe_topics():
     assert installer.validate_ntfy_topic("pda-chat_0123456789") == "pda-chat_0123456789"
 
     for value in ("", "space topic", "../escape", "a" * 65):
         with pytest.raises(installer.InstallError):
             installer.validate_ntfy_topic(value)
+
+
+def test_only_exact_docker_completion_relay_can_use_internal_http():
+    relay = 'http://host.docker.internal:9122/pda-push-test/notify'
+    assert installer.validate_https_url(relay, 'relay', allow_loopback_http=True) == relay
+    for url in [relay + '/extra', relay.replace('9122', '8080'), 'http://host.docker.internal/']:
+        with pytest.raises(installer.InstallError):
+            installer.validate_https_url(url, 'relay', allow_loopback_http=True)
+    with pytest.raises(installer.InstallError):
+        installer.validate_https_url(relay, 'click')
 
 
 def test_sensitive_notification_urls_require_credential_free_https():

@@ -201,6 +201,14 @@ def test_run_timeout_defaults_to_unlimited():
     assert timeout.sock_read is None
 
 
+def test_only_exact_docker_completion_relay_can_use_internal_http():
+    relay = 'http://host.docker.internal:9122/pda-push-test/notify'
+    assert Pipe._validated_notification_url(relay, allow_loopback_http=True) == relay
+    for url in [relay + '/extra', relay.replace('9122', '8080'), 'http://host.docker.internal/']:
+        assert Pipe._validated_notification_url(url, allow_loopback_http=True) is None
+    assert Pipe._validated_notification_url(relay) is None
+
+
 def test_progress_heartbeat_defaults_to_five_minutes_without_tool_log_noise():
     valves = Pipe.Valves()
     schema = valves.model_json_schema()["properties"]["PROGRESS_HEARTBEAT_SECONDS"]

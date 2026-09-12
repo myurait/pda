@@ -6,7 +6,7 @@ const path = require('node:path');
 const origin = 'https://pda-web.tailaff53a.ts.net';
 const target = '/';
 
-async function simulate(standalone, landing = false) {
+async function simulate(standalone, landing = false, notification = false) {
   const file = path.join(__dirname, 'app.js');
   assert.ok(fs.existsSync(file), 'The physical-test page controller is not implemented');
   const elements = new Map();
@@ -19,12 +19,13 @@ async function simulate(standalone, landing = false) {
   const context = {
     document:{getElementById:nodes}, navigator:{standalone}, window:{pushManager:manager},
     isSecureContext:true, matchMedia:()=>({matches:standalone}), Notification:{permission:'default'},
-    location:{origin, pathname:'/pda-push-test/'+(landing?'landing':''), search:landing?'?test=abcdef':'', replace(url){events.push(['navigate',url]);}},
+    location:{origin, pathname:'/pda-push-test/'+(landing?'landing':''), search:notification?'?notification=delivery-one':landing?'?test=abcdef':'', replace(url){events.push(['navigate',url]);}},
     localStorage:{getItem:()=> 'local-test-not-a-real-token'},
     fetch:async(url,options={})=>{events.push(['fetch',url,options.body]);let value={ok:true};
       if(url.endsWith('/config'))value={publicKey:'BA'.repeat(43)+'A',target};
       if(url.endsWith('/status'))value={subscribed:false,latest:{}};
       if(url.endsWith('/send'))value={test_id:'abcdef',send_at:Date.now()/1000+20};
+      if(url.endsWith('/notification-arrival'))value={target:'/c/chat-one'};
       return {ok:true,status:200,json:async()=>value};
     },
     Uint8Array, ArrayBuffer, URL, URLSearchParams, AbortController, AbortSignal,
@@ -42,6 +43,14 @@ test('ordinary Safari tab cannot register the push',async()=>{
   assert.equal(s.nodes('subscribe').disabled,true);
   assert.match(s.nodes('status').textContent,/ホーム画面/);
   assert.ok(!s.events.includes('subscribe'));
+});
+test('normal notification landing opens the server-owned chat instead of diagnostic home',async()=>{
+  const s = await simulate(true, true, true);
+  const arrival = s.events.find(x=>Array.isArray(x)&&x[1].endsWith('/notification-arrival'));
+  assert.ok(arrival, 'Normal completion landing is not implemented');
+  assert.equal(JSON.parse(arrival[2]).id, 'delivery-one');
+  assert.equal(JSON.parse(arrival[2]).standalone, true);
+  assert.ok(s.events.some(x=>Array.isArray(x)&&x[0]==='navigate'&&x[1]==='/c/chat-one'));
 });
 test('permission is requested directly in the button gesture, before saving',async()=>{
   const s=await simulate(true);

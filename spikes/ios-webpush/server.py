@@ -5,9 +5,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import hashlib
+import hmac
+import ipaddress
 import json
 import os
 import re
+import secrets
 import time
 import uuid
 from pathlib import Path
@@ -71,6 +75,19 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
     latest_path = state / 'latest.json'
     latest = json.loads(latest_path.read_text()) if latest_path.exists() else {}
     tasks = set()
+    relay_token_path = state / 'relay-token'
+    if not relay_token_path.exists():
+        with os.fdopen(os.open(relay_token_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w') as output:
+            output.write(secrets.token_hex(32))
+    relay_token = relay_token_path.read_text().strip()
+    if relay_token_path.stat().st_mode & 0o077 or not re.fullmatch(r'[a-f0-9]{64}', relay_token):
+        raise ValueError('Relay token must be a private 256-bit token')
+    notifications_path = state / 'notifications.json'
+    notifications = json.loads(notifications_path.read_text()) if notifications_path.exists() else []
+    for record in notifications:
+        if record.get('state') in {'queued', 'publishing'}:
+            record['state'] = 'interrupted-delivery-unknown' if record['state'] == 'publishing' else 'interrupted-not-resent'
+    private_json(notifications_path, notifications)
     if latest.get('state') in {'scheduled', 'publishing'}:
         latest['state'] = 'interrupted-delivery-unknown' if latest['state'] == 'publishing' else 'interrupted-not-resent'
         private_json(latest_path, latest)
@@ -109,7 +126,21 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
 
     @web.middleware
     async def guard(request, handler):
-        if request.method != 'GET' and request.headers.get('Origin') != ORIGIN:
+        relay = request.path.startswith(BASE + '/notify/')
+        # The additional Docker bridge listener exposes only the machine relay;
+        # browser APIs/assets remain loopback + the existing Tailscale Serve path.
+        if request.remote not in {'127.0.0.1', '::1'}:
+            try:
+                docker_peer = ipaddress.ip_address(request.remote) in ipaddress.ip_network('172.16.0.0/12')
+            except ValueError:
+                docker_peer = False
+            if not relay or not docker_peer:
+                return web.json_response({'error': 'Forbidden'}, status=403)
+        if relay:
+            supplied = request.match_info.get('token', '')
+            if not hmac.compare_digest(supplied.encode(), relay_token.encode()):
+                return web.json_response({'error': 'Unauthorized'}, status=401)
+        elif request.method != 'GET' and request.headers.get('Origin') != ORIGIN:
             return web.json_response({'error': '同じOpen WebUIアプリ内から操作してください。'}, status=403)
         if request.path.startswith(BASE + '/api/'):
             auth = request.headers.get('Authorization', '')
@@ -139,7 +170,68 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
         return web.Response(text=(ASSETS / filename).read_text(), content_type='application/javascript')
 
     async def status(request):
-        return web.json_response({'subscribed': subscription_path.exists(), 'latest': latest})
+        return web.json_response({'subscribed': subscription_path.exists(), 'latest': latest, 'notifications': notifications})
+
+    async def deliver_notification(subscription, payload, record):
+        try:
+            record['state'] = 'publishing'
+            private_json(notifications_path, notifications)
+            result = await publish(subscription, payload)
+            record.update(state='sent' if result == 201 else 'failed', push_status=result)
+        except asyncio.CancelledError:
+            record['state'] = 'interrupted-delivery-unknown'
+            raise
+        except Exception as exc:
+            response = getattr(exc, 'response', None)
+            record.update(state='failed', error_type=type(exc).__name__, push_status=getattr(response, 'status_code', None))
+        finally:
+            record['finished_at'] = time.time()
+            private_json(notifications_path, notifications)
+            event('notification-result', id=record['id'], state=record['state'], push_status=record.get('push_status'))
+
+    async def notify(request):
+        # A narrow ntfy-compatible sink: the existing Pipe still owns the
+        # authenticated user, persisted-message boundary and at-most-once attempt.
+        # The random URL component is a credential, never logged or returned.
+        click = request.headers.get('Click', '')
+        title = request.headers.get('Title', '')
+        body = await request.text()
+        if not re.fullmatch(re.escape(ORIGIN) + r'/c/[-_A-Za-z0-9]{1,256}', click):
+            raise ValueError('Only this Open WebUI chat destination is allowed')
+        if not title.strip() or len(title) > 100 or not body.strip() or len(body) > 240:
+            raise ValueError('Only bounded saved-completion previews are accepted')
+        if not subscription_path.exists():
+            return web.json_response({'error': 'Home Screen subscription is missing'}, status=409)
+        if len(tasks) >= 8:
+            return web.json_response({'error': 'Notification delivery busy'}, status=429)
+        subscription = validate_subscription(json.loads(subscription_path.read_text())['subscription'])
+        notification_id = uuid.uuid4().hex
+        record = {'id': notification_id, 'target': click[len(ORIGIN):], 'state': 'queued', 'queued_at': time.time(),
+                  'title_sha256': hashlib.sha256(title.encode()).hexdigest(), 'body_sha256': hashlib.sha256(body.encode()).hexdigest()}
+        notifications.append(record)
+        # Bounded local metadata only. Never persist notification text or keys.
+        if len(notifications) > 200:
+            notifications[:] = [n for n in notifications[:-200] if n['state'] in {'queued', 'publishing'}] + notifications[-200:]
+        private_json(notifications_path, notifications)
+        payload = {'web_push': 8030, 'notification': {'title': title, 'body': body,
+                   'navigate': ORIGIN + BASE + '/landing?notification=' + notification_id,
+                   'tag': 'pda-completion-' + notification_id, 'silent': False}}
+        task = asyncio.create_task(deliver_notification(subscription, payload, record))
+        tasks.add(task)
+        task.add_done_callback(tasks.discard)
+        event('notification-queued', id=notification_id)
+        # Acknowledges only in-process acceptance, not Apple or device receipt.
+        return web.json_response({'id': notification_id, 'state': 'queued'}, status=202)
+
+    async def notification_arrival(request):
+        data = await request.json()
+        record = next((n for n in notifications if n['id'] == data.get('id')), None)
+        if record is None or type(data.get('standalone')) is not bool:
+            raise ValueError('Unknown notification')
+        record.update(arrival_standalone=data['standalone'], arrived_at=time.time())
+        private_json(notifications_path, notifications)
+        event('notification-arrival', id=record['id'], standalone=data['standalone'])
+        return web.json_response({'target': record['target']})
 
     async def subscribe(request):
         data = await request.json()
@@ -200,7 +292,7 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
         return web.json_response({'ok': True, 'target': target})
 
     async def unsubscribe(request):
-        if latest.get('state') == 'publishing':
+        if latest.get('state') == 'publishing' or any(n['state'] == 'publishing' for n in notifications):
             return web.json_response({'error': '送信開始済みです。結果が確定してから解除してください。'}, status=409)
         for task in list(tasks):
             task.cancel()
@@ -224,7 +316,9 @@ def create_app(state_dir, owner_id, *, authenticator=None, sender=None, delay_se
     app.router.add_post(BASE + '/api/subscribe', subscribe)
     app.router.add_post(BASE + '/api/send', send)
     app.router.add_post(BASE + '/api/arrival', arrival)
+    app.router.add_post(BASE + '/api/notification-arrival', notification_arrival)
     app.router.add_post(BASE + '/api/unsubscribe', unsubscribe)
+    app.router.add_post(BASE + '/notify/{token}', notify)
     app.router.add_get(BASE + '/{file}', asset)
     app.on_cleanup.append(cleanup)
     return app
@@ -235,5 +329,7 @@ if __name__ == '__main__':
     parser.add_argument('--state-dir', required=True)
     parser.add_argument('--owner-id', required=True)
     parser.add_argument('--port', type=int, default=9122)
+    parser.add_argument('--bridge-host', choices=['172.17.0.1'], help='Additional existing Docker host-gateway listener; never LAN/all interfaces')
     args = parser.parse_args()
-    web.run_app(create_app(args.state_dir, args.owner_id), host='127.0.0.1', port=args.port, access_log=None)
+    hosts = ['127.0.0.1'] + ([args.bridge_host] if args.bridge_host else [])
+    web.run_app(create_app(args.state_dir, args.owner_id), host=hosts, port=args.port, access_log=None)

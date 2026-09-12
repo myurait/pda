@@ -38,6 +38,16 @@ async function main() {
   el('return').href = config.target;
   if (location.pathname.endsWith('/landing')) {
     el('controls').hidden = true;
+    const notificationId = new URLSearchParams(location.search).get('notification');
+    if (notificationId) {
+      show('通知の対象チャットを開きます…');
+      const arrival = await api('notification-arrival', {id:notificationId, standalone});
+      if (!/^\/c\/[-_A-Za-z0-9]{1,256}$/.test(arrival.target)) throw new Error('通知の戻り先が無効です。');
+      el('return').href = arrival.target;
+      el('return').textContent = '通知の対象チャットへ';
+      location.replace(arrival.target);
+      return;
+    }
     show(standalone?'ホーム画面アプリで開きました。Open WebUIのトップへ戻ります…':'Safari / ブラウザのタブで開きました。Open WebUIのトップへ戻ります…');
     try { await api('arrival',{test_id:new URLSearchParams(location.search).get('test'),standalone}); }
     catch (error) { fail(error); }
@@ -85,7 +95,7 @@ async function main() {
     el('send').disabled = true;
     try {
       await api('send',{});
-      show('20秒後の送信を予約しました。\n今すぐiPhoneをロックしてください。\n「PDA ホーム画面テスト」の通知をタップすると、Open WebUIのトップへ戻ります。\n通常のntfy通知とは別のテストです。');
+      show('20秒後の送信を予約しました。\n今すぐiPhoneをロックしてください。\n「PDA ホーム画面テスト」の通知をタップすると、Open WebUIのトップへ戻ります。\n通常の完了通知と同じ購読を使う診断です。');
       setTimeout(()=>refresh().catch(fail),25000);
     } catch(error) { fail(error);el('send').disabled = false; }
   });
@@ -96,7 +106,7 @@ async function main() {
       if (subscription && sameKey(subscription)) await subscription.unsubscribe();
       if (registration && registration.scope === location.origin+BASE+'/') await registration.unregister();
       el('send').disabled = true;el('stop').disabled = true;
-      show('テスト購読と未送信の予約を解除しました。既存のntfy通知は変更していません。');
+      show('ホーム画面版の通知購読と未送信の予約を解除しました。通常の完了通知も停止します。再設定は①を押してください。');
     } catch(error) { fail(error); }
   });
   el('refresh').addEventListener('click',()=>refresh().catch(fail));

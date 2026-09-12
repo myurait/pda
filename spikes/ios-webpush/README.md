@@ -1,12 +1,39 @@
-# iPhoneホーム画面版の通知テスト・再設定
+# iPhoneホーム画面版の通常通知・テスト・再設定
 
 ## 用途と現在の結論
 
 既存のホーム画面版Open WebUIがWeb Pushを受け取り、通知タップでSafariの新規タブではなく同アプリ内を開けるかを確認する、本人専用の診断機能です。特定のチャット、セッション、会話タイトルを必要としません。戻り先はOpen WebUIのトップ `/` です。
 
-初回の実機試験は成功しました。2026-09-12のowner成功報告と、Apple HTTP 201・`arrival_standalone=true` のサーバー記録を照合しています。初回は固定チャットへ戻す旧版での成功です。今回の汎用化後はトップへの遷移を自動テストとlive APIで別に検証済みです。新たな通知の実機再送試験は今回の変更確認には含めません。
+初回の実機試験は成功しました。2026-09-12のowner成功報告と、Apple HTTP 201・`arrival_standalone=true` のサーバー記録を照合しています。初回は固定チャットへ戻す旧版での成功です。その後の診断汎用化ではトップへの遷移を自動テストとlive APIで別に検証し、新たな実機Pushは送信しませんでした。以下の通常通知統合は、その次の別変更です。
 
-これは診断機能であり、通常の完了通知をWeb Pushへ切り替える実装ではありません。既存ntfy、Hermes Progress Pipe、Open WebUI本体、`/hermes`、Funnel設定は変更しません。
+2026-09-12の追加owner指示により、同じ購読を通常のOpen WebUI完了通知にも接続しました。診断はチャット非依存でトップへ戻り、通常通知は毎回その通知を発生させたチャットへ戻ります。最終的な通常経路の実機確認は初回診断の成功と区別して記録します。
+
+## 通常通知の切替と復旧
+
+通常の完了通知は、既存Hermes Progress Pipe → 本PDAのntfy互換relay → 暗号化Web Push → 既存ホーム画面版Open WebUIへ送ります。Pipeの変更は後述の特定ローカルrelay宛先の許可だけです。本人の保存済みassistant `done=true`、title/回答冒頭、非ブロッキング、message単位の送信試行抑止を維持します。通常通知のntfy.sh送信は行わず、失敗時にも自動で二重送信・旧経路へのfallbackはしません。
+
+```bash
+PY="$HOME/.local/state/pda/webpush-spike/venv/bin/python"
+CTL="$HOME/.local/state/pda/webpush-spike/runtime/notifications.py"
+"$PY" "$CTL" status   # 秘密値を表示せずlive/persisted一致を確認
+"$PY" "$CTL" webpush  # 本人購読・サービス応答を確認してホーム画面版へ
+"$PY" "$CTL" ntfy     # 退避した旧ntfy経路へ戻す
+"$PY" "$CTL" off      # 通常完了通知だけを停止
+```
+
+操作はPDAが行います。`webpush`の正常結果は `mode=webpush`, `persisted_matches=true`, `enabled=true`。`NTFY_SERVER_URL` と `NTFY_TOPIC` という既存Valve名を互換利用していますが、送信先はntfy.shではなく `http://host.docker.internal:9122/pda-push-test/notify/<秘密token>` です。relayは256-bit専用tokenで認証し、本人の既存購読だけへ送信します。tokenをログ、URL例、Gitに出してはいけません。
+
+このホストのTailscaleはuserspace動作で、通常ホスト/コンテナDNSから公開アプリ名は解決できません。送信元コンテナは既存`host.docker.internal:host-gateway`経由で、ホスト内Docker bridgeだけを通ります。Pipeとinstallerはこの完全一致のrelay URLだけを特例として許可し、一般の外部HTTPや別port/pathは引き続き拒否します。relay tokenと本文はホスト内のHTTP区間では平文なので、ローカルDocker管理者を信頼境界に含みます。ホスト外のApple向けはHTTPS + Web Push暗号化です。
+
+切替時は他のValves（計画強制の停止状態を含む）を保持し、更新後に全体を再取得確認します。失敗時は通知の2項目だけを復元し、再取得で検証します。元の2項目は `~/.local/state/pda/webpush-spike/ntfy-rollback.json` にmode0600で退避。切替値は `~/openwebui/.completion-push.json` にmode0600で保持し、更新したinstallerもこれを優先します。再インストール後に旧通知へ戻ってしまうことを防ぎます。Open WebUI/Hermesの再起動は不要です。
+
+共有 `~/openwebui/.env` は変更しません。チャット完了とは独立した日次状態報告のntfy配送は今回の切替対象外で、従来どおり維持します。
+
+relayのHTTP202は受付だけ、Apple HTTP201はApple受付だけです。既存方式同様にadvisory配送でありdurable queueではありません。通知サービス再起動時は自動再送せず、queuedを未再送、publishingを配送不明として記録します。最大8件の同時送信、正常時10秒の送信timeout、TTL120秒。通常通知のローカル記録 `notifications.json` は直近200件（送信中は別途保持）のID・遷移先・本文/titleのSHA256・結果・起動modeだけで、本文/titleの平文は保存しません。iPhone上の通知履歴には表示内容が残ります。
+
+通常のtapは同一originの既存landingへ入り、本人認証で通知IDから対象を引き、検証済み `/c/<chat_id>` に同一画面遷移します。入力URLで任意redirectは指定できません。古い記録が保持件数を超えて消えた場合は自動遷移できず、トップへ戻るリンクを表示します。ログイン期限切れはホーム画面版で再ログインしてから再試行してください。
+
+購読期限切れや未受信時は `status` と本人用 `/api/status` の `notifications` を確認し、必要なら診断入口をshowして再設定します。`ntfy`は端末再設定までの手動復帰策です。診断バナーのhideは通常通知を停止しませんが、「通知購読を解除」は通常通知も停止します。
 
 ## 普段は入口を非表示
 
@@ -45,8 +72,8 @@ JSON編集だけではUIは変わりません。`show` / `hide` はAPI更新→�
 2. Safariのタブやチャット中の外部リンクではなく、既存のホーム画面アイコンからOpen WebUIを開きます。ログイン済みであることを確認し、上部「通知テストを開く」を押します。別のホーム画面アイコンは作りません。
 3. 「① このアプリの通知を許可」を押します。既に許可済みなら新たなOSダイアログは不要です。OSの通知許可は端末の所有者が操作します。
 4. 「② 20秒後にテスト通知を送る」を押し、iPhoneをロックします。サーバー側のタイマーなので、ページが停止しても送信予約は進みます。
-5. 「PDA ホーム画面テスト」をタップし、ホーム画面アプリ内のOpen WebUIトップが開くこと、Safariのタブが増えないことを確認します。通常のntfy完了通知とは別です。
-6. 再設定が必要なら「テスト購読を解除」→このページを開き直す→①→②。再表示・非表示だけなら購読解除は不要です。
+5. 「PDA ホーム画面テスト」をタップし、ホーム画面アプリ内のOpen WebUIトップが開くこと、Safariのタブが増えないことを確認します。通常通知と同じ購読ですが、診断の戻り先はトップです。
+6. 再設定が必要なら「通知購読を解除（通常通知も停止）」→このページを開き直す→①→②。再表示・非表示だけなら購読解除は不要です。
 7. 終了後はPDA側で `hide` → `status`。再利用用の鍵・購読は保持します。
 
 通知拒否の場合はiPhoneの「設定 → 通知 → ホーム画面アプリ名」で許可して開き直します。別VAPID鍵の購読が見つかった場合は、他機能を壊さないよう上書きせず停止します。無関係な購読・Service Workerを削除しません。
@@ -66,7 +93,7 @@ JSON編集だけではUIは変わりません。`show` / `hide` はAPI更新→�
 - 非秘密の本人ID設定: `~/.local/state/pda/webpush-spike/service.env` の `PDA_PUSH_OWNER_ID`
 - バナー操作の既存認証: `~/openwebui/.admin-api-key`（mode 0600、値を記録・表示しない）
 
-旧24時間限定のtransient unitは、同名の通常のsystemd user serviceへ置き換えました。`enable` により次回のuser manager起動後も起動でき、時限消滅による診断不能を防ぎます。サーバーは127.0.0.1だけで待機し、明示的なテスト予約がない限り通知を送りません。Open WebUI/Hermes/Tailscaleの再起動は不要です。異常時はこのunitだけを通常の `restart` で戻します。
+旧24時間限定のtransient unitは、同名の通常のsystemd user serviceへ置き換えました。`enable` により次回のuser manager起動後も起動でき、時限消滅による診断不能を防ぎます。ブラウザ用APIは127.0.0.1と既存Serve経路を維持し、コンテナ送信用に既存Docker host-gateway `172.17.0.1:9122` にも待機します。Docker側の接続は `/notify/` だけを許可し、LANアドレスや0.0.0.0では待機しません。明示的な診断予約または認証済み通常完了通知の受信時だけ送信します。Open WebUI/Hermes/Tailscaleの再起動は不要です。異常時はこのunitだけを通常の `restart` で戻します。
 
 再配置はこのディレクトリをcwdとして行います。既存端末を再設定せず復旧するには、既存stateとVAPID鍵を保持してください。
 
@@ -75,7 +102,7 @@ STATE="$HOME/.local/state/pda/webpush-spike"
 install -d -m 700 "$STATE" "$STATE/runtime"
 python3 -m venv "$STATE/venv"  # 環境がない場合のみ
 "$STATE/venv/bin/python" -m pip install -r requirements.txt
-install -m 600 server.py app.js index.html sw.js control.py "$STATE/runtime/"
+install -m 600 server.py app.js index.html sw.js control.py notifications.py live_completion_probe.py "$STATE/runtime/"
 install -D -m 600 pda-webpush-spike.service "$HOME/.config/systemd/user/pda-webpush-spike.service"
 ```
 
@@ -107,7 +134,7 @@ Serve経路は既存設定を維持します。再構築で経路がない場合
 
 Push処理自体は初回実機成功版を維持します。`window.pushManager` があればDeclarative Web Pushを使い、非対応時だけ試験path内のService Workerへfallbackします。root worker・fetch/cache handler・client claimingは追加しません。既存manifestを保持します。リンクは同じアプリ内の通常相対リンクと `data-sveltekit-reload` を使います。
 
-通知内容は固定文のみ、チャットの本文・タイトル・IDを送りません。Apple endpoint限定、暗号化、redirect禁止、10秒timeout、TTL120秒、20秒後の明示テスト1件だけです。
+診断の通知内容は固定文のみ、チャット本文・タイトル・IDを送りません。通常通知は既存Pipeが承認済みの保存済みタイトル（100文字）と回答冒頭（240文字）を暗号化し、Appleへ送ります。Apple endpoint限定、redirect禁止、10秒timeout、TTL120秒は共通です。
 
 ## 検証
 
@@ -117,13 +144,13 @@ node --test test_frontend.cjs
 systemd-analyze --user verify pda-webpush-spike.service
 ```
 
-今回の限定検証: Python20件・Node4件が成功。チャット非依存のconfig/landing、認証・origin制限、購読・暗号化・送信・中断挙動、バナーのhide/show反復と他バナー保持、フラグ検証、書き戻し確認の失敗、private credentialと送信先固定、CLI起動を対象にしました。暗号化のHTTP応答はfixtureであり実機証拠ではありません。
+診断再利用化時の限定検証: Python20件・Node4件が成功。チャット非依存のconfig/landing、認証・origin制限、購読・暗号化・送信・中断挙動、バナーのhide/show反復と他バナー保持、フラグ検証、書き戻し確認の失敗、private credentialと送信先固定、CLI起動を対象にしました。暗号化のHTTP応答はfixtureであり実機証拠ではありません。
 
-配備後の状態・非表示/再表示・再起動・既存設定不変の結果は `verification-2026-09-12.json` に記録済みです。hide→show→show→hideで0件→1件→1件→0件、診断サービス再起動後も非表示と購読・鍵・過去試験ログの保持を確認しました。本人認証200・未認証401・別origin書き込み403、配備ソース一致、既存Function/Valves/Serve設定/他バナー不変、Open WebUI health正常を確認しています。通常unitのenableとLinger=yesは確認済みですが、ホスト全体の再起動試験はしていません。テスト送信はボタンを押したときだけで、今回の配備確認から新しいPushを送りません。
+診断再利用化時の配備状態・非表示/再表示・再起動・既存設定不変の結果は `verification-2026-09-12.json` に記録済みです。hide→show→show→hideで0件→1件→1件→0件、診断サービス再起動後も非表示と購読・鍵・過去試験ログの保持を確認しました。本人認証200・未認証401・別origin書き込み403、配備ソース一致、既存Function/Valves/Serve設定/他バナー不変、Open WebUI health正常を確認しています。通常unitのenableとLinger=yesは確認済みですが、ホスト全体の再起動試験はしていません。テスト送信はボタンを押したときだけで、この旧診断配備確認では新しいPushを送りませんでした。
 
 ## 完全撤去する場合だけ
 
-通常の非表示は `hide` だけです。完全撤去はownerが撤去を指示した場合に限ります。
+通常の非表示は `hide` だけです。完全撤去はownerが撤去を指示した場合に限ります。撤去前に必ず `notifications.py ntfy` で通常完了通知を旧経路へ戻し、`status`で一致を確認してください。
 
 1. `show` して試験ページの購読解除ボタンを押し、端末側とサーバー側の試験購読だけを解除します。送信開始済みなら確定まで待ちます。
 2. `hide` と `status` で試験バナーが0件、他バナーが保持されたことを確認します。
