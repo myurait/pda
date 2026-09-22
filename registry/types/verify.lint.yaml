@@ -39,10 +39,26 @@ output_schema:
   - meta
   properties:
     kind:
-      enum:
-      - input
-      - result
-    payload: {}
+      const: result
+    payload:
+      type: object
+      required:
+      - passed
+      - exit_code
+      - stdout_tail
+      - stderr_tail
+      properties:
+        passed:
+          type: boolean
+        exit_code:
+          type: integer
+        stdout_tail:
+          type: string
+          maxLength: 4000
+        stderr_tail:
+          type: string
+          maxLength: 4000
+      additionalProperties: false
     meta:
       type: object
       required:

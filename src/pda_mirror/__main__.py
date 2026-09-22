@@ -14,7 +14,10 @@ from pda_wrapper.events import Events, configure_logging, raw_json
 def origins(tasks: list[dict]) -> dict[str, str]:
     result = {}
     for fork in tasks:
-        if fork.get("taskType") != "FORK_JOIN_DYNAMIC":
+        if (
+            fork.get("taskType") != "FORK_JOIN_DYNAMIC"
+            and fork.get("workflowTask", {}).get("type") != "FORK_JOIN_DYNAMIC"
+        ):
             continue
         dynamic = fork.get("inputData", {}).get("dynamicTasks", [])
         judges = [

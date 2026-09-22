@@ -166,7 +166,7 @@ services:
       PDA_REGISTRY_DIR: /registry
       FAKE_MODE: ${FAKE_B_MODE:-echo}
       FAKE_SLEEP_SECONDS: ${FAKE_SLEEP_SECONDS:-700}
-      conductor.worker.all.lease_extend_enabled: ${FAKE_B_LEASE_EXTEND:-true}
+      CONDUCTOR_WORKER_LEASE_EXTEND_ENABLED: ${FAKE_B_LEASE_EXTEND:-true}
     volumes:
     - pda-work:/work
     - ../registry:/registry:ro

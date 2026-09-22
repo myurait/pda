@@ -77,3 +77,31 @@ def test_final_read_once():
         mirror.poll(c)
         mirror.poll(c)
     assert calls.count("/api/workflow/j") == 1
+
+
+def test_runtime_fork_type_and_definition_are_distinct():
+    wf = workflow()
+    wf["tasks"][1]["taskType"] = "FORK"
+    wf["tasks"][1]["workflowTask"] = {"type": "FORK_JOIN_DYNAMIC"}
+    assert origins(wf["tasks"]) == {"cell": "judge__2"}
+
+
+def test_final_snapshot_fetch_failure_is_retried():
+    mirror = Mirror()
+    mirror.running = {"j"}
+    reads = []
+
+    def handler(request):
+        if "/running/" in request.url.path:
+            return httpx.Response(200, json=[])
+        reads.append(1)
+        if len(reads) == 1:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"workflowId": "j", "status": "COMPLETED", "tasks": []})
+
+    with httpx.Client(base_url="http://engine/api", transport=httpx.MockTransport(handler)) as c:
+        mirror.poll(c)
+        assert mirror.running == {"j"}
+        mirror.poll(c)
+        assert mirror.running == set()
+    assert len(reads) == 2

@@ -22,10 +22,14 @@ from pda_wrapper.registry import Registry
 
 _active: set[tuple] = set()
 _active_lock = threading.Lock()
+_shutting_down = threading.Event()
 
 
 def cancel_active(signum: int, frame: Any) -> None:
+    _shutting_down.set()
     with _active_lock:
+        if not _active:
+            os._exit(128 + signum)
         for loop, task in _active:
             loop.call_soon_threadsafe(task.cancel)
     # SDK workers run forever. Give ACP cancellation/telemetry bounded time before exiting.
@@ -139,7 +143,13 @@ def execute_current() -> dict:
             with _active_lock:
                 _active.remove(active)
 
-    output = asyncio.run(invoke())
+    try:
+        output = asyncio.run(invoke())
+    finally:
+        if _shutting_down.is_set():
+            # Returning to TaskRunner here could let a dying worker claim the queued retry.
+            # execute() has already flushed the cancellation events and closed the ACP process.
+            os._exit(128 + signal.SIGTERM)
     context.add_log(output["kind"] + " " + json_text(output["payload"])[:200])
     return output
 

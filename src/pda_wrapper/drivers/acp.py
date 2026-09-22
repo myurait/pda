@@ -7,6 +7,7 @@ from typing import Any
 
 from acp import Client, spawn_agent_process, text_block
 from acp.connection import StreamEvent
+from acp.exceptions import RequestError
 from acp.schema import AllowedOutcome, DeniedOutcome, RequestPermissionResponse
 
 from pda_wrapper.drivers import RuntimeFailure
@@ -126,5 +127,5 @@ async def run(
                 stderr_task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await stderr_task
-    except (OSError, ConnectionError, EOFError) as exc:
+    except (OSError, ConnectionError, EOFError, RequestError) as exc:
         raise RuntimeFailure(f"acp_runtime:{type(exc).__name__}:{exc}") from exc

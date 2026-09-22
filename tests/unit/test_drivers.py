@@ -150,3 +150,174 @@ def test_api_key_precedence(tmp_path, monkeypatch):
     assert jev.api_key(path) == "env-example"
     monkeypatch.delenv("TYPESAFE_API_KEY")
     assert jev.api_key(path) == "file-example"
+
+
+def test_completion_threshold_and_cell_count():
+    answers = {
+        "is_complete": {"noul": 0.69},
+        "next_type": {"choice": "implement"},
+        "executor": {"choice": "fake-a"},
+        "cell_count": {"choice": "3"},
+    }
+    cells = jev.cells_from_answers(answers, 0.7, [{"payload": "previous"}])
+    assert len(cells) == 3 and all(c["input_from"] == "previous" for c in cells)
+    answers["is_complete"]["noul"] = 0.7
+    assert jev.cells_from_answers(answers, 0.7, []) == []
+    answers["is_complete"]["noul"] = 0
+    answers["cell_count"]["choice"] = "9"
+    with pytest.raises(RuntimeFailure):
+        jev.cells_from_answers(answers, 0.7, [])
+
+
+def test_live_jev_request_contract_without_network(registry, events, monkeypatch):
+    monkeypatch.setenv("JEV_MODE", "api")
+    monkeypatch.setenv("TYPESAFE_API_KEY", "test-example")
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        if request.url.host == "engine":
+            return httpx.Response(200, json={"tasks": []})
+        return httpx.Response(
+            200,
+            json={
+                "answers": {
+                    "is_complete": {"noul": 0.8},
+                    "next_type": {"choice": "none", "confidence": 0.9},
+                    "executor": {"choice": "fake-a", "confidence": 0.9},
+                    "cell_count": {"choice": "1", "confidence": 0.9},
+                }
+            },
+        )
+
+    original = httpx.AsyncClient
+
+    def client(**kwargs):
+        return original(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.setattr(httpx, "AsyncClient", client)
+
+    async def check():
+        async with client(base_url="http://engine/api") as engine:
+            return await jev.run(
+                registry, {"job_id": "j", "initial_input": "日本語"}, events, engine
+            )
+
+    assert json.loads(asyncio.run(check())[0])["payload"]["then"] == "finish"
+    request = requests[1]
+    assert str(request.url) == "https://api.typesafe.ai/v1/systemone"
+    assert request.headers["Authorization"] == "Bearer test-example"
+    assert set(json.loads(request.content)) == {"state", "model", "questions"}
+    assert json.loads(request.content)["state"]["initial_input"] == "日本語"
+
+
+def test_unknown_sdk_notification_is_observed(events):
+    from acp.connection import StreamDirection, StreamEvent
+
+    client = acp.PDAClient(events, {"default": "allow_once"})
+    client.observe(
+        StreamEvent(
+            direction=StreamDirection.INCOMING,
+            message={
+                "method": "session/update",
+                "params": {"update": {"sessionUpdate": "future", "data": 1}},
+            },
+        )
+    )
+    assert events.records[0][0] == "unknown"
+    assert "future" in events.records[0][1]["pda.raw"]
+
+
+def test_sigterm_worker_exits_without_returning_to_poll_loop(tmp_path, registry):
+    import os
+    import signal
+    import subprocess
+    import time
+
+    script = """
+import sys
+from types import SimpleNamespace
+from pda_wrapper import worker
+ctx = SimpleNamespace(
+    task=SimpleNamespace(reference_task_name='c1'),
+    get_task_id=lambda: 'sigterm-task',
+    get_workflow_instance_id=lambda: 'sigterm-job',
+    get_input=lambda: {'job_id':'sigterm-job','cell_id':'c1','type':'implement',
+        'prompt_ref':{'id':'implement','version':1},'input':'x','context':{}},
+    add_log=lambda message: None)
+worker.get_task_context = lambda: ctx
+original = worker.acp.run
+async def runtime(decl, assembled, events):
+    decl['adapter']['command'] = [sys.executable, '-m', 'pda_fake_agent']
+    return await original(decl, assembled, events, '/tmp')
+worker.acp.run = runtime
+try:
+    worker.execute_current()
+except Exception:
+    pass
+print('RETURNED_TO_POLL_LOOP', flush=True)
+"""
+    log = tmp_path / "shutdown.log"
+    with log.open("w") as out:
+        process = subprocess.Popen(
+            [sys.executable, "-c", script],
+            stdout=out,
+            stderr=out,
+            env={
+                **os.environ,
+                "PDA_REGISTRY_DIR": str(registry.root),
+                "PDA_EXECUTOR_ID": "fake-a",
+                "FAKE_MODE": "slow",
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "",
+                "FAKE_SLEEP_SECONDS": "60",
+            },
+        )
+        try:
+            deadline = time.monotonic() + 10
+            while "tool.result" not in log.read_text() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            assert "tool.result" in log.read_text()
+            process.send_signal(signal.SIGTERM)
+            assert process.wait(timeout=10) == 143
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+    output = log.read_text()
+    assert '"pda.stop_reason": "cancelled"' in output
+    assert "RETURNED_TO_POLL_LOOP" not in output
+
+
+def test_sigterm_idle_worker_exits_immediately(tmp_path):
+    import os
+    import signal
+    import subprocess
+    import time
+
+    script = """
+import signal
+from pda_wrapper import worker
+print('READY', flush=True)
+signal.pause()
+print('RETURNED_TO_POLL_LOOP', flush=True)
+"""
+    log = tmp_path / "idle-shutdown.log"
+    with log.open("w") as out:
+        process = subprocess.Popen(
+            [sys.executable, "-c", script],
+            stdout=out,
+            stderr=out,
+            env={**os.environ, "OTEL_EXPORTER_OTLP_ENDPOINT": ""},
+        )
+        try:
+            deadline = time.monotonic() + 10
+            while "READY" not in log.read_text() and time.monotonic() < deadline:
+                time.sleep(0.02)
+            assert "READY" in log.read_text()
+            process.send_signal(signal.SIGTERM)
+            assert process.wait(timeout=2) == 143
+        finally:
+            if process.poll() is None:
+                process.kill()
+                process.wait()
+    assert "RETURNED_TO_POLL_LOOP" not in log.read_text()

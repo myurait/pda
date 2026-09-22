@@ -188,3 +188,18 @@ def test_registry_schemas_are_valid(registry):
         declaration.pop("executor_id")
         declaration.pop("name")
     assert a == b
+
+
+def test_tools_output_schema_rejects_missing_command_result(registry):
+    output = {
+        "kind": "result",
+        "payload": {},
+        "meta": {
+            "executor_id": "tools",
+            "declaration_version": 1,
+            "trace_id": "a" * 32,
+            "stop_reason": "end_turn",
+        },
+    }
+    with pytest.raises(OutputRejected):
+        validate_output(output, registry.types["verify.test"]["output_schema"])
