@@ -4,11 +4,37 @@ import os
 import sys
 import time
 
+import acp as sdk
 import pytest
 from acp.connection import StreamDirection, StreamEvent
 from acp.schema import PermissionOption, ToolCallUpdate
 
 from pda_wrapper.drivers import RuntimeFailure, acp, tools
+
+
+def test_fake_slow_returns_cancelled_on_protocol_cancel(
+    registry, events, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("FAKE_MODE", "slow")
+    declaration = registry.executors["fake-a"]
+
+    async def scenario() -> None:
+        client = acp.AcpClient(declaration, events.bind("j", "t", "c1", "fake-a", "implement"))
+        async with sdk.spawn_agent_process(
+            client, *declaration["adapter"]["command"], env=dict(os.environ), cwd=str(tmp_path)
+        ) as (connection, process):
+            await connection.initialize(protocol_version=sdk.PROTOCOL_VERSION)
+            session = await connection.new_session(cwd=str(tmp_path), mcp_servers=[])
+            pending = asyncio.create_task(
+                connection.prompt(session_id=session.session_id, prompt=[sdk.text_block("slow")])
+            )
+            await asyncio.sleep(0.3)
+            await connection.cancel(session_id=session.session_id)
+            response = await asyncio.wait_for(pending, 2)
+            assert response.stop_reason == "cancelled"
+            assert process.returncode is None
+
+    asyncio.run(scenario())
 
 
 @pytest.mark.parametrize("mode", ["echo", "invalid", "permission", "slow"])

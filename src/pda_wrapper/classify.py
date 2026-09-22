@@ -15,7 +15,7 @@ def classify(raw: str, type_name: str, driver: str) -> dict:
     if isinstance(value, dict) and "kind" in value:
         if value["kind"] == "flow" and type_name != "judge":
             raise OutputRejected("flow_from_non_judge")
-        if value["kind"] not in {"flow", "input", "result"} or "payload" not in value:
+        if value["kind"] not in ("flow", "input", "result") or "payload" not in value:
             raise OutputRejected("invalid_kind_or_missing_payload")
         return value
     if driver != "acp":

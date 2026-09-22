@@ -246,7 +246,22 @@ def test_02_event_stream_and_origin(harness) -> None:
 
     def check() -> list[dict] | None:
         records = h.events(job_id)
-        return records if required <= {r["body"] for r in records} else None
+        observed_cells = {
+            record["attributes"]["pda.cell_id"]
+            for record in records
+            if record["body"] == "engine.task"
+        }
+        completed = any(
+            record["body"] == "engine.workflow"
+            and record["attributes"]["pda.status"] == "COMPLETED"
+            for record in records
+        )
+        ready = (
+            required <= {r["body"] for r in records}
+            and {"c1__1", "c2__1", "c1__2"} <= observed_cells
+            and completed
+        )
+        return records if ready else None
 
     records = wait_for(check, 20)
     h.save_events("02-events.jsonl", job_id)

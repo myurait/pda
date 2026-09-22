@@ -33,6 +33,8 @@ def test_classification(raw, kind, payload) -> None:
     [
         ('{"kind":"flow","payload":{}}', "flow_from_non_judge"),
         ('{"kind":"bogus","payload":{}}', "invalid_kind_or_missing_payload"),
+        ('{"kind":[],"payload":{}}', "invalid_kind_or_missing_payload"),
+        ('{"kind":{},"payload":{}}', "invalid_kind_or_missing_payload"),
         ('{"kind":"input"}', "invalid_kind_or_missing_payload"),
     ],
 )
