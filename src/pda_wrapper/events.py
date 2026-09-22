@@ -96,6 +96,9 @@ class LogQueueExporter(LogRecordExporter):
     def shutdown(self) -> None:
         pass
 
+    def force_flush(self, timeout_millis: int = 30000) -> bool:
+        return True
+
 
 class SpanQueueExporter(SpanExporter):
     def __init__(self, queue: asyncio.Queue) -> None:

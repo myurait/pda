@@ -5,7 +5,13 @@ from typing import Any
 from uuid import uuid4
 
 import acp
-from acp.schema import InitializeResponse, NewSessionResponse, PermissionOption, PromptResponse
+from acp.schema import (
+    InitializeResponse,
+    NewSessionResponse,
+    PermissionOption,
+    PromptResponse,
+    ToolCallUpdate,
+)
 
 
 class FakeAgent(acp.Agent):
@@ -41,7 +47,9 @@ class FakeAgent(acp.Agent):
         if mode == "permission":
             await self.client.request_permission(
                 session_id=session_id,
-                tool_call=tool,
+                tool_call=ToolCallUpdate(
+                    tool_call_id="read-1", kind="read", title="read /work/README"
+                ),
                 options=[
                     PermissionOption(option_id="allow", name="Allow once", kind="allow_once"),
                     PermissionOption(option_id="reject", name="Reject once", kind="reject_once"),
