@@ -1,0 +1,50 @@
+{
+  "model": "jev-latest",
+  "thresholds": {
+    "is_complete": 0.7
+  },
+  "questions": {
+    "is_complete": {
+      "type": "noul",
+      "instructions": "Has the work requested in initial_input been completed, based on the collected outputs?",
+      "criteria": {
+        "true": "The outputs establish completion of the initial request.",
+        "false": "More work or verification is needed."
+      }
+    },
+    "next_type": {
+      "type": "choice",
+      "instructions": "Which type of work is needed next?",
+      "criteria": {
+        "break-down": "Split the work into smaller tasks.",
+        "implement": "Write or modify code.",
+        "review": "Inspect changes and identify issues.",
+        "verify.test": "Run automated tests.",
+        "verify.lint": "Run static checks.",
+        "summarize": "Combine the collected outputs.",
+        "none": "No further work is needed."
+      }
+    },
+    "executor": {
+      "type": "choice",
+      "instructions": "Which executor can run the selected type? Consider supported types, estimated cost and reachable resources in the declarations.",
+      "criteria": {
+        "fake-a": "Test agent A: zero estimated cost, /work only, no external network.",
+        "fake-b": "Test agent B: zero estimated cost, /work only, no external network.",
+        "tools": "Deterministic tests and lint: zero estimated cost, /work only.",
+        "jev": "Judgment: estimated zero cost, /work and api.typesafe.ai.",
+        "codex-personal": "Codex personal account: cost unknown, /work, api.openai.com and chatgpt.com.",
+        "claude-company": "Claude company account: cost unknown, /work, api.anthropic.com and claude.ai."
+      }
+    },
+    "cell_count": {
+      "type": "choice",
+      "instructions": "How many parallel cells are needed in this round?",
+      "criteria": {
+        "1": "One cell.",
+        "2": "Two cells.",
+        "3": "Three cells."
+      }
+    }
+  }
+}

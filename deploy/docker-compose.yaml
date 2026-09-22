@@ -1,0 +1,332 @@
+name: pda-increment-2
+services:
+  conductor-server:
+    image: conductoross/conductor:3.32.4
+    entrypoint:
+    - java
+    command:
+    - -Xms256m
+    - -Xmx768m
+    - -DCONDUCTOR_CONFIG_FILE=/app/config/pda.properties
+    - -jar
+    - /app/libs/conductor-server.jar
+    volumes:
+    - ./conductor.properties:/app/config/pda.properties:ro
+    ports:
+    - 8080:8080
+    networks:
+    - backend
+    - public
+    - mirror
+    - fake-a
+    - fake-b
+    - tools
+    - jev
+    - codex-personal
+    - claude-company
+    depends_on:
+      conductor-redis:
+        condition: service_healthy
+      conductor-elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://localhost:8080/health
+      interval: 5s
+      timeout: 3s
+      retries: 40
+  conductor-redis:
+    image: redis:6.2.21-alpine
+    command:
+    - redis-server
+    - --appendonly
+    - 'yes'
+    volumes:
+    - redis-data:/data
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - redis-cli
+      - ping
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  conductor-elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.29
+    environment:
+      ES_JAVA_OPTS: -Xms512m -Xmx1024m
+      ES_SETTING_DISCOVERY_TYPE: single-node
+      ES_SETTING_XPACK_SECURITY_ENABLED: 'false'
+    volumes:
+    - es-data:/usr/share/elasticsearch/data
+    networks:
+    - backend
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://localhost:9200/_cluster/health?wait_for_status=yellow
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  conductor-ui:
+    image: conductoross/conductor:3.32.4
+    entrypoint:
+    - nginx
+    command:
+    - -c
+    - /etc/nginx/pda.conf
+    - -g
+    - daemon off;
+    volumes:
+    - ./nginx.conf:/etc/nginx/pda.conf:ro
+    ports:
+    - ${CONDUCTOR_UI_PORT:-5000}:5000
+    networks:
+    - public
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.148.0
+    user: 0:0
+    command:
+    - --config=/etc/otelcol-contrib/config.yaml
+    environment:
+      ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}
+      ZO_ROOT_USER_PASSWORD: ${ZO_ROOT_USER_PASSWORD:?set in deploy/.env}
+    volumes:
+    - ./otel-collector.yaml:/etc/otelcol-contrib/config.yaml:ro
+    - pda-events:/var/lib/pda/events
+    networks:
+    - telemetry
+    - mirror
+    - fake-a
+    - fake-b
+    - tools
+    - jev
+    - codex-personal
+    - claude-company
+    depends_on:
+    - openobserve
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:v0.60.1
+    environment:
+      ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}
+      ZO_ROOT_USER_PASSWORD: ${ZO_ROOT_USER_PASSWORD:?set in deploy/.env}
+      ZO_DATA_DIR: /data
+      ZO_TELEMETRY: 'false'
+    volumes:
+    - observe-data:/data
+    ports:
+    - 5080:5080
+    networks:
+    - telemetry
+    - public
+  exec-fake-a:
+    image: pda-executor:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: base
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: fake-a
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    networks:
+    - fake-a
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+  exec-fake-b:
+    image: pda-executor:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: base
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: fake-b
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+      FAKE_MODE: ${FAKE_B_MODE:-echo}
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    networks:
+    - fake-b
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+  exec-tools:
+    image: pda-executor:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: base
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: tools
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    networks:
+    - tools
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+  exec-jev:
+    image: pda-executor:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: base
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: jev
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+      JEV_MODE: ${JEV_MODE:-fixture}
+      PDA_FIXTURE_EXECUTOR: ${PDA_FIXTURE_EXECUTOR:-}
+      PDA_FIXTURE_TYPE: ${PDA_FIXTURE_TYPE:-}
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    - ../secrets:/secrets:ro
+    networks:
+    - jev
+    - jev-egress
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+  exec-codex-personal:
+    image: pda-executor-real:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: real
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: codex-personal
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    - ${CODEX_AUTH_DIR:-../secrets/codex}:/root/.codex
+    networks:
+    - codex-personal
+    - codex-personal-egress
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    profiles:
+    - real
+  exec-claude-company:
+    image: pda-executor-real:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: real
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_EXECUTOR_ID: claude-company
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      PDA_REGISTRY_DIR: /registry
+      CLAUDE_CONFIG_DIR: /claude-config
+    volumes:
+    - pda-work:/work
+    - ../registry:/registry:ro
+    - ${CLAUDE_AUTH_DIR:-../secrets/claude}:/claude-config
+    networks:
+    - claude-company
+    - claude-company-egress
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    profiles:
+    - real
+  conductor-mirror:
+    image: pda-executor:increment-2
+    build:
+      context: ..
+      dockerfile: deploy/executors/Dockerfile
+      target: base
+    init: true
+    stop_grace_period: 20s
+    environment:
+      PDA_MODULE: pda_mirror
+      CONDUCTOR_URL: http://conductor-server:8080
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+    networks:
+    - mirror
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+networks:
+  fake-a:
+    internal: true
+  fake-b:
+    internal: true
+  tools:
+    internal: true
+  jev:
+    internal: true
+  codex-personal:
+    internal: true
+  claude-company:
+    internal: true
+  mirror:
+    internal: true
+  backend:
+    internal: true
+  telemetry:
+    internal: true
+  public: {}
+  jev-egress: {}
+  codex-personal-egress: {}
+  claude-company-egress: {}
+volumes:
+  pda-work: {}
+  pda-events: {}
+  redis-data: {}
+  es-data: {}
+  observe-data: {}

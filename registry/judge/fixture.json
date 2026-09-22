@@ -1,0 +1,82 @@
+[
+  {
+    "answers": {
+      "is_complete": {
+        "noul": 0.1
+      },
+      "next_type": {
+        "choice": "break-down",
+        "confidence": 1.0
+      },
+      "executor": {
+        "choice": "fake-a",
+        "confidence": 1.0
+      },
+      "cell_count": {
+        "choice": "2",
+        "confidence": 1.0
+      }
+    },
+    "then": "continue",
+    "cells": [
+      {
+        "type": "break-down",
+        "executor": "fake-a",
+        "input_from": "initial"
+      },
+      {
+        "type": "verify.test",
+        "executor": "tools",
+        "input_from": "initial"
+      }
+    ]
+  },
+  {
+    "answers": {
+      "is_complete": {
+        "noul": 0.1
+      },
+      "next_type": {
+        "choice": "summarize",
+        "confidence": 1.0
+      },
+      "executor": {
+        "choice": "fake-a",
+        "confidence": 1.0
+      },
+      "cell_count": {
+        "choice": "1",
+        "confidence": 1.0
+      }
+    },
+    "then": "continue",
+    "cells": [
+      {
+        "type": "summarize",
+        "executor": "fake-a",
+        "input_from": "previous"
+      }
+    ]
+  },
+  {
+    "answers": {
+      "is_complete": {
+        "noul": 0.9
+      },
+      "next_type": {
+        "choice": "none",
+        "confidence": 1.0
+      },
+      "executor": {
+        "choice": "fake-a",
+        "confidence": 1.0
+      },
+      "cell_count": {
+        "choice": "1",
+        "confidence": 1.0
+      }
+    },
+    "then": "finish",
+    "cells": []
+  }
+]

@@ -1,0 +1,39 @@
+extensions:
+  basicauth/openobserve:
+    client_auth:
+      username: ${env:ZO_ROOT_USER_EMAIL}
+      password: ${env:ZO_ROOT_USER_PASSWORD}
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+processors:
+  batch:
+    timeout: 1s
+exporters:
+  otlphttp/openobserve:
+    endpoint: http://openobserve:5080/api/default
+    auth:
+      authenticator: basicauth/openobserve
+    headers:
+      stream-name: pda_events
+  file:
+    path: /var/lib/pda/events/events.jsonl
+    rotation:
+      max_megabytes: 100
+      max_backups: 5
+    flush_interval: 1s
+service:
+  extensions: [basicauth/openobserve]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/openobserve, file]
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/openobserve, file]

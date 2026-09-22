@@ -1,0 +1,34 @@
+executor_id: jev
+name: jev 判定器
+version: 1
+agent: jev
+runtime: jev
+account: none
+environment: minipc
+types:
+- judge
+adapter:
+  command: []
+  env: {}
+capabilities:
+  streaming: false
+  cancel: true
+cost:
+  currency: JPY
+  per_run_estimate: 0
+  per_run_seconds_estimate: 5
+  rate_limit:
+    requests: 1000
+    per: hour
+resources:
+  filesystem:
+  - /work
+  network:
+  - api.typesafe.ai
+  connectors: []
+state:
+  interruptible: true
+  resume: reinject
+permissions:
+  default: allow_once
+  deny_kinds: []

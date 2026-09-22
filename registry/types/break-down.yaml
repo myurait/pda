@@ -1,0 +1,80 @@
+type: break-down
+description: 仕事を下位の仕事に分ける
+prompt: prompts/break-down.md
+input_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  required:
+  - job_id
+  - type
+  - prompt_ref
+  - input
+  - cell_id
+  properties:
+    job_id:
+      type: string
+      minLength: 1
+    cell_id:
+      type: string
+      minLength: 1
+    type:
+      const: break-down
+    prompt_ref:
+      type: object
+      required:
+      - id
+      - version
+      properties:
+        id:
+          const: break-down
+        version:
+          const: 1
+      additionalProperties: false
+    input:
+      type: string
+    context:
+      type:
+      - object
+      - 'null'
+  additionalProperties: false
+output_schema:
+  $schema: http://json-schema.org/draft-07/schema#
+  type: object
+  required:
+  - kind
+  - payload
+  - meta
+  properties:
+    kind:
+      enum:
+      - input
+      - result
+    payload: {}
+    meta:
+      type: object
+      required:
+      - executor_id
+      - declaration_version
+      - trace_id
+      - stop_reason
+      properties:
+        executor_id:
+          type: string
+        declaration_version:
+          type: integer
+        trace_id:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+        stop_reason:
+          type: string
+      additionalProperties: false
+  additionalProperties: false
+task_def:
+  retryCount: 3
+  retryLogic: FIXED
+  retryDelaySeconds: 10
+  timeoutSeconds: 3600
+  responseTimeoutSeconds: 600
+  timeoutPolicy: TIME_OUT_WF
+driver: acp
+command: null

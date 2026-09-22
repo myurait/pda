@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pda"
+version = "0.2.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "agent-client-protocol>=0.12,<0.13",
+  "opentelemetry-sdk",
+  "opentelemetry-exporter-otlp-proto-http",
+  "jsonschema",
+  "pyyaml",
+  "httpx",
+  "pytest",
+  "ruff",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pda_wrapper", "src/pda_mirror", "src/pda_fake_agent"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["e2e: requires PDA_E2E=1 and Docker Compose"]
