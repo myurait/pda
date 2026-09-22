@@ -1,0 +1,2829 @@
+{
+  "ownerApp": "",
+  "createTime": 1790068419131,
+  "updateTime": 1790068453252,
+  "status": "RUNNING",
+  "endTime": 0,
+  "workflowId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+  "tasks": [
+    {
+      "taskType": "DO_WHILE",
+      "status": "IN_PROGRESS",
+      "inputData": {},
+      "referenceTaskName": "loop",
+      "retryCount": 0,
+      "seq": 1,
+      "pollCount": 0,
+      "taskDefName": "pda_loop",
+      "scheduledTime": 1790068419209,
+      "startTime": 1790068419209,
+      "endTime": 0,
+      "updateTime": 1790068419240,
+      "startDelayInSeconds": 0,
+      "retried": false,
+      "executed": false,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 0,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "069fc211-efa7-4d66-a77e-732757e2c2fd",
+      "callbackAfterSeconds": 0,
+      "outputData": {
+        "iteration": 1
+      },
+      "workflowTask": {
+        "name": "pda_loop",
+        "taskReferenceName": "loop",
+        "inputParameters": {},
+        "type": "DO_WHILE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "pda_loop",
+          "retryCount": 0,
+          "timeoutSeconds": 0,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 60,
+          "responseTimeoutSeconds": 0,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "enforceSchema": false
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopCondition": "$.judge['payload']['then'] == 'continue'",
+        "loopOver": [
+          {
+            "name": "judge.jev",
+            "taskReferenceName": "judge",
+            "inputParameters": {
+              "type": "judge",
+              "prompt_ref": {
+                "id": "judge",
+                "version": 1
+              },
+              "context": "${workflow.input.context}",
+              "initial_input": "${workflow.input.initial_input}",
+              "job_id": "${workflow.workflowId}"
+            },
+            "type": "SIMPLE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "taskDefinition": {
+              "createTime": 1790067254682,
+              "updateTime": 1790068399870,
+              "createdBy": "",
+              "updatedBy": "",
+              "name": "judge.jev",
+              "retryCount": 3,
+              "timeoutSeconds": 3600,
+              "inputKeys": [],
+              "outputKeys": [],
+              "runtimeMetadata": [],
+              "timeoutPolicy": "TIME_OUT_WF",
+              "retryLogic": "FIXED",
+              "retryDelaySeconds": 10,
+              "responseTimeoutSeconds": 600,
+              "inputTemplate": {},
+              "rateLimitPerFrequency": 0,
+              "rateLimitFrequencyInSeconds": 1,
+              "backoffScaleFactor": 1,
+              "maxRetryDelaySeconds": 0,
+              "backoffJitterMs": 0,
+              "totalTimeoutSeconds": 0,
+              "taskStatusListenerEnabled": true,
+              "inputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "judge.input",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "job_id",
+                    "type",
+                    "prompt_ref",
+                    "initial_input"
+                  ],
+                  "properties": {
+                    "job_id": {
+                      "type": "string"
+                    },
+                    "cell_id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "judge"
+                    },
+                    "prompt_ref": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "version"
+                      ],
+                      "properties": {
+                        "id": {
+                          "const": "judge"
+                        },
+                        "version": {
+                          "const": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "context": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "initial_input": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "outputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "judge.output",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "payload",
+                    "meta"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "flow"
+                      ]
+                    },
+                    "payload": {
+                      "type": "object",
+                      "required": [
+                        "then",
+                        "cells",
+                        "dynamicTasks",
+                        "dynamicTasksInput"
+                      ],
+                      "properties": {
+                        "then": {
+                          "enum": [
+                            "continue",
+                            "finish"
+                          ]
+                        },
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "executor",
+                              "input_from"
+                            ],
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "executor": {
+                                "type": "string"
+                              },
+                              "input_from": {
+                                "enum": [
+                                  "previous",
+                                  "initial"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "dynamicTasks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "name",
+                              "taskReferenceName",
+                              "type"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "taskReferenceName": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "const": "SIMPLE"
+                              }
+                            }
+                          }
+                        },
+                        "dynamicTasksInput": {
+                          "type": "object"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "then": {
+                                "const": "continue"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "cells": {
+                                "minItems": 1
+                              },
+                              "dynamicTasks": {
+                                "minItems": 1
+                              }
+                            }
+                          },
+                          "else": {
+                            "properties": {
+                              "cells": {
+                                "maxItems": 0
+                              },
+                              "dynamicTasks": {
+                                "maxItems": 0
+                              },
+                              "dynamicTasksInput": {
+                                "maxProperties": 0
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "required": [
+                        "executor_id",
+                        "declaration_version",
+                        "trace_id",
+                        "stop_reason"
+                      ],
+                      "properties": {
+                        "executor_id": {
+                          "type": "string"
+                        },
+                        "declaration_version": {
+                          "type": "integer"
+                        },
+                        "trace_id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{32}$"
+                        },
+                        "stop_reason": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "enforceSchema": true
+            },
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false,
+            "metadata": {}
+          },
+          {
+            "name": "branch",
+            "taskReferenceName": "branch",
+            "inputParameters": {
+              "then": "${judge.output.payload.then}"
+            },
+            "type": "SWITCH",
+            "decisionCases": {
+              "continue": [
+                {
+                  "name": "fork",
+                  "taskReferenceName": "fork",
+                  "inputParameters": {
+                    "dynamicTasks": "${judge.output.payload.dynamicTasks}",
+                    "dynamicTasksInput": "${judge.output.payload.dynamicTasksInput}"
+                  },
+                  "type": "FORK_JOIN_DYNAMIC",
+                  "decisionCases": {},
+                  "dynamicForkTasksParam": "dynamicTasks",
+                  "dynamicForkTasksInputParamName": "dynamicTasksInput",
+                  "defaultCase": [],
+                  "forkTasks": [],
+                  "startDelay": 0,
+                  "joinOn": [],
+                  "optional": false,
+                  "taskDefinition": {
+                    "createTime": 0,
+                    "updateTime": 0,
+                    "name": "fork",
+                    "retryCount": 0,
+                    "timeoutSeconds": 0,
+                    "inputKeys": [],
+                    "outputKeys": [],
+                    "runtimeMetadata": [],
+                    "timeoutPolicy": "TIME_OUT_WF",
+                    "retryLogic": "FIXED",
+                    "retryDelaySeconds": 60,
+                    "responseTimeoutSeconds": 0,
+                    "inputTemplate": {},
+                    "rateLimitPerFrequency": 0,
+                    "rateLimitFrequencyInSeconds": 1,
+                    "backoffScaleFactor": 1,
+                    "maxRetryDelaySeconds": 0,
+                    "backoffJitterMs": 0,
+                    "totalTimeoutSeconds": 0,
+                    "taskStatusListenerEnabled": true,
+                    "enforceSchema": false
+                  },
+                  "defaultExclusiveJoinTask": [],
+                  "asyncComplete": false,
+                  "loopOver": [],
+                  "onStateChange": {},
+                  "permissive": false,
+                  "metadata": {}
+                },
+                {
+                  "name": "join",
+                  "taskReferenceName": "join",
+                  "inputParameters": {},
+                  "type": "JOIN",
+                  "decisionCases": {},
+                  "defaultCase": [],
+                  "forkTasks": [],
+                  "startDelay": 0,
+                  "joinOn": [],
+                  "optional": false,
+                  "taskDefinition": {
+                    "createTime": 0,
+                    "updateTime": 0,
+                    "name": "join",
+                    "retryCount": 0,
+                    "timeoutSeconds": 0,
+                    "inputKeys": [],
+                    "outputKeys": [],
+                    "runtimeMetadata": [],
+                    "timeoutPolicy": "TIME_OUT_WF",
+                    "retryLogic": "FIXED",
+                    "retryDelaySeconds": 60,
+                    "responseTimeoutSeconds": 0,
+                    "inputTemplate": {},
+                    "rateLimitPerFrequency": 0,
+                    "rateLimitFrequencyInSeconds": 1,
+                    "backoffScaleFactor": 1,
+                    "maxRetryDelaySeconds": 0,
+                    "backoffJitterMs": 0,
+                    "totalTimeoutSeconds": 0,
+                    "taskStatusListenerEnabled": true,
+                    "enforceSchema": false
+                  },
+                  "defaultExclusiveJoinTask": [],
+                  "asyncComplete": false,
+                  "loopOver": [],
+                  "onStateChange": {},
+                  "permissive": false,
+                  "metadata": {}
+                }
+              ]
+            },
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "taskDefinition": {
+              "createTime": 0,
+              "updateTime": 0,
+              "name": "branch",
+              "retryCount": 0,
+              "timeoutSeconds": 0,
+              "inputKeys": [],
+              "outputKeys": [],
+              "runtimeMetadata": [],
+              "timeoutPolicy": "TIME_OUT_WF",
+              "retryLogic": "FIXED",
+              "retryDelaySeconds": 60,
+              "responseTimeoutSeconds": 0,
+              "inputTemplate": {},
+              "rateLimitPerFrequency": 0,
+              "rateLimitFrequencyInSeconds": 1,
+              "backoffScaleFactor": 1,
+              "maxRetryDelaySeconds": 0,
+              "backoffJitterMs": 0,
+              "totalTimeoutSeconds": 0,
+              "taskStatusListenerEnabled": true,
+              "enforceSchema": false
+            },
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "evaluatorType": "value-param",
+            "expression": "then",
+            "onStateChange": {},
+            "permissive": false,
+            "metadata": {}
+          }
+        ],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 1,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 0,
+        "updateTime": 0,
+        "name": "pda_loop",
+        "retryCount": 0,
+        "timeoutSeconds": 0,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 60,
+        "responseTimeoutSeconds": 0,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "enforceSchema": false
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 0
+    },
+    {
+      "taskType": "judge.jev",
+      "status": "COMPLETED",
+      "inputData": {
+        "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+        "context": {},
+        "prompt_ref": {
+          "id": "judge",
+          "version": 1
+        },
+        "type": "judge",
+        "initial_input": "README を要約せよ"
+      },
+      "referenceTaskName": "judge__1",
+      "retryCount": 0,
+      "seq": 2,
+      "pollCount": 1,
+      "taskDefName": "judge.jev",
+      "scheduledTime": 1790068419234,
+      "startTime": 1790068419760,
+      "endTime": 1790068419879,
+      "updateTime": 1790068419761,
+      "startDelayInSeconds": 0,
+      "retried": false,
+      "executed": true,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 600,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "53cfcba2-36dd-43d8-821f-1291dc9bdaf6",
+      "callbackAfterSeconds": 0,
+      "workerId": "jev",
+      "outputData": {
+        "kind": "flow",
+        "payload": {
+          "then": "continue",
+          "cells": [
+            {
+              "type": "implement",
+              "executor": "fake-b",
+              "input_from": "initial"
+            }
+          ],
+          "dynamicTasks": [
+            {
+              "name": "implement.fake-b",
+              "taskReferenceName": "c1",
+              "type": "SIMPLE"
+            }
+          ],
+          "dynamicTasksInput": {
+            "c1": {
+              "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+              "cell_id": "c1",
+              "type": "implement",
+              "prompt_ref": {
+                "id": "implement",
+                "version": 1
+              },
+              "input": "README を要約せよ",
+              "context": {}
+            }
+          }
+        },
+        "meta": {
+          "executor_id": "jev",
+          "declaration_version": 1,
+          "trace_id": "56072942d16ec27d46245ca081e1752a",
+          "stop_reason": "end_turn"
+        }
+      },
+      "workflowTask": {
+        "name": "judge.jev",
+        "taskReferenceName": "judge",
+        "inputParameters": {
+          "type": "judge",
+          "prompt_ref": {
+            "id": "judge",
+            "version": 1
+          },
+          "context": "${workflow.input.context}",
+          "initial_input": "${workflow.input.initial_input}",
+          "job_id": "${workflow.workflowId}"
+        },
+        "type": "SIMPLE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 1790067254682,
+          "updateTime": 1790068399870,
+          "createdBy": "",
+          "updatedBy": "",
+          "name": "judge.jev",
+          "retryCount": 3,
+          "timeoutSeconds": 3600,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 10,
+          "responseTimeoutSeconds": 600,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "inputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "judge.input",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "job_id",
+                "type",
+                "prompt_ref",
+                "initial_input"
+              ],
+              "properties": {
+                "job_id": {
+                  "type": "string"
+                },
+                "cell_id": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "judge"
+                },
+                "prompt_ref": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "const": "judge"
+                    },
+                    "version": {
+                      "const": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "context": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "initial_input": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "outputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "judge.output",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "kind",
+                "payload",
+                "meta"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "flow"
+                  ]
+                },
+                "payload": {
+                  "type": "object",
+                  "required": [
+                    "then",
+                    "cells",
+                    "dynamicTasks",
+                    "dynamicTasksInput"
+                  ],
+                  "properties": {
+                    "then": {
+                      "enum": [
+                        "continue",
+                        "finish"
+                      ]
+                    },
+                    "cells": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "type",
+                          "executor",
+                          "input_from"
+                        ],
+                        "properties": {
+                          "type": {
+                            "type": "string"
+                          },
+                          "executor": {
+                            "type": "string"
+                          },
+                          "input_from": {
+                            "enum": [
+                              "previous",
+                              "initial"
+                            ]
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "dynamicTasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "name",
+                          "taskReferenceName",
+                          "type"
+                        ],
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "taskReferenceName": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "const": "SIMPLE"
+                          }
+                        }
+                      }
+                    },
+                    "dynamicTasksInput": {
+                      "type": "object"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "allOf": [
+                    {
+                      "if": {
+                        "properties": {
+                          "then": {
+                            "const": "continue"
+                          }
+                        }
+                      },
+                      "then": {
+                        "properties": {
+                          "cells": {
+                            "minItems": 1
+                          },
+                          "dynamicTasks": {
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      "else": {
+                        "properties": {
+                          "cells": {
+                            "maxItems": 0
+                          },
+                          "dynamicTasks": {
+                            "maxItems": 0
+                          },
+                          "dynamicTasksInput": {
+                            "maxProperties": 0
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                "meta": {
+                  "type": "object",
+                  "required": [
+                    "executor_id",
+                    "declaration_version",
+                    "trace_id",
+                    "stop_reason"
+                  ],
+                  "properties": {
+                    "executor_id": {
+                      "type": "string"
+                    },
+                    "declaration_version": {
+                      "type": "integer"
+                    },
+                    "trace_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    },
+                    "stop_reason": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "enforceSchema": true
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 1,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 1790067254682,
+        "updateTime": 1790068399870,
+        "createdBy": "",
+        "updatedBy": "",
+        "name": "judge.jev",
+        "retryCount": 3,
+        "timeoutSeconds": 3600,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 10,
+        "responseTimeoutSeconds": 600,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "inputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "judge.input",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "job_id",
+              "type",
+              "prompt_ref",
+              "initial_input"
+            ],
+            "properties": {
+              "job_id": {
+                "type": "string"
+              },
+              "cell_id": {
+                "type": "string"
+              },
+              "type": {
+                "const": "judge"
+              },
+              "prompt_ref": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "judge"
+                  },
+                  "version": {
+                    "const": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "context": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "initial_input": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "outputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "judge.output",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "kind",
+              "payload",
+              "meta"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "flow"
+                ]
+              },
+              "payload": {
+                "type": "object",
+                "required": [
+                  "then",
+                  "cells",
+                  "dynamicTasks",
+                  "dynamicTasksInput"
+                ],
+                "properties": {
+                  "then": {
+                    "enum": [
+                      "continue",
+                      "finish"
+                    ]
+                  },
+                  "cells": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "executor",
+                        "input_from"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "executor": {
+                          "type": "string"
+                        },
+                        "input_from": {
+                          "enum": [
+                            "previous",
+                            "initial"
+                          ]
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "dynamicTasks": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "taskReferenceName",
+                        "type"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "taskReferenceName": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "const": "SIMPLE"
+                        }
+                      }
+                    }
+                  },
+                  "dynamicTasksInput": {
+                    "type": "object"
+                  }
+                },
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "then": {
+                          "const": "continue"
+                        }
+                      }
+                    },
+                    "then": {
+                      "properties": {
+                        "cells": {
+                          "minItems": 1
+                        },
+                        "dynamicTasks": {
+                          "minItems": 1
+                        }
+                      }
+                    },
+                    "else": {
+                      "properties": {
+                        "cells": {
+                          "maxItems": 0
+                        },
+                        "dynamicTasks": {
+                          "maxItems": 0
+                        },
+                        "dynamicTasksInput": {
+                          "maxProperties": 0
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "meta": {
+                "type": "object",
+                "required": [
+                  "executor_id",
+                  "declaration_version",
+                  "trace_id",
+                  "stop_reason"
+                ],
+                "properties": {
+                  "executor_id": {
+                    "type": "string"
+                  },
+                  "declaration_version": {
+                    "type": "integer"
+                  },
+                  "trace_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}$"
+                  },
+                  "stop_reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "enforceSchema": true
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 526
+    },
+    {
+      "taskType": "SWITCH",
+      "status": "COMPLETED",
+      "inputData": {
+        "case": "continue",
+        "hasChildren": "true",
+        "then": "continue"
+      },
+      "referenceTaskName": "branch__1",
+      "retryCount": 0,
+      "seq": 3,
+      "pollCount": 0,
+      "taskDefName": "SWITCH",
+      "scheduledTime": 1790068419897,
+      "startTime": 1790068419897,
+      "endTime": 1790068419923,
+      "updateTime": 1790068419902,
+      "startDelayInSeconds": 0,
+      "retried": false,
+      "executed": true,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 0,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "bffb59de-ad79-43c3-8663-c03b441b35c6",
+      "callbackAfterSeconds": 0,
+      "outputData": {
+        "evaluationResult": [
+          "continue"
+        ],
+        "selectedCase": "continue"
+      },
+      "workflowTask": {
+        "name": "branch",
+        "taskReferenceName": "branch",
+        "inputParameters": {
+          "then": "${judge.output.payload.then}"
+        },
+        "type": "SWITCH",
+        "decisionCases": {
+          "continue": [
+            {
+              "name": "fork",
+              "taskReferenceName": "fork",
+              "inputParameters": {
+                "dynamicTasks": "${judge.output.payload.dynamicTasks}",
+                "dynamicTasksInput": "${judge.output.payload.dynamicTasksInput}"
+              },
+              "type": "FORK_JOIN_DYNAMIC",
+              "decisionCases": {},
+              "dynamicForkTasksParam": "dynamicTasks",
+              "dynamicForkTasksInputParamName": "dynamicTasksInput",
+              "defaultCase": [],
+              "forkTasks": [],
+              "startDelay": 0,
+              "joinOn": [],
+              "optional": false,
+              "taskDefinition": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "fork",
+                "retryCount": 0,
+                "timeoutSeconds": 0,
+                "inputKeys": [],
+                "outputKeys": [],
+                "runtimeMetadata": [],
+                "timeoutPolicy": "TIME_OUT_WF",
+                "retryLogic": "FIXED",
+                "retryDelaySeconds": 60,
+                "responseTimeoutSeconds": 0,
+                "inputTemplate": {},
+                "rateLimitPerFrequency": 0,
+                "rateLimitFrequencyInSeconds": 1,
+                "backoffScaleFactor": 1,
+                "maxRetryDelaySeconds": 0,
+                "backoffJitterMs": 0,
+                "totalTimeoutSeconds": 0,
+                "taskStatusListenerEnabled": true,
+                "enforceSchema": false
+              },
+              "defaultExclusiveJoinTask": [],
+              "asyncComplete": false,
+              "loopOver": [],
+              "onStateChange": {},
+              "permissive": false,
+              "metadata": {}
+            },
+            {
+              "name": "join",
+              "taskReferenceName": "join",
+              "inputParameters": {},
+              "type": "JOIN",
+              "decisionCases": {},
+              "defaultCase": [],
+              "forkTasks": [],
+              "startDelay": 0,
+              "joinOn": [],
+              "optional": false,
+              "taskDefinition": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "join",
+                "retryCount": 0,
+                "timeoutSeconds": 0,
+                "inputKeys": [],
+                "outputKeys": [],
+                "runtimeMetadata": [],
+                "timeoutPolicy": "TIME_OUT_WF",
+                "retryLogic": "FIXED",
+                "retryDelaySeconds": 60,
+                "responseTimeoutSeconds": 0,
+                "inputTemplate": {},
+                "rateLimitPerFrequency": 0,
+                "rateLimitFrequencyInSeconds": 1,
+                "backoffScaleFactor": 1,
+                "maxRetryDelaySeconds": 0,
+                "backoffJitterMs": 0,
+                "totalTimeoutSeconds": 0,
+                "taskStatusListenerEnabled": true,
+                "enforceSchema": false
+              },
+              "defaultExclusiveJoinTask": [],
+              "asyncComplete": false,
+              "loopOver": [],
+              "onStateChange": {},
+              "permissive": false,
+              "metadata": {}
+            }
+          ]
+        },
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "branch",
+          "retryCount": 0,
+          "timeoutSeconds": 0,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 60,
+          "responseTimeoutSeconds": 0,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "enforceSchema": false
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "evaluatorType": "value-param",
+        "expression": "then",
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 0,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 0,
+        "updateTime": 0,
+        "name": "branch",
+        "retryCount": 0,
+        "timeoutSeconds": 0,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 60,
+        "responseTimeoutSeconds": 0,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "enforceSchema": false
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 0
+    },
+    {
+      "taskType": "FORK",
+      "status": "COMPLETED",
+      "inputData": {
+        "forkedTaskDefs": [
+          {
+            "name": "implement.fake-b",
+            "taskReferenceName": "c1",
+            "inputParameters": {
+              "context": {},
+              "input": "README を要約せよ",
+              "prompt_ref": {
+                "id": "implement",
+                "version": 1
+              },
+              "type": "implement",
+              "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+              "cell_id": "c1"
+            },
+            "type": "SIMPLE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "taskDefinition": {
+              "createTime": 1790067254648,
+              "updateTime": 1790068417948,
+              "createdBy": "",
+              "updatedBy": "",
+              "name": "implement.fake-b",
+              "retryCount": 1,
+              "timeoutSeconds": 3600,
+              "inputKeys": [],
+              "outputKeys": [],
+              "runtimeMetadata": [],
+              "timeoutPolicy": "TIME_OUT_WF",
+              "retryLogic": "FIXED",
+              "retryDelaySeconds": 1,
+              "responseTimeoutSeconds": 30,
+              "inputTemplate": {},
+              "rateLimitPerFrequency": 0,
+              "rateLimitFrequencyInSeconds": 1,
+              "backoffScaleFactor": 1,
+              "maxRetryDelaySeconds": 0,
+              "backoffJitterMs": 0,
+              "totalTimeoutSeconds": 0,
+              "taskStatusListenerEnabled": true,
+              "inputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "implement.input",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "job_id",
+                    "type",
+                    "prompt_ref",
+                    "input",
+                    "cell_id",
+                    "context"
+                  ],
+                  "properties": {
+                    "job_id": {
+                      "type": "string"
+                    },
+                    "cell_id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "implement"
+                    },
+                    "prompt_ref": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "version"
+                      ],
+                      "properties": {
+                        "id": {
+                          "const": "implement"
+                        },
+                        "version": {
+                          "const": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "context": {
+                      "type": "object"
+                    },
+                    "input": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "outputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "implement.output",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "payload",
+                    "meta"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "input",
+                        "result"
+                      ]
+                    },
+                    "payload": {},
+                    "meta": {
+                      "type": "object",
+                      "required": [
+                        "executor_id",
+                        "declaration_version",
+                        "trace_id",
+                        "stop_reason"
+                      ],
+                      "properties": {
+                        "executor_id": {
+                          "type": "string"
+                        },
+                        "declaration_version": {
+                          "type": "integer"
+                        },
+                        "trace_id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{32}$"
+                        },
+                        "stop_reason": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "enforceSchema": true
+            },
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false,
+            "metadata": {}
+          }
+        ],
+        "forkedTasks": [
+          "c1"
+        ],
+        "dynamicTasks": [
+          {
+            "name": "implement.fake-b",
+            "taskReferenceName": "c1",
+            "type": "SIMPLE"
+          }
+        ],
+        "dynamicTasksInput": {
+          "c1": {
+            "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+            "cell_id": "c1",
+            "type": "implement",
+            "prompt_ref": {
+              "id": "implement",
+              "version": 1
+            },
+            "input": "README を要約せよ",
+            "context": {}
+          }
+        }
+      },
+      "referenceTaskName": "fork__1",
+      "retryCount": 0,
+      "seq": 4,
+      "pollCount": 0,
+      "taskDefName": "FORK",
+      "scheduledTime": 1790068419898,
+      "startTime": 1790068419898,
+      "endTime": 1790068419898,
+      "updateTime": 1790068419909,
+      "startDelayInSeconds": 0,
+      "retried": false,
+      "executed": true,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 0,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "668b41eb-7730-4fa7-a891-ecb197bf5971",
+      "callbackAfterSeconds": 0,
+      "outputData": {},
+      "workflowTask": {
+        "name": "fork",
+        "taskReferenceName": "fork",
+        "inputParameters": {
+          "dynamicTasks": "${judge.output.payload.dynamicTasks}",
+          "dynamicTasksInput": "${judge.output.payload.dynamicTasksInput}"
+        },
+        "type": "FORK_JOIN_DYNAMIC",
+        "decisionCases": {},
+        "dynamicForkTasksParam": "dynamicTasks",
+        "dynamicForkTasksInputParamName": "dynamicTasksInput",
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "fork",
+          "retryCount": 0,
+          "timeoutSeconds": 0,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 60,
+          "responseTimeoutSeconds": 0,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "enforceSchema": false
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 0,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 0,
+        "updateTime": 0,
+        "name": "fork",
+        "retryCount": 0,
+        "timeoutSeconds": 0,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 60,
+        "responseTimeoutSeconds": 0,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "enforceSchema": false
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 0
+    },
+    {
+      "taskType": "implement.fake-b",
+      "status": "TIMED_OUT",
+      "inputData": {
+        "input": "README を要約せよ",
+        "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+        "context": {},
+        "prompt_ref": {
+          "id": "implement",
+          "version": 1
+        },
+        "type": "implement",
+        "cell_id": "c1"
+      },
+      "referenceTaskName": "c1__1",
+      "retryCount": 0,
+      "seq": 5,
+      "pollCount": 1,
+      "taskDefName": "implement.fake-b",
+      "scheduledTime": 1790068419899,
+      "startTime": 1790068421463,
+      "endTime": 1790068453243,
+      "updateTime": 1790068421463,
+      "startDelayInSeconds": 0,
+      "retried": true,
+      "executed": false,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 30,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "2f09d28d-3caf-4390-9eb7-7fc1bc0c04e3",
+      "reasonForIncompletion": "responseTimeout: 30 exceeded for the taskId: 2f09d28d-3caf-4390-9eb7-7fc1bc0c04e3 with Task Definition: implement.fake-b",
+      "callbackAfterSeconds": 0,
+      "workerId": "fake-b",
+      "outputData": {},
+      "workflowTask": {
+        "name": "implement.fake-b",
+        "taskReferenceName": "c1",
+        "inputParameters": {
+          "context": {},
+          "input": "README を要約せよ",
+          "prompt_ref": {
+            "id": "implement",
+            "version": 1
+          },
+          "type": "implement",
+          "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+          "cell_id": "c1"
+        },
+        "type": "SIMPLE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 1790067254648,
+          "updateTime": 1790068417948,
+          "createdBy": "",
+          "updatedBy": "",
+          "name": "implement.fake-b",
+          "retryCount": 1,
+          "timeoutSeconds": 3600,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 1,
+          "responseTimeoutSeconds": 30,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "inputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "implement.input",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "job_id",
+                "type",
+                "prompt_ref",
+                "input",
+                "cell_id",
+                "context"
+              ],
+              "properties": {
+                "job_id": {
+                  "type": "string"
+                },
+                "cell_id": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "implement"
+                },
+                "prompt_ref": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "const": "implement"
+                    },
+                    "version": {
+                      "const": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "context": {
+                  "type": "object"
+                },
+                "input": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "outputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "implement.output",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "kind",
+                "payload",
+                "meta"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "input",
+                    "result"
+                  ]
+                },
+                "payload": {},
+                "meta": {
+                  "type": "object",
+                  "required": [
+                    "executor_id",
+                    "declaration_version",
+                    "trace_id",
+                    "stop_reason"
+                  ],
+                  "properties": {
+                    "executor_id": {
+                      "type": "string"
+                    },
+                    "declaration_version": {
+                      "type": "integer"
+                    },
+                    "trace_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    },
+                    "stop_reason": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "enforceSchema": true
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 1,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 1790067254648,
+        "updateTime": 1790068417948,
+        "createdBy": "",
+        "updatedBy": "",
+        "name": "implement.fake-b",
+        "retryCount": 1,
+        "timeoutSeconds": 3600,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 1,
+        "responseTimeoutSeconds": 30,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "inputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "implement.input",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "job_id",
+              "type",
+              "prompt_ref",
+              "input",
+              "cell_id",
+              "context"
+            ],
+            "properties": {
+              "job_id": {
+                "type": "string"
+              },
+              "cell_id": {
+                "type": "string"
+              },
+              "type": {
+                "const": "implement"
+              },
+              "prompt_ref": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "implement"
+                  },
+                  "version": {
+                    "const": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "context": {
+                "type": "object"
+              },
+              "input": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "outputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "implement.output",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "kind",
+              "payload",
+              "meta"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "input",
+                  "result"
+                ]
+              },
+              "payload": {},
+              "meta": {
+                "type": "object",
+                "required": [
+                  "executor_id",
+                  "declaration_version",
+                  "trace_id",
+                  "stop_reason"
+                ],
+                "properties": {
+                  "executor_id": {
+                    "type": "string"
+                  },
+                  "declaration_version": {
+                    "type": "integer"
+                  },
+                  "trace_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}$"
+                  },
+                  "stop_reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "enforceSchema": true
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 1564
+    },
+    {
+      "taskType": "JOIN",
+      "status": "IN_PROGRESS",
+      "inputData": {
+        "joinOn": [
+          "c1"
+        ]
+      },
+      "referenceTaskName": "join__1",
+      "retryCount": 0,
+      "seq": 6,
+      "pollCount": 210,
+      "taskDefName": "JOIN",
+      "scheduledTime": 1790068419899,
+      "startTime": 1790068419899,
+      "endTime": 0,
+      "updateTime": 1790068453641,
+      "startDelayInSeconds": 0,
+      "retried": false,
+      "executed": false,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 0,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "8c0e2aec-d057-45ef-b57a-4737393ff113",
+      "callbackAfterSeconds": 6,
+      "outputData": {},
+      "workflowTask": {
+        "name": "join",
+        "taskReferenceName": "join",
+        "inputParameters": {},
+        "type": "JOIN",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "join",
+          "retryCount": 0,
+          "timeoutSeconds": 0,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 60,
+          "responseTimeoutSeconds": 0,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "enforceSchema": false
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 0,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 0,
+        "updateTime": 0,
+        "name": "join",
+        "retryCount": 0,
+        "timeoutSeconds": 0,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 60,
+        "responseTimeoutSeconds": 0,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "enforceSchema": false
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 0
+    },
+    {
+      "taskType": "implement.fake-b",
+      "status": "SCHEDULED",
+      "inputData": {
+        "context": {},
+        "input": "README を要約せよ",
+        "prompt_ref": {
+          "id": "implement",
+          "version": 1
+        },
+        "type": "implement",
+        "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+        "cell_id": "c1"
+      },
+      "referenceTaskName": "c1__1",
+      "retryCount": 1,
+      "seq": 7,
+      "pollCount": 0,
+      "taskDefName": "implement.fake-b",
+      "scheduledTime": 1790068453241,
+      "startTime": 0,
+      "endTime": 0,
+      "updateTime": 0,
+      "startDelayInSeconds": 1,
+      "retriedTaskId": "2f09d28d-3caf-4390-9eb7-7fc1bc0c04e3",
+      "retried": false,
+      "executed": false,
+      "callbackFromWorker": true,
+      "responseTimeoutSeconds": 30,
+      "workflowInstanceId": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+      "workflowType": "pda_job",
+      "taskId": "bc96d281-cd0f-42fa-bccc-a001155de6c9",
+      "reasonForIncompletion": "responseTimeout: 30 exceeded for the taskId: 2f09d28d-3caf-4390-9eb7-7fc1bc0c04e3 with Task Definition: implement.fake-b",
+      "callbackAfterSeconds": 1,
+      "outputData": {},
+      "workflowTask": {
+        "name": "implement.fake-b",
+        "taskReferenceName": "c1",
+        "inputParameters": {
+          "context": {},
+          "input": "README を要約せよ",
+          "prompt_ref": {
+            "id": "implement",
+            "version": 1
+          },
+          "type": "implement",
+          "job_id": "f2f6abd3-838f-4fa3-bf86-4a98c839bd78",
+          "cell_id": "c1"
+        },
+        "type": "SIMPLE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 1790067254648,
+          "updateTime": 1790068417948,
+          "createdBy": "",
+          "updatedBy": "",
+          "name": "implement.fake-b",
+          "retryCount": 1,
+          "timeoutSeconds": 3600,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 1,
+          "responseTimeoutSeconds": 30,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "inputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "implement.input",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "job_id",
+                "type",
+                "prompt_ref",
+                "input",
+                "cell_id",
+                "context"
+              ],
+              "properties": {
+                "job_id": {
+                  "type": "string"
+                },
+                "cell_id": {
+                  "type": "string"
+                },
+                "type": {
+                  "const": "implement"
+                },
+                "prompt_ref": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "version"
+                  ],
+                  "properties": {
+                    "id": {
+                      "const": "implement"
+                    },
+                    "version": {
+                      "const": 1
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "context": {
+                  "type": "object"
+                },
+                "input": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "outputSchema": {
+            "createTime": 0,
+            "updateTime": 0,
+            "name": "implement.output",
+            "version": 1,
+            "type": "JSON",
+            "data": {
+              "type": "object",
+              "required": [
+                "kind",
+                "payload",
+                "meta"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "input",
+                    "result"
+                  ]
+                },
+                "payload": {},
+                "meta": {
+                  "type": "object",
+                  "required": [
+                    "executor_id",
+                    "declaration_version",
+                    "trace_id",
+                    "stop_reason"
+                  ],
+                  "properties": {
+                    "executor_id": {
+                      "type": "string"
+                    },
+                    "declaration_version": {
+                      "type": "integer"
+                    },
+                    "trace_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    },
+                    "stop_reason": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "enforceSchema": true
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopOver": [],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      },
+      "rateLimitPerFrequency": 0,
+      "rateLimitFrequencyInSeconds": 1,
+      "workflowPriority": 0,
+      "iteration": 1,
+      "subworkflowChanged": false,
+      "firstStartTime": 0,
+      "executionMetadata": {
+        "additionalContext": {},
+        "empty": true,
+        "additionalContextMap": {}
+      },
+      "taskDefinition": {
+        "createTime": 1790067254648,
+        "updateTime": 1790068417948,
+        "createdBy": "",
+        "updatedBy": "",
+        "name": "implement.fake-b",
+        "retryCount": 1,
+        "timeoutSeconds": 3600,
+        "inputKeys": [],
+        "outputKeys": [],
+        "runtimeMetadata": [],
+        "timeoutPolicy": "TIME_OUT_WF",
+        "retryLogic": "FIXED",
+        "retryDelaySeconds": 1,
+        "responseTimeoutSeconds": 30,
+        "inputTemplate": {},
+        "rateLimitPerFrequency": 0,
+        "rateLimitFrequencyInSeconds": 1,
+        "backoffScaleFactor": 1,
+        "maxRetryDelaySeconds": 0,
+        "backoffJitterMs": 0,
+        "totalTimeoutSeconds": 0,
+        "taskStatusListenerEnabled": true,
+        "inputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "implement.input",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "job_id",
+              "type",
+              "prompt_ref",
+              "input",
+              "cell_id",
+              "context"
+            ],
+            "properties": {
+              "job_id": {
+                "type": "string"
+              },
+              "cell_id": {
+                "type": "string"
+              },
+              "type": {
+                "const": "implement"
+              },
+              "prompt_ref": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "version"
+                ],
+                "properties": {
+                  "id": {
+                    "const": "implement"
+                  },
+                  "version": {
+                    "const": 1
+                  }
+                },
+                "additionalProperties": false
+              },
+              "context": {
+                "type": "object"
+              },
+              "input": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "outputSchema": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "implement.output",
+          "version": 1,
+          "type": "JSON",
+          "data": {
+            "type": "object",
+            "required": [
+              "kind",
+              "payload",
+              "meta"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "input",
+                  "result"
+                ]
+              },
+              "payload": {},
+              "meta": {
+                "type": "object",
+                "required": [
+                  "executor_id",
+                  "declaration_version",
+                  "trace_id",
+                  "stop_reason"
+                ],
+                "properties": {
+                  "executor_id": {
+                    "type": "string"
+                  },
+                  "declaration_version": {
+                    "type": "integer"
+                  },
+                  "trace_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{32}$"
+                  },
+                  "stop_reason": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "enforceSchema": true
+      },
+      "loopOverTask": true,
+      "queueWaitTime": 0
+    }
+  ],
+  "input": {
+    "initial_input": "README を要約せよ",
+    "context": {}
+  },
+  "output": {},
+  "taskToDomain": {},
+  "failedReferenceTaskNames": [],
+  "workflowDefinition": {
+    "createTime": 0,
+    "updateTime": 1790068399891,
+    "name": "pda_job",
+    "version": 1,
+    "tasks": [
+      {
+        "name": "pda_loop",
+        "taskReferenceName": "loop",
+        "inputParameters": {},
+        "type": "DO_WHILE",
+        "decisionCases": {},
+        "defaultCase": [],
+        "forkTasks": [],
+        "startDelay": 0,
+        "joinOn": [],
+        "optional": false,
+        "taskDefinition": {
+          "createTime": 0,
+          "updateTime": 0,
+          "name": "pda_loop",
+          "retryCount": 0,
+          "timeoutSeconds": 0,
+          "inputKeys": [],
+          "outputKeys": [],
+          "runtimeMetadata": [],
+          "timeoutPolicy": "TIME_OUT_WF",
+          "retryLogic": "FIXED",
+          "retryDelaySeconds": 60,
+          "responseTimeoutSeconds": 0,
+          "inputTemplate": {},
+          "rateLimitPerFrequency": 0,
+          "rateLimitFrequencyInSeconds": 1,
+          "backoffScaleFactor": 1,
+          "maxRetryDelaySeconds": 0,
+          "backoffJitterMs": 0,
+          "totalTimeoutSeconds": 0,
+          "taskStatusListenerEnabled": true,
+          "enforceSchema": false
+        },
+        "defaultExclusiveJoinTask": [],
+        "asyncComplete": false,
+        "loopCondition": "$.judge['payload']['then'] == 'continue'",
+        "loopOver": [
+          {
+            "name": "judge.jev",
+            "taskReferenceName": "judge",
+            "inputParameters": {
+              "type": "judge",
+              "prompt_ref": {
+                "id": "judge",
+                "version": 1
+              },
+              "context": "${workflow.input.context}",
+              "initial_input": "${workflow.input.initial_input}",
+              "job_id": "${workflow.workflowId}"
+            },
+            "type": "SIMPLE",
+            "decisionCases": {},
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "taskDefinition": {
+              "createTime": 1790067254682,
+              "updateTime": 1790068399870,
+              "createdBy": "",
+              "updatedBy": "",
+              "name": "judge.jev",
+              "retryCount": 3,
+              "timeoutSeconds": 3600,
+              "inputKeys": [],
+              "outputKeys": [],
+              "runtimeMetadata": [],
+              "timeoutPolicy": "TIME_OUT_WF",
+              "retryLogic": "FIXED",
+              "retryDelaySeconds": 10,
+              "responseTimeoutSeconds": 600,
+              "inputTemplate": {},
+              "rateLimitPerFrequency": 0,
+              "rateLimitFrequencyInSeconds": 1,
+              "backoffScaleFactor": 1,
+              "maxRetryDelaySeconds": 0,
+              "backoffJitterMs": 0,
+              "totalTimeoutSeconds": 0,
+              "taskStatusListenerEnabled": true,
+              "inputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "judge.input",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "job_id",
+                    "type",
+                    "prompt_ref",
+                    "initial_input"
+                  ],
+                  "properties": {
+                    "job_id": {
+                      "type": "string"
+                    },
+                    "cell_id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "const": "judge"
+                    },
+                    "prompt_ref": {
+                      "type": "object",
+                      "required": [
+                        "id",
+                        "version"
+                      ],
+                      "properties": {
+                        "id": {
+                          "const": "judge"
+                        },
+                        "version": {
+                          "const": 1
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "context": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
+                    },
+                    "initial_input": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "outputSchema": {
+                "createTime": 0,
+                "updateTime": 0,
+                "name": "judge.output",
+                "version": 1,
+                "type": "JSON",
+                "data": {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "payload",
+                    "meta"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "enum": [
+                        "flow"
+                      ]
+                    },
+                    "payload": {
+                      "type": "object",
+                      "required": [
+                        "then",
+                        "cells",
+                        "dynamicTasks",
+                        "dynamicTasksInput"
+                      ],
+                      "properties": {
+                        "then": {
+                          "enum": [
+                            "continue",
+                            "finish"
+                          ]
+                        },
+                        "cells": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "type",
+                              "executor",
+                              "input_from"
+                            ],
+                            "properties": {
+                              "type": {
+                                "type": "string"
+                              },
+                              "executor": {
+                                "type": "string"
+                              },
+                              "input_from": {
+                                "enum": [
+                                  "previous",
+                                  "initial"
+                                ]
+                              }
+                            },
+                            "additionalProperties": false
+                          }
+                        },
+                        "dynamicTasks": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "required": [
+                              "name",
+                              "taskReferenceName",
+                              "type"
+                            ],
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "taskReferenceName": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "const": "SIMPLE"
+                              }
+                            }
+                          }
+                        },
+                        "dynamicTasksInput": {
+                          "type": "object"
+                        }
+                      },
+                      "additionalProperties": false,
+                      "allOf": [
+                        {
+                          "if": {
+                            "properties": {
+                              "then": {
+                                "const": "continue"
+                              }
+                            }
+                          },
+                          "then": {
+                            "properties": {
+                              "cells": {
+                                "minItems": 1
+                              },
+                              "dynamicTasks": {
+                                "minItems": 1
+                              }
+                            }
+                          },
+                          "else": {
+                            "properties": {
+                              "cells": {
+                                "maxItems": 0
+                              },
+                              "dynamicTasks": {
+                                "maxItems": 0
+                              },
+                              "dynamicTasksInput": {
+                                "maxProperties": 0
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "required": [
+                        "executor_id",
+                        "declaration_version",
+                        "trace_id",
+                        "stop_reason"
+                      ],
+                      "properties": {
+                        "executor_id": {
+                          "type": "string"
+                        },
+                        "declaration_version": {
+                          "type": "integer"
+                        },
+                        "trace_id": {
+                          "type": "string",
+                          "pattern": "^[0-9a-f]{32}$"
+                        },
+                        "stop_reason": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "enforceSchema": true
+            },
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "onStateChange": {},
+            "permissive": false,
+            "metadata": {}
+          },
+          {
+            "name": "branch",
+            "taskReferenceName": "branch",
+            "inputParameters": {
+              "then": "${judge.output.payload.then}"
+            },
+            "type": "SWITCH",
+            "decisionCases": {
+              "continue": [
+                {
+                  "name": "fork",
+                  "taskReferenceName": "fork",
+                  "inputParameters": {
+                    "dynamicTasks": "${judge.output.payload.dynamicTasks}",
+                    "dynamicTasksInput": "${judge.output.payload.dynamicTasksInput}"
+                  },
+                  "type": "FORK_JOIN_DYNAMIC",
+                  "decisionCases": {},
+                  "dynamicForkTasksParam": "dynamicTasks",
+                  "dynamicForkTasksInputParamName": "dynamicTasksInput",
+                  "defaultCase": [],
+                  "forkTasks": [],
+                  "startDelay": 0,
+                  "joinOn": [],
+                  "optional": false,
+                  "taskDefinition": {
+                    "createTime": 0,
+                    "updateTime": 0,
+                    "name": "fork",
+                    "retryCount": 0,
+                    "timeoutSeconds": 0,
+                    "inputKeys": [],
+                    "outputKeys": [],
+                    "runtimeMetadata": [],
+                    "timeoutPolicy": "TIME_OUT_WF",
+                    "retryLogic": "FIXED",
+                    "retryDelaySeconds": 60,
+                    "responseTimeoutSeconds": 0,
+                    "inputTemplate": {},
+                    "rateLimitPerFrequency": 0,
+                    "rateLimitFrequencyInSeconds": 1,
+                    "backoffScaleFactor": 1,
+                    "maxRetryDelaySeconds": 0,
+                    "backoffJitterMs": 0,
+                    "totalTimeoutSeconds": 0,
+                    "taskStatusListenerEnabled": true,
+                    "enforceSchema": false
+                  },
+                  "defaultExclusiveJoinTask": [],
+                  "asyncComplete": false,
+                  "loopOver": [],
+                  "onStateChange": {},
+                  "permissive": false,
+                  "metadata": {}
+                },
+                {
+                  "name": "join",
+                  "taskReferenceName": "join",
+                  "inputParameters": {},
+                  "type": "JOIN",
+                  "decisionCases": {},
+                  "defaultCase": [],
+                  "forkTasks": [],
+                  "startDelay": 0,
+                  "joinOn": [],
+                  "optional": false,
+                  "taskDefinition": {
+                    "createTime": 0,
+                    "updateTime": 0,
+                    "name": "join",
+                    "retryCount": 0,
+                    "timeoutSeconds": 0,
+                    "inputKeys": [],
+                    "outputKeys": [],
+                    "runtimeMetadata": [],
+                    "timeoutPolicy": "TIME_OUT_WF",
+                    "retryLogic": "FIXED",
+                    "retryDelaySeconds": 60,
+                    "responseTimeoutSeconds": 0,
+                    "inputTemplate": {},
+                    "rateLimitPerFrequency": 0,
+                    "rateLimitFrequencyInSeconds": 1,
+                    "backoffScaleFactor": 1,
+                    "maxRetryDelaySeconds": 0,
+                    "backoffJitterMs": 0,
+                    "totalTimeoutSeconds": 0,
+                    "taskStatusListenerEnabled": true,
+                    "enforceSchema": false
+                  },
+                  "defaultExclusiveJoinTask": [],
+                  "asyncComplete": false,
+                  "loopOver": [],
+                  "onStateChange": {},
+                  "permissive": false,
+                  "metadata": {}
+                }
+              ]
+            },
+            "defaultCase": [],
+            "forkTasks": [],
+            "startDelay": 0,
+            "joinOn": [],
+            "optional": false,
+            "taskDefinition": {
+              "createTime": 0,
+              "updateTime": 0,
+              "name": "branch",
+              "retryCount": 0,
+              "timeoutSeconds": 0,
+              "inputKeys": [],
+              "outputKeys": [],
+              "runtimeMetadata": [],
+              "timeoutPolicy": "TIME_OUT_WF",
+              "retryLogic": "FIXED",
+              "retryDelaySeconds": 60,
+              "responseTimeoutSeconds": 0,
+              "inputTemplate": {},
+              "rateLimitPerFrequency": 0,
+              "rateLimitFrequencyInSeconds": 1,
+              "backoffScaleFactor": 1,
+              "maxRetryDelaySeconds": 0,
+              "backoffJitterMs": 0,
+              "totalTimeoutSeconds": 0,
+              "taskStatusListenerEnabled": true,
+              "enforceSchema": false
+            },
+            "defaultExclusiveJoinTask": [],
+            "asyncComplete": false,
+            "loopOver": [],
+            "evaluatorType": "value-param",
+            "expression": "then",
+            "onStateChange": {},
+            "permissive": false,
+            "metadata": {}
+          }
+        ],
+        "onStateChange": {},
+        "permissive": false,
+        "metadata": {}
+      }
+    ],
+    "inputParameters": [
+      "initial_input",
+      "context"
+    ],
+    "outputParameters": {},
+    "schemaVersion": 2,
+    "restartable": true,
+    "workflowStatusListenerEnabled": false,
+    "timeoutPolicy": "ALERT_ONLY",
+    "timeoutSeconds": 0,
+    "variables": {},
+    "inputTemplate": {},
+    "inputSchema": {
+      "createTime": 0,
+      "updateTime": 0,
+      "name": "pda_job.input",
+      "version": 1,
+      "type": "JSON",
+      "data": {
+        "type": "object",
+        "required": [
+          "initial_input"
+        ],
+        "properties": {
+          "initial_input": {
+            "type": "string"
+          },
+          "context": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "enforceSchema": true,
+    "metadata": {},
+    "maskedFields": []
+  },
+  "priority": 0,
+  "variables": {},
+  "lastRetriedTime": 0,
+  "failedTaskNames": [],
+  "history": [],
+  "rateLimited": false,
+  "startTime": 1790068419131,
+  "workflowName": "pda_job",
+  "workflowVersion": 1
+}

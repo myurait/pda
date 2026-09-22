@@ -1,0 +1,16 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.7, pytest-9.1.1, pluggy-1.6.0 -- /Users/fox4foofighter/dev/pda/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/fox4foofighter/dev/pda
+configfile: pyproject.toml
+plugins: conductor-python-2.0.0, anyio-4.15.1
+collecting ... collected 6 items
+
+tests/e2e/test_increment.py::test_01_two_iterations PASSED               [ 16%]
+tests/e2e/test_increment.py::test_02_file_events PASSED                  [ 33%]
+tests/e2e/test_increment.py::test_03_openobserve_sql PASSED              [ 50%]
+tests/e2e/test_increment.py::test_04_invalid_output PASSED               [ 66%]
+tests/e2e/test_increment.py::test_05_response_timeout_retry PASSED       [ 83%]
+tests/e2e/test_increment.py::test_06_docker_stats PASSED                 [100%]
+
+========================= 6 passed in 86.04s (0:01:26) =========================

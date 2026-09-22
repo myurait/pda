@@ -25,7 +25,7 @@ def compose(*args: str, env: dict | None = None, stdin: str | None = None) -> st
     result = subprocess.run(
         COMPOSE + list(args),
         cwd=ROOT,
-        env={**os.environ, **(env or {})},
+        env={**os.environ, **(env or {}), "JEV_MODE": "fixture", "COMPOSE_PROFILES": ""},
         input=stdin,
         text=True,
         capture_output=True,
