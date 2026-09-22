@@ -1,0 +1,19 @@
+Command: PDA_E2E=1 .venv/bin/pytest tests/e2e -x -vv
+============================= test session starts ==============================
+platform darwin -- Python 3.12.7, pytest-9.1.1, pluggy-1.6.0 -- /Users/fox4foofighter/dev/pda/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/fox4foofighter/dev/pda
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 8 items
+
+tests/e2e/test_increment_2.py::test_01_fixture_loop_and_input PASSED     [ 12%]
+tests/e2e/test_increment_2.py::test_02_event_stream_and_origin PASSED    [ 25%]
+tests/e2e/test_increment_2.py::test_03_openobserve_sql PASSED            [ 37%]
+tests/e2e/test_increment_2.py::test_04_invalid_output PASSED             [ 50%]
+tests/e2e/test_increment_2.py::test_05_worker_disappears_and_retry PASSED [ 62%]
+tests/e2e/test_increment_2.py::test_06_runtime_deadline PASSED           [ 75%]
+tests/e2e/test_increment_2.py::test_07_workflow_schema PASSED            [ 87%]
+tests/e2e/test_increment_2.py::test_08_stats_and_network_isolation PASSED [100%]
+
+======================== 8 passed in 151.75s (0:02:31) =========================
