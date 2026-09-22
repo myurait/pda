@@ -1,0 +1,132 @@
+type: judge
+description: 後続のセルと完了を判定する
+prompt: prompts/judge.md
+input_schema:
+  type: object
+  required:
+  - job_id
+  - type
+  - prompt_ref
+  - initial_input
+  properties:
+    job_id: &id001
+      type: string
+    cell_id: *id001
+    type:
+      const: judge
+    prompt_ref:
+      type: object
+      required:
+      - id
+      - version
+      properties:
+        id:
+          const: judge
+        version:
+          const: 1
+      additionalProperties: false
+    context:
+      type:
+      - object
+      - 'null'
+    initial_input: *id001
+  additionalProperties: false
+output_schema:
+  type: object
+  required:
+  - kind
+  - payload
+  - meta
+  properties:
+    kind:
+      enum:
+      - flow
+    payload:
+      type: object
+      required:
+      - then
+      - cells
+      - dynamicTasks
+      - dynamicTasksInput
+      properties:
+        then:
+          enum:
+          - continue
+          - finish
+        cells:
+          type: array
+          items:
+            type: object
+            required:
+            - type
+            - executor
+            - input_from
+            properties:
+              type: *id001
+              executor: *id001
+              input_from:
+                enum:
+                - previous
+                - initial
+            additionalProperties: false
+        dynamicTasks:
+          type: array
+          items:
+            type: object
+            required:
+            - name
+            - taskReferenceName
+            - type
+            properties:
+              name: *id001
+              taskReferenceName: *id001
+              type:
+                const: SIMPLE
+        dynamicTasksInput:
+          type: object
+      additionalProperties: false
+      allOf:
+      - if:
+          properties:
+            then:
+              const: continue
+        then:
+          properties:
+            cells:
+              minItems: 1
+            dynamicTasks:
+              minItems: 1
+        else:
+          properties:
+            cells:
+              maxItems: 0
+            dynamicTasks:
+              maxItems: 0
+            dynamicTasksInput:
+              maxProperties: 0
+    meta:
+      type: object
+      required:
+      - executor_id
+      - declaration_version
+      - trace_id
+      - stop_reason
+      properties:
+        executor_id: *id001
+        declaration_version:
+          type: integer
+        trace_id:
+          type: string
+          pattern: ^[0-9a-f]{32}$
+        stop_reason: *id001
+      additionalProperties: false
+  additionalProperties: false
+task_def:
+  retryCount: 3
+  retryLogic: FIXED
+  retryDelaySeconds: 10
+  timeoutSeconds: 3600
+  responseTimeoutSeconds: 600
+  timeoutPolicy: TIME_OUT_WF
+driver: jev
+command: null

@@ -1,0 +1,50 @@
+{
+  "model": "jev-latest",
+  "thresholds": {
+    "is_complete": 0.7
+  },
+  "questions": {
+    "is_complete": {
+      "type": "noul",
+      "instructions": "Has the work requested in initial_input been completed by the collected outputs?",
+      "criteria": {
+        "true": "The requested work is complete and supported by previous_outputs.",
+        "false": "Further work or verification is necessary."
+      }
+    },
+    "next_type": {
+      "type": "choice",
+      "instructions": "Which type of work is needed next?",
+      "criteria": {
+        "break-down": "Decompose the work.",
+        "implement": "Write or fix code.",
+        "review": "Review the outputs.",
+        "verify.test": "Run tests.",
+        "verify.lint": "Run static checks.",
+        "summarize": "Summarize the outputs.",
+        "none": "No further work is required."
+      }
+    },
+    "executor": {
+      "type": "choice",
+      "instructions": "Which declared executor should run the selected type? Use only an executor that supports that type.",
+      "criteria": {
+        "fake-a": "ACP test agent; zero estimated JPY cost; /work filesystem only; no external network.",
+        "fake-b": "ACP test agent; zero estimated JPY cost; /work filesystem only; no external network.",
+        "tools": "Deterministic tests and lint; zero estimated JPY cost; /work only; no external network.",
+        "jev": "Judge only; API cost unverified; /work and api.typesafe.ai.",
+        "codex-personal": "Personal Codex; cost unverified; /work, api.openai.com and chatgpt.com.",
+        "claude-company": "Company Claude; cost unverified; /work, api.anthropic.com and claude.ai."
+      }
+    },
+    "cell_count": {
+      "type": "choice",
+      "instructions": "How many cells are needed for the next round?",
+      "criteria": {
+        "1": "One cell is sufficient.",
+        "2": "Two cells are needed.",
+        "3": "Three cells are needed."
+      }
+    }
+  }
+}

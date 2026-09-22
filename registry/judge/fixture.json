@@ -1,0 +1,61 @@
+{
+  "initial": {
+    "answers": {
+      "is_complete": {
+        "type": "noul",
+        "noul": 0.0
+      },
+      "next_type": {
+        "type": "choice",
+        "choice": "break-down",
+        "confidence": 1.0
+      },
+      "executor": {
+        "type": "choice",
+        "choice": "fake-a",
+        "confidence": 1.0
+      },
+      "cell_count": {
+        "type": "choice",
+        "choice": "2",
+        "confidence": 1.0
+      }
+    },
+    "cells": [
+      {
+        "type": "break-down",
+        "executor": "fake-a",
+        "input_from": "initial"
+      },
+      {
+        "type": "verify.test",
+        "executor": "tools",
+        "input_from": "initial"
+      }
+    ]
+  },
+  "subsequent": {
+    "answers": {
+      "is_complete": {
+        "type": "noul",
+        "noul": 1.0
+      },
+      "next_type": {
+        "type": "choice",
+        "choice": "none",
+        "confidence": 1.0
+      },
+      "executor": {
+        "type": "choice",
+        "choice": "fake-a",
+        "confidence": 1.0
+      },
+      "cell_count": {
+        "type": "choice",
+        "choice": "1",
+        "confidence": 1.0
+      }
+    },
+    "cells": []
+  }
+}
