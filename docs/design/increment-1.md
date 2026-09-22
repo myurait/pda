@@ -1,6 +1,6 @@
 # 最初の増分の設計
 
-- 更新: 2026-09-22 JST
+- 更新: 2026-09-22 JST（増分 1 の実装結果を反映）
 - 種別: 設計。`basic-design-proposal.md` の 10.1 で決まった範囲を、動かせる形まで具体化する。
 - 物差し: `docs/requirements.md`（commit `a92a4ab`）。
 - 範囲: 個人契約の Codex、会社契約の Claude、jev、決定論的な検証ツールの 4 実行器。すべてミニ PC 上。移行とペルソナ選定は含めない。
@@ -112,7 +112,7 @@ Conductor のタスクの入力と出力を、要件のプロトコルのメッ�
       "name": "pda_loop",
       "taskReferenceName": "loop",
       "type": "DO_WHILE",
-      "loopCondition": "$.judge['output']['payload']['then'] == 'continue'",
+      "loopCondition": "$.judge['payload']['then'] == 'continue'",
       "loopOver": [
         {
           "name": "judge.jev",
@@ -121,9 +121,9 @@ Conductor のタスクの入力と出力を、要件のプロトコルのメッ�
           "inputParameters": {
             "type": "judge",
             "prompt_ref": {"id": "judge", "version": 1},
-            "input": "${join.output}",
             "context": "${workflow.input.context}",
-            "initial_input": "${workflow.input.initial_input}"
+            "initial_input": "${workflow.input.initial_input}",
+            "job_id": "${workflow.workflowId}"
           }
         },
         {
@@ -159,11 +159,16 @@ Conductor のタスクの入力と出力を、要件のプロトコルのメッ�
 
 読み方。判定器のセルが先頭にあり、その出力の `then` で分岐する。続けるなら動的フォークが判定器の出したセル一覧を展開し、合流する。終えるなら何もせず、繰り返し条件が偽になって終わる。入れ子が要る type（大きなタスク分解の下位）は、セルとして `pda_job` 自身を SUB_WORKFLOW で呼ぶ。
 
-とりあえずの決定。前の回の合流の出力を判定器の入力に参照で渡すと、繰り返しをまたぐ参照になり Conductor の挙動が未確認なので、増分 1 では判定器の入力から `join.output` の参照を外す。判定器のラッパーが Conductor の API で自分のワークフローの実行記録を読み、直前の回のセルの出力を集めて state にする。判定器への入力は `type`、`prompt_ref`、`initial_input`、`context`、`job_id` だけになる。これで読むのはコアの記録であり、コアが文を書き足すことにはならない。
+決定。前の回の合流の出力を判定器の入力に参照で渡すと繰り返しをまたぐ参照になるので、判定器の入力に `join.output` の参照を置かない。判定器のラッパーが Conductor の API で自分のワークフローの実行記録を読み、直前の回のセルの出力を集めて state にする。判定器への入力は `type`、`prompt_ref`、`initial_input`、`context`、`job_id` だけになる。これで読むのはコアの記録であり、コアが文を書き足すことにはならない。
 
 代替。DO_WHILE の中に SWITCH と動的フォークを置く形が動かない場合は、`pda_job` を 1 回分（判定器、分岐、フォーク、合流）だけのワークフローにし、判定器のラッパーが `then` が `continue` のときに次の回を新しいワークフロー実行として開始し、`correlationId` に `job_id` を入れてつなぐ。
 
-未確認: DO_WHILE の中でのタスク参照の書き方（繰り返しごとの接尾辞の扱い）と、SWITCH の評価方式と式の書き方。動かして確かめ、動かなければ代替へ切り替える。
+確認済み（Conductor 3.32.4、増分 1 の実装で 2 回の繰り返しが完了）。
+
+- 繰り返しの中のタスクは参照名に `__1`、`__2` の接尾辞が付いて記録される。動的フォークが生んだセルも同じ（`c1__1`）。
+- 繰り返し条件の式では、ループ内タスクの出力が参照名の直下に置かれる。`$.judge['payload']['then']` が正しく、`$.judge['output']['payload']['then']` は評価に失敗する。根拠は [DoWhile.java (v3.32.4) の evaluateCondition](https://github.com/conductor-oss/conductor/blob/v3.32.4/core/src/main/java/com/netflix/conductor/core/execution/tasks/DoWhile.java) で、ループ内タスクの `outputData` を参照名をキーにそのまま入れている。
+- SWITCH は `value-param` と `${judge.output.payload.then}` の参照でそのまま動く。
+- 代替（correlationId で 1 回分のワークフローをつなぐ形）は使っていない。
 
 ## 6. ラッパー
 
@@ -248,7 +253,7 @@ Claude Code と Codex はどちらも npm で配布される ACP アダプタで
 
 ### 7.3 エンジン側の写し
 
-Conductor のワークフローとタスクの状態遷移は、本来はサーバ内のリスナー（Java）で拾うのが正しい。増分 1 では Java を書かず、Conductor の REST API で実行記録を定期的に読み、前回との差分を `engine.workflow` と `engine.task` の出来事として送る小さな Python プロセスで代える。再試行回数はタスクの記録に欄がある。時間切れの種類と終端失敗の理由がタスクの記録のどの欄にどう入るかは未確認で、作る順序の 1 で確かめる。A18（どの規則に該当したか）は、その欄とタスク定義の規則を対応づけて出す。遅延は数秒で、可視化には足りる。監査の厳密さが要る段階で Java のリスナーに置き換える。
+Conductor のワークフローとタスクの状態遷移は、本来はサーバ内のリスナー（Java）で拾うのが正しい。増分 1 では Java を書かず、Conductor の REST API で実行記録を定期的に読み、前回との差分を `engine.workflow` と `engine.task` の出来事として送る小さな Python プロセスで代える。タスクの記録の欄は増分 1 の実装で確認した。応答時間切れは `status` が `TIMED_OUT`、`reasonForIncompletion` が「responseTimeout: 30 exceeded for the taskId: …」の形で、該当した規則と値が文字列で入る。再試行は同じ参照名で新しい `taskId` が作られ、`retryCount` が 1 増え、`inputData` は前の試行と同一になる。終端失敗は `status` が `FAILED_WITH_TERMINAL_ERROR`、`reasonForIncompletion` にラッパーが投げた理由文が入る。全体の時間切れ（`timeoutSeconds`）は未試験。A18（どの規則に該当したか）は、応答時間切れは理由文の規則名から、終端失敗はラッパーの理由文から出す。遅延は数秒で、可視化には足りる。監査の厳密さが要る段階で Java のリスナーに置き換える。
 
 ## 8. 宣言ファイル
 
@@ -343,12 +348,16 @@ tools/
 
 ## 13. 未確認とリスク
 
-- DO_WHILE の中の参照の書き方、最初の回の未定義参照の扱い、SWITCH の書き方（5 節）。
-- Codex のアダプタが権限要求を都度出すか（6.2 節）。
-- タスクの記録に時間切れの種類と終端失敗の理由がどう入るか（7.3 節）。
-- 動的フォークに空の一覧を渡したときの挙動。雛形では分岐で避けている。
-- Conductor がワーカータスクの出力スキーマを検査するか。増分 1 ではラッパーが検査するので、どちらでも動く。
-- Codex の個人契約の認証情報をコンテナ内のアダプタから使えるか。
+増分 1 の実装で確認できたことは 5 節と 7.3 節に移した。残っているものと、増分 2 での扱い。
+
+- 応答時間切れは再試行をキューに入れるだけで、動いているランタイム（ACP の子プロセス）を止めない。リース延長が有効な限り、生きているが詰まったワーカーでは応答時間切れ自体が起きない。全体の時間切れ（`TIME_OUT_WF`）が唯一の歯止めで、それも子プロセスを孤児にする。増分 2 では、ラッパーが type の規則から期限を持ち、期限で `session/cancel` と子プロセスの終了を行う。tools の操作役には 600 秒の打ち切りが既にある。
+- ACP の `usage_update` はコンテキストの占有量と容量で、入出力トークン数ではない（[Python SDK 0.12.1 の schema](https://github.com/agentclientprotocol/python-sdk/blob/0.12.1/src/acp/schema.py)）。費用は ACP の通知から取れない。増分 2 では宣言の見積り値を費用として扱い、実測はベンダー側の記録を後で当てる。
+- 外向き通信の宛先制限は Docker のネットワーク分離だけでは掛からない。jev、Codex、Claude の実行器は許可した宛先以外にも到達できる。ミニ PC で閉じている間は受け入れ、制限はプロキシ等で後の増分に回す。
+- Conductor の入力スキーマの強制は、定義の登録が通ったことだけを確認した。合わない入力が拒否されることは試していない。ラッパーが同じ検査をするので動作には影響しない。増分 2 の e2e に、合わない入力で開始したときの挙動の確認を加える。
+- ラッパーの停止処理は、Conductor Python SDK の多重プロセスのワーカー機構と噛み合わず、中断後に旧ワーカーが再試行を受け取らないよう強制終了で回避している。次の抽選では、SDK のワーカー機構を使わず Conductor の poll と update の API を直接叩く単一プロセスのループに置き換える。
+- 写しは 3 秒間隔なので、それより短い状態遷移を取りこぼす。終わった仕事の記録を捨てないので長期運転で記録が増え続ける。増分 2 では最終取得を終えた仕事の記録を捨てる。取りこぼしは Java のリスナーに置き換える段階まで受け入れる。
+- Codex のアダプタが権限要求を都度出すか（6.2 節）。実 Codex を動かして確かめる。
+- Codex の個人契約の認証情報をコンテナ内のアダプタから使えるか。手順書に沿って人が確かめる。
 - ACP のアダプタが知らない通知を無視する点。ラッパーの `unknown` で拾えるのは、アダプタが通知として出したものだけ。
-- ミニ PC のメモリ。Conductor 一式（Java、Redis、Elasticsearch 1 GB）に OpenObserve と 4 コンテナが乗る。1 で計測してから 2 に進む。
+- ミニ PC のメモリ。開発 Mac の Docker Desktop での 1 回の計測では、Conductor 一式が約 1.65 GB（サーバ 760 MB、Elasticsearch 873 MB、Redis 12 MB）、OpenObserve が 350 MB、実行器 4 つと写しで約 980 MB、合計約 3 GB。ミニ PC での計測は未実施。
 - 写しの遅延と、Conductor の記録を二か所（Conductor と event stream）に持つこと。食い違いは event stream を正とし、Conductor はエンジンの状態として扱う。
