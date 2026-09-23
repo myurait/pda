@@ -13,10 +13,10 @@ import pytest
 
 from pda_wrapper.events import json_text
 from pda_wrapper.registry import Registry
-from tools.generate_defs import generate, register
+from tools.generate_defs import generate
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / "docs/reports/evidence/increment-2"
+EVIDENCE = ROOT / "docs/reports/evidence/increment-3"
 pytestmark = [
     pytest.mark.e2e,
     pytest.mark.skipif(
@@ -69,14 +69,19 @@ class Harness:
         self.definitions = generate(Registry(ROOT / "registry"))
         self.jobs: list[str] = []
         self.first: dict = {}
-        self.credentials = {}
-        for line in (ROOT / "deploy/.env").read_text().splitlines():
-            key, _, value = line.partition("=")
-            self.credentials[key] = value.strip().strip("\"'")
+        self.real_results: dict = {}
 
     def compose(self, *args: str) -> str:
         result = subprocess.run(
-            ["docker", "compose", "-f", "deploy/docker-compose.yaml", *args],
+            [
+                "docker",
+                "compose",
+                "-f",
+                "deploy/docker-compose.yaml",
+                "-f",
+                "tests/e2e/compose.yaml",
+                *args,
+            ],
             cwd=ROOT,
             env=self.env,
             text=True,
@@ -86,15 +91,30 @@ class Harness:
         assert result.returncode == 0, result.stdout + result.stderr
         return result.stdout
 
+    def register(self) -> None:
+        result = self.compose(
+            "run",
+            "--rm",
+            "--no-deps",
+            "exec-tools",
+            "python",
+            "/app/tools/generate_defs.py",
+            "--conductor",
+            "http://conductor-server:8080",
+            "--registry",
+            "/registry",
+        )
+        assert '"workflowDefs": 1' in result
+
     def workflow(self, job_id: str) -> dict:
         response = self.client.get(f"/api/workflow/{job_id}", params={"includeTasks": "true"})
         response.raise_for_status()
         return response.json()
 
-    def start(self) -> str:
+    def start(self, initial_input: str = "README を要約せよ") -> str:
         response = self.client.post(
             "/api/workflow",
-            json={"name": "pda_job", "version": 1, "input": {"initial_input": "README を要約せよ"}},
+            json={"name": "pda_job", "version": 1, "input": {"initial_input": initial_input}},
         )
         response.raise_for_status()
         job_id = response.text.strip('"')
@@ -128,6 +148,7 @@ class Harness:
 
     def events(self, job_id: str) -> list[dict]:
         destination = ROOT / "tmp/e2e-events.jsonl"
+        destination.parent.mkdir(exist_ok=True)
         self.compose("cp", "otel-collector:/var/lib/pda/events/events.jsonl", str(destination))
         events = []
         for line in destination.read_text().splitlines():
@@ -188,9 +209,9 @@ class Harness:
 def harness():
     h = Harness()
     try:
-        h.compose("up", "-d", "--build")
-        register(h.client, h.definitions)
-        register(h.client, h.definitions)
+        h.compose("up", "-d", "--no-build")
+        h.register()
+        h.register()
         save(
             "registration.json",
             {
@@ -226,6 +247,13 @@ def test_01_fixture_loop_and_input(harness) -> None:
         json_text(cells[ref]["outputData"]["payload"]) for ref in ["c1__1", "c2__1"]
     )
     assert cells["c1__2"]["inputData"]["input"] == expected
+    workdir = f"/work/jobs/{h.first['workflowId']}"
+    assert all(t["inputData"]["workdir"] == workdir for t in cells.values())
+    h.compose("exec", "-T", "exec-tools", "test", "-f", f"{workdir}/note.txt")
+    records = wait_for(lambda: h.events(h.first["workflowId"]))
+    commands = [r for r in records if r["body"] == "command.run"]
+    assert commands and commands[0]["attributes"]["pda.workdir"] == workdir
+    save("01-workdir.json", {"workdir": workdir, "note_exists": True})
 
 
 def test_02_event_stream_and_origin(harness) -> None:
@@ -272,6 +300,34 @@ def test_02_event_stream_and_origin(harness) -> None:
         if r["body"] == "engine.task" and r["attributes"]["pda.cell_id"].startswith("c")
     ]
     assert cells and all(r["attributes"]["pda.origin_cell"].startswith("judge__") for r in cells)
+    code = (
+        "import asyncio,os; from pda_wrapper.events import Events; "
+        "e=Events(os.environ['OTEL_EXPORTER_OTLP_ENDPOINT']); "
+        f"b=e.bind({job_id!r}, 'shutdown-probe', 'shutdown-probe', 'tools', 'verify.test'); "
+        "s=b.span(); b.emit('turn.end', **{'pda.stop_reason':'shutdown_probe'}); "
+        "s.end(); asyncio.run(e.close())"
+    )
+    h.compose("run", "--rm", "--no-deps", "exec-tools", "python", "-c", code)
+    wait_for(
+        lambda: any(r["attributes"]["pda.cell_id"] == "shutdown-probe" for r in h.events(job_id)),
+        20,
+    )
+    h.save_events("02-events.jsonl", job_id)
+    destination = ROOT / "tmp/e2e-traces.jsonl"
+    h.compose("cp", "otel-collector:/var/lib/pda/events/traces.jsonl", str(destination))
+    spans = []
+    for line in destination.read_text().splitlines():
+        packet = json.loads(line)
+        assert "resourceLogs" not in packet
+        for resource in packet.get("resourceSpans", []):
+            for scope in resource.get("scopeSpans", []):
+                spans.extend(
+                    span
+                    for span in scope.get("spans", [])
+                    if span["traceId"] == hashlib.sha256(job_id.encode()).hexdigest()[:32]
+                )
+    assert any(span["name"] == "shutdown-probe" for span in spans)
+    save("02-traces.jsonl", "\n".join(json_text(span) for span in spans))
 
 
 def test_03_openobserve_sql(harness) -> None:
@@ -289,16 +345,18 @@ def test_03_openobserve_sql(harness) -> None:
     }
 
     def check() -> dict | None:
-        response = httpx.post(
-            "http://localhost:5080/api/default/_search",
-            json=body,
-            auth=(h.credentials["ZO_ROOT_USER_EMAIL"], h.credentials["ZO_ROOT_USER_PASSWORD"]),
-            timeout=15,
+        code = (
+            "import os,json,urllib.request,base64; "
+            "auth=base64.b64encode((os.environ['ZO_ROOT_USER_EMAIL']+':'"
+            "+os.environ['ZO_ROOT_USER_PASSWORD']).encode()).decode(); "
+            "req=urllib.request.Request('http://openobserve:5080/api/default/_search',"
+            f"data={json.dumps(body).encode()!r},"
+            "headers={'Authorization':'Basic '+auth,'Content-Type':'application/json'}); "
+            "print(urllib.request.urlopen(req).read().decode())"
         )
-        if response.status_code != 200:
-            save("03-search-error.json", {"status": response.status_code, "body": response.text})
-            return None
-        value = response.json()
+        value = json.loads(
+            h.compose("run", "--rm", "--no-deps", "-T", "observe-query", "python", "-c", code)
+        )
         return value if value.get("hits") else None
 
     value = wait_for(check, 60)
@@ -401,6 +459,9 @@ def test_07_workflow_schema(harness) -> None:
 
 def test_08_stats_and_network_isolation(harness) -> None:
     h = harness
+    uid = h.compose("exec", "-T", "exec-fake-a", "id", "-u").strip()
+    assert uid == "1000"
+    save("08-uid.json", {"uid": int(uid)})
     ids = h.compose("ps", "-q").split()
     result = subprocess.run(
         ["docker", "stats", "--no-stream", *ids], text=True, capture_output=True, check=True
@@ -418,6 +479,172 @@ def test_08_stats_and_network_isolation(harness) -> None:
         "\nprint(json.dumps({'openobserve_reachable':reachable})); assert not reachable",
     )
     save("08-isolation.json", response)
-    ui_port = h.credentials.get("CONDUCTOR_UI_PORT", "5000")
+    ui_port = h.compose("port", "conductor-ui", "5000").strip().rsplit(":", 1)[1]
     assert httpx.get(f"http://localhost:{ui_port}/").status_code == 200
     assert httpx.get(f"http://localhost:{ui_port}/api/metadata/taskdefs").status_code == 200
+
+
+def test_09_add_executor_declaration(harness) -> None:
+    h = harness
+    path = ROOT / "registry/executors/fake-c.yaml"
+    assert not path.exists()
+    container = None
+    before = {t["name"]: t for t in h.client.get("/api/metadata/taskdefs").json()}
+    try:
+        path.write_text(
+            (ROOT / "registry/executors/fake-a.yaml")
+            .read_text()
+            .replace("executor_id: fake-a", "executor_id: fake-c")
+            .replace("name: 試験用エージェント A", "name: 試験用エージェント C")
+        )
+        h.register()
+        after = {t["name"]: t for t in h.client.get("/api/metadata/taskdefs").json()}
+        added = set(after) - set(before)
+        assert added == {
+            f"{name}.fake-c" for name in ["break-down", "implement", "review", "summarize"]
+        }
+        # Conductor updates registration timestamps even when the definition is identical.
+        metadata = {"createTime", "updateTime", "createdBy", "updatedBy"}
+        assert {
+            k: {a: b for a, b in v.items() if a not in metadata} for k, v in before.items()
+        } == {k: {a: b for a, b in after[k].items() if a not in metadata} for k in before}
+        h.env.update(PDA_FIXTURE_EXECUTOR="fake-c", PDA_FIXTURE_TYPE="implement")
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+        container = h.compose(
+            "run", "--rm", "-d", "-e", "PDA_EXECUTOR_ID=fake-c", "exec-fake-a"
+        ).strip()
+        job_id = h.start()
+        workflow = h.complete(job_id)
+        assert any(
+            t["taskDefName"] == "implement.fake-c" and t["status"] == "COMPLETED"
+            for t in workflow["tasks"]
+        )
+        h.excerpt("09-workflow.json", workflow)
+        h.save_events("09-events.jsonl", job_id)
+        save(
+            "09-definitions.json",
+            {
+                "added": sorted(added),
+                "existing_definitions_equal": True,
+                "excluded_metadata_fields": sorted(metadata),
+            },
+        )
+    finally:
+        if container:
+            subprocess.run(["docker", "stop", container], check=True, capture_output=True)
+        path.unlink(missing_ok=True)
+        for name in ["break-down", "implement", "review", "summarize"]:
+            response = h.client.delete(f"/api/metadata/taskdefs/{name}.fake-c")
+            assert response.status_code in (200, 204, 404)
+        h.env.update(PDA_FIXTURE_EXECUTOR="", PDA_FIXTURE_TYPE="")
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+
+
+REAL_INPUT = (
+    "作業ディレクトリに hello.py を作り、実行すると hello と表示するようにせよ。"
+    "作ったファイル名を報告せよ"
+)
+
+
+def run_real(h: Harness, executor: str, number: int) -> None:
+    service = f"exec-{executor}"
+    definition = next(t for t in h.definitions["taskDefs"] if t["name"] == f"implement.{executor}")
+    job_id = None
+    try:
+        # A failed authentication must not start additional paid attempts.
+        h.client.put(
+            "/api/metadata/taskdefs", json={**definition, "retryCount": 0}
+        ).raise_for_status()
+        h.env.update(PDA_FIXTURE_EXECUTOR=executor, PDA_FIXTURE_TYPE="implement")
+        h.compose("--profile", "real", "up", "-d", "--no-build", service)
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+        job_id = h.start(REAL_INPUT)
+        workflow = wait_for(
+            lambda: w if (w := h.workflow(job_id))["status"] != "RUNNING" else None, 660
+        )
+        h.excerpt(f"{number:02}-workflow.json", workflow)
+        wait_for(
+            lambda: any(
+                r["body"] in {"output.classified", "unknown"}
+                and r["attributes"]["pda.executor_id"] == executor
+                for r in h.events(job_id)
+            ),
+            20,
+        )
+        records = h.save_events(f"{number:02}-events.jsonl", job_id)
+        records = [r for r in records if r["attributes"]["pda.executor_id"] == executor]
+        task = next(t for t in workflow["tasks"] if t["taskDefName"] == f"implement.{executor}")
+        workdir = f"/work/jobs/{job_id}"
+        check = json.loads(
+            h.compose(
+                "exec",
+                "-T",
+                "exec-tools",
+                "python",
+                "-c",
+                f"import pathlib,json,subprocess; p=pathlib.Path({workdir!r})/'hello.py'; "
+                "print(json.dumps({'exists':p.is_file(), 'output':"
+                "subprocess.check_output(['python',str(p)],text=True).strip() "
+                "if p.is_file() else None}))",
+            )
+        )
+        result = {
+            "executor": executor,
+            "job_id": job_id,
+            "status": workflow["status"],
+            "task_status": task["status"],
+            "workdir": workdir,
+            "file": check,
+            "agent_mode": [
+                r["attributes"].get("pda.agent_mode")
+                for r in records
+                if r["body"] == "job.received"
+            ],
+            "permission_requests": sum(r["body"] == "permission.request" for r in records),
+            "stop_reasons": [
+                r["attributes"].get("pda.stop_reason") for r in records if r["body"] == "turn.end"
+            ],
+            "event_kinds": sorted({r["body"] for r in records}),
+            "task_fields": sorted(task),
+            "input_fields": sorted(task["inputData"]),
+            "output_fields": sorted(task["outputData"]),
+            "meta_fields": sorted(task["outputData"].get("meta", {})),
+        }
+        save(f"{number:02}-result.json", result)
+        h.real_results[executor] = result
+        assert workflow["status"] == "COMPLETED", result
+        assert check == {"exists": True, "output": "hello"}
+    finally:
+        if job_id and h.workflow(job_id)["status"] == "RUNNING":
+            h.client.delete(f"/api/workflow/{job_id}").raise_for_status()
+        h.client.put("/api/metadata/taskdefs", json=definition).raise_for_status()
+        h.compose("stop", service)
+        h.env.update(PDA_FIXTURE_EXECUTOR="", PDA_FIXTURE_TYPE="")
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+
+
+def test_10_real_codex(harness) -> None:
+    run_real(harness, "codex-personal", 10)
+
+
+def test_11_real_claude(harness) -> None:
+    run_real(harness, "claude-personal", 11)
+
+
+def test_12_compare_executors(harness) -> None:
+    results = harness.real_results
+    assert set(results) == {"codex-personal", "claude-personal"}
+    codex, claude = results["codex-personal"], results["claude-personal"]
+    comparison = {}
+    for field in ["event_kinds", "task_fields", "input_fields", "output_fields", "meta_fields"]:
+        comparison[field] = {
+            "codex_only": sorted(set(codex[field]) - set(claude[field])),
+            "claude_only": sorted(set(claude[field]) - set(codex[field])),
+        }
+    save("12-comparison.json", comparison)
+    assert codex["status"] == claude["status"] == "COMPLETED"
+    assert all(
+        not comparison[field][side]
+        for field in ["task_fields", "input_fields", "output_fields", "meta_fields"]
+        for side in ["codex_only", "claude_only"]
+    )

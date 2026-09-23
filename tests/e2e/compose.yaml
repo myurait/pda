@@ -1,0 +1,8 @@
+services:
+  observe-query:
+    image: pda-executor:increment-3
+    profiles: [e2e-query]
+    environment:
+      ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}
+      ZO_ROOT_USER_PASSWORD: ${ZO_ROOT_USER_PASSWORD:?set in deploy/.env}
+    networks: [telemetry]
