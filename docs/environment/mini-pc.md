@@ -42,11 +42,12 @@
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
 - ユーザー単位の常駐は `tailscale-pda.service` だけ。独自の定期実行（cron、ユーザーのタイマー）は無い。
-- コンテナは v0.2 のものだけ。`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda-increment-2`。
+- コンテナは v0.2 のものだけ。`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda`（2026-09-23 に `pda-increment-2` から改めた）。
 - 待ち受けるポートは次のとおり。
   - 22: SSH
   - 5000: Conductor UI（v0.2 の構成を立てているとき）
   - 5080: OpenObserve（同上）
+  - 5081: 可視化の画面 `pda-view`（同上。認証なし）
   - 8080: Conductor API（同上）
   - 44105: Tailscale の通信
   - `127.0.0.1:22037`: 逆向きの SSH トンネル
