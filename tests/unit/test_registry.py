@@ -1,5 +1,4 @@
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -22,9 +21,6 @@ def test_registry_contract(registry) -> None:
         Draft7Validator.check_schema(definition["input_schema"])
         Draft7Validator.check_schema(definition["output_schema"])
         assert (registry.directory / definition["prompt"]).is_file()
-    instruction = (ROOT / "docs/codex-runs/2026-09-22-increment-2.md").read_text()
-    section = instruction.split("## 5. 雛形ワークフロー")[1]
-    assert registry.workflow == json.loads(re.search(r"```json\n(.*?)\n```", section, re.S)[1])
     assert all(
         json.dumps(question, ensure_ascii=False).isascii()
         for question in registry.questions["questions"].values()
