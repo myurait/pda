@@ -292,3 +292,57 @@ def test_probe_sources(registry, tmp_path, monkeypatch, from_file) -> None:
     assert result["answers"] == registry.fixture[0]["answers"]
     assert result["elapsed_ms"] >= 0
     assert sum(req.url.host == "api.typesafe.ai" for req in requests) == 1
+
+
+def test_search_query_fallback() -> None:
+    queries = []
+
+    def request(req) -> httpx.Response:
+        if req.url.path.endswith("/search"):
+            queries.append(req.url.params["query"])
+            if len(queries) == 1:
+                return httpx.Response(400)
+            return httpx.Response(200, json={"results": []})
+        return httpx.Response(200, json=[])
+
+    with httpx.Client(base_url="http://c", transport=httpx.MockTransport(request)) as client:
+        assert View(client, client, "pda_events").jobs() == []
+    assert queries == ["workflowType='pda_job'", "workflowType IN (pda_job)"]
+
+
+def test_fixture_state_is_observable(registry, events, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("JEV_MODE", "fixture")
+    monkeypatch.delenv("PDA_FIXTURE_EXECUTOR", raising=False)
+    monkeypatch.delenv("PDA_MAX_ROUNDS", raising=False)
+    monkeypatch.setattr(jev.time, "time", lambda: 100)
+    rows = [
+        {
+            "queueName": f"{declaration['types'][0]}.{executor}",
+            "workerId": executor,
+            "lastPollTime": 100000,
+        }
+        for executor, declaration in registry.executors.items()
+        if executor in ["fake-a", "fake-b", "jev", "tools"]
+    ]
+
+    async def scenario() -> None:
+        async with httpx.AsyncClient(
+            base_url="http://c",
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(200, json=rows if "polldata" in req.url.path else {})
+            ),
+        ) as client:
+            await jev.run(
+                registry,
+                {"job_id": "j", "initial_input": "x"},
+                client,
+                events.bind("j", "t", "judge", "jev", "judge"),
+            )
+
+    asyncio.run(scenario())
+    records = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    state = next(r for r in records if r["attributes"].get("pda.input_kind") == "judge_state")
+    assert state["body"] == "input.assembled"
+    assert state["attributes"]["pda.available_executors"] == ["fake-a", "fake-b", "jev", "tools"]
+    assert state["attributes"]["pda.previous_outputs"] == 0
+    assert not any(r["body"] == "unknown" for r in records)

@@ -50,9 +50,13 @@ def valid_polldata(value: object) -> bool:
 
 async def available_executors(client: httpx.AsyncClient, registry: Registry) -> list[str]:
     response = await client.get("/api/tasks/queue/polldata/all")
-    rows = response.json() if response.status_code != 404 else None
+    rows = None
     if response.status_code != 404:
         response.raise_for_status()
+        try:
+            rows = response.json()
+        except ValueError:
+            pass
     if not valid_polldata(rows):
         rows = []
         for executor, declaration in registry.executors.items():
@@ -204,8 +208,9 @@ async def run(
     state["context"] = data.get("context") or {}
     state["available_executors"] = await available_executors(conductor, registry)
     events.emit(
-        "judge.state",
+        "input.assembled",
         **{
+            "pda.input_kind": "judge_state",
             "pda.rounds": rounds,
             "pda.previous_outputs": len(outputs),
             "pda.available_executors": state["available_executors"],

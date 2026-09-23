@@ -114,7 +114,7 @@ class View:
             json={
                 "query": {
                     "sql": sql,
-                    "start_time": 0,
+                    "start_time": 1,
                     "end_time": int(time.time() * 1000000),
                     "from": 0,
                     "size": 1000,
@@ -132,6 +132,10 @@ class View:
             }
             for row in response.json()["hits"]
         ]
+
+
+class RouteNotFound(Exception):
+    pass
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -163,13 +167,13 @@ class Handler(BaseHTTPRequestHandler):
                     elif parts[3] == "events":
                         data = self.view.events(job_id, parse_qs(url.query).get("cell", [None])[0])
                     else:
-                        raise LookupError
+                        raise RouteNotFound
                 else:
-                    raise LookupError
+                    raise RouteNotFound
                 body = json.dumps(data, ensure_ascii=False).encode()
-        except LookupError:
+        except RouteNotFound:
             status, body = 404, b'{"reason":"not_found"}'
-        except (httpx.HTTPError, ValueError, TypeError) as exc:
+        except (httpx.HTTPError, ValueError, TypeError, KeyError) as exc:
             status = 502
             body = json.dumps({"reason": f"upstream_error: {type(exc).__name__}"}).encode()
         self.send_response(status)

@@ -38,6 +38,12 @@ TASK_FIELDS = [
 ]
 
 
+def otlp_value(value: dict) -> Any:
+    if "arrayValue" in value:
+        return [otlp_value(item) for item in value["arrayValue"].get("values", [])]
+    return next(iter(value.values()), None)
+
+
 def save(name: str, value: Any) -> None:
     EVIDENCE.mkdir(parents=True, exist_ok=True)
     path = EVIDENCE / name
@@ -172,7 +178,7 @@ class Harness:
                 for scope in resource.get("scopeLogs", []):
                     for record in scope.get("logRecords", []):
                         attributes = {
-                            item["key"]: next(iter(item["value"].values()), None)
+                            item["key"]: otlp_value(item["value"])
                             for item in record.get("attributes", [])
                         }
                         if attributes.get("pda.job_id") == job_id:
@@ -697,6 +703,14 @@ def test_13_live_jev(harness) -> None:
             lambda: w if (w := h.workflow(job_id))["status"] != "RUNNING" else None, 1500
         )
         h.excerpt("13-workflow.json", workflow)
+        wait_for(
+            lambda: any(
+                r["body"] == "engine.workflow"
+                and r["attributes"]["pda.status"] == workflow["status"]
+                for r in h.events(job_id)
+            ),
+            30,
+        )
         records = h.save_events("13-events.jsonl", job_id)
         judges = [t for t in workflow["tasks"] if t["taskDefName"] == "judge.jev"]
         cells = [t for t in workflow["tasks"] if t["referenceTaskName"].startswith("c")]
@@ -705,7 +719,11 @@ def test_13_live_jev(harness) -> None:
             {
                 "job_id": job_id,
                 "status": workflow["status"],
-                "states": [r["attributes"] for r in records if r["body"] == "judge.state"],
+                "states": [
+                    r["attributes"]
+                    for r in records
+                    if r["attributes"].get("pda.input_kind") == "judge_state"
+                ],
                 "answers": [r["attributes"] for r in records if r["body"] == "judge.answer"],
                 "cells": [
                     {
@@ -713,9 +731,12 @@ def test_13_live_jev(harness) -> None:
                         "name": t["taskDefName"],
                         "status": t["status"],
                         "kind": t["outputData"].get("kind"),
-                        "json_output": not (
-                            isinstance(t["outputData"].get("payload"), dict)
+                        "json_output": (
+                            None
+                            if t["outputData"].get("kind") == "result"
+                            and isinstance(t["outputData"].get("payload"), dict)
                             and set(t["outputData"]["payload"]) == {"text"}
+                            else bool(t["outputData"])
                         ),
                     }
                     for t in cells
@@ -751,6 +772,9 @@ def test_13_live_jev(harness) -> None:
             and r["attributes"].get("pda.question_id") == "is_complete"
         ]
         assert 1 <= len(actual) <= 2
+        states = [r for r in records if r["attributes"].get("pda.input_kind") == "judge_state"]
+        assert len(states) == len(actual)
+        assert all(r["attributes"]["pda.available_executors"] for r in states)
         for record in actual:
             cell = record["attributes"]["pda.cell_id"]
             answers = [
@@ -761,6 +785,12 @@ def test_13_live_jev(harness) -> None:
             assert {"is_complete", "next_type", "executor", "cell_count"} <= {
                 a["pda.question_id"] for a in answers
             }
+            assert all(
+                "pda.confidence" in a
+                for a in answers
+                if a["pda.question_id"] != "is_complete"
+                and not a["pda.answer"].startswith(("substituted:", "finish:"))
+            )
     finally:
         if job_id and h.workflow(job_id)["status"] == "RUNNING":
             h.client.delete(f"/api/workflow/{job_id}").raise_for_status()
@@ -773,7 +803,7 @@ def test_13_live_jev(harness) -> None:
 
 def test_14_view(harness) -> None:
     h = harness
-    job_id = h.first["workflowId"]
+    job_id = (h.first or json.loads((EVIDENCE / "01-workflow.json").read_text()))["workflowId"]
     with httpx.Client(base_url="http://localhost:5081", timeout=30) as client:
 
         def jobs_ready() -> list[dict] | None:
