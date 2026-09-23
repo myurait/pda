@@ -165,7 +165,8 @@ def test_tools_exit_and_workdir(events, tmp_path, exit_code) -> None:
     result = asyncio.run(
         tools.run(
             command,
-            events.bind("j", "t", "c", "tools", "verify.test"), str(tmp_path),
+            events.bind("j", "t", "c", "tools", "verify.test"),
+            str(tmp_path),
         )
     )
     payload = json.loads(result.text)["payload"]
@@ -198,3 +199,37 @@ def test_tools_deadline_kills_process(events, tmp_path) -> None:
     assert time.monotonic() - started < 4
     with pytest.raises(ProcessLookupError):
         os.kill(int(pidfile.read_text()), 0)
+
+
+def test_acp_stops_launcher_descendants(registry, events, tmp_path) -> None:
+    declaration = registry.executors["fake-a"]
+    pidfile = tmp_path / "child.pid"
+    declaration["adapter"]["command"] = [
+        sys.executable,
+        "-c",
+        "import subprocess,sys,pathlib; "
+        "p=subprocess.Popen([sys.executable,'-m','pda_fake_agent']); "
+        f"pathlib.Path({str(pidfile)!r}).write_text(str(p.pid)); p.wait()",
+    ]
+
+    async def scenario() -> None:
+        output = await asyncio.wait_for(
+            acp.run(
+                declaration,
+                "hello",
+                events.bind("j", "t", "c", "fake-a", "implement"),
+                str(tmp_path),
+            ),
+            5,
+        )
+        assert output.stop_reason == "end_turn"
+
+    asyncio.run(scenario())
+    child = int(pidfile.read_text())
+    try:
+        from pathlib import Path
+
+        status = Path(f"/proc/{child}/status").read_text()
+    except FileNotFoundError:
+        return
+    assert "State:\tZ" in status

@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import os
+import signal
 from collections import deque
 from typing import Any
 
@@ -114,15 +115,15 @@ async def _stderr(process: asyncio.subprocess.Process, tail: deque) -> None:
 
 
 async def _terminate(process: asyncio.subprocess.Process) -> None:
-    if process.returncode is None:
-        with contextlib.suppress(ProcessLookupError):
-            process.terminate()
-        try:
-            await asyncio.wait_for(process.wait(), 2)
-        except TimeoutError:
-            with contextlib.suppress(ProcessLookupError):
-                process.kill()
-            await process.wait()
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGTERM)
+    try:
+        await asyncio.wait_for(process.wait(), 2)
+    except TimeoutError:
+        pass
+    with contextlib.suppress(ProcessLookupError):
+        os.killpg(process.pid, signal.SIGKILL)
+    await process.wait()
 
 
 async def run(
@@ -134,7 +135,12 @@ async def run(
     tail: deque[str] = deque(maxlen=20)
     try:
         async with acp.spawn_agent_process(
-            client, *command, env=env, cwd=workdir, observers=[client.observe]
+            client,
+            "setsid",
+            *command,
+            env=env,
+            cwd=workdir,
+            observers=[client.observe],
         ) as (conn, process):
             reader = asyncio.create_task(_stderr(process, tail))
             session_id = None
