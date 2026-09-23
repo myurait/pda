@@ -1,0 +1,58 @@
+{
+  "state_summary": {
+    "rounds": 1,
+    "previous_outputs": 1,
+    "available_executors": [
+      "claude-personal",
+      "codex-personal",
+      "fake-a",
+      "fake-b",
+      "jev",
+      "tools"
+    ]
+  },
+  "answers": {
+    "is_complete": {
+      "type": "noul",
+      "noul": 0.9
+    },
+    "next_type": {
+      "type": "choice",
+      "choice": "none",
+      "confidence": 0.56,
+      "probabilities": {
+        "summarize": 0.19,
+        "break-down": 0.0,
+        "verify.lint": 0.01,
+        "none": 0.63,
+        "review": 0.06,
+        "verify.test": 0.11,
+        "implement": 0.0
+      }
+    },
+    "executor": {
+      "type": "choice",
+      "choice": "claude-personal",
+      "confidence": 0.69,
+      "probabilities": {
+        "fake-b": 0.01,
+        "codex-personal": 0.02,
+        "fake-a": 0.03,
+        "tools": 0.12,
+        "jev": 0.08,
+        "claude-personal": 0.74
+      }
+    },
+    "cell_count": {
+      "type": "choice",
+      "choice": "1",
+      "confidence": 0.92,
+      "probabilities": {
+        "1": 0.95,
+        "3": 0.01,
+        "2": 0.04
+      }
+    }
+  },
+  "elapsed_ms": 304
+}

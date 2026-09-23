@@ -684,7 +684,11 @@ def test_13_live_jev(harness) -> None:
                 "/api/metadata/taskdefs", json={**definition, "retryCount": 0}
             ).raise_for_status()
         h.env.update(
-            JEV_MODE="live", PDA_MAX_ROUNDS="2", PDA_FIXTURE_EXECUTOR="", PDA_FIXTURE_TYPE=""
+            JEV_MODE="live",
+            PDA_MAX_ROUNDS="2",
+            PDA_FIXTURE_EXECUTOR="",
+            PDA_FIXTURE_TYPE="",
+            FAKE_B_MODE="echo",
         )
         h.compose(
             "--profile",
@@ -695,6 +699,7 @@ def test_13_live_jev(harness) -> None:
             "exec-codex-personal",
             "exec-claude-personal",
         )
+        h.compose("up", "-d", "--no-build", "exec-fake-b")
         for executor in ["codex-personal", "claude-personal"]:
             h.wait_executor(executor)
         h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
@@ -771,7 +776,7 @@ def test_13_live_jev(harness) -> None:
             if r["body"] == "judge.answer"
             and r["attributes"].get("pda.question_id") == "is_complete"
         ]
-        assert 1 <= len(actual) <= 2
+        assert len(actual) == min(2, len(judges))
         states = [r for r in records if r["attributes"].get("pda.input_kind") == "judge_state"]
         assert len(states) == len(actual)
         assert all(r["attributes"]["pda.available_executors"] for r in states)
