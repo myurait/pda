@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import time
 
 import httpx
 import pytest
@@ -53,7 +54,11 @@ def test_fixture_rounds(registry, events, monkeypatch, rounds) -> None:
     async def scenario() -> dict:
         async with httpx.AsyncClient(
             base_url="http://conductor",
-            transport=httpx.MockTransport(lambda req: httpx.Response(200, json=history(rounds))),
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(
+                    200, json=polls(registry) if "polldata" in req.url.path else history(rounds)
+                )
+            ),
         ) as client:
             result = await jev.run(
                 registry,
@@ -135,7 +140,11 @@ def test_jev_request_contract(registry, events, monkeypatch) -> None:
         async with httpx.AsyncClient(transport=httpx.MockTransport(request)) as api:
             async with httpx.AsyncClient(
                 base_url="http://conductor",
-                transport=httpx.MockTransport(lambda req: httpx.Response(200, json=history(0))),
+                transport=httpx.MockTransport(
+                    lambda req: httpx.Response(
+                        200, json=polls(registry) if "polldata" in req.url.path else history(0)
+                    )
+                ),
             ) as conductor:
                 result = await jev.run(
                     registry,
@@ -156,7 +165,11 @@ def test_empty_cells_finish(registry, events, monkeypatch, capsys) -> None:
     async def scenario() -> None:
         async with httpx.AsyncClient(
             base_url="http://c",
-            transport=httpx.MockTransport(lambda req: httpx.Response(200, json=history(0))),
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(
+                    200, json=polls(registry) if "polldata" in req.url.path else history(0)
+                )
+            ),
         ) as client:
             result = await jev.run(
                 registry,
@@ -223,3 +236,15 @@ def test_origin_requires_matching_fork_and_judge() -> None:
     assert origin_cell(task, workflow) == "judge__1"
     workflow["tasks"][0]["outputData"]["payload"]["dynamicTasks"] = []
     assert origin_cell(task, workflow) is None
+
+
+def polls(registry) -> list[dict]:
+    return [
+        {
+            "queueName": f"{name}.{executor}",
+            "workerId": executor,
+            "lastPollTime": time.time() * 1000,
+        }
+        for executor, declaration in registry.executors.items()
+        for name in declaration["types"]
+    ]

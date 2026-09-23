@@ -33,6 +33,8 @@ class AcpClient(acp.Client):
 
     def update(self, update: dict) -> None:
         kind = update.get("sessionUpdate")
+        if kind in {"available_commands_update", "session_info_update"}:
+            return
         if kind in {"agent_message_chunk", "agent_thought_chunk"}:
             content = update.get("content", {})
             if content.get("type") != "text":

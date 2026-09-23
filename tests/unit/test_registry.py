@@ -79,9 +79,9 @@ def test_dry_run_without_server() -> None:
 
 def test_compose_networks_and_ports() -> None:
     compose = yaml.safe_load((ROOT / "deploy/docker-compose.yaml").read_text())
-    assert compose["name"] == "pda-increment-2"
+    assert compose["name"] == "pda"
     published = {name for name, service in compose["services"].items() if service.get("ports")}
-    assert published == {"conductor-server", "conductor-ui", "openobserve"}
+    assert published == {"conductor-server", "conductor-ui", "openobserve", "pda-view"}
     for name, service in compose["services"].items():
         if not name.startswith("exec-"):
             continue

@@ -16,7 +16,7 @@ from pda_wrapper.registry import Registry
 from tools.generate_defs import generate
 
 ROOT = Path(__file__).resolve().parents[2]
-EVIDENCE = ROOT / "docs/reports/evidence/increment-3"
+EVIDENCE = ROOT / "docs/reports/evidence/increment-4"
 pytestmark = [
     pytest.mark.e2e,
     pytest.mark.skipif(
@@ -64,6 +64,7 @@ class Harness:
             "PDA_FIXTURE_EXECUTOR": "",
             "PDA_FIXTURE_TYPE": "",
             "FAKE_B_MODE": "echo",
+            "PDA_MAX_ROUNDS": "",
         }
         self.client = httpx.Client(base_url="http://localhost:8080", timeout=10)
         self.definitions = generate(Registry(ROOT / "registry"))
@@ -111,7 +112,20 @@ class Harness:
         response.raise_for_status()
         return response.json()
 
+    def wait_executor(self, executor: str) -> None:
+        import asyncio
+
+        from pda_wrapper.drivers.jev import available_executors
+
+        async def check() -> bool:
+            async with httpx.AsyncClient(base_url="http://localhost:8080") as client:
+                return executor in await available_executors(client, Registry(ROOT / "registry"))
+
+        wait_for(lambda: asyncio.run(check()))
+
     def start(self, initial_input: str = "README を要約せよ") -> str:
+        if executor := self.env.get("PDA_FIXTURE_EXECUTOR"):
+            self.wait_executor(executor)
         response = self.client.post(
             "/api/workflow",
             json={"name": "pda_job", "version": 1, "input": {"initial_input": initial_input}},
@@ -138,7 +152,8 @@ class Harness:
 
     def excerpt(self, name: str, workflow: dict) -> None:
         value = {
-            key: workflow.get(key) for key in ("workflowId", "status", "reasonForIncompletion")
+            key: workflow.get(key)
+            for key in ("workflowId", "status", "reasonForIncompletion", "input")
         }
         tasks = [{key: task.get(key) for key in TASK_FIELDS} for task in workflow["tasks"]]
         text = json_text(value)[:-1] + ', "tasks": [\n'
@@ -211,6 +226,8 @@ def harness():
     try:
         h.compose("up", "-d", "--no-build")
         h.register()
+        for executor in ["fake-a", "fake-b", "tools", "jev"]:
+            h.wait_executor(executor)
         h.register()
         save(
             "registration.json",
@@ -648,3 +665,161 @@ def test_12_compare_executors(harness) -> None:
         for field in ["task_fields", "input_fields", "output_fields", "meta_fields"]
         for side in ["codex_only", "claude_only"]
     )
+
+
+def test_13_live_jev(harness) -> None:
+    from jsonschema import Draft7Validator
+
+    h = harness
+    job_id = None
+    try:
+        for definition in h.definitions["taskDefs"]:
+            h.client.put(
+                "/api/metadata/taskdefs", json={**definition, "retryCount": 0}
+            ).raise_for_status()
+        h.env.update(
+            JEV_MODE="live", PDA_MAX_ROUNDS="2", PDA_FIXTURE_EXECUTOR="", PDA_FIXTURE_TYPE=""
+        )
+        h.compose(
+            "--profile",
+            "real",
+            "up",
+            "-d",
+            "--no-build",
+            "exec-codex-personal",
+            "exec-claude-personal",
+        )
+        for executor in ["codex-personal", "claude-personal"]:
+            h.wait_executor(executor)
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+        job_id = h.start(REAL_INPUT)
+        workflow = wait_for(
+            lambda: w if (w := h.workflow(job_id))["status"] != "RUNNING" else None, 1500
+        )
+        h.excerpt("13-workflow.json", workflow)
+        records = h.save_events("13-events.jsonl", job_id)
+        judges = [t for t in workflow["tasks"] if t["taskDefName"] == "judge.jev"]
+        cells = [t for t in workflow["tasks"] if t["referenceTaskName"].startswith("c")]
+        save(
+            "13-summary.json",
+            {
+                "job_id": job_id,
+                "status": workflow["status"],
+                "states": [r["attributes"] for r in records if r["body"] == "judge.state"],
+                "answers": [r["attributes"] for r in records if r["body"] == "judge.answer"],
+                "cells": [
+                    {
+                        "ref": t["referenceTaskName"],
+                        "name": t["taskDefName"],
+                        "status": t["status"],
+                        "kind": t["outputData"].get("kind"),
+                        "json_output": not (
+                            isinstance(t["outputData"].get("payload"), dict)
+                            and set(t["outputData"]["payload"]) == {"text"}
+                        ),
+                    }
+                    for t in cells
+                ],
+            },
+        )
+        result = subprocess.run(
+            [
+                str(ROOT / ".venv/bin/python"),
+                "tools/judge_probe.py",
+                "--job-id",
+                job_id,
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            timeout=150,
+        )
+        assert result.returncode == 0, result.stderr
+        save("13-probe.json", json.loads(result.stdout))
+        assert workflow["status"] in {"COMPLETED", "FAILED"}
+        assert len(cells) <= 6 and all(t["retryCount"] == 0 for t in cells + judges)
+        assert len({t["referenceTaskName"].rsplit("__", 1)[-1] for t in cells}) <= 2
+        for judge in judges:
+            assert judge["status"] == "COMPLETED"
+            Draft7Validator(Registry(ROOT / "registry").types["judge"]["output_schema"]).validate(
+                judge["outputData"]
+            )
+        actual = [
+            r
+            for r in records
+            if r["body"] == "judge.answer"
+            and r["attributes"].get("pda.question_id") == "is_complete"
+        ]
+        assert 1 <= len(actual) <= 2
+        for record in actual:
+            cell = record["attributes"]["pda.cell_id"]
+            answers = [
+                r["attributes"]
+                for r in records
+                if r["body"] == "judge.answer" and r["attributes"]["pda.cell_id"] == cell
+            ]
+            assert {"is_complete", "next_type", "executor", "cell_count"} <= {
+                a["pda.question_id"] for a in answers
+            }
+    finally:
+        if job_id and h.workflow(job_id)["status"] == "RUNNING":
+            h.client.delete(f"/api/workflow/{job_id}").raise_for_status()
+        for definition in h.definitions["taskDefs"]:
+            h.client.put("/api/metadata/taskdefs", json=definition).raise_for_status()
+        h.env.update(JEV_MODE="fixture", PDA_MAX_ROUNDS="")
+        h.compose("up", "-d", "--no-build", "--force-recreate", "exec-jev")
+        h.compose("--profile", "real", "stop", "exec-codex-personal", "exec-claude-personal")
+
+
+def test_14_view(harness) -> None:
+    h = harness
+    job_id = h.first["workflowId"]
+    with httpx.Client(base_url="http://localhost:5081", timeout=30) as client:
+
+        def jobs_ready() -> list[dict] | None:
+            response = client.get("/api/jobs")
+            response.raise_for_status()
+            jobs = response.json()
+            return jobs if any(j["job_id"] == job_id for j in jobs) else None
+
+        jobs = wait_for(jobs_ready)
+        detail = client.get(f"/api/jobs/{job_id}").json()
+        expected = sorted(
+            [
+                t
+                for t in h.workflow(job_id)["tasks"]
+                if t["referenceTaskName"].startswith(("c", "judge"))
+            ],
+            key=lambda t: t["seq"],
+        )
+        assert [(t["ref"], t["status"]) for t in detail["cells"]] == [
+            (t["referenceTaskName"], t["status"]) for t in expected
+        ]
+        count = len((EVIDENCE / "02-events.jsonl").read_text().splitlines())
+        events = wait_for(
+            lambda: (
+                rows
+                if len(rows := client.get(f"/api/jobs/{job_id}/events").json()) >= count
+                else None
+            )
+        )
+        filtered = client.get(f"/api/jobs/{job_id}/events?cell=judge__1").json()
+        assert filtered and all(row["cell"] == "judge__1" for row in filtered)
+        for name, value in [("jobs", jobs), ("detail", detail), ("events", events)]:
+            save(
+                f"14-{name}.json",
+                "\n".join(json.dumps(value, ensure_ascii=False, indent=2).splitlines()[:50]),
+            )
+        save(
+            "14-checks.json",
+            {
+                "job_id": job_id,
+                "events": len(events),
+                "e2e_02_events": count,
+                "judge_events": len(filtered),
+                "cells_match": True,
+            },
+        )
+        assert "<html" in client.get("/").text
+        for path in ["/", "/static/app.js", "/static/app.css"]:
+            assert client.get(path).status_code == 200

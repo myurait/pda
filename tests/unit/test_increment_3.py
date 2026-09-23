@@ -129,7 +129,11 @@ def test_round_limit_fixture(registry, events, monkeypatch, capsys) -> None:
     async def scenario() -> None:
         async with httpx.AsyncClient(
             base_url="http://c",
-            transport=httpx.MockTransport(lambda req: httpx.Response(200, json={"tasks": tasks})),
+            transport=httpx.MockTransport(
+                lambda req: httpx.Response(
+                    200, json=polls(registry) if "polldata" in req.url.path else {"tasks": tasks}
+                )
+            ),
         ) as client:
             for rounds in range(11):
                 output = await jev.run(
@@ -184,3 +188,15 @@ def test_flush_before_result_delivery(registry, task, events, monkeypatch) -> No
 
     asyncio.run(scenario())
     assert order == ["flush", "deliver"]
+
+
+def polls(registry) -> list[dict]:
+    return [
+        {
+            "queueName": f"{name}.{executor}",
+            "workerId": executor,
+            "lastPollTime": time.time() * 1000,
+        }
+        for executor, declaration in registry.executors.items()
+        for name in declaration["types"]
+    ]

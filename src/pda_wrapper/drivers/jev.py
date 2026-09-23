@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+import time
 from pathlib import Path
 
 import httpx
@@ -23,6 +24,113 @@ def api_key(path: Path = Path("/secrets/typesafe_credentials")) -> str:
             if name.strip() == "API_KEY":
                 return value.strip().strip("\"'")
     raise RuntimeFailure("jev_missing_api_key")
+
+
+def build_state(workflow: dict, registry: Registry, initial_input: str | None = None) -> dict:
+    _, outputs = previous_outputs(workflow)
+    data = workflow.get("input", {})
+    return {
+        "initial_input": data.get("initial_input", "") if initial_input is None else initial_input,
+        "context": data.get("context") or {},
+        "previous_outputs": outputs,
+        "executors": list(registry.executors.values()),
+        "types": list(registry.types),
+    }
+
+
+def valid_polldata(value: object) -> bool:
+    return isinstance(value, list) and all(
+        isinstance(row, dict)
+        and isinstance(row.get("queueName"), str)
+        and isinstance(row.get("workerId"), str)
+        and isinstance(row.get("lastPollTime"), (int, float))
+        for row in value
+    )
+
+
+async def available_executors(client: httpx.AsyncClient, registry: Registry) -> list[str]:
+    response = await client.get("/api/tasks/queue/polldata/all")
+    rows = response.json() if response.status_code != 404 else None
+    if response.status_code != 404:
+        response.raise_for_status()
+    if not valid_polldata(rows):
+        rows = []
+        for executor, declaration in registry.executors.items():
+            for type_name in declaration["types"]:
+                result = await client.get(
+                    "/api/tasks/queue/polldata", params={"taskType": f"{type_name}.{executor}"}
+                )
+                result.raise_for_status()
+                records = result.json()
+                if not valid_polldata(records):
+                    raise RuntimeFailure("invalid_polldata")
+                rows.extend(records)
+    now = time.time() * 1000
+    queues = {
+        row["queueName"]
+        for row in rows
+        if row["workerId"] and 0 <= now - row["lastPollTime"] <= 60000
+    }
+    return [
+        executor
+        for executor, declaration in registry.executors.items()
+        if any(f"{name}.{executor}" in queues for name in declaration["types"])
+    ]
+
+
+async def live_answers(
+    state: dict,
+    registry: Registry,
+    client: httpx.AsyncClient,
+    credentials: Path = Path("/secrets/typesafe_credentials"),
+) -> dict:
+    response = await client.post(
+        ENDPOINT,
+        json={
+            "state": state,
+            "model": registry.questions["model"],
+            "questions": registry.questions["questions"],
+        },
+        headers={
+            "Authorization": f"Bearer {api_key(credentials)}",
+            "Content-Type": "application/json",
+        },
+    )
+    response.raise_for_status()
+    return response.json()["answers"]
+
+
+def substitute(
+    cells: list[dict],
+    available: list[str],
+    registry: Registry,
+    events: TaskEvents,
+) -> tuple[list[dict], bool]:
+    cells = copy.deepcopy(cells)
+    for cell in cells:
+        original = cell["executor"]
+        candidates = [
+            executor
+            for executor, declaration in registry.executors.items()
+            if executor in available and cell["type"] in declaration["types"]
+        ]
+        if original in candidates:
+            continue
+        if not candidates:
+            events.emit(
+                "judge.answer",
+                **{"pda.question_id": "next_type", "pda.answer": "finish:no_available_executor"},
+            )
+            return [], True
+        cell["executor"] = candidates[0]
+        events.emit(
+            "judge.answer",
+            **{
+                "pda.question_id": "executor",
+                "pda.answer": f"substituted:{original}->{candidates[0]}",
+            },
+        )
+    return cells, False
 
 
 def fixture(registry: Registry, rounds: int) -> dict:
@@ -80,7 +188,9 @@ async def run(
     )
     response.raise_for_status()
     rounds, outputs = previous_outputs(response.json())
-    if rounds >= registry.questions["limits"]["max_rounds"]:
+    if rounds >= int(
+        os.environ.get("PDA_MAX_ROUNDS") or registry.questions["limits"]["max_rounds"]
+    ):
         events.emit(
             "judge.answer",
             **{"pda.question_id": "next_type", "pda.answer": "finish:round_limit"},
@@ -90,31 +200,27 @@ async def run(
                 {"kind": "flow", "payload": flow_payload([], "finish", data, outputs, registry)}
             )
         )
-    state = {
-        "initial_input": data["initial_input"],
-        "context": data.get("context") or {},
-        "previous_outputs": outputs,
-        "executors": list(registry.executors.values()),
-        "types": list(registry.types),
-    }
+    state = build_state(response.json(), registry, data["initial_input"])
+    state["context"] = data.get("context") or {}
+    state["available_executors"] = await available_executors(conductor, registry)
+    events.emit(
+        "judge.state",
+        **{
+            "pda.rounds": rounds,
+            "pda.previous_outputs": len(outputs),
+            "pda.available_executors": state["available_executors"],
+        },
+    )
     if os.environ.get("JEV_MODE", "fixture") == "fixture":
         item = fixture(registry, rounds)
         answers, cells, then = item["answers"], item["cells"], item["then"]
     else:
-        request = {
-            "state": state,
-            "model": registry.questions["model"],
-            "questions": registry.questions["questions"],
-        }
-        headers = {"Authorization": f"Bearer {api_key()}", "Content-Type": "application/json"}
         try:
             if api_client:
-                response = await api_client.post(ENDPOINT, json=request, headers=headers)
+                answers = await live_answers(state, registry, api_client)
             else:
                 async with httpx.AsyncClient(timeout=120) as client:
-                    response = await client.post(ENDPOINT, json=request, headers=headers)
-            response.raise_for_status()
-            answers = response.json()["answers"]
+                    answers = await live_answers(state, registry, client)
             finished = (
                 answers["is_complete"]["noul"] >= registry.questions["thresholds"]["is_complete"]
                 or answers["next_type"]["choice"] == "none"
@@ -145,6 +251,9 @@ async def run(
         if "choice" in answer:
             attributes["pda.confidence"] = answer.get("confidence", 0.0)
         events.emit("judge.answer", **attributes)
+    cells, no_candidates = substitute(cells, state["available_executors"], registry, events)
+    if no_candidates:
+        then = "finish"
     if then == "continue" and not cells:
         then = "finish"
         events.emit(

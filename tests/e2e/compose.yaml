@@ -1,6 +1,6 @@
 services:
   observe-query:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     profiles: [e2e-query]
     environment:
       ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}

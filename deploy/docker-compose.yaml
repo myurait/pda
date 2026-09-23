@@ -1,4 +1,4 @@
-name: pda-increment-2
+name: pda
 services:
   conductor-server:
     image: conductoross/conductor:3.32.4
@@ -135,7 +135,7 @@ services:
     - telemetry
     - public
   exec-fake-a:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -158,7 +158,7 @@ services:
       otel-collector:
         condition: service_started
   exec-fake-b:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -182,7 +182,7 @@ services:
       otel-collector:
         condition: service_started
   exec-tools:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -205,7 +205,7 @@ services:
       otel-collector:
         condition: service_started
   exec-jev:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -217,6 +217,7 @@ services:
       CONDUCTOR_URL: http://conductor-server:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       PDA_REGISTRY_DIR: /registry
+      PDA_MAX_ROUNDS: ${PDA_MAX_ROUNDS:-}
       JEV_MODE: ${JEV_MODE:-fixture}
       PDA_FIXTURE_EXECUTOR: ${PDA_FIXTURE_EXECUTOR:-}
       PDA_FIXTURE_TYPE: ${PDA_FIXTURE_TYPE:-}
@@ -233,7 +234,7 @@ services:
       otel-collector:
         condition: service_started
   exec-codex-personal:
-    image: pda-executor-real:increment-3
+    image: pda-executor-real:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -261,7 +262,7 @@ services:
     profiles:
     - real
   exec-claude-personal:
-    image: pda-executor-real:increment-3
+    image: pda-executor-real:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -290,7 +291,7 @@ services:
     profiles:
     - real
   conductor-mirror:
-    image: pda-executor:increment-3
+    image: pda-executor:local
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -307,6 +308,23 @@ services:
       conductor-server:
         condition: service_healthy
       otel-collector:
+        condition: service_started
+  pda-view:
+    image: pda-executor:local
+    init: true
+    environment:
+      PDA_MODULE: pda_view
+      CONDUCTOR_URL: http://conductor-server:8080
+      OPENOBSERVE_URL: http://openobserve:5080
+      ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}
+      ZO_ROOT_USER_PASSWORD: ${ZO_ROOT_USER_PASSWORD:?set in deploy/.env}
+    ports:
+    - 5081:5081
+    networks: [public, telemetry, mirror]
+    depends_on:
+      conductor-server:
+        condition: service_healthy
+      openobserve:
         condition: service_started
 networks:
   fake-a:
