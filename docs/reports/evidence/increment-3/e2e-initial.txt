@@ -1,0 +1,22 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/user/pda/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/user/pda
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 12 items
+
+tests/e2e/test_increment_3.py::test_01_fixture_loop_and_input PASSED     [  8%]
+tests/e2e/test_increment_3.py::test_02_event_stream_and_origin PASSED    [ 16%]
+tests/e2e/test_increment_3.py::test_03_openobserve_sql PASSED            [ 25%]
+tests/e2e/test_increment_3.py::test_04_invalid_output PASSED             [ 33%]
+tests/e2e/test_increment_3.py::test_05_worker_disappears_and_retry PASSED [ 41%]
+tests/e2e/test_increment_3.py::test_06_runtime_deadline PASSED           [ 50%]
+tests/e2e/test_increment_3.py::test_07_workflow_schema PASSED            [ 58%]
+tests/e2e/test_increment_3.py::test_08_stats_and_network_isolation PASSED [ 66%]
+tests/e2e/test_increment_3.py::test_09_add_executor_declaration PASSED   [ 75%]
+tests/e2e/test_increment_3.py::test_10_real_codex PASSED                 [ 83%]
+tests/e2e/test_increment_3.py::test_11_real_claude PASSED                [ 91%]
+tests/e2e/test_increment_3.py::test_12_compare_executors PASSED          [100%]
+
+======================== 12 passed in 435.33s (0:07:15) ========================

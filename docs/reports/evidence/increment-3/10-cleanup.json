@@ -1,0 +1,9 @@
+{
+  "job_id": "fd6e4518-363e-4f8b-870d-d590718d77e0",
+  "reason": "post_end_turn_orphan_cleanup",
+  "observation": "turn.end=end_turn の後に npx が終了し、子 node/codex が stderr を保持していた",
+  "action": "子プロセス PID 39(codex), 32(node), 25(node) に SIGTERM を送った",
+  "additional_jobs": 0,
+  "fix": "ACP 起動を setsid で独立させ、終了時にプロセスグループへ SIGTERM/SIGKILL を送る",
+  "regression_test": "test_acp_stops_launcher_descendants"
+}

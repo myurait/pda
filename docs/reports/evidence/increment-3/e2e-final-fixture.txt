@@ -1,0 +1,19 @@
+============================= test session starts ==============================
+platform linux -- Python 3.12.3, pytest-9.1.1, pluggy-1.6.0 -- /home/user/pda/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/user/pda
+configfile: pyproject.toml
+plugins: anyio-4.15.1
+collecting ... collected 12 items / 3 deselected / 9 selected
+
+tests/e2e/test_increment_3.py::test_01_fixture_loop_and_input PASSED     [ 11%]
+tests/e2e/test_increment_3.py::test_02_event_stream_and_origin PASSED    [ 22%]
+tests/e2e/test_increment_3.py::test_03_openobserve_sql PASSED            [ 33%]
+tests/e2e/test_increment_3.py::test_04_invalid_output PASSED             [ 44%]
+tests/e2e/test_increment_3.py::test_05_worker_disappears_and_retry PASSED [ 55%]
+tests/e2e/test_increment_3.py::test_06_runtime_deadline PASSED           [ 66%]
+tests/e2e/test_increment_3.py::test_07_workflow_schema PASSED            [ 77%]
+tests/e2e/test_increment_3.py::test_08_stats_and_network_isolation PASSED [ 88%]
+tests/e2e/test_increment_3.py::test_09_add_executor_declaration PASSED   [100%]
+
+================= 9 passed, 3 deselected in 169.72s (0:02:49) ==================
