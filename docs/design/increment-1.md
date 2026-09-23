@@ -202,7 +202,7 @@ Claude Code と Codex はどちらも npm で配布される ACP アダプタで
 
 操作役は次をする。アダプタを子プロセスとして起動し、`session/new` でセッションを作り、`session/prompt` で入力を渡す。返ってくる通知（`sessionUpdate`）を受けるたびに出来事に写す。権限要求（`session/request_permission`）には、宣言ファイルに書いた方針（常に許可、常に拒否、種類ごと）で機械的に答え、その事実を記録する。未確認: Codex のアダプタは起動時の環境変数で権限モードを固定する作りで、権限要求を都度出すかどうかを確かめていない。都度出さないなら Codex では `permission.request` と `permission.response` の出来事は現れず、起動時のモードを `job.received` の属性に残す。応答の `stopReason` を `meta.stop_reason` に入れる。Conductor 側から中断が来たら `session/cancel` を送る。
 
-認証はコンテナにマウントした設定ディレクトリに置く。Claude Code は `CLAUDE_CONFIG_DIR`、Codex は Codex の設定ディレクトリ。初回のログインはコンテナの外で済ませてからマウントする。未確認: Codex の個人契約のログイン情報がコンテナ内のアダプタからそのまま使えるか。
+認証はコンテナにマウントした設定ディレクトリに置く。Claude Code は `CLAUDE_CONFIG_DIR`、Codex は Codex の設定ディレクトリ。Codex はホストでファイル保存の設定にしてログインしてからマウントする。Claude Code は macOS のホストでは Keychain に保存されるので、コンテナの中でログインしてファイルを作る。未確認: Codex の個人契約のログイン情報がコンテナ内のアダプタからそのまま使えるか。
 
 ### 6.3 jev の操作役
 
