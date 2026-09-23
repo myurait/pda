@@ -84,7 +84,6 @@ async def main() -> None:
     loop.add_signal_handler(signal.SIGTERM, stopped.set)
     loop.add_signal_handler(signal.SIGINT, stopped.set)
     events = Events(os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"))
-    events.start()
     try:
         async with httpx.AsyncClient(base_url=os.environ["CONDUCTOR_URL"], timeout=5) as client:
             mirror = Mirror(client, events)

@@ -4,6 +4,7 @@ import os
 import signal
 import time
 from collections.abc import Awaitable
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -27,14 +28,12 @@ class Worker:
         executor_id: str,
         client: httpx.AsyncClient,
         events: Events,
-        workdir: str = "/work",
     ) -> None:
         self.registry = registry
         self.declaration = registry.executors[executor_id]
         self.executor_id = executor_id
         self.client = client
         self.events = events
-        self.workdir = workdir
         self.stopping = asyncio.Event()
         self.names = [f"{name}.{executor_id}" for name in self.declaration["types"]]
 
@@ -63,8 +62,9 @@ class Worker:
                 if not task:
                     continue
                 found = True
+                received_at = time.monotonic()
                 result = await self.process(task)
-                await self.deliver(result)
+                await self.deliver(result, task, received_at)
                 break
             if not found and not self.stopping.is_set():
                 try:
@@ -72,16 +72,30 @@ class Worker:
                 except TimeoutError:
                     pass
 
-    async def deliver(self, result: dict) -> None:
-        for attempt in range(3):
+    async def deliver(self, result: dict, task: dict, received_at: float) -> None:
+        type_name = task.get("taskDefName", task.get("taskType", "")).rpartition(".")[0]
+        timeout = task.get(
+            "responseTimeoutSeconds",
+            self.registry.types[type_name]["task_def"]["responseTimeoutSeconds"],
+        )
+        deadline = received_at + timeout
+        while time.monotonic() < deadline:
             try:
-                response = await self.client.post("/api/tasks", json=result)
-                response.raise_for_status()
+                async with asyncio.timeout(deadline - time.monotonic()):
+                    response = await self.client.post("/api/tasks", json=result)
+                    response.raise_for_status()
                 return
-            except httpx.HTTPError as exc:
+            except (httpx.HTTPError, TimeoutError) as exc:
                 log("task_result_delivery_failed", task_id=result["taskId"], error=str(exc))
-                if attempt < 2:
-                    await asyncio.sleep(0.2)
+                await asyncio.sleep(min(1, max(0, deadline - time.monotonic())))
+        self.events.bind(
+            result["workflowInstanceId"],
+            result["taskId"],
+            task.get("referenceTaskName", ""),
+            self.executor_id,
+            type_name,
+        ).emit("unknown", **{"pda.raw": {"reason": "result_delivery_failed"}})
+        await self.events.force_flush()
 
     async def _runtime(self, awaitable: Awaitable[RuntimeOutput], deadline: float) -> RuntimeOutput:
         pending = asyncio.create_task(awaitable)
@@ -108,11 +122,11 @@ class Worker:
     ) -> Awaitable[RuntimeOutput]:
         match definition["driver"]:
             case "acp":
-                return acp.run(self.declaration, prompt, events, self.workdir)
+                return acp.run(self.declaration, prompt, events, data["workdir"])
             case "jev":
                 return jev.run(self.registry, data, self.client, events)
             case "tools":
-                return tools.run(definition["command"], data["input"], events, self.workdir)
+                return tools.run(definition["command"], events, data["workdir"])
             case _:
                 raise ValueError("unknown_driver")
 
@@ -131,7 +145,8 @@ class Worker:
             "outputData": {},
             "reasonForIncompletion": None,
         }
-        attributes = {}
+        data = dict(task.get("inputData") or {})
+        attributes = {"pda.workdir": data.get("workdir", "") if type_name != "judge" else ""}
         if self.declaration["agent"] == "codex":
             attributes["pda.agent_mode"] = self.declaration["adapter"]["env"].get(
                 "INITIAL_AGENT_MODE", os.environ.get("INITIAL_AGENT_MODE", "")
@@ -139,13 +154,14 @@ class Worker:
         events.emit("job.received", **attributes)
         try:
             definition = self.registry.types[type_name]
-            data = dict(task.get("inputData") or {})
             if data.get("context") is None:
                 data["context"] = {}
             try:
                 Draft7Validator(definition["input_schema"]).validate(data)
             except ValidationError:
                 raise OutputRejected("input_schema_mismatch") from None
+            if type_name != "judge":
+                Path(data["workdir"]).mkdir(parents=True, exist_ok=True)
             prompt = (
                 self.registry.prompt(data["prompt_ref"])
                 + "\n"
@@ -153,6 +169,7 @@ class Worker:
                     {
                         "input": data.get("input", data.get("initial_input")),
                         "context": data["context"],
+                        "workdir": data.get("workdir", ""),
                     }
                 )
             )
@@ -207,6 +224,7 @@ class Worker:
             )
         finally:
             span.end()
+            await self.events.force_flush()
         return result
 
 
@@ -214,7 +232,6 @@ async def main() -> None:
     configure_logging()
     registry = Registry(os.environ.get("PDA_REGISTRY_DIR", "registry"))
     events = Events(os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"))
-    events.start()
     try:
         async with httpx.AsyncClient(
             base_url=os.environ["CONDUCTOR_URL"].rstrip("/"), timeout=2

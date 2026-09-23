@@ -61,6 +61,10 @@ def test_real_acp_roundtrip(registry, events, tmp_path, monkeypatch, capsys, mod
     records = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     kinds = {line["body"] for line in records}
     assert {"reasoning", "tool.call", "tool.result", "turn.end"} <= kinds
+    if mode == "echo":
+        assert (tmp_path / "note.txt").read_text() == "hello"
+    else:
+        assert not (tmp_path / "note.txt").exists()
     if mode == "slow":
         assert records[-1]["attributes"]["pda.stop_reason"] == "cancelled"
     if mode == "permission":
@@ -161,8 +165,7 @@ def test_tools_exit_and_workdir(events, tmp_path, exit_code) -> None:
     result = asyncio.run(
         tools.run(
             command,
-            json.dumps({"workdir": str(tmp_path)}),
-            events.bind("j", "t", "c", "tools", "verify.test"),
+            events.bind("j", "t", "c", "tools", "verify.test"), str(tmp_path),
         )
     )
     payload = json.loads(result.text)["payload"]
@@ -185,7 +188,7 @@ def test_tools_deadline_kills_process(events, tmp_path) -> None:
         with pytest.raises(TimeoutError):
             await asyncio.wait_for(
                 tools.run(
-                    command, "{}", events.bind("j", "t", "c", "tools", "verify.test"), str(tmp_path)
+                    command, events.bind("j", "t", "c", "tools", "verify.test"), str(tmp_path)
                 ),
                 0.5,
             )

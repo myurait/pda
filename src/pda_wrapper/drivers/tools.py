@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import json
 import os
 import signal
 import time
@@ -19,13 +18,8 @@ async def _read_tail(stream: asyncio.StreamReader, output: list[str]) -> None:
 
 
 async def run(
-    command: list[str], input_text: str, events: TaskEvents, default_workdir: str = "/work"
+    command: list[str], events: TaskEvents, workdir: str
 ) -> RuntimeOutput:
-    try:
-        data = json.loads(input_text)
-    except json.JSONDecodeError:
-        data = None
-    workdir = data.get("workdir", default_workdir) if isinstance(data, dict) else default_workdir
     started = time.monotonic()
     try:
         process = await asyncio.create_subprocess_exec(
@@ -61,6 +55,7 @@ async def run(
             "command.run",
             **{
                 "pda.command": command,
+                "pda.workdir": workdir,
                 "pda.exit_code": process.returncode,
                 "pda.duration_ms": int((time.monotonic() - started) * 1000),
             },

@@ -1,9 +1,9 @@
-executor_id: claude-company
-name: Claude Code 会社契約
+executor_id: claude-personal
+name: Claude Code 個人契約
 version: 1
 agent: claude
 runtime: acp
-account: company
+account: personal
 environment: minipc
 types:
 - break-down
@@ -15,7 +15,8 @@ adapter:
   - npx
   - -y
   - '@agentclientprotocol/claude-agent-acp@preview'
-  env: {}
+  env:
+    CLAUDE_CONFIG_DIR: /claude-config
 capabilities:
   streaming: true
   cancel: true

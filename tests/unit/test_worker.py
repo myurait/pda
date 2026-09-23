@@ -40,7 +40,7 @@ def test_processing(registry, events, task, tmp_path, monkeypatch, mode, status,
         async with httpx.AsyncClient(
             base_url="http://c", transport=httpx.MockTransport(request)
         ) as c:
-            return await Worker(registry, "fake-a", c, events, str(tmp_path)).process(task)
+            return await Worker(registry, "fake-a", c, events).process(task)
 
     result = asyncio.run(scenario())
     assert result["status"] == status and result["reasonForIncompletion"] == reason
@@ -54,7 +54,7 @@ def test_bad_input_rejected_before_driver(registry, events, task, tmp_path, caps
 
     async def scenario() -> dict:
         async with httpx.AsyncClient(base_url="http://c") as c:
-            return await Worker(registry, "fake-a", c, events, str(tmp_path)).process(task)
+            return await Worker(registry, "fake-a", c, events).process(task)
 
     result = asyncio.run(scenario())
     assert result["reasonForIncompletion"] == "input_schema_mismatch"
@@ -101,7 +101,7 @@ def test_registry_snapshot_loaded_once(monkeypatch, tmp_path) -> None:
         async with httpx.AsyncClient(
             base_url="http://c", transport=httpx.MockTransport(lambda req: httpx.Response(204))
         ) as c:
-            worker = Worker(registry, "fake-a", c, Events(), str(tmp_path))
+            worker = Worker(registry, "fake-a", c, Events())
             pending = asyncio.create_task(worker.run())
             await asyncio.sleep(1.1)
             worker.stop()
@@ -118,7 +118,7 @@ def test_runtime_30_second_deadline(registry, events, task, tmp_path, monkeypatc
 
     async def scenario() -> dict:
         async with httpx.AsyncClient(base_url="http://c") as c:
-            return await Worker(registry, "fake-a", c, events, str(tmp_path)).process(task)
+            return await Worker(registry, "fake-a", c, events).process(task)
 
     started = time.monotonic()
     result = asyncio.run(scenario())
@@ -145,7 +145,7 @@ async def main():
         return httpx.Response(200)
     async with httpx.AsyncClient(base_url='http://c', transport=httpx.MockTransport(request)) as c:
         events = Events()
-        worker = Worker(registry, 'fake-a', c, events, sys.argv[2])
+        worker = Worker(registry, 'fake-a', c, events)
         def stop():
             log('sigterm')
             worker.stop()

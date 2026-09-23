@@ -26,7 +26,7 @@ def api_key(path: Path = Path("/secrets/typesafe_credentials")) -> str:
 
 
 def fixture(registry: Registry, rounds: int) -> dict:
-    item = copy.deepcopy(registry.fixture[min(rounds, 2)])
+    item = copy.deepcopy(registry.fixture[min(rounds, len(registry.fixture) - 1)])
     executor = os.environ.get("PDA_FIXTURE_EXECUTOR")
     type_name = os.environ.get("PDA_FIXTURE_TYPE")
     if executor and type_name:
@@ -58,6 +58,7 @@ def flow_payload(
         )
         inputs[reference] = {
             "job_id": data["job_id"],
+            "workdir": f"/work/jobs/{data['job_id']}",
             "cell_id": reference,
             "type": type_name,
             "prompt_ref": {"id": type_name, "version": 1},
@@ -79,6 +80,16 @@ async def run(
     )
     response.raise_for_status()
     rounds, outputs = previous_outputs(response.json())
+    if rounds >= registry.questions["limits"]["max_rounds"]:
+        events.emit(
+            "judge.answer",
+            **{"pda.question_id": "next_type", "pda.answer": "finish:round_limit"},
+        )
+        return RuntimeOutput(
+            json_text(
+                {"kind": "flow", "payload": flow_payload([], "finish", data, outputs, registry)}
+            )
+        )
     state = {
         "initial_input": data["initial_input"],
         "context": data.get("context") or {},

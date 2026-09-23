@@ -1,6 +1,8 @@
 import asyncio
 import hashlib
 import json
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import pytest
 from jsonschema import Draft7Validator, ValidationError
@@ -76,8 +78,29 @@ def test_flow_schema(registry) -> None:
 
 
 def test_all_events_and_deterministic_ids(capsys) -> None:
+    packets = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            packet = (
+                ExportLogsServiceRequest()
+                if self.path.endswith("logs")
+                else ExportTraceServiceRequest()
+            )
+            packet.ParseFromString(self.rfile.read(int(self.headers["Content-Length"])))
+            packets.append(packet)
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, *args) -> None:
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
     async def scenario() -> None:
-        events = Events("http://unused")
+        events = Events(f"http://127.0.0.1:{server.server_port}")
         bound = events.bind("job", "task", "c1__1", "fake-a", "implement")
         span = bound.span()
         for kind in sorted(KINDS):
@@ -85,26 +108,33 @@ def test_all_events_and_deterministic_ids(capsys) -> None:
         bound.emit("new.event", value="x")
         bound.emit("unknown", **{"pda.raw": "日" * 20000})
         span.end()
-        packets = []
-        while not events.queue.empty():
-            kind, data = events.queue.get_nowait()
-            packet = ExportLogsServiceRequest() if kind == "logs" else ExportTraceServiceRequest()
-            packet.ParseFromString(data)
-            packets.append((kind, packet))
-        logs = [
-            packet.resource_logs[0].scope_logs[0].log_records[0]
-            for kind, packet in packets
-            if kind == "logs"
-        ]
-        assert len(logs) == len(KINDS) + 2
-        trace = [packet for kind, packet in packets if kind == "traces"][0]
-        actual_span = trace.resource_spans[0].scope_spans[0].spans[0]
-        assert actual_span.trace_id == logs[0].trace_id == hashlib.sha256(b"job").digest()[:16]
-        assert actual_span.span_id == logs[0].span_id == hashlib.sha256(b"task").digest()[:8]
-        events.provider.shutdown()
-        events.traces.shutdown()
+        await events.close()
 
-    asyncio.run(scenario())
+    try:
+        asyncio.run(scenario())
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    logs = [
+        record
+        for packet in packets
+        if isinstance(packet, ExportLogsServiceRequest)
+        for resource in packet.resource_logs
+        for scope in resource.scope_logs
+        for record in scope.log_records
+    ]
+    spans = [
+        span
+        for packet in packets
+        if isinstance(packet, ExportTraceServiceRequest)
+        for resource in packet.resource_spans
+        for scope in resource.scope_spans
+        for span in scope.spans
+    ]
+    assert len(logs) == len(KINDS) + 2
+    assert spans[0].trace_id == logs[0].trace_id == hashlib.sha256(b"job").digest()[:16]
+    assert spans[0].span_id == logs[0].span_id == hashlib.sha256(b"task").digest()[:8]
     lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
     assert {line["body"] for line in lines} == KINDS
     assert lines[-2]["body"] == "unknown"

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -64,6 +65,8 @@ class FakeAgent(acp.Agent):
             except TimeoutError:
                 pass
         text = "".join(getattr(block, "text", "") for block in prompt)
+        if mode == "echo":
+            Path("note.txt").write_text(text[-100:])
         body = json.dumps(
             {"kind": "bogus" if mode == "invalid" else "input", "payload": {"text": text[-100:]}},
             ensure_ascii=False,

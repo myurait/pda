@@ -23,7 +23,7 @@ services:
     - tools
     - jev
     - codex-personal
-    - claude-company
+    - claude-personal
     depends_on:
       conductor-redis:
         condition: service_healthy
@@ -112,7 +112,7 @@ services:
     - tools
     - jev
     - codex-personal
-    - claude-company
+    - claude-personal
     depends_on:
     - openobserve
   openobserve:
@@ -130,7 +130,7 @@ services:
     - telemetry
     - public
   exec-fake-a:
-    image: pda-executor:increment-2
+    image: pda-executor:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -153,7 +153,7 @@ services:
       otel-collector:
         condition: service_started
   exec-fake-b:
-    image: pda-executor:increment-2
+    image: pda-executor:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -177,7 +177,7 @@ services:
       otel-collector:
         condition: service_started
   exec-tools:
-    image: pda-executor:increment-2
+    image: pda-executor:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -200,7 +200,7 @@ services:
       otel-collector:
         condition: service_started
   exec-jev:
-    image: pda-executor:increment-2
+    image: pda-executor:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -228,7 +228,7 @@ services:
       otel-collector:
         condition: service_started
   exec-codex-personal:
-    image: pda-executor-real:increment-2
+    image: pda-executor-real:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -237,13 +237,14 @@ services:
     stop_grace_period: 20s
     environment:
       PDA_EXECUTOR_ID: codex-personal
+      CODEX_HOME: /codex-home
       CONDUCTOR_URL: http://conductor-server:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       PDA_REGISTRY_DIR: /registry
     volumes:
     - pda-work:/work
     - ../registry:/registry:ro
-    - ${CODEX_AUTH_DIR:-../secrets/codex}:/root/.codex
+    - ${CODEX_AUTH_DIR:-../secrets/codex}:/codex-home
     networks:
     - codex-personal
     - codex-personal-egress
@@ -254,8 +255,8 @@ services:
         condition: service_started
     profiles:
     - real
-  exec-claude-company:
-    image: pda-executor-real:increment-2
+  exec-claude-personal:
+    image: pda-executor-real:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -263,7 +264,7 @@ services:
     init: true
     stop_grace_period: 20s
     environment:
-      PDA_EXECUTOR_ID: claude-company
+      PDA_EXECUTOR_ID: claude-personal
       CONDUCTOR_URL: http://conductor-server:8080
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
       PDA_REGISTRY_DIR: /registry
@@ -272,9 +273,10 @@ services:
     - pda-work:/work
     - ../registry:/registry:ro
     - ${CLAUDE_AUTH_DIR:-../secrets/claude}:/claude-config
+    - ./executors/claude-settings.json:/claude-config/settings.json:ro
     networks:
-    - claude-company
-    - claude-company-egress
+    - claude-personal
+    - claude-personal-egress
     depends_on:
       conductor-server:
         condition: service_healthy
@@ -283,7 +285,7 @@ services:
     profiles:
     - real
   conductor-mirror:
-    image: pda-executor:increment-2
+    image: pda-executor:increment-3
     build:
       context: ..
       dockerfile: deploy/executors/Dockerfile
@@ -312,7 +314,7 @@ networks:
     internal: true
   codex-personal:
     internal: true
-  claude-company:
+  claude-personal:
     internal: true
   mirror:
     internal: true
@@ -323,7 +325,7 @@ networks:
   public: {}
   jev-egress: {}
   codex-personal-egress: {}
-  claude-company-egress: {}
+  claude-personal-egress: {}
 volumes:
   pda-work: {}
   pda-events: {}

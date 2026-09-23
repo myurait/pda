@@ -20,8 +20,14 @@ exporters:
       authenticator: basicauth/openobserve
     headers:
       stream-name: pda_events
-  file:
+  file/logs:
     path: /var/lib/pda/events/events.jsonl
+    rotation:
+      max_megabytes: 100
+      max_backups: 5
+    flush_interval: 1s
+  file/traces:
+    path: /var/lib/pda/events/traces.jsonl
     rotation:
       max_megabytes: 100
       max_backups: 5
@@ -32,8 +38,8 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/openobserve, file]
+      exporters: [otlphttp/openobserve, file/logs]
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/openobserve, file]
+      exporters: [otlphttp/openobserve, file/traces]

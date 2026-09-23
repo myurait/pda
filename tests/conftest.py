@@ -25,7 +25,7 @@ def events() -> Events:
 
 
 @pytest.fixture
-def task() -> dict:
+def task(tmp_path) -> dict:
     return copy.deepcopy(
         {
             "workflowInstanceId": "job-unit",
@@ -35,6 +35,7 @@ def task() -> dict:
             "responseTimeoutSeconds": 600,
             "inputData": {
                 "job_id": "job-unit",
+                "workdir": str(tmp_path / "job-unit"),
                 "cell_id": "c1",
                 "type": "implement",
                 "prompt_ref": {"id": "implement", "version": 1},

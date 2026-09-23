@@ -91,5 +91,5 @@ def test_compose_networks_and_ports() -> None:
         members = {n for n, s in compose["services"].items() if executor in s["networks"]}
         assert members == {name, "conductor-server", "otel-collector"}
         assert all("." not in key for key in service["environment"])
-    for name in ("codex-personal", "claude-company"):
+    for name in ("codex-personal", "claude-personal"):
         assert compose["services"][f"exec-{name}"]["profiles"] == ["real"]
