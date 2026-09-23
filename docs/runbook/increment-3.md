@@ -19,7 +19,7 @@ git pull --ff-only
 free -h
 ```
 
-`available` が 4 GB 以上あることを確かめる。他の firecrawl、openwebui、bp-* コンテナを止めない。ホスト環境を作り直す場合だけ `uv sync --frozen` を実行する。既存の `deploy/.env` があればそのまま使い、新規配置の場合だけ次を行う。
+`available` が 4 GB 以上あることを確かめる。ホスト環境を作り直す場合だけ `uv sync --frozen` を実行する。既存の `deploy/.env` があればそのまま使い、新規配置の場合だけ次を行う。
 
 ```sh
 umask 077
