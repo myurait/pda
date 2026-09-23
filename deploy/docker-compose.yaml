@@ -77,6 +77,11 @@ services:
       retries: 40
   conductor-ui:
     image: conductoross/conductor:3.32.4
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
     entrypoint:
     - nginx
     command:
