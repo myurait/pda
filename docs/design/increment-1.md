@@ -1,9 +1,9 @@
 # 最初の増分の設計
 
-- 更新: 2026-09-22 JST（増分 2 の実装結果を反映）
+- 更新: 2026-09-23 JST（増分 2 の実装結果と 10.1.1 の決定を反映）
 - 種別: 設計。`basic-design-proposal.md` の 10.1 で決まった範囲を、動かせる形まで具体化する。
 - 物差し: `docs/requirements.md`（commit `a92a4ab`）。
-- 範囲: 個人契約の Codex、会社契約の Claude、jev、決定論的な検証ツールの 4 実行器。すべてミニ PC 上。移行とペルソナ選定は含めない。
+- 範囲: 個人契約の Codex、個人契約の Claude、jev、決定論的な検証ツールの 4 実行器。すべてミニ PC 上。移行とペルソナ選定は含めない。会社契約の Claude は 2026-09-23 に範囲から外した（基本設計 10.1.1）。
 - 一次資料で確かめていない事項は「未確認」と書く。
 
 ## 1. 構成
@@ -18,7 +18,7 @@
 | ログの受け口 | otel-collector | OpenTelemetry Collector。受けたものを OpenObserve と JSON Lines のファイルの両方へ出す |
 | ログストア | openobserve | 単一バイナリ。ログとトレースを OTLP で受け、SQL で検索できる画面を持つ |
 | 実行器 | exec-codex-personal | Codex の ACP アダプタとラッパー。個人契約の認証情報をマウント |
-| 実行器 | exec-claude-company | Claude Code の ACP アダプタとラッパー。会社契約の認証情報をマウント |
+| 実行器 | exec-claude-personal | Claude Code の ACP アダプタとラッパー。個人契約の認証情報をマウント |
 | 実行器 | exec-jev | jev の HTTP API を呼ぶラッパー。TypeSafe の API キーをマウント |
 | 実行器 | exec-tools | スクリプト実行ホスト。テスト、リンタなどの検証ツールとラッパー |
 | 写し | conductor-mirror | Conductor の実行記録を読んで、エンジン側の状態変化を event stream へ写す小さなプロセス |
@@ -86,9 +86,9 @@ Conductor のタスクの入力と出力を、要件のプロトコルのメッ�
   "payload": {
     "then": "continue | finish",
     "cells": [
-      {"type": "break-down", "executor": "claude-company", "input_from": "previous"}
+      {"type": "break-down", "executor": "claude-personal", "input_from": "previous"}
     ],
-    "dynamicTasks": [ {"name": "break-down.claude-company", "taskReferenceName": "c1", "type": "SIMPLE"} ],
+    "dynamicTasks": [ {"name": "break-down.claude-personal", "taskReferenceName": "c1", "type": "SIMPLE"} ],
     "dynamicTasksInput": { "c1": {"type": "break-down", "prompt_ref": {"id": "break-down", "version": 1}, "input": "…", "context": {}} }
   }
 }
@@ -326,7 +326,7 @@ tools/
 2. ラッパーの骨格と `tools` の操作役。`verify.test` を 1 つ動かし、出来事が OpenObserve とファイルに届くことを見る。
 3. jev の操作役。問いの集合を `jev-decompose` と `jev-verify` で作り、判定器のセルがフローへの指示を出すところまで。
 4. Codex の操作役。個人契約の認証をコンテナへ持ち込み、`implement` を 1 つ通す。
-5. Claude Code の操作役。会社契約で `review` を 1 つ通す。
+5. Claude Code の操作役。個人契約で `review` を 1 つ通す。
 6. 写し。エンジン側の状態遷移が event stream に出ることを見る。
 7. 受け入れ条件の確認（12 節）。
 
