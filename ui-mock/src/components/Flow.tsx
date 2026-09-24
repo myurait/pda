@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Background, Handle, MarkerType, MiniMap, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from '@xyflow/react';
+import { Background, BaseEdge, Handle, MarkerType, MiniMap, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type EdgeProps, type Node, type NodeProps } from '@xyflow/react';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import type { ElkExtendedEdge } from 'elkjs';
 import { Button, Mark, Modal, Status, useMobile } from '../ui';
 import { elapsedText, roundCells, type Cell, type Run } from '../mock/model';
 
@@ -19,12 +20,16 @@ function NodeBox({ data, id, selected }: NodeProps<FlowNode>) {
   </div>;
 }
 const nodeTypes = { cell: NodeBox };
+function RoutedEdge({ id, data, markerEnd, style, label }: EdgeProps) {
+  return <BaseEdge id={id} path={String(data?.path || '')} markerEnd={markerEnd} style={style} label={label} labelX={Number(data?.labelX)} labelY={Number(data?.labelY)} labelStyle={{ fontSize: 14 }} labelBgPadding={[5, 3]} labelBgStyle={{ fill: '#f7f8fa' }}/>;
+}
+const edgeTypes = { routed: RoutedEdge };
 
 function Canvas({ run, selected, onSelect, onInsert, compact = false }: { run: Run; selected?: string; onSelect: (id: string) => void; onInsert?: () => void; compact?: boolean }) {
   const mobile = useMobile();
   const initialCollapsed = () => run.rounds.length > 4 ? run.rounds.filter(r => r.joined && !roundCells(r).some(c => c.state === '動いている')).map(r => r.id) : [];
   const [collapsed, setCollapsed] = useState<string[]>(initialCollapsed), [legend, showLegend] = useState(false);
-  const [nodes, setNodes] = useState<FlowNode[]>([]), [ready, setReady] = useState(false);
+  const [nodes, setNodes] = useState<FlowNode[]>([]), [edges, setEdges] = useState<Edge[]>([]), [ready, setReady] = useState(false);
   const api = useReactFlow<FlowNode>();
   const graph = useMemo(() => {
     const list: FlowNode[] = [], edges: Edge[] = [];
@@ -40,7 +45,9 @@ function Canvas({ run, selected, onSelect, onInsert, compact = false }: { run: R
       const joinId = `${r.id}-join`; add(joinId, { kind: 'join', label: '合流', detail: r.joined ? '分岐の出力が揃いました' : `${r.branches.length} 本の分岐を待つ`, round: r.number });
       for (const b of r.branches) {
         let prev = r.judge.id;
-        b.cells.forEach((c, i) => { add(c.id, { kind: c.kind, label: c.type, cell: c, round: r.number, branch: b.id }); edge(prev, c.id, i === 0 ? b.label : undefined); prev = c.id; });
+        const hasSuccessor = new Set<string>();
+        b.cells.forEach((c, i) => { add(c.id, { kind: c.kind, label: c.type, cell: c, round: r.number, branch: b.id }); const from = c.after && b.cells.some(x => x.id === c.after) ? c.after : prev; edge(from, c.id, i === 0 ? b.label : c.after ? 'オーナーの操作' : undefined); hasSuccessor.add(from); prev = c.id; });
+        b.cells.filter(c => !hasSuccessor.has(c.id) && c.id !== prev).forEach(c => edge(c.id, joinId));
         if (b.waiting) { add(b.waiting.id, { kind: 'wait', label: '返答待ち', detail: '分岐の終端', round: r.number, branch: b.id }); edge(prev, b.waiting.id); prev = b.waiting.id; }
         edge(prev, joinId, undefined, !!b.waiting);
       }
@@ -48,23 +55,25 @@ function Canvas({ run, selected, onSelect, onInsert, compact = false }: { run: R
       previous = joinId;
       if (r.report) { add(r.report.id, { kind: 'report', label: 'report', cell: r.report, round: r.number }); edge(previous, r.report.id); previous = r.report.id; }
     }
+    if (onInsert && !compact) { const last = run.rounds.at(-1)!; const next = last.judge.state === '待機' ? last.number : last.number + 1; add('insert-next', { kind: 'insert', label: `第 ${next} 回にセルを追加`, detail: '押して type と入力を指定', round: next, expand: onInsert }); edge(previous, 'insert-next', '次の回', true); }
     return { nodes: list, edges };
-  }, [run, collapsed, mobile, selected, onSelect]);
+  }, [run, collapsed, mobile, selected, onSelect, onInsert, compact]);
   useEffect(() => {
     let alive = true;
     setReady(false);
-    elk.layout({ id: 'root', layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': mobile ? 'DOWN' : 'RIGHT', 'elk.spacing.nodeNode': '44', 'elk.layered.spacing.nodeNodeBetweenLayers': '72', 'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES', 'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF' }, children: graph.nodes.map(n => ({ id: n.id, width: n.width, height: n.height })), edges: graph.edges.map(e => ({ id: e.id, sources: [e.source], targets: [e.target] })) }).then(layout => {
+    elk.layout({ id: 'root', layoutOptions: { 'elk.algorithm': 'layered', 'elk.direction': mobile ? 'DOWN' : 'RIGHT', 'elk.edgeRouting': 'ORTHOGONAL', 'elk.spacing.nodeNode': '44', 'elk.layered.spacing.nodeNodeBetweenLayers': '72', 'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES', 'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF' }, children: graph.nodes.map(n => ({ id: n.id, width: n.width, height: n.height, layoutOptions: { 'elk.portConstraints': 'FIXED_POS' }, ports: [{ id: `${n.id}-in`, x: mobile ? n.width! / 2 : 0, y: mobile ? 0 : n.height! / 2, width: 0, height: 0, properties: { 'port.side': mobile ? 'NORTH' : 'WEST' } }, { id: `${n.id}-out`, x: mobile ? n.width! / 2 : n.width!, y: mobile ? n.height! : n.height! / 2, width: 0, height: 0, properties: { 'port.side': mobile ? 'SOUTH' : 'EAST' } }] })), edges: graph.edges.map(e => ({ id: e.id, sources: [`${e.source}-out`], targets: [`${e.target}-in`] })) }).then(layout => {
       if (!alive) return;
-      setNodes(graph.nodes.map(n => { const p = layout.children!.find(x => x.id === n.id)!; return { ...n, position: { x: p.x || 0, y: p.y || 0 } }; })); setReady(true);
+      setNodes(graph.nodes.map(n => { const p = layout.children!.find(x => x.id === n.id)!; return { ...n, position: { x: p.x || 0, y: p.y || 0 } }; }));
+      setEdges(graph.edges.map(e => { const section = (layout.edges!.find(x => x.id === e.id)! as ElkExtendedEdge).sections![0]; const points = [section.startPoint, ...(section.bendPoints || []), section.endPoint]; const segments = points.slice(1).map((p, i) => ({ x: (p.x + points[i].x) / 2, y: (p.y + points[i].y) / 2, length: Math.abs(p.x - points[i].x) + Math.abs(p.y - points[i].y) })); const label = segments.sort((a, b) => b.length - a.length)[0]; return { ...e, type: 'routed', data: { path: points.map((p, i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' '), labelX: label.x, labelY: label.y } }; })); setReady(true);
     }); return () => { alive = false; };
   }, [graph]);
-  useEffect(() => { if (!ready) return; const frame = requestAnimationFrame(() => { const current = selected ? nodes.filter(n => n.id === selected) : nodes.filter(n => n.data.cell?.state === '動いている'); api.fitView({ nodes: mobile && !compact && current.length ? current.slice(0, 1) : undefined, padding: 0.14, maxZoom: 1, minZoom: mobile && !compact ? 0.65 : 0.12 }); }); return () => cancelAnimationFrame(frame); }, [ready]);
+  useEffect(() => { if (!ready) return; const frame = requestAnimationFrame(() => { const current = selected ? nodes.filter(n => n.id === selected) : nodes.filter(n => n.data.cell?.state === '動いている'); api.fitView({ nodes: !compact && current.length && (mobile || run.rounds.length > 4) ? mobile ? current.slice(0, 1) : current : undefined, padding: 0.14, maxZoom: 1, minZoom: mobile && !compact ? 0.65 : 0.12 }); }); return () => cancelAnimationFrame(frame); }, [ready]);
   const current = () => { const running = nodes.filter(n => n.data.cell?.state === '動いている'); const targets = running.length ? running : nodes.filter(n => n.data.round === run.rounds.at(-1)?.number); api.fitView({ nodes: mobile ? targets.slice(0, 1) : targets, maxZoom: 1, minZoom: 0.7, padding: 0.2, duration: 250 }); };
   return <div className={compact ? 'flow-section compact' : 'flow-section'}>
     {!compact && <div className="flow-toolbar"><div className="button-row"><Button ariaLabel="拡大" iconName="zoom-in" onClick={() => api.zoomIn()}/><Button ariaLabel="縮小" iconName="zoom-out" onClick={() => api.zoomOut()}/><Button onClick={() => api.fitView({ padding: 0.1, minZoom: 0.02, maxZoom: 1, duration: 250 })}>全体表示</Button><Button onClick={current}>いま動いているところへ</Button><Button onClick={() => showLegend(true)}>凡例</Button></div>
       <div className="button-row">{run.rounds.length > 1 && <Button onClick={() => setCollapsed(collapsed.length ? [] : run.rounds.filter(r => r.joined).map(r => r.id))}>{collapsed.length ? '終わった回をすべて開く' : '終わった回を畳む'}</Button>}{onInsert && <Button iconName="add-plus" onClick={onInsert}>次の回にセルを挿し込む</Button>}</div></div>}
     <div className="flow-canvas" data-testid="flow-canvas" data-ready={ready} data-direction={mobile ? 'DOWN' : 'RIGHT'}>
-      <ReactFlow<FlowNode> nodes={nodes} edges={graph.edges} nodeTypes={nodeTypes} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} minZoom={0.02} maxZoom={1.5} proOptions={{ hideAttribution: true }} ariaLabelConfig={{ 'minimap.ariaLabel': 'フローの縮小図' }}>
+      <ReactFlow<FlowNode> nodes={nodes} edges={edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} nodesDraggable={false} nodesConnectable={false} elementsSelectable={true} minZoom={0.02} maxZoom={1.5} proOptions={{ hideAttribution: true }} ariaLabelConfig={{ 'minimap.ariaLabel': 'フローの縮小図' }}>
         <Background color="#d7dce2" gap={24}/>{!mobile && !compact && <MiniMap pannable zoomable nodeColor={n => (n.data.cell as Cell | undefined)?.state === '動いている' ? '#0972d3' : '#b7bfc8'}/>}<div className="canvas-caption">{run.rounds.length} 回 · {run.rounds.flatMap(roundCells).length} セル{!compact && ' / 図の中をドラッグして移動'}</div>
       </ReactFlow>
     </div>

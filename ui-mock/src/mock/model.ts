@@ -6,7 +6,7 @@ export interface Attempt { cellId: string; executor: string; state: CellState; s
 export interface Cell {
   id: string; kind: CellKind; type: string; executor: string; state: CellState; elapsed: number;
   origin: Origin; input: string; prePrompt: string; output: string; tools: { name: string; count: number }[];
-  attempts: Attempt[]; badge?: string; decision?: string; extraInputs: string[];
+  attempts: Attempt[]; badge?: string; decision?: string; extraInputs: string[]; after?: string;
 }
 export interface WaitingEnd { id: string; observerId: string; reason: string }
 export interface Branch { id: string; label: string; cells: Cell[]; waiting?: WaitingEnd }

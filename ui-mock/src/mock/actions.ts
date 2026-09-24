@@ -32,7 +32,7 @@ export function insertCell(t: Task, type: string, input: string, executors: Exec
 export function extraInput(c: Cell, input: string) { c.extraInputs.push(input); c.badge = `追加入力 ${c.extraInputs.length} 件`; }
 export function retryCell(t: Task, c: Cell, executor: string) {
   const run = latestRun(t), r = run.rounds.find(r => r.branches.some(b => b.cells.some(x => x.id === c.id)));
-  const clone = cell(id('retry'), c.type, executor, '動いている', { input: c.input, prePrompt: c.prePrompt, origin: 'オーナーの操作', badge: 'オーナーの再試行', output: '同じ type と入力で、オーナーが選んだ実行器に再投入しました。' });
+  const clone = cell(id('retry'), c.type, executor, '動いている', { input: c.input, prePrompt: c.prePrompt, origin: 'オーナーの操作', badge: 'オーナーの再試行', after: c.id, output: '同じ type と入力で、オーナーが選んだ実行器に再投入しました。' });
   if (!c.attempts.length) c.attempts.push({ cellId: c.id, executor: c.executor, state: c.state, source: c.origin });
   c.attempts.push({ cellId: clone.id, executor, state: clone.state, source: clone.origin }); clone.attempts = structuredClone(c.attempts);
   if (r) { const b = r.branches.find(b => b.cells.some(x => x.id === c.id))!; b.cells.push(clone); b.waiting = undefined; r.joined = false; }

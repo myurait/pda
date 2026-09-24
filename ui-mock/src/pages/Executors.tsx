@@ -9,7 +9,12 @@ export function handoff(task: Task, cell: Cell) {
   const run = latestRun(task);
   for (const r of run.rounds) {
     if (r.judge.id === cell.id) return { from: r.owners.at(-1)?.type || '前の回の合流', to: r.branches.map(b => b.cells[0]?.type).filter(Boolean).join('、') || '次の分岐' };
-    for (const b of r.branches) { const i = b.cells.findIndex(c => c.id === cell.id); if (i >= 0) return { from: i ? `${b.cells[i - 1].type} / ${b.cells[i - 1].executor}` : `judge / ${r.judge.executor}`, to: b.cells[i + 1] ? `${b.cells[i + 1].type} / ${b.cells[i + 1].executor}` : b.waiting ? '返答待ちの終端 → 合流' : '合流 → 次の判定器または報告' }; }
+    for (const b of r.branches) {
+      const i = b.cells.findIndex(c => c.id === cell.id); if (i < 0) continue;
+      const previous = b.cells.find(c => c.id === cell.after) || b.cells[i - 1];
+      const following = b.cells.filter((c, index) => c.after ? c.after === cell.id : b.cells[index - 1]?.id === cell.id);
+      return { from: previous ? `${previous.type} / ${previous.executor}` : `judge / ${r.judge.executor}`, to: following.length ? following.map(c => `${c.type} / ${c.executor}`).join('、') : b.waiting ? '返答待ちの終端 → 合流' : '合流 → 次の判定器または報告' };
+    }
     if (r.report?.id === cell.id) return { from: `第 ${r.number} 回の合流`, to: 'オーナーへ報告' };
   }
   return { from: 'オーナーの指示', to: '次の判定器' };

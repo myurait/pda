@@ -1,6 +1,6 @@
 :root { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif; color: #161d26; background: #f4f5f7; font-size: 14px; color-scheme: light; --running: #0972d3; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; font-size: 14px; }
+body { margin: 0; min-width: 320px; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif; }
 button, input, textarea, select, table, p, li { font-family: inherit; font-size: 14px; }
 button, a, input, textarea { touch-action: manipulation; }
 p { line-height: 1.7; margin: 8px 0; }
@@ -66,14 +66,19 @@ dt { color: #5f6b7a; margin-bottom: 4px; } dd { margin: 0; overflow-wrap: anywhe
 .compact .flow-canvas { height: 320px; }
 .flow-node { width: 100%; height: 100%; border: 1.5px solid #8d99a7; background: #fff; box-shadow: 0 2px 3px #161d2609; color: #161d26; }
 .flow-node .react-flow__handle { width: 6px; height: 6px; background: #687585; border: none; }
-.node-button { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 0; background: transparent; width: 100%; height: 100%; color: inherit; cursor: pointer; text-align: left; font-size: 14px; }
+.node-button { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 0; background: transparent; width: 100%; height: 100%; color: inherit; cursor: pointer; text-align: left; font-size: 14px; user-select: text; }
 .node-heading { display: flex; align-items: center; gap: 8px; width: 100%; }
 .kind-mark { width: 20px; height: 20px; }
 .node-executor { font-weight: 500; padding-left: 28px; }
 .node-status { display: flex; justify-content: space-between; gap: 4px; width: 100%; white-space: nowrap; }
 .node-note { font-size: 14px; line-height: 1.35; color: #5f6b7a; }
 .kind-owner { border-radius: 18px; }
-.kind-judge { border-radius: 22px 4px 22px 4px; border-left-width: 5px; }
+.flow-node.kind-judge { border: 0; background: none; position: relative; }
+.flow-node.kind-judge::before, .flow-node.kind-judge::after { content: ''; position: absolute; inset: 0; clip-path: polygon(8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%, 0 50%); background: #8d99a7; pointer-events: none; }
+.flow-node.kind-judge::after { inset: 2px; background: white; }
+.flow-node.kind-judge .node-button { position: relative; z-index: 1; padding-left: 24px; padding-right: 24px; }
+.flow-node.kind-judge.moving::before { background: #0972d3; }
+.flow-node.kind-judge.moving::after { background: #f1f8ff; }
 .kind-work { border-radius: 2px; }
 .kind-observe { border: 4px double #7a8796; border-radius: 8px; }
 .kind-report { border-radius: 2px 18px 2px 2px; border-right: 5px solid #8d99a7; }
@@ -82,10 +87,15 @@ dt { color: #5f6b7a; margin-bottom: 4px; } dd { margin: 0; overflow-wrap: anywhe
 .kind-wait .node-note { margin: 0 auto; }
 .kind-join { border-width: 3px 0; background: #edf0f3; border-radius: 2px; }
 .kind-collapsed { border-radius: 5px; border: 3px double #8d99a7; background: #f0f3f6; }
+.kind-insert { border: 2px dashed #0972d3; background: #f8fbff; border-radius: 5px; color: #075fae; }
 .flow-node[data-state="失敗した"] { border-color: #b42318; background: #fff5f4; }
 .flow-node[data-state="中断した"] { border-color: #5f6b7a; background: #f0f1f3; }
 .flow-node.moving { border-color: #0972d3; background: #f1f8ff; animation: working 2.8s ease-in-out infinite; }
 .flow-node.selected { outline: 3px solid #0972d3; outline-offset: 4px; }
+.status[data-status="動いている"] *, .status[data-status="進行中"] * { color: #0972d3; }
+.status[data-status="終わった"] *, .status[data-status="完了"] *, .status[data-status="生きている"] * { color: #037f0c; }
+.status[data-status="失敗した"] *, .status[data-status="止まっている"] * { color: #b42318; }
+.status[data-status="入力待ち"] *, .status[data-status="返答待ち"] * { color: #8d5700; }
 @keyframes working { 50% { box-shadow: 0 0 0 4px #0972d31a; } }
 @media (prefers-reduced-motion: reduce) { .flow-node.moving { animation: none; } }
 .canvas-caption { position: absolute; top: 8px; left: 10px; padding: 3px 7px; background: #ffffffed; color: #5f6b7a; font-size: 12px; pointer-events: none; }

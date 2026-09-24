@@ -26,7 +26,7 @@ export { default as Badge } from '@cloudscape-design/components/badge';
 export { default as Icon } from '@cloudscape-design/components/icon';
 
 const statusTypes = { '動いている': 'in-progress', '進行中': 'in-progress', '終わった': 'success', '完了': 'success', '生きている': 'success', '失敗した': 'error', '止まっている': 'error', '入力待ち': 'warning', '返答待ち': 'warning', '待機': 'pending', '不明': 'pending', '中断した': 'stopped', '中止': 'stopped' } as const;
-export function Status({ value }: { value: string }) { return <StatusIndicator type={statusTypes[value as keyof typeof statusTypes] || 'info'}>{value}</StatusIndicator>; }
+export function Status({ value }: { value: string }) { return <span className="status" data-status={value}><StatusIndicator type={statusTypes[value as keyof typeof statusTypes] || 'info'}>{value}</StatusIndicator></span>; }
 export function useMobile() {
   const [mobile, set] = useState(() => matchMedia('(max-width: 767px)').matches);
   useEffect(() => { const m = matchMedia('(max-width: 767px)'); const update = () => set(m.matches); m.addEventListener('change', update); return () => m.removeEventListener('change', update); }, []);
