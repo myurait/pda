@@ -1,0 +1,10 @@
+import { createRoot } from 'react-dom/client';
+import { HashRouter } from 'react-router';
+import '@cloudscape-design/global-styles/index.css';
+import { applyMode, Mode } from '@cloudscape-design/global-styles';
+import '@xyflow/react/dist/style.css';
+import './styles.css';
+import { StoreProvider } from './store';
+import { App } from './App';
+applyMode(Mode.Light);
+createRoot(document.getElementById('root')!).render(<HashRouter><StoreProvider><App/></StoreProvider></HashRouter>);
