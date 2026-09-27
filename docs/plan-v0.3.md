@@ -30,7 +30,7 @@ v0.3 の作業は、候補の OSS をミニ PC の上にセットアップし、
 
 議論の結果は次のとおり。
 
-- セルに分けて集約する形そのものはトークンを増やさない。増やすのは、固定プロンプトの大きな Claude Code セッションを最上位に置いて長く回す形のほうで、差の出所は「1 回の呼び出しごとに再送する固定プロンプトの大きさ × 呼び出し回数」である (実測は調査記録に置く)。トークンは選定の決め手ではない。
+- セルに分けて集約する形そのものはトークンを増やさない。増やすのは、固定プロンプトの大きな Claude Code セッションを最上位に置いて長く回す形のほうで、差の出所は「1 回の呼び出しごとに再送する固定プロンプトの大きさ × 呼び出し回数」である (実測は調査記録の findings.md 4 節)。トークンは選定の決め手ではない。
 - フローはどちらの形でも組めるので、決め手は可視化層の厚さと、ベンダーの変更への追従の速さになる。
 - v0.2 の要件正本 2 節の発言 (多層的な統合推論機構、workflow 的な構造の保存) は、ベンダーの仕組みを使う形と両立する。本当に矛盾するのは 3.3 節の「特定のツールの画面やセッション管理をコアとして流用しない」と、それに連なる A4 だけである。
 
@@ -43,7 +43,7 @@ v0.3 の作業は、候補の OSS をミニ PC の上にセットアップし、
    - 判定器の繰り返し、分岐と合流、オブザーバー、報告のセルを PDA の機構として作ること。A12〜A18 と A31〜A33 は対象を失う。
    - A19〜A26 の介入は、ベンダーと選定した OSS が出している操作 (中断、追加指示、承認、再試行、再開) の範囲に縮める。セルの挿入と、初期指示の書き換えを次の回から効かせる操作は失う。
 3. 判定器をフロントドアにし Conductor をコアに置く形 (3 節の A) は凍結する。
-4. 要件正本 2 節のオーナーの発言、3.2 節の周辺要件、A1〜A3、A5〜A11、A20〜A30 は残す。満たし方は、PDA の自作ではなく OSS とベンダーの機能、および skill と hook の配布で行う。
+4. 要件正本 2 節のオーナーの発言、3.2 節の周辺要件、A1〜A3、A5〜A11、A27〜A30 は残す。満たし方は、PDA の自作ではなく OSS とベンダーの機能、および skill と hook の配布で行う。
 
 ## 3. フロントドアの 3 つの形 (オーナーの整理)
 
@@ -82,7 +82,7 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 
 1. 本計画の承認。オーナーが 4 節の要件と 6 節の候補の分け方を承認する。
 2. 要件正本の改訂 (2.2 の決定を本文に反映する)。
-3. 選別。6.2 の候補それぞれをミニ PC にセットアップし、シナリオ S1 だけを通す。1 製品につき Codex のワンショット 1 回と追加指示 1 回まで。
+3. 選別。6.1 と 6.2 の候補それぞれをミニ PC にセットアップし、シナリオ S1 だけを通す。1 製品につき Codex のワンショット 1 回と追加指示 1 回まで。
 4. 本評価。選別を通った製品に S1〜S8 を通し、4 節の要件を 1 つずつ判定する。評価記録は `docs/reports/v0.3-<製品>-evaluation.md`、証拠は `docs/reports/evidence/v0.3-<製品>/`。
 5. オーナーのプレビュー。本評価を通った製品を Tailscale Serve で公開し、オーナーが開発 PC とスマホから触る。所見は評価記録の「オーナーの所見」に書く。
 6. 3 本への絞り込みと承認。硬い条件 (R1、R2、R4) を満たし、R5 と R7 の充足が上位のものを 3 本まで挙げ、オーナーがプレビューの上で承認する。
@@ -110,7 +110,7 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 棄却は「机上の棄却」と「評価による棄却」に分ける。
 
 - 机上の棄却は、次の硬い条件のどれかに一次資料で反することが分かった場合に限る。H1: Claude Code と Codex の両方を定額ログインで動かせない。H2: ミニ PC のヘッドレス Linux で常駐できず、Web か API で届かない。H3: 直近 3 か月にコミットもリリースも無い、または保守終了の告知がある。H4: ライセンスが個人の自前運用を許さない。
-- それ以外の理由 (画面が薄い、委譲が無い、若い) は机上で棄却せず、選別に回す。
+- それ以外の理由 (画面が薄い、委譲が無い、若い、H1 や H2 が一次資料から分からない) は机上で棄却せず、選別に回す。
 - 評価による棄却は、S1〜S8 の記録と 4 節の判定表を根拠にする。
 - セットアップが失敗した場合は、指示ファイル、走行記録、エラーを証拠として残し、Codex の追加指示 1 回まで試す。それでも動かなければ「セットアップ不備による棄却」として台帳に載せ、どの手順で何が起きたかを書く。試みの記録が無い棄却は認めない。
 - 台帳の書式は、製品、段階 (机上 / 選別 / 本評価 / 深掘り)、反した要件の番号、根拠 (URL か証拠ファイル)、再考の条件の 5 欄。
@@ -122,6 +122,7 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 - 公開は Tailscale Serve で行い、製品ごとにポートを分ける。設定は人の手順で、指示ファイルに手順書として書かせる。
 - 報告書は `docs/reports/v0.3-<製品>-codex.md`、証拠は `docs/reports/evidence/v0.3-<製品>/`。報告書には、動いたか、S1 の結果、詰まった箇所、使ったポートとパスを書かせる。
 - 製品のコードには手を入れない。設定ファイルと skill、hook の追加だけを許す。
+- ミニ PC の sudo にはパスワードが要り、root の権限が要る作業はオーナーが行う (`docs/environment/mini-pc.md`)。root が要る手順は実装側が人の手順書として書き、設計側がオーナーに依頼する。root が要ることを「セットアップ不備」に数えない。
 
 ### 5.5 ミニ PC の資源
 
@@ -136,9 +137,9 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 
 ## 6. 候補と机上の判定 (2026-09-27 時点)
 
-母集団は GitHub の topic (ai-orchestrator、agent-orchestration、claude-code、codex-cli、parallel-agents、agent-client-protocol) の検索と [awesome-agent-orchestrators](https://github.com/andyrewlee/awesome-agent-orchestrators) の 7 分類で、120 件のメタデータを GitHub の API で取り、34 件の README と公式文書を読んだ。数値と引用は調査記録にある。
+母集団は GitHub の topic (ai-orchestrator、agent-orchestration、claude-code、codex-cli、parallel-agents、agent-client-protocol) の検索と [awesome-agent-orchestrators](https://github.com/andyrewlee/awesome-agent-orchestrators) の 7 分類で、146 件のメタデータを GitHub の API で取った。34 件は README と公式文書を 7 項目で読み、残りは README と公式文書で硬い条件 H1 と H2 を確かめた。数値と引用は調査記録 (README.md の母集団表、findings.md の 5 節) にある。分類の語は、一次 (選別へ)、二次 (一次の後に選別へ)、棄却 H# (机上の棄却と反した条件)、部品 (app ではなく部品として v0.4 で再考) の 4 つで、3 つの文書で同じ語を使う。
 
-### 6.1 硬い条件の確認が済んでいる一次候補 (選別へ)
+### 6.1 一次候補 (7 項目で読み、硬い条件を満たす引用があるもの)
 
 | 製品 | 星 / ライセンス | 一次資料で確認した要点 |
 |---|---|---|
@@ -149,10 +150,13 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 | [paseo](https://github.com/getpaseo/paseo) | 18.7k / Apache | ヘッドレスのデーモン。Web、iOS、Android、CLI、Docker。Claude Code、Codex、他は ACP。skill で引き継ぎと委員会。MCP と SDK で自動化。個人 1 名 |
 | [kandev](https://github.com/kdlbs/kandev) | 849 / AGPL | 全エージェントを ACP で。ワークフローを可搬な YAML で、段ごとに別エージェント、人のゲート。タスク間 MCP。ボードとレビューの対話。自前運用、スマホは Tailscale 経由 |
 
-### 6.2 硬い条件に反する証拠が無い二次候補 (一次候補の選別の後に選別へ)
+### 6.2 二次候補 (硬い条件に反する証拠が無く、一次候補の選別の後に選別へ)
+
+7 項目で読んだもの。
 
 | 製品 | 星 / ライセンス | 要点と、一次候補にしなかった理由 |
 |---|---|---|
+| [agent-orchestrator (Untrivial)](https://github.com/Untrivial-ai/agent-orchestrator) | 12.4k / Apache | 25 以上のハーネス。デスクトップ app (mac / Windows / Linux) がローカルのデーモンを持ち、スマホ app は LAN か Tailscale で対にする。作業を分けてワーカーを起こし、CI の失敗とマージ衝突を直す。live Kanban。ヘッドレスでデーモンだけを動かせるかと Web UI の有無が未確認 |
 | [5dive](https://github.com/5dive-ai/5dive) | 61 / MIT | 公式 CLI を systemd で常駐、Pro / Max をそのまま。5dive.yaml、組織図・待ち行列・ゲート。Web は plugin、スマホの記述なし。星が少ない |
 | [OpenMausBot](https://github.com/milind-soni/OpenMausBot) | 3.6k / Apache | ボットの実体が Claude か Codex。Markdown でチーム導入。Docker、Android / iOS。承認カード。画面がチャット中心 |
 | [amux](https://github.com/mixpeek/amux) | 505 / MIT + Commons Clause | systemd、Web、iOS と PWA。素の CLI を tmux で。ワーカー間の @ メンション、kanban。リリースが 1 回 |
@@ -172,22 +176,25 @@ R1、R2、R4 は硬い条件で、満たさないものは 3 本に入れない�
 | [mjolnir](https://github.com/BrokkAi/mjolnir) | 64 / GPL | ACP で Claude Code と Codex を並行。Web は Tailscale 経由。委譲とワークフローの定義が無い |
 | [agentconnect](https://github.com/agentconnect-md/agentconnect) | 1.4k / Apache | Slack 等で @ メンション。Docker Compose のコンソール。ACP、MCP、OpenTelemetry。フロントドアが Slack |
 | [Fusion](https://github.com/Runfusion/Fusion) | 1.2k / MIT | エージェント間のメールボックス、kanban と図、OTLP、Docker。Claude Code と Codex を CLI で動かすかが未確認 |
-| [OpenClaw](https://github.com/openclaw/openclaw) | 390k / 独自表記 | ハーネスを差し替え可能なプラグイン、ACP、全端末のネイティブ app。第一の位置付けは個人アシスタント。要件正本 1 節にある v0.1 の体験劣化と同じ系統 |
+| [qm](https://github.com/yc-software/qm) | 15.3k / MIT | Y Combinator の組織。Pi / OpenCode / Codex / Claude Code が同じ core を駆動。Slack と Web。全ツール呼び出しで人の承認が要り、多人数向け |
+| [OpenClaw](https://github.com/openclaw/openclaw) | 390k / MIT (LICENSE 本文。GitHub の表示は NOASSERTION) | ハーネスを差し替え可能なプラグイン、ACP、全端末のネイティブ app。第一の位置付けは個人アシスタント。要件正本 1 節にある v0.1 の体験劣化と同じ系統 |
 | [Hermes Agent](https://github.com/NousResearch/hermes-agent) | 249k / MIT | Claude Code と Codex に CLI で委譲、Kanban。公式スマホ app なし。v0.1 で体験劣化を記録した製品だが、その後 Kanban と委譲が加わった |
 | [Paperclip](https://github.com/paperclipai/paperclip) | 88k / MIT | ハートビートで起こすアダプタ、組織図と Kanban、Web、自前運用。チャットのフロントドアではない |
+| [Goose](https://github.com/aaif-goose/goose) | 54.7k / Apache | 自前のエージェントで、ACP の provider として Claude と Codex を呼ぶ。デスクトップ・CLI・API。Web とスマホの記述なし |
 
-### 6.3 机上の棄却
+硬い条件だけを確かめたもの (根拠は findings.md の 5.3)。H1 と H2 の両方に「はい」の引用があるものを先に選別する。
 
-| 製品 | 反した条件 | 根拠 |
-|---|---|---|
-| zeron、munder-difflin、Orkas、Agent Teams、Superset、Emdash、Crystal | H2 (デスクトップ app で、ヘッドレスの常駐と Web が無い) | 各 README。Crystal は 2026-02 に終了 (H3 も) |
-| openswarm | H1 (Codex 非対応、API キー)、H2 (macOS 専用) | README |
-| Yao | H1 (Claude Code と Codex の CLI を起こさない) | README と docs |
-| takt | H1 (文書上は API キーで動く) | docs/configuration.md。YAML の手順定義は v0.4 の部品として再考 |
-| open-multi-agent、claudexor | app ではなく部品 | README。claudexor の複数アカウントの枠管理は R8 の部品として再考 |
-| Vibe Kanban、Terragon、Conductor.build | H3 (会社の解散、終了) と、Conductor.build は非公開ソースで Mac 専用 | 各公式告知 |
-| n8n、LangGraph Studio、Open WebUI、Mastra Studio | H1 (Claude Code と Codex を起動・監視する機能が無い) | 各 docs |
-| 母集団のうち上記以外の 70 件余り | 説明文の段階で、単一ベンダー専用、skill や plugin の集合、端末専用の多重化、個人アシスタントで CLI を起こさない、のいずれかに当たる | 調査記録の母集団表に 1 件ずつ分類を書く |
+- 両方はい: [cezar](https://github.com/open-mercato/cezar) (定額ログイン、ubuntu-vps に systemd、スマホから cockpit、YAML で段ごとに runner)、[ai-maestro](https://github.com/23blocks-OS/ai-maestro) (ヘッドレスのワーカー、Docker、複数マシン、AMP でメッセージ、Kanban)、[garcon](https://github.com/cfal/garcon) (Web、Linux バイナリ、子チャットへの委譲。GPL)、[squid](https://github.com/agent-squid/squid)、[tlbx](https://github.com/tlbx-ai/tlbx)、[mulmoterminal](https://github.com/receptron/mulmoterminal)、[taskuary](https://github.com/ldbumble/taskuary)、[codexia](https://github.com/milisp/codexia) (ヘッドレスの backend、ACP)、[waku](https://github.com/egoist/waku) (waku-daemon と Web、GPL)、[codey](https://github.com/its-ahoh/codey) (Node の gateway、Markdown のボット定義とフローグラフ。デスクトップは macOS)、[clideck](https://github.com/rustykuntz/clideck)、[ateam](https://github.com/clawnify/ateam) (GPL と商用)、[tutti](https://github.com/nutthouse/tutti) (tutti.toml のワークフロー、`tt serve`。3 か月のコミットが 1 件で活動は細い)。
+- H2 はい、H1 は不明: [ruflo](https://github.com/ruvnet/ruflo)、[vibe-tree](https://github.com/sahithvibudhi/vibe-tree)、[contrabass](https://github.com/junhoyeo/contrabass) (WORKFLOW.md、headless、JSON / SSE API)、[gastown](https://github.com/gastownhall/gastown)、[Octop](https://github.com/TencentCloud/Octop)、[mission-control](https://github.com/builderz-labs/mission-control)、[OtoDock](https://github.com/OtoDock/oto-dock) (FSL-1.1)、[Ivy-Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril) (FSL-1.1)、[agor](https://github.com/preset-io/agor) (BUSL-1.1)、[cccc](https://github.com/ChesterRa/cccc)、[imcodes](https://github.com/im4codes/imcodes)、[openrig](https://github.com/mvschwarz/openrig)、[trinity](https://github.com/Abilityai/trinity)、[Pane](https://github.com/greenfield-inc/Pane)、[dev-3.0](https://github.com/h0x91b/dev-3.0)、[claude-command-center](https://github.com/amirfish1/claude-command-center) (非商用)、[sortie](https://github.com/sortie-ai/sortie)、[xum](https://github.com/coder/xum)。
+- H1 はい、H2 は不明: [agetor](https://github.com/alamops/agetor)、[ai4kanban](https://github.com/ai4kanban/ai4kanban)、[pragma](https://github.com/pragma-sh/pragma)、[zaivern-code](https://github.com/tacyan/zaivern-code)、[dray](https://github.com/monorepo-labs/dray)、[termany](https://github.com/thinkany-ai/termany)、[zuse](https://github.com/swarajbachu/zuse)、[Ghostex](https://github.com/maddada/Ghostex)、[alethe-agents](https://github.com/Kc1t/alethe-agents)、[synara](https://github.com/Emanuele-web04/synara)、[superset](https://github.com/superset-sh/superset) (Elastic License 2.0)。
+- 両方不明: [kungfu](https://github.com/kungfu-systems/kungfu)、[evoflux](https://github.com/evoelsewhere/evoflux)、[nimbalyst](https://github.com/nimbalyst/nimbalyst)、[ai-devkit](https://github.com/codeaholicguy/ai-devkit)、[proliferate](https://github.com/proliferate-ai/proliferate)、[cyclops](https://github.com/cyclops-team/cyclops)、[luvus](https://github.com/RizRiyz/luvus)、[cyrus](https://github.com/cyrusagents/cyrus)、[companyhelm](https://github.com/CompanyHelm/companyhelm)、[opentag](https://github.com/amplifthq/opentag) (主 UI が Slack)、[Dorothy](https://github.com/Charlie85270/Dorothy)。
+
+### 6.3 机上の棄却 (反した条件と根拠は findings.md の 5.3 と 5.4)
+
+- H1 (Claude Code と Codex の両方を定額ログインで動かせない): cloudflare-os、rakazo、taOS、hivekeep、stagewise、devspace (フロントドアがベンダーの app で B の部品)、AgentsMesh (BYOK、BSL)、openchamber (OpenCode 専用)、forge-orchestrator (API キー)、octomux (Codex なし)、lionclaw (Claude Code なし)、mosoo-agent-driver (OpenAI の API キーのみ)、berd (Goose のみ)、CodeNomad (OpenCode)、Yao (CLI を起こさない)、takt (API キー。YAML の手順定義は部品として再考)、openswarm (Codex なし、macOS 専用)、Aperant (Claude Code のみ、デスクトップ、3 か月のコミット 0)、muxel (Codex なし、デスクトップ)、Friday (BYOK)、n8n、LangGraph Studio、Open WebUI、Mastra Studio。
+- H2 (ヘッドレス Linux で常駐できず Web か API で届かない): happy (Linux のデーモン運用の記述なし。同系の happier を一次候補にした)、emdash、traycer、Meldwork、zeron、munder-difflin、Orkas、agent-teams-ai、ouijit、agent-session-manager-desktop、tempest、monocode、runner、parallel-code、alas、clave、diri、fletch、GraphCode、supacode、superagent-desktop、tortie、hcom (常駐サービスなし。部品として再考)、openyak (Electron、Linux は作業中)、background-agents (Cloudflare Workers と Durable Objects の基盤)、collab-public と constellagent と vibecraft (デスクトップで、かつ 3 か月のコミットが無いか 1 件)、Crystal (2026-02 に終了)、Conductor.build (非公開ソース、Mac のみ)、Zed (デスクトップのみ)。
+- H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
+- 部品 (app ではなく、v0.4 で部品として再考): open-multi-agent、claudexor (複数アカウントの枠管理は R8 の部品)、crewplane、zenith。
 
 ### 6.4 決まっていないこと
 

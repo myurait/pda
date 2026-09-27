@@ -147,7 +147,111 @@ Claude Code のセッション記録 (開発 PC) と Codex の走行記録 (ミ�
 
 **OpenClaw、Hermes Agent、Paperclip** は [docs/research/unified-ui-2026-09-18/](../unified-ui-2026-09-18/a-session-managers.md) と本調査で確認した。OpenClaw: [CLI バックエンド](https://docs.openclaw.ai/gateway/cli-backends) "Compatible agent turns share one warm Claude Code subprocess"、[ACP](https://docs.openclaw.ai/tools/acp-agents)、[Control UI](https://docs.openclaw.ai/web/control-ui) "each card shows the agent's identity, model, current work status, last activity"、"Subagent runs appear in inline transcript activity rows and the chat Tasks tab"。"Models and agent harnesses (Claude, Codex, local models) are plugins you can swap"。Hermes: [Claude Code](https://hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code) は claude -p か tmux、[Codex](https://hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-codex) は codex exec、[Kanban](https://github.com/NousResearch/hermes-agent/blob/main/website/docs/user-guide/features/kanban.md) "sub-grouping of the Running column by assignee"。Paperclip: "If it can receive a heartbeat, it's hired."、[ACP はコアにしない](https://github.com/paperclipai/paperclip/discussions/787)。
 
-### 5.3 机上で棄却したものの根拠
+### 5.3 硬い条件だけを一次資料で確かめたもの (選別の判定)
+
+7 項目の読みをしていない製品について、README と homepage を読んで硬い条件 H1 (Claude Code と Codex の両方を定額ログインのままの CLI として動かせるか) と H2 (Linux のヘッドレスなサーバかデーモンとして常駐でき、Web UI か HTTP API で届くか) を判定した。各行は「製品 | H1 | H2 | 会話する相手 | 協調 | 画面 | 特記」。根拠の URL は各行にある。
+
+- ruvnet/ruflo | H1: 不明 ("native Claude Code/Codex...Integrated"、定額の明記なし。github.com/ruvnet/ruflo) | H2: はい (Web UI を自前運用、Dockerfile) | 製品のエージェントが CLI に委譲 | スウォーム、ワークフローの template | CLI / Web | MIT
+- gastownhall/gastown | H1: 不明 (Claude Code CLI が既定の runtime、codex 等を指定可。認証は未記載) | H2: はい (`gt up` でデーモン群と Web ダッシュボード) | 製品のエージェントが CLI に委譲 | mailbox、handoff、TOML の Formulas | CLI / Web / TUI | MIT
+- cloudflare/cloudflare-os | H1: いいえ (独自のマルチプロバイダのエージェントで、ベンダー CLI を包む記述なし) | H2: 不明 (Workers 前提) | その他 | 記載なし | Web | Apache-2.0、"rough edges"
+- TencentCloud/Octop | H1: 不明 ("outbound runners include...Claude Code, and Codex") | H2: はい (単一プロセス常駐、Web / CLI / IM) | 製品のエージェントが CLI に委譲 | AgentTeams で委譲 | Web / CLI / IM | MIT
+- elie222/rakazo | H1: いいえ (bring your own model、Claude Code / Codex の固有の記述なし) | H2: はい | その他 | bot 間の委譲 | Web / Electron / Expo | Apache-2.0、beta
+- jaylfc/taOS | H1: いいえ (17 の framework 一覧に Codex なし) | H2: はい (systemd) | その他 | A2A のメッセージバス | Web / CLI | AGPL-3.0 と商用
+- MarlBurroW/hivekeep | H1: いいえ (README に Claude Code / Codex の言及なし) | H2: はい | その他 | request / reply の委譲 | Web PWA | MIT
+- builderz-labs/mission-control | H1: 不明 ("works with OpenClaw, Claude Code, Codex...") | H2: はい (ダッシュボード、REST、WebSocket) | 製品のエージェントが CLI に委譲 | dispatch / handoff / workflows / review gates | Web / CLI / API | MIT、alpha
+- stagewise-io/stagewise | H1: いいえ (独自の組み込みエージェント) | H2: 不明 | その他 | 記載なし | Web (IDE) | AGPL-3.0
+- Waishnav/devspace | H1: いいえ (ChatGPT / Claude の app 向けの MCP サーバで、CLI を包まない) | H2: はい (`devspace serve`) | その他 | 記載なし | CLI / Web | ライセンス表記が不明瞭
+- kungfu-systems/kungfu | H1: 不明 ("Codex, Claude, OpenCode, Amp"、認証は未記載) | H2: 不明 (TUI / GUI は sidecar) | 製品のエージェントが CLI に委譲 | .kungfu/ で Work の状態を引き継ぐ | CLI / TUI / GUI | Apache-2.0
+- ColeMurray/background-agents | H1: はい ("Claude (via API key or a connected Claude subscription...), Codex (via ChatGPT subscription)") | H2: 不明 (Cloudflare Workers と Durable Objects の基盤) | 製品のエージェントが CLI に委譲 | spawn-child | Web / Slack / PR | MIT
+- AgentsMesh/AgentsMesh | H1: いいえ ("Bring your own AI API keys (BYOK)") | H2: はい (Runner の自前デーモン) | 製品のエージェントが CLI に委譲 | pod 間の @ メンション | Web / Desktop / iOS | BSL-1.1 (2030 年に GPL へ)
+- OtoDock/oto-dock | H1: 不明 ("Claude Code runs on your Anthropic subscription, Codex runs on your ChatGPT subscription"、API キーか OAuth かは未確認) | H2: はい (自前のダッシュボード、8400 番) | 製品のエージェントが CLI に委譲 | 部門の委譲、専門エージェント間の議論 | Web / CLI | FSL-1.1-Apache-2.0
+- openchamber/openchamber | H1: いいえ ("OpenChamber uses OpenCode to run coding agents") | H2: はい (`openchamber startup enable`) | OpenCode 経由 | 最大 5 モデルの並列 | Desktop / Web / Mobile / CLI | MIT
+- generalaction/emdash | H1: 不明 ("Bring the CLI agents you already use: Claude Code, Codex") | H2: いいえ ("Emdash is a desktop app") | 製品のエージェントが CLI に委譲 | worktree の並列のみ | デスクトップ | Apache-2.0、YC W26
+- Ivy-Interactive/Ivy-Tendril | H1: 不明 ("if it runs in a terminal, it runs in Tendril") | H2: はい ("tendril --web") | 製品のエージェントが CLI に委譲 | 明記なし | デスクトップと Web | FSL-1.1-ALv2
+- traycerai/traycer | H1: 不明 ("connects seamlessly with the subscriptions you already own") | H2: いいえ (デスクトップの配布のみ) | 製品のエージェントが CLI に委譲 | Agent-to-Agent Communication | デスクトップ | MIT
+- preset-io/agor | H1: 不明 ("bring your own provider and subscription") | H2: はい (`agor daemon start`、docker compose、Web UI と REST / WebSocket) | 製品のエージェントが CLI に委譲 | MCP でセッションとブランチを操作 | Web | BUSL-1.1 (2029 年に Apache へ)
+- ChesterRa/cccc | H1: 不明 ("Managed Agent View session" (Claude Code)、"Managed app-server session" (Codex CLI)) | H2: はい (8848 番、docker compose、systemd) | 製品のエージェントが CLI に委譲 | @all / @peers / @foreman、Send と Reply / Mail | Web と CLI | Apache-2.0
+- im4codes/imcodes | H1: 不明 ("Claude Code (CLI or SDK), Codex (CLI or SDK)") | H2: はい (docker compose、daemon と WebSocket 中継) | 製品のエージェントが CLI に委譲 | "imcodes send"、Team discussions、cron | Web とモバイル | MIT、"no warranties, no SLA"
+- RizRiyz/luvus | H1: 不明 (対応表のみ) | H2: いいえ寄り ("Luvus Web: an optional, read-only-by-default browser client"、TUI が主体) | 製品のエージェントが CLI に委譲 | 複数ペインへの一括送信 | TUI (任意の Web) | Apache-2.0
+- mvschwarz/openrig | H1: 不明 ("requires tmux and authenticated Codex"、Claude Code 側は未記載) | H2: はい (local daemon、MCP サーバ、Hono HTTP daemon) | 製品のエージェントが CLI に委譲 | YAML の RigSpec で pods と edges、rig send / broadcast / chatroom | TUI / CLI | Apache-2.0。React の Web UI は "maintenance mode"
+- Abilityai/trinity | H1: 不明 ("paste a Claude subscription token or an Anthropic API key"、Codex 側は未確認) | H2: はい ("self-host with one command"、Web UI、API docs) | 製品のエージェントが CLI に委譲 | Hierarchical delegation、YAML マニフェスト | Web | Apache-2.0 (一部は商用)
+- proliferate-ai/proliferate | H1: 不明 ("native harnesses") | H2: 不明 (Docker Compose の control plane にデスクトップ app を向ける) | 製品のエージェントが CLI に委譲 | "Subagents—agents delegate scoped work to child agents"、Workflows | デスクトップ | AGPL-3.0
+- greenfield-inc/Pane | H1: 不明 | H2: はい ("For a headless VM or server, use runpane: ... install daemon"、runpane.com/app) | 製品のエージェントが CLI に委譲 | "Pane Chat is the global orchestrator terminal" | デスクトップと Web | AGPL-3.0
+- h0x91b/dev-3.0 | H1: 不明 | H2: はい ("It runs headless, and your phone is a client") | 製品のエージェントが CLI に委譲 | "dev3 message --task" | デスクトップと Web | Apache-2.0
+- open-mercato/cezar | H1: はい ("Uses your own claude, codex, opencode or pi login. No API key needed.") | H2: はい ("cezar-cli server-install --platform ubuntu-vps"、"cockpit from anywhere, including your phone") | 製品のエージェントが CLI に委譲 | ".ai/cezar/workflows/" に YAML で段ごとに runner を指定 | Web | MIT
+- Ryder-Sun/Meldwork | H1: 不明 | H2: いいえ ("a local Electron desktop app...not a hosted agent fleet"、"for macOS (Apple silicon)") | 製品のエージェントが CLI に委譲 | "Auto Discussion V4" | デスクトップ | macOS 専用。ライセンス表記に矛盾 (バッジは Apache-2.0、LICENSE は非商用)
+- amirfish1/claude-command-center | H1: 不明 (~/.claude の記録を読む方式。BYOK の入力欄も併記) | H2: はい ("CCC runs on Linux as a headless service you reach from the browser") | その他 | "sibling-ask"、group chats | Web | 現行は非商用、旧版は MIT
+- cfal/garcon | H1: はい ("Use an existing agent login or subscription where its CLI supports one") | H2: はい (自前運用の Web、Linux x64 のバイナリ) | ベンダーの CLI そのもの | garcon-task で子チャットに委譲 | Web | GPL-3.0
+- alamops/agetor | H1: はい ("claude runs in interactive mode"、"codex exec") | H2: 不明 (ヘッドレスのデーモンと JSON / SSE の API はあるが Linux は未テストと明記) | ベンダーの CLI そのもの | AGENTS_CONFIG.yml | Web / TUI | MIT、"no sandbox"
+- ai4kanban/ai4kanban | H1: はい ("your own AI subscriptions") | H2: 不明 (デスクトップ app 中心) | 製品のエージェントが CLI に委譲 | 記載なし | Web | web/ は再配布不可、他は Apache-2.0
+- agent-squid/squid | H1: はい ("the local CLI agent") | H2: はい ("run in the background"、FastAPI と WebSocket) | ベンダーの CLI そのもの | #topic@agent で切替 | Web | MIT
+- pragma-sh/pragma | H1: はい ("Every agent runs through its own native CLI") | H2: 不明 ("headless launches survive quitting the app" は自機の機能) | ベンダーの CLI そのもの | worktree の並列 | デスクトップと Web | AGPL-3.0
+- tacyan/zaivern-code | H1: はい (入っている CLI をそのまま動かす) | H2: 不明 (リモート機能はあるが常駐と API の記載なし) | ベンダーの CLI そのもの | SPEC.md と StaticPlanner | TUI / リモート | Apache-2.0
+- evoelsewhere/evoflux | H1: 不明 (CLI を包む記載なし、BYOM) | H2: 不明 (Tauri) | その他 | lead と specialist のチーム | デスクトップと Web | Apache-2.0
+- monorepo-labs/dray | H1: はい ("Runs on the subscriptions you already have") | H2: 不明 (Tauri の記載のみ) | ベンダーの CLI そのもの | セッションごとの worktree | デスクトップ | Apache-2.0
+- tlbx-ai/tlbx | H1: はい | H2: はい ("service mode"、ブラウザ経由) | ベンダーの CLI そのもの | 記載なし | Web | AGPL-3.0 と商用
+- receptron/mulmoterminal | H1: はい ("we drive the real interactive CLI") | H2: はい (34567 番、HTTP と WebSocket) | ベンダーの CLI そのもの | 並行セッションのみ | Web | MIT
+- thinkany-ai/termany | H1: はい ("Claude and Codex Bots use your locally installed and authenticated official CLI") | H2: 不明 (サーバの認証は将来計画) | 製品のエージェントが CLI に委譲 | グループチャットの引き継ぎ | Web / デスクトップ | AGPL-3.0 と商用
+- swarajbachu/zuse | H1: はい | H2: 不明 (Electron の記載のみ) | ベンダーの CLI そのもの | モデル間の委譲のみ | デスクトップ | AGPL-3.0。macOS と x64 Linux
+- sortie-ai/sortie | H1: 不明 (認証の記載なし) | H2: はい (docs に HTTP API と Dashboard) | 製品のエージェントが CLI に委譲 | WORKFLOW.md | Web | Apache-2.0
+- ldbumble/taskuary | H1: はい ("real sessions of the tools you already pay for") | H2: はい (docker compose、7787 番) | 製品のエージェントが CLI に委譲 | "Live handoffs" | Web | MIT、プレリリース
+- cyrusagents/cyrus | H1: 不明 (BYOK) | H2: 不明 (常駐は可だが Web UI はクラウド版のみ) | 製品のエージェントが CLI に委譲 | Issue 単位 | Web / CLI | Apache-2.0
+- milisp/codexia | H1: はい ("it uses whatever authentication your CLI already has") | H2: はい ("Headless backend: Axum web server for remote control") | ベンダーの CLI そのもの | ACP のエージェント接続 | デスクトップと Web | MIT
+- nimbalyst/nimbalyst | H1: 不明 | H2: 不明 (デスクトップ app と iOS の companion、サーバの記載なし) | 不明 | 並行セッションのみ | デスクトップと iOS | MIT
+- coder/xum | H1: 不明 | H2: はい (部分。"Xum server mode has a responsive UI for mobile users") | 不明 | 記載なし | デスクトップと Web | AGPL-3.0
+- aannoo/hcom | H1: はい | H2: いいえ ("Single Rust binary, no background services") | ベンダーの CLI そのもの | メッセージ、スレッド、`hcom run` | CLI / TUI | MIT
+- codeaholicguy/ai-devkit | H1: 不明 | H2: 不明 (daemon は Telegram 連携用) | 製品の制御層 | `agent send`、skill のワークフロー | CLI / TUI | MIT
+- openyak/openyak | H1: はい (部分。Codex と Claude Code) | H2: いいえ ("Linux/Windows GUI validation are still work in progress"、Electron) | Claude Agent SDK が委譲 | "not a complete workflow-orchestration UI" | デスクトップ | Apache-2.0、alpha
+- Intelligent-Internet/zenith | H1: 不明 | H2: 不明 (CLI と skill) | エージェント内から呼ばれる harness | orchestrator が worker と tester を割当 | CLI | Apache-2.0
+- nxtg-ai/forge-orchestrator | H1: いいえ ("forge config brain openai" は API キー前提) | H2: はい (部分) | 製品の orchestrator | 依存関係のタスクグラフ | CLI / TUI | FSL-1.1-ALv2
+- rustykuntz/clideck | H1: はい ("Each session is the agent's actual terminal, with its own tools, configuration, and account") | H2: 部分 (Web UI、常駐の明記なし) | ベンダーの CLI そのもの | "CliDeck Ask" | Web | MIT
+- ShreyPaharia/octomux | H1: いいえ ("Claude Code and/or Cursor CLI"、Codex なし) | H2: はい (7777 番) | ベンダーの CLI (claude / cursor-agent) | Orchestrator パターン | Web とデスクトップ | MIT
+- moshthepitt/lionclaw | H1: いいえ ("use a logged-in Codex CLI"、Claude Code の記載なし) | H2: 不明 | Codex | 複数インスタンス | CLI | MIT
+- its-ahoh/codey | H1: はい ("shells out to the agent CLIs you already have installed and signed in") | H2: はい (部分。"gateway is Node.js and runs anywhere Node does"、HTTP API) | ベンダーの CLI そのもの | Markdown のボット定義、フローグラフ | デスクトップ (macOS) と CLI | MIT
+- clawnify/ateam | H1: 部分 (PATH 上の claude / opencode / codex) | H2: はい ("same desktop app can point at a Linux box that runs the agents") | ベンダーの CLI そのもの | 明記なし | デスクトップ、iOS、Web | GPL-3.0 と商用
+- cyclops-team/cyclops | H1: 不明 | H2: 部分 (daemon と mailbox は常駐、Web は明記なし) | tmux 経由 | `cyclops send` | TUI と workspace UI | MIT
+- crewplaneai/crewplane | H1: はい ("does not install, authenticate, or sandbox provider CLIs") | H2: 不明 | 各 CLI が独立に実行 | Markdown のワークフロー、`needs` の DAG | CLI | Apache-2.0
+- langgenius/mosoo-agent-driver | H1: いいえ ("OpenAI API-key auth only") | H2: 不明 | ブリッジ | 単一セッション | CLI | Apache-2.0
+- Orkas-AI/Orkas | H1: はい ("plug in as local subprocesses") | H2: いいえ (デスクトップ限定、Linux はソースから) | Commander が委譲 | hand_off_to / dispatch_to | デスクトップ | MIT
+- 777genius/agent-teams-ai | H1: はい | H2: いいえ ("The standalone HTTP dashboard is intended for local or trusted-network use"、"web version is currently in active development") | 独自の統括層 | エージェント間の会話 | デスクトップ | AGPL-3.0
+- superset-sh/superset | H1: はい ("Keep your existing agent subscriptions") | H2: 不明 (Linux は experimental、常設 Web の明記なし) | chat ペインと CLI | worktree の並列 | デスクトップ、CLI、SDK | Elastic License 2.0、"macOS is the primary target"
+- 23blocks-OS/ai-maestro | H1: はい ("bring your own agent subscriptions (Claude Code, Codex...)") | H2: はい ("Worker machines can run headless (yarn headless)"、Docker、23000 番) | ダッシュボードと AMP が仲介 | AMP でメッセージ、Kanban | Web | MIT
+- ouijit/ouijit | H1: はい ("Ouijit shadows the agent binaries on PATH") | H2: いいえ (REST はデスクトップ app 従属) | ベンダーの CLI そのもの | 記載なし | デスクトップ | AGPL-3.0
+- izll/agent-session-manager-desktop | H1: はい | H2: いいえ ("Can I use it over SSH or on a headless box? Not this one — it is a desktop app.") | ベンダーの CLI そのもの | 記載なし | デスクトップ | MIT
+- maddada/Ghostex | H1: はい ("automatic account switching") | H2: 不明 ("install gxserver on another computer") | 独自チャット GUI | "ghostex" コマンドで送受信 | デスクトップとモバイル | MIT、macOS が主
+- block/berd | H1: いいえ ("upstream Goose backend" のみ) | H2: 不明 | Goose に委譲 | 記載なし | デスクトップ | Apache-2.0
+- tempestai-dev/tempest | H1: はい | H2: いいえ (Tauri のみ) | 知識ベースを与えて仲介 | 独立並列 | デスクトップ | Apache-2.0
+- hardbeat920/monocode | H1: はい ("If they're installed and logged in") | H2: いいえ | コンポーザーが委譲 | "/operator start two Codex sessions" | デスクトップ | MIT、"very early"
+- egoist/waku | H1: はい | H2: はい ("The native desktop is an RPC client of the standalone waku-daemon process"、apps/web) | ベンダーの CLI そのもの ("a passthrough interface, not its own agent") | 記載なし | デスクトップとブラウザ | GPL-3.0
+- yicheng47/runner | H1: はい | H2: いいえ ("Intel Macs, Windows ARM64, and Linux are not supported") | crew が PTY で並べる | crew の role / lead、ask_human | デスクトップ | MIT
+- johannesjo/parallel-code | H1: はい | H2: いいえ (デスクトップ、スマホは QR の監視) | ベンダーの CLI そのもの | 並列のみ | デスクトップ | MIT
+- ProjectHax/muxel | H1: いいえ ("Claude, opencode, Amp"、Codex なし) | H2: いいえ | ベンダーの CLI そのもの | Runners と Loops | デスクトップ | GPL-3.0 と商用
+- rayzhudev/vibecraft | H1: はい (推定) | H2: いいえ | 不明 | 不明 | デスクトップ | Apache-2.0
+- humanlayer/humanlayer | H1: 不明 | H2: 不明 | 不明 | 不明 | 不明 | "the code here is pretty much all deprecated"
+- mrmans0n/alas | H1: はい | H2: いいえ ("Requires macOS 15 Sequoia or later") | ベンダーの CLI そのもの | 記載なし | macOS | MIT
+- Kc1t/alethe-agents | H1: はい | H2: 不明 (LAN の Web view、本体は Tauri) | ベンダーの CLI そのもの | Codex への handoff、Orchestration board | デスクトップ | AGPL-3.0
+- AndyMik90/Aperant | H1: いいえ (Claude Code のみ) | H2: いいえ | 製品が委譲 | 12 並列、Kanban | デスクトップ | AGPL-3.0、"pull requests are paused"
+- antasphere/clave | H1: はい | H2: いいえ ("desktop app with no cloud backend"、macOS / Windows) | ベンダーの CLI そのもの | .clave のワークスペース | デスクトップ | MIT
+- NeuralNomadsAI/CodeNomad | H1: いいえ ("workspace for OpenCode V2") | H2: はい | OpenCode | 記載なし | デスクトップとブラウザ | MIT
+- collabs-inc/collab-public | H1: 不明 | H2: いいえ (シングルウィンドウのネイティブ app) | 不明 | 記載なし | 無限キャンバス | FSL-1.1-ALv2
+- owengretzinger/constellagent | H1: 不明 | H2: いいえ ("Requires macOS") | 不明 | 記載なし | 統合ウィンドウ | LICENSE が 404
+- cristicretu/diri | H1: はい | H2: いいえ (GUI 前提、Linux は beta) | ベンダーの CLI そのもの | 記載なし | デスクトップ | Apache-2.0
+- fwdai/fletch | H1: はい | H2: いいえ ("Platform: macOS 13+") | ベンダーの CLI そのもの | architect / coder / reviewer / tester の YAML | macOS | AGPL-3.0
+- scgopi/GraphCode | H1: はい | H2: いいえ ("Requires macOS 15+ on Apple Silicon") | ベンダーの CLI そのもの | "Each edge is a hand-off, message, or spawn" | macOS | FSL-1.1-MIT
+- supabitapp/supacode | H1: はい | H2: いいえ ("macOS 26.0+") | ベンダーの CLI そのもの | 記載なし | macOS | FSL-1.1-ALv2
+- pungme/superagent-desktop | H1: はい ("Claude Code or Codex, switchable per chat") | H2: いいえ ("A Mac app") | ベンダーの CLI そのもの | 単一エージェント | macOS | MIT
+- Emanuele-web04/synara | H1: はい ("Codex CLI / app-server"、"Claude Code") | H2: 不明 ("server and web modes" は開発欄の一文) | ベンダーの CLI そのもの | Provider handoffs、automations、scoped MCP | デスクトップ | MIT、early-stage
+- gregce/tortie | H1: はい | H2: いいえ ("macOS on Apple silicon") | ベンダーの CLI そのもの | 記載なし | デスクトップ | Apache-2.0
+- slopus/happy | H1: 不明 ("run `happy` instead of `claude` or `happy codex` instead of `codex`") | H2: いいえ (macOS / iOS / Android / Web の app のみで、Linux のデーモン運用の記述なし) | ベンダーの CLI そのもの | 記述なし | モバイル / Web / macOS | MIT
+- sahithvibudhi/vibe-tree | H1: 不明 ("a real terminal: claude, codex, gemini, aider") | H2: はい ("run the server and drive your agents from any browser"、Linux 対応) | ベンダーの CLI そのもの | 記述なし | デスクトップ / Web / CLI | MIT
+- CompanyHelm/companyhelm | H1: 不明 (プロバイダの列挙と "OpenAI Codex OAuth") | H2: 不明 (localhost:5173 の Web app、常駐の明記なし) | その他 (VM 分離の制御プレーン) | 記述なし | Web | MIT
+- nutthouse/tutti | H1: はい ("No API keys required for CLI-agent mode. Existing Claude Code, Codex, Aider, or OpenClaw authentication keeps working") | H2: はい ("Web dashboard at :4040"、"tt serve --port 4040"、HTTP / SSE) | ベンダーの CLI そのもの | tutti.toml のワークフロー、depends_on、`tt review <agent>` | Web / TUI / CLI | MIT、Rust と tmux
+- junhoyeo/contrabass | H1: 不明 (トラッカー側のキーのみ記載) | H2: はい ("Run headless: ./contrabass --no-tui"、JSON / SSE API、macOS / Linux) | ベンダーの CLI そのもの (Codex app-server 等) | Teams の phased pipeline、WORKFLOW.md | TUI / Web | Apache-2.0
+- amplifthq/opentag | H1: 不明 | H2: 不明 (Docker の自前運用は可、主 UI は Slack) | 独自エージェントが ACP で CLI に委譲 | 単一の ACP エージェントと Runner | Slack | MIT
+- thesongzhu/Friday | H1: いいえ ("BYOK: Codex, Claude, DeepSeek, …") | H2: 不明 (macOS の Homebrew が中心) | 独自エージェント | 権限の制御 | 未リリース | MIT
+- Charlie85270/Dorothy | H1: 不明 ("orchestrate your Claude Code, Codex, Gemini, Grok"、認証は未記載) | H2: 不明 ("macOS uses launchd; Linux uses cron" はスケジュールの記述) | 独自のメタエージェント | 自動化パイプラインでの委譲と監視 | デスクトップ / Web / Telegram / Slack | MIT
+
+### 5.4 机上で棄却したものの根拠
 
 - zeron: README "use the desktop release"、サイト "Available for macOS, Windows and Linux. iOS is on the way"。Web UI は見つからなかった。
 - munder-difflin: Electron のデスクトップ app。統括エージェント "Michael" が CLI へ割り振る。常駐サーバ・スマホは見つからなかった。
