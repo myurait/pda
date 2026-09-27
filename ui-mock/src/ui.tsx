@@ -18,6 +18,7 @@ export { default as Select } from '@cloudscape-design/components/select';
 export { default as FormField } from '@cloudscape-design/components/form-field';
 export { default as SpaceBetween } from '@cloudscape-design/components/space-between';
 export { default as ExpandableSection } from '@cloudscape-design/components/expandable-section';
+export { default as Checkbox } from '@cloudscape-design/components/checkbox';
 export { default as RadioGroup } from '@cloudscape-design/components/radio-group';
 export { default as Pagination } from '@cloudscape-design/components/pagination';
 export { default as Alert } from '@cloudscape-design/components/alert';
@@ -25,8 +26,8 @@ export { default as Spinner } from '@cloudscape-design/components/spinner';
 export { default as Badge } from '@cloudscape-design/components/badge';
 export { default as Icon } from '@cloudscape-design/components/icon';
 
-const statusTypes = { '動いている': 'in-progress', '進行中': 'in-progress', '終わった': 'success', '完了': 'success', '生きている': 'success', '失敗した': 'error', '止まっている': 'error', '入力待ち': 'warning', '返答待ち': 'warning', '待機': 'pending', '不明': 'pending', '中断した': 'stopped', '中止': 'stopped' } as const;
-export function Status({ value }: { value: string }) { return <span className="status" data-status={value}><StatusIndicator type={statusTypes[value as keyof typeof statusTypes] || 'info'}>{value}</StatusIndicator></span>; }
+const statusTypes = { '動作中': 'in-progress', '進行中': 'in-progress', '終わった': 'success', '完了': 'success', '生きている': 'success', '失敗した': 'error', '止まっている': 'error', '入力待ち': 'pending', '返答待ち': 'pending', '待機': 'pending', '不明': 'pending', '中断した': 'warning', '中止': 'stopped' } as const;
+export function Status({ value, warning = false }: { value: string; warning?: boolean }) { const type = warning ? 'warning' : statusTypes[value as keyof typeof statusTypes] || 'info'; return <span className="status" data-status={value} data-type={type}><StatusIndicator type={type}>{value}</StatusIndicator></span>; }
 export function useMobile() {
   const [mobile, set] = useState(() => matchMedia('(max-width: 767px)').matches);
   useEffect(() => { const m = matchMedia('(max-width: 767px)'); const update = () => set(m.matches); m.addEventListener('change', update); return () => m.removeEventListener('change', update); }, []);

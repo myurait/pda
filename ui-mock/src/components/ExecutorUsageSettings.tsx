@@ -1,0 +1,8 @@
+import { useState } from 'react';
+import { Alert, Button, FormField, Input, Modal, Textarea } from '../ui';
+import { parseUsage, type Executor } from '../mock/model';
+import { useStore } from '../store';
+export function ExecutorUsageSettings({ executor }: { executor: Executor }) {
+  const { update } = useStore(), [open, setOpen] = useState(false), [script, setScript] = useState(executor.usageScript || ''), [json, setJson] = useState(''), [error, setError] = useState('');
+  return <><Button onClick={() => { setScript(executor.usageScript || ''); setJson(JSON.stringify(executor.usage || [], null, 2)); setError(''); setOpen(true); }}>利用状況を設定</Button><Modal visible={open} onDismiss={() => setOpen(false)} header={`${executor.id} の利用状況`} closeAriaLabel="利用状況設定を閉じる" footer={<div className="button-row align-right"><Button onClick={() => setOpen(false)}>戻る</Button><Button variant="primary" onClick={() => { try { const usage = parseUsage(json); update(s => { Object.assign(s.executors.find(e => e.id === executor.id)!, { usageScript: script.trim(), usage }); }, '利用状況の設定を保存しました。'); setOpen(false); } catch { setError('title と value を持つ JSON 配列を指定してください。limit と alert は省略できます。'); } }}>保存</Button></div>}><div className="stack"><FormField label="利用状況取得スクリプト"><Input ariaLabel="利用状況取得スクリプト" value={script} onChange={({ detail }) => setScript(detail.value)} placeholder="scripts/executor-usage.sh"/></FormField><FormField label="スクリプトの応答 JSON" description="このモックでは応答の見本を入力します。値・上限・alertは応答どおりに表示します。"><Textarea ariaLabel="利用状況 JSON" value={json} rows={12} onChange={({ detail }) => setJson(detail.value)}/></FormField>{error && <Alert type="error">{error}</Alert>}</div></Modal></>;
+}

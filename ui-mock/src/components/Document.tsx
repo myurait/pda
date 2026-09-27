@@ -8,7 +8,7 @@ const flatten = (children: ReactNode): string => Children.toArray(children).map(
 const slug = (s: string) => `heading-${s.replace(/[^\p{L}\p{N}]+/gu, '-')}`;
 function CodeBlock({ children }: { children?: ReactNode }) {
   const [copied, set] = useState(false);
-  return <div className="code-block"><div className="code-action"><Button iconName="copy" onClick={async () => { await navigator.clipboard.writeText(flatten(children)); set(true); }}>{copied ? '複写しました' : 'コードを複写'}</Button></div><pre>{children}</pre></div>;
+  return <div className="code-block"><div className="code-action"><Button variant="icon" iconName={copied ? 'check' : 'copy'} ariaLabel={copied ? '複写しました' : 'コードを複写'} nativeButtonAttributes={{ title: copied ? '複写しました' : 'コードを複写' }} onClick={async () => { await navigator.clipboard.writeText(flatten(children)); set(true); }}/></div><pre>{children}</pre></div>;
 }
 export function Document({ body, toc = false }: { body: string; toc?: boolean }) {
   const headings = useMemo(() => [...body.matchAll(/^#{1,3}\s+(.+)$/gm)].map(m => m[1]).concat([...body.matchAll(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/g)].map(m => m[1].replace(/<[^>]+>/g, ''))), [body]);
