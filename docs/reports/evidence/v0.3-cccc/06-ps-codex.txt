@@ -1,0 +1,43 @@
+2026-09-28T11:25:31.353+00:00 Observed actor working after task send.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:45:25 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:44:55 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       05:12  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+  83494   81524       00:05      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --dangerously-bypass-approvals-and-sandbox -c shell_environment_policy.inherit=all -c approval_policy="never" -c sandbox_mode="danger-full-access" -c mcp_servers.cccc.command="/home/user/v03/cccc/bin/cccc" -c mcp_servers.cccc.args=["mcp"] -c mcp_servers.cccc.env.CCCC_HOME="/home/user/v03/cccc/state" -c mcp_servers.cccc.env.CCCC_GROUP_ID="g_f93a45537e32" -c mcp_servers.cccc.env.CCCC_ACTOR_ID="codex" app-server --listen ws://127.0.0.1:0
+  83596   83494       00:05      |   \_ /home/user/v03/cccc/bin/cccc mcp
+  83656   81524       00:04      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --remote ws://127.0.0.1:35955 resume 01a0e7c3-38f0-7913-8345-d148424db910 --no-alt-screen
+2026-09-28T11:29:09.693+00:00 Observed actor working after task send.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:49:03 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:48:34 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       08:50  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+  84758   81524       01:15      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --dangerously-bypass-approvals-and-sandbox -c shell_environment_policy.inherit=all -c approval_policy="never" -c sandbox_mode="danger-full-access" -c mcp_servers.cccc.command="/home/user/v03/cccc/bin/cccc" -c mcp_servers.cccc.args=["mcp"] -c mcp_servers.cccc.env.CCCC_HOME="/home/user/v03/cccc/state" -c mcp_servers.cccc.env.CCCC_GROUP_ID="g_f93a45537e32" -c mcp_servers.cccc.env.CCCC_ACTOR_ID="codex" app-server --listen ws://127.0.0.1:0
+  84859   84758       01:15      |   \_ /home/user/v03/cccc/bin/cccc mcp
+  84912   81524       01:14      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --remote ws://127.0.0.1:41647 resume 01a0e7c5-7a0a-7302-aafa-5e83b2546d90 --no-alt-screen
+2026-09-28T11:29:25.739+00:00 {"observed_runtime_cwd": "/home/user/v03/work/cccc/scratch", "pid": 84912, "actor_scope": "s_d7e3c1f35343"}
+2026-09-28T11:31:07.361+00:00 Observed actor working after task send.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:51:01 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:50:31 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       10:48  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+  84758   81524       03:13      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --dangerously-bypass-approvals-and-sandbox -c shell_environment_policy.inherit=all -c approval_policy="never" -c sandbox_mode="danger-full-access" -c mcp_servers.cccc.command="/home/user/v03/cccc/bin/cccc" -c mcp_servers.cccc.args=["mcp"] -c mcp_servers.cccc.env.CCCC_HOME="/home/user/v03/cccc/state" -c mcp_servers.cccc.env.CCCC_GROUP_ID="g_f93a45537e32" -c mcp_servers.cccc.env.CCCC_ACTOR_ID="codex" app-server --listen ws://127.0.0.1:0
+  84859   84758       03:13      |   \_ /home/user/v03/cccc/bin/cccc mcp
+  85252   84758       01:51      |   \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+  84912   81524       03:12      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --remote ws://127.0.0.1:41647 resume 01a0e7c5-7a0a-7302-aafa-5e83b2546d90 --no-alt-screen
+2026-09-28T11:31:14.412+00:00 Immediately before Stop Group.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:51:08 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:50:38 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       10:55  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+  84758   81524       03:20      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --dangerously-bypass-approvals-and-sandbox -c shell_environment_policy.inherit=all -c approval_policy="never" -c sandbox_mode="danger-full-access" -c mcp_servers.cccc.command="/home/user/v03/cccc/bin/cccc" -c mcp_servers.cccc.args=["mcp"] -c mcp_servers.cccc.env.CCCC_HOME="/home/user/v03/cccc/state" -c mcp_servers.cccc.env.CCCC_GROUP_ID="g_f93a45537e32" -c mcp_servers.cccc.env.CCCC_ACTOR_ID="codex" app-server --listen ws://127.0.0.1:0
+  84859   84758       03:20      |   \_ /home/user/v03/cccc/bin/cccc mcp
+  85252   84758       01:58      |   \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+  84912   81524       03:19      \_ /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --remote ws://127.0.0.1:41647 resume 01a0e7c5-7a0a-7302-aafa-5e83b2546d90 --no-alt-screen

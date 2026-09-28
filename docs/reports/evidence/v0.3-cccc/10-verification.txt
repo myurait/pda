@@ -1,0 +1,17 @@
+2026-09-28T11:36:55.369680+00:00
+完了前の照合（コミット前）
+報告書: 全7節が指定順、T1〜T8 が各3項目、証拠リンクはすべて存在。
+必須証拠: 01〜07 の指定ファイルが存在し、空でない。
+T1: unit active と HTTP 200 の実出力を記録。
+T2: 2回の起動エラー、依頼の記録、空の差分を記録。
+T3: 起動不能による未実施理由を記録。
+T4: 再試行の scratch の差分、Hello, 太郎! / hello、git diff --check 終了0を記録。
+T5: 停止直前 working、停止後 stopped、経過2.111421秒、子プロセス消滅を記録。
+T6: ps の unit cgroup / 祖先の抜粋と Codex の scratch cwd を記録。Claude 作業中は未実施と明記。
+T7: Claude 作業中は未実施。版確認時の RSS は別物として記録。
+T8: /ui/、localhost 認証状態、Tailscale Serve 19109 の人の手順を記録。remote 到達は未実施。
+終了: user unit inactive/dead、Result=success、MainPID=0。5109 の待ち受けなし。
+製品: source の git status --porcelain は空。bin/cccc は配布物中のバイナリと SHA-256 一致。
+バイナリ SHA-256: 2eb7fd37613ae2f962f5a32e59d974be2ee4e2aafecf56134d2e8228234591d7
+秘密情報: 証拠内に API credential / JWT / OAuth query 値 / private-key の各パターンなし。認証URL全体と折返し部分は保存対象から除外。
+作業範囲: main 7f3a2c4 由来の v0.3/setup-cccc。リポジトリへの変更はこの報告書と証拠のみ。

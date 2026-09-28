@@ -1,0 +1,111 @@
+時刻は UTC。操作直後の画面と準備コマンドの要点。
+git init; README.md = # scratch; hello.py = print("hello")
+初回 git commit: exit 128 / Author identity unknown / unable to auto-detect email address
+原因: user.name と user.email の設定なし。scratch 内だけに Codex <codex@localhost> を設定。
+再試行1回: git commit -m 試用の初期ファイルを置く。 -> b93cb12, 2 files changed, 2 insertions
+全CLIは /home/user/v03/cccc/run/cccc-env 経由。
+#!/bin/sh
+exec env HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude CODEX_HOME=/home/user/pda/secrets/codex CCCC_HOME=/home/user/v03/cccc/state PATH=/home/user/.local/bin:/home/user/v03/cccc/bin:/usr/local/bin:/usr/bin:/bin "$@"
+claude --version: 2.1.205 (Claude Code)
+codex --version: codex-cli 0.156.1
+claude auth status --json の非秘密フィールドだけを抽出: loggedIn=true, authMethod=claude.ai, apiProvider=firstParty
+Claude 初回: tmux 内で claude を起動し Dark mode を Enter で選択。Select login method が表示。信頼確認まで未到達。
+再試行1回: 公式 CCCC runtime 文書の事前手順に合わせ claude --dangerously-skip-permissions を起動。
+
+2026-09-28T11:22:27.261203+00:00 trust-claude-retry
+Welcome to Claude Code v2.1.205
+..........................................................
+
+     *                                       █████▓▓░
+                                 *         ███▓░     ░░
+            ░░░░░░                        ███▓░
+    ░░░   ░░░░░░░░░░                      ███▓░
+   ░░░░░░░░░░░░░░░░░░░    *                ██▓░░      ▓
+                                             ░▓▓███▓▓░
+ *                                 ░░░░
+                                 ░░░░░░░░
+                               ░░░░░░░░░░░░░░░░
+       █████████                                        *
+      ██▄█████▄██                        *
+       █████████      *
+.......█ █   █ █..........................................
+
+ Claude Code can be used with your Claude subscription or billed based on API usage through your Console account.
+
+ Select login method:
+
+ ❯ 1. Claude account with subscription · Pro, Max, Team, or Enterprise
+   2. Anthropic Console account · API usage billing
+   3. 3rd-party platform · Amazon Bedrock, Microsoft Foundry, or Vertex AI
+
+2026-09-28T11:22:27.264003+00:00 trust-codex
+╭─────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.156.1)                  │
+│                                             │
+│ model:     loading   /model to change       │
+│ directory: /home/user/v03/work/cccc/scratch │
+╰─────────────────────────────────────────────╯
+
+
+› Ask Codex to do anything
+
+
+
+  Folder access
+  /home/user/v03/work/cccc/scratch
+
+  Trust this folder? Codex can read, edit, and run files here, subject to your permission settings. Folder settings can run code
+  automatically, even without a model request. Continue only if you trust these files. Your trust decision will be saved.
+
+› 1. Trust and continue
+  2. Quit
+
+  enter continue · esc quit
+
+╭───────────────────────────────────────────────────────────────╮
+│ ✨ Update available! 0.156.1 -> 0.158.0                       │
+│ See [URL omitted] for installation options. │
+│                                                               │
+│ See full release notes:                                       │
+│ [URL omitted]               │
+╰───────────────────────────────────────────────────────────────╯
+
+╭─────────────────────────────────────────────╮
+│ >_ OpenAI Codex (v0.156.1)                  │
+│                                             │
+│ model:     GPT-6-Astra   /model to change   │
+│ directory: /home/user/v03/work/cccc/scratch │
+╰─────────────────────────────────────────────╯
+
+  Tip: This is GPT-6, a new generation of intelligence. Astra is state-of-the-art in coding, computer use, science, and professional work.
+  Give it a hard problem, a half-formed idea, or anything you've been meaning to build. See where it takes you.
+
+
+› Ask Codex to do anything
+
+  GPT-6-Astra default · /home/user/v03/work/cccc/scratch                                                           ⚠ 1 warning · f2 to view
+Codex の Trust and continue を Enter で選択済み。GPT-6-Astra の入力待ち画面に到達。モデル依頼は出さず終了する。
+
+2026-09-28T11:24:08.163281+00:00 Claude retry after selecting subscription login
+Welcome to Claude Code v2.1.205
+..........................................................
+
+     *                                       █████▓▓░
+                                 *         ███▓░     ░░
+            ░░░░░░                        ███▓░
+    ░░░   ░░░░░░░░░░                      ███▓░
+   ░░░░░░░░░░░░░░░░░░░    *                ██▓░░      ▓
+                                             ░▓▓███▓▓░
+ *                                 ░░░░
+                                 ░░░░░░░░
+                               ░░░░░░░░░░░░░░░░
+       █████████                                        *
+      ██▄█████▄██                        *
+       █████████      *
+.......█ █   █ █..........................................
+
+ Browser didn't open? Use the url below to sign in (c to copy)
+[authentication URL and wrapped continuation omitted]
+Paste code here if prompted >
+
+Claude 事前準備: 2回とも信頼確認まで到達できず。2回目は subscription を選ぶとブラウザログインとコード入力を要求。認証の追加・書換えはせず終了。CCCC の版要件も満たさないため後続で起動エラーを記録する。

@@ -1,0 +1,41 @@
+2026-09-28T11:25:26.837273+00:00
+$ systemctl --user status v03-cccc.service --no-pager --full
+● v03-cccc.service - PDA v0.3 CCCC trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-cccc.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-09-28 20:20:19 JST; 5min ago
+   Main PID: 81524 (cccc)
+      Tasks: 73 (limit: 15004)
+     Memory: 100.9M (peak: 121.6M)
+        CPU: 6.420s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-cccc.service
+             ├─81524 /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+             ├─83494 /home/user/.local/bin/codex -c check_for_update_on_startup=false -c check_for_update_on_startup=false --search --dangerously-bypass-approvals-and-sandbox -c shell_environment_policy.inherit=all -c "approval_policy=\"never\"" -c "sandbox_mode=\"danger-full-access\"" -c "mcp_servers.cccc.command=\"/home/user/v03/cccc/bin/cccc\"" -c "mcp_servers.cccc.args=[\"mcp\"]" -c "mcp_servers.cccc.env.CCCC_HOME=\"/home/user/v03/cccc/state\"" -c "mcp_servers.cccc.env.CCCC_GROUP_ID=\"g_f93a45537e32\"" -c "mcp_servers.cccc.env.CCCC_ACTOR_ID=\"codex\"" app-server --listen ws://127.0.0.1:0
+             └─83596 /home/user/v03/cccc/bin/cccc mcp
+
+Sep 28 20:20:19 agent-node systemd[1274]: Started v03-cccc.service - PDA v0.3 CCCC trial.
+Sep 28 20:20:19 agent-node cccc[81524]: [cccc] Daemon: started by this process (stops when this process exits)
+Sep 28 20:20:19 agent-node cccc[81524]: [cccc] Implementation: rust
+Sep 28 20:20:19 agent-node cccc[81524]: [cccc] Starting web server...
+Sep 28 20:20:19 agent-node cccc[81524]: [cccc]   Local:   http://127.0.0.1:5109
+
+$ cat /home/user/.config/systemd/user/v03-cccc.service
+[Unit]
+Description=PDA v0.3 CCCC trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/cccc
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=CODEX_HOME=/home/user/pda/secrets/codex
+Environment=CCCC_HOME=/home/user/v03/cccc/state
+Environment=PATH=/home/user/.local/bin:/home/user/v03/cccc/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+KillSignal=SIGINT
+KillMode=control-group
+TimeoutStopSec=30
+Restart=no
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,10 @@
+2026-09-28T11:25:26.837273+00:00
+$ ss -ltnp (sport = :5109)
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:5109      0.0.0.0:*    users:(("cccc",pid=81524,fd=12))
+
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5109/
+200
+
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5109/ui/
+200

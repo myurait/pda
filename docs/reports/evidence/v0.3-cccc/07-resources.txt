@@ -1,0 +1,14 @@
+2026-09-28T11:24:25.990+00:00 Actor start failed; no running task.
+$ ps -p <unit cgroup PIDs> -o pid,ppid,rss,etime,args
+    PID    PPID   RSS     ELAPSED COMMAND
+  81524    1274 45164       04:06 /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+
+2026-09-28T11:24:44.443+00:00 Actor start failed; no running task.
+$ ps -p <unit cgroup PIDs> -o pid,ppid,rss,etime,args
+    PID    PPID   RSS     ELAPSED COMMAND
+  81524    1274 46964       04:25 /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+  83102   81524 63372       00:00 /home/user/.local/bin/claude --version
+
+
+T7 の指定条件（T2 の Claude 実行中）は到達不能。上のRSSは起動失敗直後のCCCC待機状態であり、Claude実行中の値ではない。
+2026-09-28T11:32:04.327+00:00 補足: 2回目には版検査用 claude --version の RSS=63372 KiB も含む。CCCC の RSS は初回45164 KiB、2回目46964 KiB。いずれもコーディング作業中の測定ではない。

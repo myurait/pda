@@ -1,0 +1,15 @@
+2026-09-28T11:24:25.978+00:00 Actor start failed; no running task.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:44:20 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:43:50 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       04:06  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+2026-09-28T11:24:44.430+00:00 Actor start failed; no running task.
+$ ps -eo pid,ppid,etime,args --forest
+CCCC user unit cgroup and ancestors only; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 71-11:44:38 /usr/lib/systemd/systemd --system --deserialize=85
+   1274       1 71-11:44:08 /usr/lib/systemd/systemd --user --deserialize=8
+  81524    1274       04:25  \_ /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+2026-09-28T11:32:04.327+00:00 別採取の 07-resources.txt では T2 の版検査で cccc の子として claude --version を観測。仕事をする Claude セッションには到達していない。後で scope を scratch に訂正したが、版エラーへの3回目の起動試行は行っていない。

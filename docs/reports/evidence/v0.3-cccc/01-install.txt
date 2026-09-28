@@ -1,0 +1,71 @@
+CCCC v0.4.41 導入記録（2026-09-28、出力の要点）
+
+読んだローカル指示:
+  docs/codex-runs/2026-09-28-v0.3-setup-cccc.md
+  docs/codex-runs/2026-09-28-v0.3-setup-common.md
+  docs/plan-v0.3.md 4 / 5.2 / 5.4節
+他製品の報告書と docs/research/ は読んでいない。
+
+公式資料:
+  https://github.com/ChesterRa/cccc/tree/v0.4.41
+  https://github.com/ChesterRa/cccc/blob/v0.4.41/README.md
+  https://chesterra.github.io/cccc/
+  https://chesterra.github.io/cccc/guide/getting-started/cli
+  https://chesterra.github.io/cccc/guide/runtimes
+  https://chesterra.github.io/cccc/guide/web-ui
+  https://chesterra.github.io/cccc/reference/cli
+  上記ガイドは v0.4.41 の source/docs 配下で該当する起動・認証・停止部分を確認。
+
+$ git switch -c v0.3/setup-cccc main
+Switched to a new branch 'v0.3/setup-cccc'
+base main: 7f3a2c4
+
+$ curl -fsSL https://api.github.com/repos/ChesterRa/cccc/releases/latest
+selected tag: v0.4.41, published_at: 2026-09-25T12:11:50Z
+$ git clone --depth 1 --branch v0.4.41 https://github.com/ChesterRa/cccc.git /home/user/v03/cccc/source
+commit: ff3e863ce0983dc529b92e169ed0f937903980fe
+
+$ mkdir -p /home/user/v03/cccc/{downloads,bin,state,run}
+$ curl -fL --output /home/user/v03/cccc/downloads/cccc-v0.4.41-x86_64-unknown-linux-gnu.tar.gz https://github.com/ChesterRa/cccc/releases/download/v0.4.41/cccc-v0.4.41-x86_64-unknown-linux-gnu.tar.gz
+100% 40.5 MiB; exit 0
+$ printf '<published digest>  <archive path>\n' | sha256sum -c -
+SHA256 cabad304ef4243cdfdaefd835509ed3915c00d0bf0fe61fe8c3282c1745df43e
+/home/user/v03/cccc/downloads/cccc-v0.4.41-x86_64-unknown-linux-gnu.tar.gz: OK
+$ tar -xzf /home/user/v03/cccc/downloads/cccc-v0.4.41-x86_64-unknown-linux-gnu.tar.gz --strip-components=1 -C /home/user/v03/cccc/bin cccc-v0.4.41-x86_64-unknown-linux-gnu/cccc
+$ /home/user/v03/cccc/run/cccc-env cccc --version
+cccc 0.4.41
+
+Claude/Codex を同梱しない native バイナリを利用。Docker は利用していない。
+$ /home/user/v03/cccc/run/cccc-env claude --version
+2.1.205 (Claude Code)
+$ /home/user/v03/cccc/run/cccc-env codex --version
+codex-cli 0.156.1
+
+$ systemctl --user daemon-reload
+$ systemctl --user enable --now v03-cccc.service
+Created symlink /home/user/.config/systemd/user/default.target.wants/v03-cccc.service -> /home/user/.config/systemd/user/v03-cccc.service
+初回で起動成功。unit と待ち受けの実出力は 01-unit.txt / 01-listen.txt。
+
+$ cccc attach .  # scratch ディレクトリから cccc-env 経由で実行
+returned group_id=g_f93a45537e32, scope_key=s_e93c5ce01dfa, title=cccc
+T4で確認した実際の登録先は /home/user/v03/cccc。訂正は 04-codex-stream.txt。
+$ cccc setup --runtime claude
+managed=true, mcp=injected_per_session, mode=managed_session, status=ready
+$ cccc setup --runtime codex
+mode=auto, status=added
+製品が codex mcp add cccc -- /home/user/v03/cccc/bin/cccc mcp を実行。
+既存 CODEX_HOME 内の設定へ CCCC MCP 登録を CLI が追加。設定ファイルの内容は読み出さず、自分で直接編集していない。
+$ cccc actor add claude --runtime claude --title 'Claude Code 試用'
+$ cccc actor add codex --runtime codex --title 'Codex 試用'
+各 exit 0。claude=foreman、codex=peer。
+
+試用記録用ツール（製品コードには含めない）:
+$ uv venv /home/user/v03/cccc/tools-venv
+$ uv pip install --python /home/user/v03/cccc/tools-venv/bin/python websockets
+websockets==17.1
+/home/user/v03/cccc/run/trial.py で製品 WebSocket を受信し、UTC受信時刻、CLI/API結果、unit cgroupのプロセスを記録。
+接続先 ws://127.0.0.1:5109/api/v1/events/ws、Origin=http://127.0.0.1:5109。
+subscribe channel=ledger/headless、group_id=g_f93a45537e32、replay=false。
+ファイル先頭の時刻は観測側の時刻。フレーム内 ts は製品の時刻。
+2026-09-28T11:29:06.506+00:00 {"doctor_subset": {"version": "0.4.41", "build": {"source_id": "9beda10df5399669af37a1ef1e4e6fe45bc2dd304b6afe7c0c361f061539caba"}, "daemon": {"build": {"source_id": "9beda10df5399669af37a1ef1e4e6fe45bc2dd304b6afe7c0c361f061539caba"}, "executable": "/home/user/v03/cccc/bin/cccc", "implementation": "rust", "pid": 81524, "running": true, "version": "0.4.41"}, "installation": {"command_candidates": ["/home/user/v03/cccc/bin/cccc"], "conflicting_commands": [], "current_executable": "/home/user/v03/cccc/bin/cccc", "path_conflict": false, "path_status": "ok", "resolved_command": "/home/user/v03/cccc/bin/cccc"}, "pty": {"backend": "native PTY", "supported": true}, "web_assets": "f52e328413e45b9cb4543a7ea6f1856ddc949fc5273510f06f618d69b4df8c6a"}}
+2026-09-28T11:29:06.506+00:00 {"doctor_cli_runtimes": [{"available": true, "command": "claude", "display_name": "Claude Code", "name": "claude", "path": "/home/user/.local/bin/claude", "recommended_command": "claude --dangerously-skip-permissions"}, {"available": true, "command": "codex", "display_name": "Codex CLI", "name": "codex", "path": "/home/user/.local/bin/codex", "recommended_command": "codex -c check_for_update_on_startup=false -c shell_environment_policy.inherit=all --dangerously-bypass-approvals-and-sandbox --search"}]}

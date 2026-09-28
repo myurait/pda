@@ -1,0 +1,4 @@
+2026-09-28T11:29:06.506+00:00 {"URL": "http://127.0.0.1:5109/ui/", "bind": "127.0.0.1:5109", "group_id": "g_f93a45537e32"}
+2026-09-28T11:29:06.509+00:00 {"GET /api/v1/web_access/session": {"ok": true, "result": {"web_access_session": {"access_token_count": 0, "bootstrap_required": true, "can_access_global_settings": true, "current_browser_signed_in": true, "is_admin": true, "login_active": false, "principal_kind": "local", "runtime_visibility": {"assistant_runtime": "hidden", "peer_runtime": "visible"}, "user_id": "local"}}}}
+2026-09-28T11:29:06.509+00:00 SSH ポート転送と Tailscale Serve は未実施。remote 公開時は公式文書どおり localhost 画面 Settings > Web Access で Admin Access Token を作成し、remote の Sign in に入力する。値は証拠に含めない。
+2026-09-28T11:29:06.509+00:00 /home/user/.local/bin/tailscale-pda serve --bg --https=19109 http://127.0.0.1:5109
