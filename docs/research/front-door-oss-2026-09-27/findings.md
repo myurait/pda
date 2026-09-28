@@ -384,3 +384,61 @@ H1 の判定の途中で、Anthropic の公式文書に次の記述があるこ�
 - happier: A が既定で、B は任意。`apps/cli/src/backends/claude/loop.ts` の 231 行目で既定は local (A)。local から remote (B) へ切り替わる経路があり、スマホからの入力でどちらが使われるかは試用で確かめる。
 - Orca: A と B の両方。端末のタブ (A) と、Agent SDK の native chat (B)。試用では端末のタブを使う。
 - OpenClaw: A が既定で、C は任意。コアの claude-cli バックエンド (`src/node-host/invoke-agent-cli-claude-params.ts`) が A、拡張の acpx (`extensions/acpx/package.json`) が C。試用では claude-cli バックエンドを使う。
+
+記述なしの 55 本についても、浅いクローンのソースで Claude の動かし方を確かめた (2026-09-28)。各行は「製品 | 経路 | 根拠のファイルと行 | A を選べるか | 判定」。A を選べる製品は A の経路で試す。H7 と H1 で落とした 15 本のうち Archon、agor、bb、cyrus、qm は、Agent SDK の読み込み箇所と claude の直接起動が無いことを設計側でも確かめた。
+
+- omnigent-ai/omnigent | A (既定の claude_native) と B (claude-sdk の harness) と C (acp の harness) | omnigent/harnesses/claude_native/main.py 1-8 "launches `claude` through...terminal WebSocket"、omnigent/inner/claude_sdk_executor.py 1869 `sdk.ClaudeSDKClient(options)`、omnigent/onboarding/acp_auth.py 11 | A を選べる | 残す (A で試す)
+- OpenHands/OpenHands | C のみ (Agent Canvas の ACP エージェント) | docs/ACP_AGENTS.md "Claude Code | `npx -y @agentclientprotocol/claude-agent-acp`"、"a subscription login takes priority over an API key" | A の経路はこのリポジトリに無い | 棄却 H7
+- kdlbs/kandev | C (既定、claude-agent-acp) と A (CLI Passthrough) | apps/backend/internal/agent/agents/claude_acp.go 19-20 "wraps the Claude Agent SDK"、同ファイルの PassthroughCmd `npx -y @anthropic-ai/claude-code` | A を選べる | 残す (Passthrough で試す)
+- milind-soni/OpenMausBot | A (ターンごとの CLI、stream-json) | server/drivers/claude.ts 1-9 "Per-turn CLI process...stream-json both directions" | A | 残す
+- mixpeek/amux | A (tmux / herdr のペインで CLI) | crates/amux-server/src/backend/herdr.rs 11、570 付近 "`pane run \"claude\"` is auto-recognized" | A | 残す
+- get-bb/bb | B (claude-code の provider は Agent SDK) | plugins/provider-claude-code/src/bridge/sdk-session.ts 1-11 `import {query,...} from "@anthropic-ai/claude-agent-sdk"` | Claude の provider に A の経路は無い (汎用の端末はある) | 棄却 H7
+- madeinorbit/podium | A (`claude -p`、名前は claude-sdk だが SDK を読まない) | packages/harness/src/driver/families/claude-sdk/exec.ts 36、apps/daemon/src/claude-sdk-isolation.test.ts 41-46 | A | 残す
+- Enderfga/claw-orchestrator | A (`claude -p --input-format stream-json --output-format stream-json`) | src/persistent-session.ts 116、198-201 | A | 残す
+- coleam00/Archon | B のみ (Claude の provider は Agent SDK の query()) | provider.ts 39,1600 `@anthropic-ai/claude-agent-sdk`。他の provider (codex) は子プロセスだが Claude は SDK | Claude に A の経路は無い | 棄却 H7
+- coollabsio/jean | A (`claude --print --output-format stream-json --input-format stream-json`) | claude_cli/config.rs 14,83、chat/claude.rs 677-684 | A | 残す
+- BennyKok/omg.dev | A (既定の `claude -p`) と B (代替) | claude-ai-sdk.ts 2 で `claude -p` の直接起動が既定と明記、88 で SDK を任意に読む | A | 残す
+- tellahq/opensession | B のみ | package.json 42 `@anthropic-ai/claude-agent-sdk`、claude-accounts.ts 4-6 で `claude setup-token` のトークンを CLAUDE_CODE_OAUTH_TOKEN として渡す | A の経路は見つからない | 棄却 H7
+- herdrdev/herdr + AltanS/collie | A (herdr がペインで `claude` を起動。collie は herdr を操作するクライアント) | herdr の pane.rs 2333 `CommandBuilder::new(program)`、detect/manifests/claude.toml | A | 残す
+- agent-of-empires/agent-of-empires | A (既定の tmux) と C (追加の acp-worker) | src/tmux/detect/manifests/claude.toml、acp-worker/adapters/claude-agent-acp/package.json | A | 残す
+- agentconnect-md/agentconnect | C のみ、かつ API キー | docker/runtime-sandbox/installed-runtimes.json 2 `"command":"claude-agent-acp"`、packages/daemon/src/shim/acp-runner.ts 28 `AC_CLAUDE_API_KEY: 'ANTHROPIC_API_KEY'` | A の経路は見つからない | 棄却 H1、H7
+- Runfusion/Fusion | Claude の実行器は `claude agent stdio` を ACP で動かす前提で、types.ts 3 に "drives xAI Claude Build TUI over ACP" とある | plugins/fusion-plugin-claude-runtime/src/runtime-adapter.ts 25,129,421、types.ts 3。ミニ PC の Claude Code 2.1.205 に `agent` の副コマンドは無い (設計側で `claude --help` を確かめた) | Anthropic の Claude Code を動かす経路が無い | 棄却 H1
+- yc-software/qm | B のみ (Claude の harness は Agent SDK、`claude setup-token` のトークン) | package.json 67 `@anthropic-ai/claude-agent-sdk`、claude-harness.ts 125、harness-auth-env.ts 4-6 | Claude に A の経路は無い (子プロセスの harness は codex と opencode) | 棄却 H7
+- NousResearch/hermes-agent | D (既定、自前の provider で API) と A (terminal の道具で `claude -p` か tmux) | pyproject.toml 229、SKILL.md 38 `terminal(command="claude -p ...")` | A を選べる | 残す
+- paperclipai/paperclip | A (既定、`claude --print --output-format stream-json`) と C (任意の acp) | execute.ts 174,880,413 | A | 残す
+- aaif-goose/goose | C (推奨の claude-acp) と A (claude-code の provider、非推奨) | claude_acp.rs 18、claude_code.rs 1337 `Command::new("claude")`、626 `.deprecated(Some("claude-acp"))` | A を選べるが非推奨 | 残す (A で試す。非推奨なので消える見込みを記録)
+- 23blocks-OS/ai-maestro | A (既定の terminal、tmux と node-pty) と B (任意の streaming) | agent-server.js 236、streaming-runtime.mjs 19、runtime-mode.ts 21 で既定は terminal | A | 残す
+- tlbx-ai/tlbx | A (README の "Claude Code runs in a normal terminal session") と B (ClaudeBridge の Agent SDK) | ClaudeBridge/package.json 11、bridge.mjs 148。A の根拠は README | A を選べる | 残す (端末で試す)
+- ldbumble/taskuary | A (`claude -p --output-format stream-json`) と D (別の機能) | clis.py 17-20 | A | 残す
+- milisp/codexia | 非公式の Rust の crate (claude-agent-sdk-rs) で claude の実行ファイルを動かす経路と、C (claude-code-acp) | Cargo.toml 68、automation_runner.rs 4、agents.rs 69 | 公式の Agent SDK ではない経路がある | 残す (crate の経路で試し、実行ファイルを直接動かすかを記録)
+- its-ahoh/codey | A | packages/core/src/agents/claude-code.ts 265-267 `spawn(claudeBin, args)`、196 `'--output-format','stream-json'` | A | 残す
+- clawnify/ateam | A (node-pty のシェルで `claude`) | packages/agents/src/registry.ts 73-79、packages/server/src/sessions.ts 268-285 | A | 残す
+- ruvnet/ruflo | A (`claude --print --output-format json`) と D (任意の API 直呼び) | v3/@claude-flow/cli/src/services/headless-worker-executor.ts 1397 | A | 残す
+- sahithvibudhi/vibe-tree | A (素の PTY で利用者が `claude` を打つ) | packages/core/src/utils/shell.ts 17、apps/web/src/components/WorktreePanel.tsx 372 | A | 残す
+- junhoyeo/contrabass | Claude は外部の道具 (oh-my-claudecode) への委譲だけで、製品の登録には無い | internal/tmux/cli_registry.go 37-88 に codex と opencode などだけ、internal/config/config.go 40 `defaultOMCTeamSpec = "1:claude"` | 不明 | 残す (選別で確かめる)
+- gastownhall/gastown | A (tmux) | internal/config/cost_tier.go 233,242 `Command: "claude"`、internal/polecat/session_manager.go 415-430 | A | 残す
+- TencentCloud/Octop | D (主は API 直呼び) と C (組み込みの claude_code ランナーは ACP の adapter) | docs/acp.md 33 `npx -y @zed-industries/claude-agent-acp` | ACP のランナーは ACP を話すコマンドが要り、Claude Code の実行ファイルは ACP を話さないので、A の経路にならない | 棄却 H7
+- builderz-labs/mission-control | A (`claude --print --resume`) と D (予備) | src/app/api/sessions/continue/route.ts 197-219 | A | 残す
+- OtoDock/oto-dock | A (PTY と stream-json の子プロセス) と D (別の層に Anthropic の API 直呼び) | proxy/core/layers/cli/session.py 254-262 `cmd=[config.CLAUDE_BIN]` と "-p","--input-format","stream-json" | A | 残す
+- Ivy-Interactive/Ivy-Tendril | A (CliSpawn と Pty) | src/Ivy.Tendril.Agents/Providers/Claude/ClaudeCli.cs 24-25 "--print","--output-format","stream-json"、ClaudePty.cs 22 | A | 残す
+- preset-io/agor | B のみ | sdk-handlers/claude/query-builder.ts 24 `from '@anthropic-ai/claude-agent-sdk'`、定額ログインは claude-auth-file.ts 53-62 | A の経路は無い | 棄却 H7
+- im4codes/imcodes | A (tmux のドライバ、主) と B (任意) | drivers/claude-code.ts 44、claude-code-sdk.ts 8 | A を選べる | 残す (A で試す)
+- mvschwarz/openrig | A (tmux) | packages/daemon/src/startup.ts 389、claude-code-adapter.ts 244 `claude --resume <parent> --fork-session` | A | 残す
+- Abilityai/trinity | A (`claude --print --output-format stream-json`) | agent_server/services/claude_code.py 224、207-209 に定額の OAuth でも動く旨 | A | 残す
+- greenfield-inc/Pane | A (node-pty) | claudeCodeManager.ts 169-235 | A | 残す
+- h0x91b/dev-3.0 | A (tmux の launchCommand) | src/bun/terminal-backend/tmux-backend.ts 62-88 | A | 残す
+- sortie-ai/sortie | A (`--output-format stream-json` の子プロセス) | command.go 85、claude.go 34 | A | 残す
+- coder/xum | D (Claude Code を使わず、@ai-sdk/anthropic で API キーで直呼び) | providerRequirements.ts 47-49 anthropic.apiKey=[ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN] | A の経路は無い | 棄却 H1
+- alamops/agetor | A (tmux の中で対話起動) | claude-tmux.ts 31-36 | A | 残す
+- ai4kanban/ai4kanban | A (`claude -p`) | harnesses/claude-code.ts 28、72-77 で provider subscription | A | 残す
+- pragma-sh/pragma | A (Tauri の PTY で CLI) と D (コミット文面などの補助のみ) | agent-launch.ts 47-84 ptySpawn | A | 残す
+- thinkany-ai/termany | C のみ (claude-agent-acp が Claude Code を包む) | managedAcp.ts 16-21,64-77、agentCredentials.ts 24 | Claude に A の経路は無い (node-pty は他の用途) | 棄却 H7
+- maddada/Ghostex | A (std::process::Command で claude) | claude_background.rs 26-30 | A | 残す
+- superset-sh/superset | A (デスクトップの端末で CLI を動かす主の機能) と B (chat runtime は Agent SDK) | chat-runtime/package.json 24、createClaudeAdapter.ts 1,13 | A を選べる | 残す (端末で試す)
+- kungfu-systems/kungfu | A | framework/core/src/python/kungfu/agent/runtime_profiles.py 96,100 `"executableNames": ["claude"]`、framework/core/src/python/kungfu/agent/native_launch.py 924 `subprocess.Popen(argv, ...)` | A | 残す
+- codeaholicguy/ai-devkit | A (`claude -p --output-format stream-json` と tmux での対話起動) | packages/agent-manager/src/providers/claude/durable/ClaudePrintRunner.ts 52-53、packages/agent-manager/src/runtime/tmux/TmuxAgentRuntime.ts 51-52 | A | 残す
+- proliferate-ai/proliferate | C のみ | catalogs/agents/registry.json 40,44 `"executableName": "claude-agent-acp"`。定額ログインは anyharness/crates/anyharness-lib/src/domains/agents/route_auth/render.rs 445-462 で CLAUDE_CODE_OAUTH_TOKEN | A の経路は無い | 棄却 H7
+- cyclops-team/cyclops | A (tmux の中で `claude --settings <path>`) | resources/manifests/claude.toml `launch="claude"`、src/cyclops/src/workspace.rs 625、src/cyclops-tmux/src/ops.rs 470-481 | A | 残す
+- cyrusagents/cyrus | B のみ | packages/claude-runner/src/ClaudeRunner.ts 774 `this.activeQuery = query(queryOptions)`、packages/claude-runner/package.json 18 `"@anthropic-ai/claude-agent-sdk"`、定額は packages/claude-runner/src/session-env.ts 12-16 | A の経路は無い | 棄却 H7
+- CompanyHelm/companyhelm | D (Anthropic の API を API キーで直接呼ぶ。Claude Code を動かさない) | apps/api/src/services/providers/models-adapters/anthropic_model_adapter.ts 29-33 `"x-api-key": normalizedApiKey` | A の経路は無い | 棄却 H1
+- amplifthq/opentag | C (現行の組み込みは ACP の adapter) | packages/runner/src/builtin-acp.ts 64 `"@agentclientprotocol/claude-agent-acp@0.59.0"`。CHANGELOG.md 555 では旧版が `claude` を直接起動していた | 設定で A を選ぶ手段は無く、コードの差し替え (packages/runner/src/executor.ts の ExecutorAdapter) が要る | 棄却 H7 (再考の条件: 設定で claude を直接起動する経路が戻ったら)

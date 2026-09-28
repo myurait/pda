@@ -149,7 +149,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 14 本、選別 (記述なし) 55 本、棄却 82 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 14 本、選別 (記述なし) 40 本、棄却 97 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
 ### 6.1 選別 (4 条件の記述あり、14 本)
 
@@ -172,28 +172,27 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [claude-command-center](https://github.com/amirfish1/claude-command-center) | 173 / 現行は非商用 | Linux のヘッドレスとブラウザ。Pause で中断 |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
 
-### 6.2 選別 (記述なし、55 本)
+### 6.2 選別 (記述なし、40 本)
 
-括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。
+括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
 
-- 記述なし H1 (13 本): [trinity](https://github.com/Abilityai/trinity)、[agent-of-empires](https://github.com/agent-of-empires/agent-of-empires)、[agentconnect](https://github.com/agentconnect-md/agentconnect)、[Archon](https://github.com/coleam00/Archon)、[gastown](https://github.com/gastownhall/gastown)、[herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[contrabass](https://github.com/junhoyeo/contrabass)、[kandev](https://github.com/kdlbs/kandev)、[taskuary](https://github.com/ldbumble/taskuary)、[podium](https://github.com/madeinorbit/podium)、[hermes-agent](https://github.com/NousResearch/hermes-agent)、[paperclip](https://github.com/paperclipai/paperclip)、[ruflo](https://github.com/ruvnet/ruflo)。
-- 記述なし H5 (11 本): [ateam](https://github.com/clawnify/ateam)、[ai-devkit](https://github.com/codeaholicguy/ai-devkit)、[jean](https://github.com/coollabsio/jean)、[cyrus](https://github.com/cyrusagents/cyrus)、[bb](https://github.com/get-bb/bb)、[codey](https://github.com/its-ahoh/codey)、[OpenMausBot](https://github.com/milind-soni/OpenMausBot)、[codexia](https://github.com/milisp/codexia)、[omnigent](https://github.com/omnigent-ai/omnigent)、[oto-dock](https://github.com/OtoDock/oto-dock)、[vibe-tree](https://github.com/sahithvibudhi/vibe-tree)。
-- 記述なし H1、H5 (8 本): [omg.dev](https://github.com/BennyKok/omg.dev)、[dev-3.0](https://github.com/h0x91b/dev-3.0)、[imcodes](https://github.com/im4codes/imcodes)、[Ghostex](https://github.com/maddada/Ghostex)、[amux](https://github.com/mixpeek/amux)、[pragma](https://github.com/pragma-sh/pragma)、[Fusion](https://github.com/Runfusion/Fusion)、[tlbx](https://github.com/tlbx-ai/tlbx)。
-- 記述なし H5、H6 (6 本): [opentag](https://github.com/amplifthq/opentag)、[Pane](https://github.com/greenfield-inc/Pane)、[OpenHands](https://github.com/OpenHands/OpenHands)、[agor](https://github.com/preset-io/agor)、[proliferate](https://github.com/proliferate-ai/proliferate)、[opensession](https://github.com/tellahq/opensession)。
-- 記述なし H1、H5、H6 (6 本): [ai-maestro](https://github.com/23blocks-OS/ai-maestro)、[mission-control](https://github.com/builderz-labs/mission-control)、[xum](https://github.com/coder/xum)、[Ivy-Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril)、[sortie](https://github.com/sortie-ai/sortie)、[Octop](https://github.com/TencentCloud/Octop)。
-- 記述なし H1、H2 (4 本): [agetor](https://github.com/alamops/agetor)、[claw-orchestrator](https://github.com/Enderfga/claw-orchestrator)、[openrig](https://github.com/mvschwarz/openrig)、[qm](https://github.com/yc-software/qm)。
+- 記述なし H1 (11 本): [trinity](https://github.com/Abilityai/trinity)、[agent-of-empires](https://github.com/agent-of-empires/agent-of-empires)、[gastown](https://github.com/gastownhall/gastown)、[herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[contrabass](https://github.com/junhoyeo/contrabass)、[kandev](https://github.com/kdlbs/kandev)、[taskuary](https://github.com/ldbumble/taskuary)、[podium](https://github.com/madeinorbit/podium)、[hermes-agent](https://github.com/NousResearch/hermes-agent)、[paperclip](https://github.com/paperclipai/paperclip)、[ruflo](https://github.com/ruvnet/ruflo)。
+- 記述なし H5 (9 本): [ateam](https://github.com/clawnify/ateam)、[ai-devkit](https://github.com/codeaholicguy/ai-devkit)、[jean](https://github.com/coollabsio/jean)、[codey](https://github.com/its-ahoh/codey)、[OpenMausBot](https://github.com/milind-soni/OpenMausBot)、[codexia](https://github.com/milisp/codexia)、[omnigent](https://github.com/omnigent-ai/omnigent)、[oto-dock](https://github.com/OtoDock/oto-dock)、[vibe-tree](https://github.com/sahithvibudhi/vibe-tree)。
+- 記述なし H1、H5 (7 本): [omg.dev](https://github.com/BennyKok/omg.dev)、[dev-3.0](https://github.com/h0x91b/dev-3.0)、[imcodes](https://github.com/im4codes/imcodes)、[Ghostex](https://github.com/maddada/Ghostex)、[amux](https://github.com/mixpeek/amux)、[pragma](https://github.com/pragma-sh/pragma)、[tlbx](https://github.com/tlbx-ai/tlbx)。
+- 記述なし H5、H6 (1 本): [Pane](https://github.com/greenfield-inc/Pane)。
+- 記述なし H1、H5、H6 (4 本): [ai-maestro](https://github.com/23blocks-OS/ai-maestro)、[mission-control](https://github.com/builderz-labs/mission-control)、[Ivy-Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril)、[sortie](https://github.com/sortie-ai/sortie)。
+- 記述なし H1、H2 (3 本): [agetor](https://github.com/alamops/agetor)、[claw-orchestrator](https://github.com/Enderfga/claw-orchestrator)、[openrig](https://github.com/mvschwarz/openrig)。
 - 記述なし H2 (3 本): [ai4kanban](https://github.com/ai4kanban/ai4kanban)、[cyclops](https://github.com/cyclops-team/cyclops)、[superset](https://github.com/superset-sh/superset)。
 - 記述なし H6 (1 本): [goose](https://github.com/aaif-goose/goose)。
-- 記述なし H2、H5 (1 本): [termany](https://github.com/thinkany-ai/termany)。
 - 記述なし H2、H5、H6 (1 本): [kungfu](https://github.com/kungfu-systems/kungfu)。
-- 記述なし H1、H2、H5、H6 (1 本): [companyhelm](https://github.com/CompanyHelm/companyhelm)。
 
 ### 6.3 棄却 (反した条件と根拠は findings.md の 5.3、5.4、5.5)
 
 - H1 (Claude Code と Codex の両方を定額ログインで動かせない): cloudflare-os、rakazo、taOS、hivekeep、stagewise、devspace (フロントドアがベンダーの app で B の部品)、AgentsMesh (BYOK、BSL)、openchamber (OpenCode 専用)、forge-orchestrator (API キー)、octomux (Codex なし)、lionclaw (Claude Code なし)、mosoo-agent-driver (OpenAI の API キーのみ)、berd (Goose のみ)、CodeNomad (OpenCode)、Yao (CLI を起こさない)、takt (API キー。YAML の手順定義は部品として再考)、openswarm (Codex なし、macOS 専用)、Aperant (Claude Code のみ、デスクトップ、3 か月のコミット 0)、muxel (Codex なし、デスクトップ)、Friday (BYOK)、n8n、LangGraph Studio、Open WebUI、Mastra Studio。
 - H2 (GUI の無い Linux に常駐できず、別の端末から操作できない) 2026-09-27: happy (Linux のデーモン運用の記述なし。同系の happier を選別へ回した)、emdash、traycer、Meldwork、zeron、munder-difflin、Orkas、agent-teams-ai、ouijit、agent-session-manager-desktop、tempest、monocode、runner、parallel-code、alas、clave、diri、fletch、GraphCode、supacode、superagent-desktop、tortie、hcom (常駐サービスなし。部品として再考)、openyak (Electron、Linux は作業中)、background-agents (Cloudflare Workers と Durable Objects の基盤)、collab-public と constellagent と vibecraft (デスクトップで、かつ 3 か月のコミットが無いか 1 件)、Crystal (2026-02 に終了)、Conductor.build (非公開ソース、Mac のみ)、Zed (デスクトップのみ)。
 - H2 2026-09-28 (4 条件の判定で、反すると明記した記述を引用できたもの): agent-orchestrator (Untrivial。デーモンはデスクトップ app が動かし、"AO does not turn the local desktop product into a hosted multi-user service")、clideck ("CliDeck works on macOS and Windows.")、zaivern-code ("`--headless` is unimplemented in MVP")、dray、zuse、alethe-agents (いずれもデスクトップ app で、サーバの形の記述なし)、evoflux ("shipped as a desktop product")、nimbalyst ("couples the agent runtime and the GUI in one desktop process")、Dorothy ("Agent management and terminal features require the Electron app")。
-- H7 2026-09-28 (Claude を Agent SDK か ACP の adapter でしか動かさない。ソースの行は findings.md の 6 節): paseo、t3code、vicoa、intentic、synara (いずれも Agent SDK)、mjolnir (ACP の adapter)。
+- H7 2026-09-28 (Claude を Agent SDK か ACP の adapter でしか動かさない。ソースの行は findings.md の 6 節): paseo、t3code、vicoa、intentic、synara、Archon、agor、bb、cyrus、qm、opensession (いずれも Agent SDK)、mjolnir、OpenHands、proliferate、termany、Octop、opentag (いずれも ACP の adapter。opentag は旧版が claude を直接起動していたので、設定でその経路が戻れば再考する)。
+- H1 2026-09-28 (ソースで、Claude Code を動かさないか API キーでしか動かさないと分かったもの): xum と companyhelm (Anthropic の API を API キーで直接呼ぶ)、agentconnect (ACP の adapter に API キーを渡す)、Fusion (Claude の実行器が、Claude Code 2.1.205 に無い `claude agent stdio` を前提にしている)。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
@@ -202,7 +201,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 ### 6.5 決まっていないこと
 
-- Claude を動かす形は、5.3 の H7 で判定する。4 条件の記述がある 20 本はソースで判定を済ませた (findings.md の 6 節)。記述なしの 55 本はソースを調べている。
+- Claude を動かす形は、5.3 の H7 で判定した。選別に残した 54 本はすべて、Claude Code をそのまま動かす経路を持つ。Agent SDK か ACP の経路も持つ製品 (happier、Orca、OpenClaw、omnigent、kandev、imcodes、agent-of-empires、ai-maestro、tlbx、superset、goose、paperclip、omg.dev、codexia) は、そのままの経路で試し、どの経路が使われたかを評価記録に書く。
 - ミニ PC のヘッドレス環境で、個人契約のログイン (複製した認証ファイル) がそれぞれの製品でそのまま通るか。選別で確かめる。
 
 ## 7. 成果物
