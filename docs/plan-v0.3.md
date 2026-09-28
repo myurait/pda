@@ -149,21 +149,18 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 20 本、選別 (記述なし) 55 本、棄却 76 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 14 本、選別 (記述なし) 55 本、棄却 82 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
-### 6.1 選別 (4 条件の記述あり、20 本)
+### 6.1 選別 (4 条件の記述あり、14 本)
+
+2026-09-28 に 20 本のうち 6 本を H7 で落とした (6.3)。happier、Orca、OpenClaw は Agent SDK か ACP の経路も持つが、Claude Code をそのまま動かす経路で試す。
 
 | 製品 | 星 / ライセンス | 要点 |
 |---|---|---|
 | [happier](https://github.com/happier-dev/happier) | 1.7k / MIT | ベンダーの CLI をそのまま動かし、全端末へ映す。iOS / Android / Web。別のエージェントでレビュー・計画・委譲を起動 |
 | [multica](https://github.com/multica-ai/multica) | 51k / Apache に商用ホスティング制限を足した独自条項 | デーモン、Docker Compose。Web / デスクトップ / iPhone。Squads、SKILL.md、ボード。実行記録から停止 |
-| [paseo](https://github.com/getpaseo/paseo) | 18.7k / Apache | ヘッドレスのデーモン。Web、iOS、Android、CLI。skill で引き継ぎ。個人 1 名 |
 | [5dive](https://github.com/5dive-ai/5dive) | 61 / MIT | 公式 CLI を systemd で常駐。組織図・待ち行列・ゲート、5dive.yaml。`task cancel` で停止 |
 | [Orca](https://github.com/stablyai/orca) | 79k / MIT | `orca serve` でヘッドレス、iOS / Android。埋め込み端末。委譲とワークフロー定義は無い。YC |
-| [t3code](https://github.com/pingdotgg/t3code) | 23.7k / MIT | systemd の常駐、Web、iOS / Android。流れるチャット、Esc で停止。委譲は無い |
-| [vicoa](https://github.com/vicoa-ai/vicoa) | 362 / AGPL | デーモン、Docker、Web / iOS / Android。Stop ボタン、チャットの隣に生の端末。2026-08 作成 |
-| [intentic](https://github.com/intentic/intentic) | 46 / MIT | ノート PC から離してサーバへ移せる workspace、エージェントごとの Docker。"stoppable mid-thought" |
-| [mjolnir](https://github.com/BrokkAi/mjolnir) | 64 / GPL | Claude Code と Codex を並行。Tailscale 経由の Web。Esc で中断 |
 | [OpenClaw](https://github.com/openclaw/openclaw) | 390k / MIT | Claude Code を CLI のバックエンドで、Codex は定額で。Control UI。第一の位置付けは個人アシスタント |
 | [cezar](https://github.com/open-mercato/cezar) | 253 / MIT | "No API key needed"。VPS に常駐。途中の文・ツール呼び出し・費用を生で。YAML で段ごとに runner |
 | [garcon](https://github.com/cfal/garcon) | 88 / GPL | 自前の Web とスマホ。中断と停止。子チャットへ委譲 |
@@ -173,7 +170,6 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [tutti](https://github.com/nutthouse/tutti) | 128 / MIT | tutti.toml のワークフロー、Web ダッシュボード、個別の停止。3 か月のコミットが 1 件 |
 | [cccc](https://github.com/ChesterRa/cccc) | 1.3k / Apache | デーモンと Web、端末のタイル、Stop Group、@all / @peers の宛先指定 |
 | [claude-command-center](https://github.com/amirfish1/claude-command-center) | 173 / 現行は非商用 | Linux のヘッドレスとブラウザ。Pause で中断 |
-| [synara](https://github.com/Emanuele-web04/synara) | 1.9k / MIT | ヘッドレスの Web 版。中断。子の活動を画面に出す。early-stage |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
 
 ### 6.2 選別 (記述なし、55 本)
@@ -197,6 +193,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - H1 (Claude Code と Codex の両方を定額ログインで動かせない): cloudflare-os、rakazo、taOS、hivekeep、stagewise、devspace (フロントドアがベンダーの app で B の部品)、AgentsMesh (BYOK、BSL)、openchamber (OpenCode 専用)、forge-orchestrator (API キー)、octomux (Codex なし)、lionclaw (Claude Code なし)、mosoo-agent-driver (OpenAI の API キーのみ)、berd (Goose のみ)、CodeNomad (OpenCode)、Yao (CLI を起こさない)、takt (API キー。YAML の手順定義は部品として再考)、openswarm (Codex なし、macOS 専用)、Aperant (Claude Code のみ、デスクトップ、3 か月のコミット 0)、muxel (Codex なし、デスクトップ)、Friday (BYOK)、n8n、LangGraph Studio、Open WebUI、Mastra Studio。
 - H2 (GUI の無い Linux に常駐できず、別の端末から操作できない) 2026-09-27: happy (Linux のデーモン運用の記述なし。同系の happier を選別へ回した)、emdash、traycer、Meldwork、zeron、munder-difflin、Orkas、agent-teams-ai、ouijit、agent-session-manager-desktop、tempest、monocode、runner、parallel-code、alas、clave、diri、fletch、GraphCode、supacode、superagent-desktop、tortie、hcom (常駐サービスなし。部品として再考)、openyak (Electron、Linux は作業中)、background-agents (Cloudflare Workers と Durable Objects の基盤)、collab-public と constellagent と vibecraft (デスクトップで、かつ 3 か月のコミットが無いか 1 件)、Crystal (2026-02 に終了)、Conductor.build (非公開ソース、Mac のみ)、Zed (デスクトップのみ)。
 - H2 2026-09-28 (4 条件の判定で、反すると明記した記述を引用できたもの): agent-orchestrator (Untrivial。デーモンはデスクトップ app が動かし、"AO does not turn the local desktop product into a hosted multi-user service")、clideck ("CliDeck works on macOS and Windows.")、zaivern-code ("`--headless` is unimplemented in MVP")、dray、zuse、alethe-agents (いずれもデスクトップ app で、サーバの形の記述なし)、evoflux ("shipped as a desktop product")、nimbalyst ("couples the agent runtime and the GUI in one desktop process")、Dorothy ("Agent management and terminal features require the Electron app")。
+- H7 2026-09-28 (Claude を Agent SDK か ACP の adapter でしか動かさない。ソースの行は findings.md の 6 節): paseo、t3code、vicoa、intentic、synara (いずれも Agent SDK)、mjolnir (ACP の adapter)。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
@@ -205,7 +202,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 ### 6.5 決まっていないこと
 
-- Claude を動かす形は、5.3 の H7 で判定する。最初に選別する 20 本のうち 9 本は、ソースの依存に Agent SDK か ACP の adapter を宣言している (findings.md の 6 節)。ソースで経路を確かめ、Agent SDK か ACP の adapter しか無いものは資料の段階で落とす。
+- Claude を動かす形は、5.3 の H7 で判定する。4 条件の記述がある 20 本はソースで判定を済ませた (findings.md の 6 節)。記述なしの 55 本はソースを調べている。
 - ミニ PC のヘッドレス環境で、個人契約のログイン (複製した認証ファイル) がそれぞれの製品でそのまま通るか。選別で確かめる。
 
 ## 7. 成果物

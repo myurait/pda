@@ -372,3 +372,15 @@ H1 の判定の途中で、Anthropic の公式文書に次の記述があるこ�
 - 依存の宣言が無いもの (11 本): multica、5dive、cezar、garcon、squid、mulmoterminal、waku、tutti、cccc、claude-command-center、luvus。
 
 依存の宣言は、その製品に Agent SDK 経由で Claude を動かす経路があることを示す。その経路が既定か、定額ログインで使われるか、無改変の Claude Code を動かす経路と選べるかは、ソースの宣言からは決まらないので、選別で確かめる。
+
+依存の宣言がある 9 本について、ソースで Claude の動かし方を確かめた (2026-09-28、浅いクローン、主な根拠の行は設計側でも読み直した)。A は手を加えていない Claude Code の実行ファイルを子プロセスで動かす経路、B は Agent SDK をライブラリとして呼ぶ経路、C は ACP の adapter を通す経路。
+
+- paseo: B のみ。`packages/server/src/server/agent/provider-registry.ts` で provider の claude が `ClaudeAgentClient` (Agent SDK) に固定されている。
+- t3code: B。主のエージェントは `apps/server/src/provider/Layers/ClaudeAdapter.ts` (27 行目で `@anthropic-ai/claude-agent-sdk` を読む)。A はコミットの文面などを作る補助 (`apps/server/src/textGeneration/ClaudeTextGeneration.ts`) にだけ使う。
+- vicoa: B のみ。`backend/src/integrations/headless/claude_code.py` の 79〜80 行目で `claude_agent_sdk` の `ClaudeSDKClient` を読む。
+- intentic: B のみ。`_sandbox/sandbox/src/runtimes/claude/claude-one-shot.ts` の 1 行目。定額ログインは `CLAUDE_CODE_OAUTH_TOKEN` で渡す (`_sandbox/sandbox/src/agent/providers/harness-credentials.ts` の 78〜79 行目)。
+- synara: B のみ。`apps/server/src/provider/claudeAgentSdk.ts` で Agent SDK を読み込む。
+- mjolnir: C のみ。Claude の harness は `mj-worker/assets/harnesses/claude/package.json` の `@agentclientprotocol/claude-agent-acp` 0.81.0 だけ。
+- happier: A が既定で、B は任意。`apps/cli/src/backends/claude/loop.ts` の 231 行目で既定は local (A)。local から remote (B) へ切り替わる経路があり、スマホからの入力でどちらが使われるかは試用で確かめる。
+- Orca: A と B の両方。端末のタブ (A) と、Agent SDK の native chat (B)。試用では端末のタブを使う。
+- OpenClaw: A が既定で、C は任意。コアの claude-cli バックエンド (`src/node-host/invoke-agent-cli-claude-params.ts`) が A、拡張の acpx (`extensions/acpx/package.json`) が C。試用では claude-cli バックエンドを使う。
