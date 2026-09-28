@@ -365,3 +365,10 @@ H1 の判定の途中で、Anthropic の公式文書に次の記述があるこ�
 
 - 製品が、手を加えていない Claude Code の実行ファイルを動かし、オーナーがその中で自分の契約にログインする形は、規約の上で認められている。端末に Claude Code をそのまま動かす製品 (PTY や tmux で包むもの、`claude -p` の stream-json を読むもの) がこれに当たる。
 - 製品が Claude Agent SDK や、それを使った ACP の adapter (claude-agent-acp) を通して、定額ログインで Claude を動かす形は、第三者の開発者が claude.ai のログインを提供する形に当たり、規約が認めていない。4 条件の判定で、Claude を ACP の adapter で動かすと資料に書いてあったのは OpenHands (Agent Canvas の ACP エージェント) と kandev (全エージェントを ACP で) である。他の製品がどちらの形で Claude を動かすかは、資料からは分からないものが多い。
+
+最初に選別する 20 本 (計画 6.1) を浅くクローンし、ソースの依存の宣言 (package.json、pyproject.toml) に Claude Agent SDK か ACP の adapter (claude-agent-acp、claude-code-acp) があるかを調べた (2026-09-28)。
+
+- 依存の宣言があるもの (9 本): happier (apps/cli)、paseo (packages/server)、Orca (ルートの package.json)、t3code (apps/server)、vicoa (backend/pyproject.toml)、intentic (_sandbox/sandbox)、mjolnir (mj-worker の claude の harness)、OpenClaw (extensions/acpx)、synara (apps/server)。
+- 依存の宣言が無いもの (11 本): multica、5dive、cezar、garcon、squid、mulmoterminal、waku、tutti、cccc、claude-command-center、luvus。
+
+依存の宣言は、その製品に Agent SDK 経由で Claude を動かす経路があることを示す。その経路が既定か、定額ログインで使われるか、無改変の Claude Code を動かす経路と選べるかは、ソースの宣言からは決まらないので、選別で確かめる。
