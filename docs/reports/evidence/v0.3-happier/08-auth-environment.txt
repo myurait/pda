@@ -1,0 +1,25 @@
+2026-10-01T14:44:58.982983+00:00
+指定の非秘密環境変数だけを /proc から抽出。
+PID=134063
+HOME=/home/user/v03/agent-home
+CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+CODEX_HOME=[UNSET]
+PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+PID=134194
+HOME=/home/user/v03/agent-home
+CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+CODEX_HOME=[UNSET]
+PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+PID=136526
+HOME=/home/user/v03/agent-home
+CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+CODEX_HOME=[UNSET]
+PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
+
+認証ファイルのメタデータのみ (内容を読まない):
+lrwxrwxrwx 1 user user  29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user  28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+-rw------- 1 user user 500 Oct  1 23:34 /home/user/v03/happier/state/servers/env_36095987/access.key
+
+Happier state 配下で auth.json / .credentials.json / credentials.json の作成を探索 (symlink は辿らない):
+該当なし。Happier 自身の access.key は上記1ファイル。

@@ -1,0 +1,42 @@
+2026-10-01T23:38:46+09:00
+diff --git a/README.md b/README.md
+index af0f694..ee24443 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python hello.py` で実行すると `greet(name)` が呼ばれ `hello, <name>` と表示されます。
+diff --git a/hello.py b/hello.py
+index 11b15b1..a173fd5 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
+-print("hello")
++def greet(name):
++    print(f"hello, {name}")
++
++
++greet("world")
+hello, world
+
+T2 再採録時の diff (ps フィルタ修正後):
+diff --git a/README.md b/README.md
+index af0f694..ee24443 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python hello.py` で実行すると `greet(name)` が呼ばれ `hello, <name>` と表示されます。
+diff --git a/hello.py b/hello.py
+index 11b15b1..a173fd5 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
+-print("hello")
++def greet(name):
++    print(f"hello, {name}")
++
++
++greet("world")

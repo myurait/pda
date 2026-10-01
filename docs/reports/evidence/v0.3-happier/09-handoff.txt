@@ -1,0 +1,93 @@
+T9 の事前確認 / 2026-10-01 JST
+公式文書 https://docs.happier.dev/extending/subagents に Happier-managed delegate があり、CLI に session delegate start / session run start がある。
+T9 は製品標準のツールだけを使い、外付けの skill や MCP サーバを追加しない。
+
+Codex → Claude: local 経路の制約との照合 (実行前)。
+導入済み CLI 0.2.14 の dist/api-xTIAcnds.mjs:86919 は Claude 委譲先を new ClaudeSdkAgentBackend に固定する。
+このクラスは Happier 内蔵の sdk/query を呼び、--output-format stream-json --verbose 等で Claude を起動する。通常セッションの loop.ts の local launcher ではない。
+これは @anthropic-ai/claude-agent-sdk を使う remote 経路と同一だと断定しない。製品指示が指定した local launcher の経路にはならないため、Codex → Claude の execution run は起動しない (0 回、local 制約により未実施)。
+
+導入済み成果物の該当箇所:
+86919: const executionRunBackendFactory$9 = (opts) => {
+86920:   return new ClaudeSdkAgentBackend({
+86921:     cwd: opts.cwd,
+86922:     modelId: opts.modelId ?? "default",
+86923:     permissionHandler: opts.permissionHandler,
+86924:     settingsPath: opts.isolation?.settingsPath,
+86925:     env: opts.isolation?.env
+86926:   });
+86927: };
+86928: function resolveIsolation(request, baseBundle) {
+86430:     this.emit({ type: "status", status: "starting" });
+86431:     this.stderrAppender = await createSubprocessStderrAppender({
+86432:       agentName: "claude",
+86433:       pid: null,
+86434:       label: "claude-sdk"
+86435:     });
+86436:     const runtimeExecutable = await ensureClaudeJsRuntimeExecutable();
+86437:     const q = query({
+86438:       prompt: this.promptStream,
+86439:       options: {
+86440:         cwd: this.opts.cwd,
+86441:         model: model ?? void 0,
+86442:         executable: runtimeExecutable,
+86443:         // Execution runs are noninteractive and their admitted permission mode is enforced by
+86444:         // canCallTool. Pin Claude's outer mode so an ambient bypass default cannot open a blocking
+86445:         // safety-confirmation dialog before the stdio permission owner becomes usable.
+86446:         permissionMode: "default",
+86447:         forcePermissionMode: true,
+86448:         canCallTool,
+86449:         settingsPath: this.opts.settingsPath,
+86450:         env: this.env,
+86451:         ...params.resume ? { resume: params.resume } : {},
+86452:         abort: this.abortController.signal,
+86453:         stderr: (data) => {
+86454:           this.stderrAppender?.append(data);
+86455:         }
+86456:       }
+86457:     });
+86458:     this.query = q;
+85317:   } = config;
+85318:   const envOverlay = env ?? {};
+85319:   const args = ["--output-format", "stream-json", "--verbose"];
+85320:   if (customSystemPrompt) args.push("--system-prompt", customSystemPrompt);
+85321:   if (appendSystemPrompt) args.push("--append-system-prompt", appendSystemPrompt);
+85322:   if (maxTurns) args.push("--max-turns", maxTurns.toString());
+85323:   if (model) args.push("--model", model);
+85324:   if (canCallTool) {
+85325:     if (typeof prompt === "string") {
+2026-10-01T14:47:40.720Z Settings > Features: Experimental Features と Subagents を有効にした。
+2026-10-01T14:47:42.280Z Claude → Codex 試行1。入力:
+Happier の製品標準の委譲機能（Happier-managed delegate または execution run）を使って、Codex に次の依頼を渡してください。作業場所は /home/user/v03/work/happier/scratch です。依頼: hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。 Claude 側ではファイルを直接編集せず、Codex の途中の出力と結果を確認してください。製品に既にある Happier のツールだけを使い、skill や MCP を追加しないでください。認証は既存の native を使い、connectedServices を指定できるなら native とし、認証ファイルを読んだりコピーしたりせず、HOME と CODEX_HOME を変更しないでください。
+{"v":1,"ok":true,"kind":"session_run_list","data":{"sessionId":"cmupmzgah0001qe019wa03ih8","runs":[{"runId":"run_84fa6ba1-6583-478b-98b8-6657cfef624a","callId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","sidechainId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","intent":"delegate","backendTarget":{"kind":"builtInAgent","agentId":"codex"},"launchOrigin":{"kind":"session","sessionId":"cmupmzgah0001qe019wa03ih8"},"permissionMode":"default","retentionPolicy":"ephemeral","runClass":"bounded","ioMode":"request_response","status":"running","turnInFlight":true,"startedAtMs":1790866078452}]}}
+{"v":1,"ok":true,"kind":"session_run_get","data":{"sessionId":"cmupmzgah0001qe019wa03ih8","run":{"runId":"run_84fa6ba1-6583-478b-98b8-6657cfef624a","callId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","sidechainId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","intent":"delegate","backendTarget":{"kind":"builtInAgent","agentId":"codex"},"launchOrigin":{"kind":"session","sessionId":"cmupmzgah0001qe019wa03ih8"},"permissionMode":"default","retentionPolicy":"ephemeral","runClass":"bounded","ioMode":"request_response","status":"succeeded","startedAtMs":1790866078452,"finishedAtMs":1790866112585},"latestToolResult":{"status":"succeeded","summary":"既存のスタイルに合わせて最小限の変更を行い、実行と差分チェックを確認しました。","runId":"run_84fa6ba1-6583-478b-98b8-6657cfef624a","callId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","sidechainId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","backendId":"codex","intent":"delegate","startedAtMs":1790866078452,"finishedAtMs":1790866112585,"deliverablesDigest":[{"id":"hello","title":"hello.py に greet(name) を追加","details":"名前を受け取り挨拶を表示します。既存の出力は維持しました。"},{"id":"readme","title":"README.md に使い方を1行追加","details":"python3 での呼び出し例と出力を記載しました。"}]},"structuredMeta":{"kind":"delegate_output.v1","payload":{"runRef":{"runId":"run_84fa6ba1-6583-478b-98b8-6657cfef624a","callId":"subagent_run_2617f7c5-9b80-46ef-a344-0460e7ab8531","backendId":"codex","backendTarget":{"kind":"builtInAgent","agentId":"codex"}},"summary":"既存のスタイルに合わせて最小限の変更を行い、実行と差分チェックを確認しました。","deliverables":[{"id":"hello","title":"hello.py に greet(name) を追加","details":"名前を受け取り挨拶を表示します。既存の出力は維持しました。"},{"id":"readme","title":"README.md に使い方を1行追加","details":"python3 での呼び出し例と出力を記載しました。"}],"generatedAtMs":1790866112585}}}}
+/home/user/v03/happier/state/logs/2026-10-01-23-35-39-pid-134128.log:7:[23:35:40.172] [CLAUDE_STARTUP] stage=provider_launcher_entered {"runtime":"local"}
+/home/user/v03/happier/state/logs/2026-10-01-23-41-02-pid-135823.log:7:[23:41:03.386] [CLAUDE_STARTUP] stage=provider_launcher_entered {"runtime":"local"}
+2026-10-01T14:50:52.961Z Claude→Codex 試行2 (途中の詳細トランスクリプト採録)。1回目は実行中の Bash 行を確認し、詳細を開いたときには終了していたため。
+2026-10-01T14:51:02.229Z 実行中に詳細を開いた: run_6f64b4d7-71a6-4053-8434-31f68ae12740
+
+2026-10-01T14:53:32.331416+00:00 Claude→Codex 結果:
+{"v":1,"ok":true,"kind":"session_run_get","data":{"sessionId":"cmupmzgah0001qe019wa03ih8","run":{"runId":"run_6f64b4d7-71a6-4053-8434-31f68ae12740","callId":"subagent_run_22f149ef-d0a0-40b2-96d9-e17be840e741","sidechainId":"subagent_run_22f149ef-d0a0-40b2-96d9-e17be840e741","intent":"delegate","backendTarget":{"kind":"builtInAgent","agentId":"codex"},"launchOrigin":{"kind":"session","sessionId":"cmupmzgah0001qe019wa03ih8"},"permissionMode":"default","retentionPolicy":"ephemeral","runClass":"bounded","ioMode":"request_response","status":"succeeded","startedAtMs":1790866261336,"finishedAtMs":1790866305014},"latestToolResult":{"status":"succeeded","summary":"既存のスタイルに合わせて2ファイルを最小限変更し、動作と差分の書式を確認しました。","runId":"run_6f64b4d7-71a6-4053-8434-31f68ae12740","callId":"subagent_run_22f149ef-d0a0-40b2-96d9-e17be840e741","sidechainId":"subagent_run_22f149ef-d0a0-40b2-96d9-e17be840e741","backendId":"codex","intent":"delegate","startedAtMs":1790866261336,"finishedAtMs":1790866305014,"deliverablesDigest":[{"id":"hello","title":"hello.py に greet(name) を追加","details":"名前付きの挨拶を表示します。既存の処理は維持しています。"},{"id":"readme","title":"README.md に使い方を1行追加","details":"python3 で greet を呼び出す実行例を記載しました。"}]},"structuredMeta":{"kind":"delegate_output.v1","payload":{"runRef":{"runId":"run_6f64b4d7-71a6-4053-8434-31f68ae12740","callId":"subagent_run_22f149ef-d0a0-40b2-96d9-e17be840e741","backendId":"codex","backendTarget":{"kind":"builtInAgent","agentId":"codex"}},"summary":"既存のスタイルに合わせて2ファイルを最小限変更し、動作と差分の書式を確認しました。","deliverables":[{"id":"hello","title":"hello.py に greet(name) を追加","details":"名前付きの挨拶を表示します。既存の処理は維持しています。"},{"id":"readme","title":"README.md に使い方を1行追加","details":"python3 で greet を呼び出す実行例を記載しました。"}],"generatedAtMs":1790866305014}}}}
+
+試行1: run_84fa6ba1-6583-478b-98b8-6657cfef624a、34.133秒で succeeded。実行中の右欄に Bash と経過時間を確認。
+試行2: run_6f64b4d7-71a6-4053-8434-31f68ae12740、43.678秒で succeeded。14:51:01 UTC に子の詳細を開き、09-handoff-021.png (14:51:23 UTC、実行中21秒) で子の Terminal(cmd: /bin/bash) と実コマンドを確認。
+09-handoff-stream.txt は画面テキストとスクリーンショット採録時刻。10秒間隔 (詳細を開いた際など追加採録あり)。
+2回目の API は succeeded になったが、14:52台の画面右欄には WORKING / 0:43 が残った。リロードによる更新は未確認。
+親 Claude は local 表示を維持し、ログにも runtime=local。手で追加した skill/MCP は無い。Happier が標準で提供する MCP の action_execute / execution_run_wait / execution_run_get を使った。
+diff --git a/README.md b/README.md
+index af0f694..10fcb8b 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` で名前付きの挨拶を表示します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..55d7302 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    print(f"hello, {name}")
++
++
+ print("hello")

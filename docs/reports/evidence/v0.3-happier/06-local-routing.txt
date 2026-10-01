@@ -1,0 +1,59 @@
+導入済み CLI 0.2.14 の成果物 / dist/command-DOFhceW4.mjs
+local/remote 経路の確認。以下はコード抜粋であり、remote 経路は実行していない。
+9137:     }
+9138:     async function doAbort() {
+9139:       logger.debug("[local]: doAbort");
+9140:       session.noteUserAbortRequested();
+9141:       if (!exitReason) {
+9142:         exitReason = remoteSwitchingEnabled ? { type: "switch" } : { type: "exit", code: 0 };
+9143:       }
+9144:       abortingForModeSwitch = remoteSwitchingEnabled;
+9145:       session.queue.reset();
+9168:         session.setLastPermissionMode(mode.permissionMode);
+9169:       }
+9170:     });
+9171:     deferredRemoteSwitch = remoteSwitchController;
+9172:     session.client.rpcHandlerManager.registerHandler("abort", doAbort);
+9173:     session.client.rpcHandlerManager.registerHandler("switch", async (params) => {
+9174:       const to = resolveSwitchRequestTarget(params);
+9175:       if (to === "local") return true;
+9176:       if (!remoteSwitchingEnabled) ;
+9177:       return await remoteSwitchController.requestRemoteSwitch("rpc_switch");
+9178:     });
+9179:     session.queue.setOnMessage((message, mode) => {
+9180:       if (!remoteSwitchingEnabled) ;
+9181:       remoteSwitchController.onQueuedMessage(message, mode);
+9182:     });
+9183:     if (remoteSwitchingEnabled && entry === "switch") {
+29217:   let mode = opts.startingMode ?? "local";
+29218:   let localEntry = mode === "local" ? "initial" : "switch";
+29219:   while (true) {
+29220:     logger.debug(`[loop] Iteration with mode: ${mode}`);
+29221:     switch (mode) {
+29222:       case "local": {
+29223:         logger.infoFile("[CLAUDE_STARTUP] stage=provider_launcher_entered", { runtime: "local" });
+29224:         const result = await claudeLocalLauncher(session, {
+29225:           entry: localEntry,
+29226:           remoteSwitchingEnabled: true
+29227:         });
+29228:         localEntry = "switch";
+29229:         switch (result.type) {
+29230:           case "switch":
+29231:             mode = "remote";
+29232:             session.onModeChange(mode);
+29233:             break;
+29234:           case "exit":
+29235:             return result.code;
+29236:         }
+29237:         break;
+29238:       }
+29239:       case "remote": {
+29240:         logger.infoFile("[CLAUDE_STARTUP] stage=provider_launcher_entered", { runtime: "agent-sdk" });
+29241:         const reason = await claudeRemoteLauncher(session, {
+29242:           initialMode: opts.initialClaudeUnifiedTerminalMode
+29243:         });
+29244:         switch (reason) {
+29245:           case "exit":
+
+画面表示: This session is running locally on this computer. You can switch to remote to control it from the app. / Switch to remote
+T2/T3/T9 の Claude への入力は Happier CLI の local 端末から行った。画面のチャット入力と abort RPC は実行していない。stop には session stop を使った。

@@ -1,0 +1,55 @@
+● v03-happier.service - PDA v0.3 Happier relay, web and daemon trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-happier.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-01 23:35:20 JST; 2min 50s ago
+   Main PID: 134055 (MainThread)
+      Tasks: 11 (limit: 15004)
+     Memory: 318.4M (peak: 504.1M)
+        CPU: 5.133s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-happier.service
+             └─134063 /home/user/.nvm/versions/node/v24.18.0/bin/node --no-warnings --no-deprecation /home/user/v03/happier/cli/node_modules/@happier-dev/cli/bin/happier.mjs daemon start-sync
+             ‣ 134055 node /home/user/v03/happier/cli/node_modules/.bin/happier daemon start-sync
+[Unit]
+Description=PDA v0.3 Happier relay, web and daemon trial
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/happier/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HAPPIER_HOME_DIR=/home/user/v03/happier/state
+Environment=HAPPIER_SERVER_URL=http://127.0.0.1:5112
+Environment=HAPPIER_WEBAPP_URL=http://127.0.0.1:5112
+Environment=HAPPIER_CLI_UPDATE_CHECK=0
+Environment=DISABLE_AUTOUPDATER=1
+UnsetEnvironment=CODEX_HOME ANTHROPIC_API_KEY OPENAI_API_KEY
+ExecStartPre=/usr/bin/sg docker -c "/usr/bin/docker compose -f /home/user/v03/happier/compose.yaml up -d --wait"
+ExecStart=/home/user/v03/happier/happier daemon start-sync
+ExecStop=/home/user/v03/happier/happier daemon stop --kill-sessions
+ExecStopPost=/usr/bin/sg docker -c "/usr/bin/docker compose -f /home/user/v03/happier/compose.yaml stop"
+KillMode=control-group
+Restart=no
+TimeoutStartSec=120
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target
+name: v03-happier
+services:
+  relay:
+    image: happierdev/relay-server@sha256:a350a537d5ef4d0ef7ff6780d583bd6e674cb4f133426de0fb2aa08f02cd04d7
+    ports:
+      - "127.0.0.1:5112:3005"
+    environment:
+      HOME: /home/user/v03/agent-home
+      PORT: "3005"
+      HAPPIER_SERVER_FLAVOR: light
+      HAPPIER_DB_PROVIDER: sqlite
+      HAPPIER_SERVER_LIGHT_DATA_DIR: /data
+    volumes:
+      - ./server-data:/data
+    restart: "no"
+#!/bin/sh
+exec env -u CODEX_HOME -u ANTHROPIC_API_KEY -u OPENAI_API_KEY HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin HAPPIER_HOME_DIR=/home/user/v03/happier/state HAPPIER_SERVER_URL=http://127.0.0.1:5112 HAPPIER_WEBAPP_URL=http://127.0.0.1:5112 HAPPIER_CLI_UPDATE_CHECK=0 DISABLE_AUTOUPDATER=1 /home/user/v03/happier/cli/node_modules/.bin/happier "$@"

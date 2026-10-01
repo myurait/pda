@@ -1,0 +1,60 @@
+2026-10-01T14:57:31.498727+00:00
+$ systemctl --user stop v03-happier.service
+exit 0
+$ systemctl --user status v03-happier.service --no-pager --lines=0
+○ v03-happier.service - PDA v0.3 Happier relay, web and daemon trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-happier.service; enabled; preset: enabled)
+     Active: inactive (dead) since Thu 2026-10-01 23:55:00 JST; 2min 31s ago
+   Duration: 19min 27.847s
+    Process: 134055 ExecStart=/home/user/v03/happier/happier daemon start-sync (code=exited, status=0/SUCCESS)
+    Process: 140786 ExecStop=/home/user/v03/happier/happier daemon stop --kill-sessions (code=exited, status=0/SUCCESS)
+    Process: 140838 ExecStopPost=/usr/bin/sg docker -c /usr/bin/docker compose -f /home/user/v03/happier/compose.yaml stop (code=exited, status=0/SUCCESS)
+   Main PID: 134055 (code=exited, status=0/SUCCESS)
+        CPU: 15.468s
+exit 3
+$ systemctl --user list-units v03-*.service --all --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+2 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+exit 0
+$ docker compose -f /home/user/v03/happier/compose.yaml ps -a
+NAME                  IMAGE                                                                                             COMMAND                  SERVICE   CREATED          STATUS                       PORTS
+v03-happier-relay-1   happierdev/relay-server@sha256:a350a537d5ef4d0ef7ff6780d583bd6e674cb4f133426de0fb2aa08f02cd04d7   "run-server /opt/hap…"   relay     26 minutes ago   Exited (137) 2 minutes ago
+exit 0
+コンテナは compose stop で停止。down は実行していない。Exited (137) は停止後の実測値。
+Happier 関連の実行器プロセス: 0
+
+5112/9512 待ち受け: []
+既存ポートの終了時の観測 (変更操作なし):
+LISTEN 0      4096         0.0.0.0:5080       0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:44105      0.0.0.0:*    users:(("tailscaled",pid=2474188,fd=15))
+LISTEN 0      128        127.0.0.1:22037      0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*
+LISTEN 0      4096            [::]:5080          [::]:*
+LISTEN 0      4096            [::]:22            [::]:*
+Happier 参照用 source の git status --short:
+(clean)
+Happier state 配下の provider auth.json/.credentials.json/credentials.json のメタデータ探索: 該当なし
+
+報告書・証拠の検査 (2026-10-02 JST):
+- 必須7節が指定順で存在。
+- T1〜T9 に「やったこと」「起きたこと」「証拠のファイル名」が存在。
+- 報告書のローカルリンクと時刻ログのスクリーンショット参照先はすべて存在。
+- 必須の証拠ファイルはすべて存在し、空ではない。
+- PNG 67枚の署名・全チャンク CRC・圧縮データの展開を検査して成功。
+- access_token / refresh_token / id_token / client_secret / API key / Bearer / private key / JWT 形式のテキスト検査は検出0件。これは形式検査であり、秘密値の正本との照合はしていない。
+- 代表画像 02-claude-002.png と 09-handoff-021.png を目視し、実行中の出力と鍵の値が表示されていないことを確認。
+- docker ps: pda-otel-collector-1 と pda-openobserve-1 はいずれも Up 8 days。
+- 未追跡状態での git diff --check は exit 0。ステージ後の初回検査では ss などの出力の trailing whitespace と new blank line at EOF を検出した。行末と末尾の空行だけを正規化して再検査する。
+- 秘密ファイルの内容を正本から読んで比較する検査は行っていない。
+
+正規化は証拠テキストの行末空白とファイル末尾の空行のみ。コマンド・引数・時刻・数値・画面の文言は変更していない。
+
+正規化後の再検査: git diff --cached --check main は exit 0 (2026-10-02 JST)。

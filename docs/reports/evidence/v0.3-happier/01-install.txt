@@ -1,0 +1,39 @@
+2026-10-01 JST / Happier 導入記録
+開始前: main の作業ツリーは clean。他 v03-*.service は inactive、5112 は未使用。
+$ git switch -c v0.3/setup-happier main
+Switched to a new branch 'v0.3/setup-happier'
+$ git clone --depth 1 https://github.com/happier-dev/happier.git /home/user/v03/happier/source
+成功。参照用 checkout: d2e97f110b10177a19226e73debbf225d612eeac (実行物とは別)。製品コードは編集しない。
+$ npm install --prefix /home/user/v03/happier/cli @happier-dev/cli@0.2.14
+成功 (1 回)。added 406 packages in 1m。
+$ docker pull happierdev/relay-server:stable
+成功 (1 回)。digest は以下に固定:
+happierdev/relay-server@sha256:a350a537d5ef4d0ef7ff6780d583bd6e674cb4f133426de0fb2aa08f02cd04d7
+image revision: 88d45f33a5e5faf3235f621ee168a6f0ca58762d
+GitHub server-stable / ui-web-stable はこの revision。固定 release: server-v0.2.15 / ui-web-v0.2.15。
+$ systemctl --user start v03-happier.service
+初回失敗: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+原因: user は docker (988) に所属するが systemd user manager PID 1274 の Groups に 988 が無かった。
+対処: Docker の ExecStart/ExecStop に /usr/bin/sg docker -c を設定。
+再試行成功 (当該起動手順の合計 2 回)。sudo は使用していない。
+最初に relay のみを起動し、Web でローカルアカウントを作成して CLI を認証。その後 unit に daemon start-sync を追加して通常の再起動を実施。
+$ systemctl --user enable v03-happier.service
+成功。
+$ npm install --prefix /home/user/v03/happier/browser playwright
+$ /home/user/v03/happier/browser/node_modules/.bin/playwright install chromium
+成功。root / apt 不要。
+
+事前準備:
+~/v03/work/happier/scratch を git init -b main。
+README.md は # scratch の 1 行、hello.py は print("hello") の 1 行。
+初回 commit は Author identity unknown で失敗。
+repo 限定の -c user.name='PDA trial' -c user.email='pda-trial@localhost' を付けた再試行は成功 (bd8366b)。
+CLI の信頼確認は tmux -L happier-trial で実施。両方で確認を承認し、Ctrl-D で終了。00-trust.txt 参照。
+Claude 2.1.274 / Codex 0.156.1 を確認。Claude の画面には Update installed と表示されたが実行ファイルの symlink は 2.1.274 のまま。
+実行時は HOME=/home/user/v03/agent-home、CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude、PATH 先頭=/home/user/.local/bin、env -u CODEX_HOME。API キーは設定していない。
+
+補助操作:
+公式 docs の .md URL 取得は 404。公式 HTML ページと clone 内の mdx で該当文書を読んだ。
+ブラウザ操作ハーネスの初回は stdin closed。tty=true で再起動して成功。ログイン操作前の JSON エスケープ構文エラーを修正し、実際の login は 1 回で成功。
+
+報告書検査の補助スクリプト初回は ModuleNotFoundError: No module named PIL で未実行。画像検査を標準ライブラリの PNG CRC と zlib 展開に変更し、2回目に検査を実施。新しい依存の導入はしていない。

@@ -1,0 +1,18 @@
+2026-10-01T23:54:37+09:00
+{"url":"http://127.0.0.1:5112/","loggedInSidebarVisible":true,"savedClaudeSession":1,"credentialValuesRead":false}
+LISTEN 0      10         127.0.0.1:9512       0.0.0.0:*    users:(("chrome-headless",pid=140525,fd=72))
+import { chromium } from 'playwright';
+const context = await chromium.launchPersistentContext('/home/user/v03/happier/browser-profile', {
+  headless: true,
+  viewport: { width: 1400, height: 1000 },
+  args: ['--remote-debugging-port=9512', '--remote-debugging-address=127.0.0.1'],
+});
+const page = context.pages()[0] || await context.newPage();
+await page.goto('http://127.0.0.1:5112/', { waitUntil: 'domcontentloaded' });
+console.log('Saved Happier browser: http://127.0.0.1:5112/');
+console.log('DevTools: 127.0.0.1:9512 (forward this port over SSH; use chrome://inspect).');
+console.log('No credentials are printed or exported. Ctrl-C closes this browser.');
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, async () => { await context.close(); process.exit(0); });
+}
+await new Promise(() => {});
