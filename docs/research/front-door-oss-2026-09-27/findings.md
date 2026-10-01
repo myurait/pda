@@ -449,3 +449,32 @@ H1 の判定の途中で、Anthropic の公式文書に次の記述があるこ�
 - cyrusagents/cyrus | B のみ | packages/claude-runner/src/ClaudeRunner.ts 774 `this.activeQuery = query(queryOptions)`、packages/claude-runner/package.json 18 `"@anthropic-ai/claude-agent-sdk"`、定額は packages/claude-runner/src/session-env.ts 12-16 | A の経路は無い | 棄却 H7
 - CompanyHelm/companyhelm | D (Anthropic の API を API キーで直接呼ぶ。Claude Code を動かさない) | apps/api/src/services/providers/models-adapters/anthropic_model_adapter.ts 29-33 `"x-api-key": normalizedApiKey` | A の経路は無い | 棄却 H1
 - amplifthq/opentag | C (現行の組み込みは ACP の adapter) | packages/runner/src/builtin-acp.ts 64 `"@agentclientprotocol/claude-agent-acp@0.59.0"`。CHANGELOG.md 555 では旧版が `claude` を直接起動していた | 設定で A を選ぶ手段は無く、コードの差し替え (packages/runner/src/executor.ts の ExecutorAdapter) が要る | 棄却 H7 (再考の条件: 設定で claude を直接起動する経路が戻ったら)
+
+## 7. tmux への依存 (2026-10-01)
+
+H9 (Latest のリリースが 2026-09-28 12:00 より前) と H10 (星が 200 以下) を通った 24 本について、既定のブランチの浅いクローンで tmux の使い方を確かめた。各行は「製品 | 判定 | 根拠」。判定の語は、必須 (tmux が無いと動かない)、既定 (エージェントを動かす既定の方法が tmux)、任意 (既定では使わない機能)、なし (製品のコードに使い方が無い)。必須と既定を H11 で落とした。ただし、tmux を使わない方法が Agent SDK だけの製品は、H7 により既定に数えた。
+
+- stablyai/orca | なし | node-pty で端末を動かす (package.json の 189 行目)。`tmux` という名前の小さなスクリプトを置くが、Claude の Agent Teams の呼び出しを Orca の画面へ回すためのもの (src/main/runtime/claude-agent-teams-shim-env.ts の 22 行目)
+- happier-dev/happier | 任意 | 既定の端末は tmux を使わない (apps/cli/src/session/attach/resolveEffectiveSessionTmuxFromAccountSettings.ts の 66 行目 `useTmux: false, source: 'default'`)。別の端末からつなぎ直す機能で tmux を使う
+- openclaw/openclaw | なし | Codex は自前の PTY (`@lydell/node-pty`)、Claude Code はパイプで動かす (skills/coding-agent/SKILL.md の 42〜45 行目)
+- RizRiyz/luvus | なし | 自前の端末の多重化 (Cargo.toml の 58 行目 `portable-pty`)
+- open-mercato/cezar | なし | Claude は `child_process.spawn` の stream-json、Codex は `codex app-server` (packages/cezar/src/core/codex-app-server-runner.ts の 46 行目)
+- multica-ai/multica | なし | リポジトリに tmux の語が無い
+- receptron/mulmoterminal | 既定 | "detects `tmux` on `PATH` at startup and uses it automatically when present." (README.md の 691 行目)。無ければ PTY だけで動く
+- coollabsio/jean | なし | `portable-pty` (jean-core/Cargo.toml の 25 行目)。tmux の語が無い
+- greenfield-inc/Pane | なし | `@lydell/node-pty` (main/src/services/panels/cli/AbstractCliManager.ts の 2 行目)。型に使われていない欄が 1 つあるだけ
+- herdrdev/herdr | なし | 自前の端末の多重化 (Cargo.toml の 39 行目 `portable-pty`)
+- AltanS/collie | 任意 | 既定の接続先は herdr で、tmux と zellij は試験的な選択肢 (README.md の 82 行目)
+- maddada/Ghostex | 任意 | 新しいセッションは自前の `zmx` で保つ (server/src/ghostex_cli/sessions/cli_session.rs の 250 行目)。tmux は古いセッションをつなぎ直すときだけ読む
+- milind-soni/OpenMausBot | なし | `child_process.spawn` (server/cli-setup.ts の 43 行目)
+- milisp/codexia | なし | `portable-pty` (Cargo.toml の 66 行目)。tmux の語が無い
+- ruvnet/ruflo | 任意 | 補助のエージェントを起こす plugin の選択肢の 1 つ (v3/plugins/teammate-plugin/src/types.ts の 89 行目、既定は `auto`)
+- superset-sh/superset | なし | 自前の PTY デーモン (packages/host-service/package.json の 99 行目 `node-pty`)。利用者のシェルが tmux を自動で起こすのを止める設定だけがある
+- Enderfga/claw-orchestrator | なし | `child_process.spawn` (src/persistent-codex-session.ts の 360 行目)。tmux の語が無い
+- mvschwarz/openrig | 必須 | "Requires Node.js 22 or 24 and tmux" (README.md の 21 行目)
+- agent-of-empires/agent-of-empires | 必須 | "**Prerequisites:** tmux (required)" (README.md の 69 行目)
+- codeaholicguy/ai-devkit | 既定 | 既定の実行は `TmuxAgentRuntime`、設定で herdr に替えられる (packages/agent-manager/src/runtime/RuntimeFactory.ts の 11〜12 行目)
+- h0x91b/dev-3.0 | 既定 | "every task terminal runs inside tmux" (CONTRIBUTING.md の 7 行目)。自前の端末は作業ごとの選択
+- 23blocks-OS/ai-maestro | 既定 | "tmux path (default)" と "SDK path" (docs/CHAT-ARCHITECTURE.md の 18 行目)。tmux を使わない方法は Agent SDK
+- omnigent-ai/omnigent | 既定 | "`tmux`, required by the native `omnigent <harness>` terminal wrappers" (README.md の 156 行目)。tmux を使わない方法は SDK の harness
+- BennyKok/omg.dev | 既定 | Claude の今の経路は Agent SDK (docs/coding-agent-architecture.md の 13 行目)。Claude Code の TUI を動かす経路は tmux を使い、廃止予定で新しいセッションに使わない (src/coding-agent-adapters.ts の 45〜53 行目)

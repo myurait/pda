@@ -23,9 +23,9 @@
 | 製品 | 星 | ライセンス | 作成 | push | リリース | コミット | 分類 |
 |---|---|---|---|---|---|---|---|
 | openclaw/openclaw | 390621 | MIT (本文。表示は NOASSERTION) | 2025-11-24 | 2026-09-27 | 25 | 38603 | 選別 (4 条件の記述あり) |
-| NousResearch/hermes-agent | 249326 | MIT | 2025-07-22 | 2026-09-27 | 18 | 31785 | 選別 (記述なし: H1) |
+| NousResearch/hermes-agent | 249326 | MIT | 2025-07-22 | 2026-09-27 | 18 | 31785 | 棄却 H9 |
 | OpenHands/OpenHands | 89260 | MIT | 2024-03-13 | 2026-09-26 | 25 | 685 | 棄却 H7 (2026-09-28) |
-| paperclipai/paperclip | 88225 | MIT | 2026-03-02 | 2026-09-27 | 11 | 1738 | 選別 (記述なし: H1) |
+| paperclipai/paperclip | 88225 | MIT | 2026-03-02 | 2026-09-27 | 11 | 1738 | 棄却 H9 |
 | stablyai/orca | 79166 | MIT | 2026-03-17 | 2026-09-27 | 25 | 6448 | 選別 (4 条件の記述あり) |
 | ruvnet/ruflo | 73353 | MIT | 2025-06-02 | 2026-09-27 | 25 | 650 | 選別 (記述なし: H1) |
 | multica-ai/multica | 51419 | 独自条項 | 2026-01-13 | 2026-09-27 | 25 | 1716 | 選別 (4 条件の記述あり) |
@@ -34,27 +34,27 @@
 | pingdotgg/t3code | 23660 | MIT | 2026-02-08 | 2026-09-27 | 25 | 2607 | 棄却 H7 (2026-09-28) |
 | coleam00/Archon | 23564 | MIT | 2025-02-07 | 2026-09-26 | 9 | 1758 | 棄却 H7 (2026-09-28) |
 | getpaseo/paseo | 18668 | Apache-2.0 | 2025-10-13 | 2026-09-26 | 25 | 1390 | 棄却 H7 (2026-09-28) |
-| gastownhall/gastown | 18199 | MIT | 2025-12-16 | 2026-09-18 | 0 | 161 | 選別 (記述なし: H1) |
+| gastownhall/gastown | 18199 | MIT | 2025-12-16 | 2026-09-18 | 0 | 161 | 棄却 H9 |
 | yc-software/qm | 15260 | MIT | 2026-07-29 | 2026-09-27 | 13 | 696 | 棄却 H7 (2026-09-28) |
 | superset-sh/superset | 14669 | Elastic License 2.0 | 2025-10-21 | 2026-09-27 | 25 | 1542 | 選別 (記述なし: H2) |
 | Untrivial-ai/agent-orchestrator | 12410 | Apache-2.0 | 2026-02-13 | 2026-09-27 | 25 | 1398 | 棄却 H2 (2026-09-28) |
 | openchamber/openchamber | 10714 | MIT | 2025-09-11 | 2026-09-27 | 25 | 2107 | 棄却 H1 (OpenCode 専用) |
-| omnigent-ai/omnigent | 10275 | Apache-2.0 | 2026-06-11 | 2026-09-27 | 16 | 3298 | 選別 (記述なし: H5) |
+| omnigent-ai/omnigent | 10275 | Apache-2.0 | 2026-06-11 | 2026-09-27 | 16 | 3298 | 棄却 H11 |
 | cloudflare/cloudflare-os | 10150 | Apache-2.0 | 2026-04-15 | 2026-09-26 | 0 | 407 | 棄却 H1 |
 | YaoApp/yao | 8030 | 修正版 Apache | 2021-09-06 | 2026-09-27 | 24 | 152 | 棄却 H1 |
 | chaitanyagiri/munder-difflin | 8025 | MIT | 2026-05-31 | 2026-09-27 | 21 | 754 | 棄却 H2 |
 | open-multi-agent/open-multi-agent | 6957 | MIT | 2026-03-31 | 2026-09-25 | 15 | 259 | 部品 |
 | stagewise-io/stagewise | 6822 | AGPL-3.0 | 2025-04-26 | 2026-09-23 | 25 | 311 | 棄却 H1 |
-| builderz-labs/mission-control | 6273 | MIT | 2026-02-13 | 2026-09-26 | 3 | 170 | 選別 (記述なし: H1、H5、H6) |
+| builderz-labs/mission-control | 6273 | MIT | 2026-02-13 | 2026-09-26 | 3 | 170 | 棄却 H9 |
 | generalaction/emdash | 5849 | Apache-2.0 | 2025-08-28 | 2026-09-27 | 25 | 2415 | 棄却 H2 |
 | HKUDS/ClawTeam | 5544 | MIT | 2026-03-17 | 2026-05-09 | 0 | 0 | 棄却 H3 |
 | TencentCloud/Octop | 5182 | MIT | 2026-07-08 | 2026-09-27 | 6 | 634 | 棄却 H7 (2026-09-28) |
 | Waishnav/devspace | 5143 | MIT | 2026-06-14 | 2026-09-25 | 10 | 645 | 棄却 H1 (フロントドアがベンダーの app) |
-| kungfu-systems/kungfu | 4524 | Apache-2.0 | 2017-11-15 | 2026-09-19 | 12 | 4105 | 選別 (記述なし: H2、H5、H6) |
+| kungfu-systems/kungfu | 4524 | Apache-2.0 | 2017-11-15 | 2026-09-19 | 12 | 4105 | 棄却 H9 |
 | get-bb/bb | 3949 | MIT | 2026-02-24 | 2026-09-26 | 25 | 2191 | 棄却 H7 (2026-09-28) |
 | golutra/golutra | 3846 | NOASSERTION | 2026-02-15 | 2026-09-24 | 0 | 0 | 棄却 H3 |
 | milind-soni/OpenMausBot | 3593 | Apache-2.0 | 2026-08-11 | 2026-09-27 | 25 | 2853 | 選別 (記述なし: H5) |
-| agent-of-empires/agent-of-empires | 3290 | MIT | 2026-01-09 | 2026-09-27 | 16 | 989 | 選別 (記述なし: H1) |
+| agent-of-empires/agent-of-empires | 3290 | MIT | 2026-01-09 | 2026-09-27 | 16 | 989 | 棄却 H11 |
 | ColeMurray/background-agents | 3291 | MIT | 2026-01-25 | 2026-09-27 | 0 | 969 | 棄却 H2 (Cloudflare Workers の基盤) |
 | AutoMaker-Org/automaker | 3221 | NOASSERTION | 2025-12-07 | 2026-05-22 | 0 | 0 | 棄却 H3 |
 | elie222/rakazo | 2986 | Apache-2.0 | 2026-08-13 | 2026-09-27 | 8 | 944 | 棄却 H1 |
@@ -65,34 +65,34 @@
 | coder/xum | 2038 | AGPL-3.0 | 2025-09-17 | 2026-09-27 | 10 | 863 | 棄却 H1 (2026-09-28) |
 | nimbalyst/nimbalyst | 1784 | MIT | 2025-10-30 | 2026-09-24 | 25 | 1274 | 棄却 H2 (2026-09-28) |
 | happier-dev/happier | 1737 | MIT | 2025-12-16 | 2026-09-27 | 25 | 2911 | 選別 (4 条件の記述あり) |
-| codeaholicguy/ai-devkit | 1636 | Apache-2.0 | 2025-10-14 | 2026-09-27 | 25 | 220 | 選別 (記述なし: H5) |
+| codeaholicguy/ai-devkit | 1636 | Apache-2.0 | 2025-10-14 | 2026-09-27 | 25 | 220 | 棄却 H11 |
 | rivet-dev/sandbox-agent | 1575 | Apache-2.0 | 2026-01-25 | 2026-06-19 | 0 | 0 | 棄却 H3 |
 | traycerai/traycer | 1528 | MIT | 2024-05-11 | 2026-09-27 | 25 | 1399 | 棄却 H2 |
 | agentconnect-md/agentconnect | 1436 | Apache-2.0 | 2026-07-24 | 2026-09-27 | 25 | 2267 | 棄却 H1、H7 (2026-09-28) |
 | preset-io/agor | 1413 | BUSL-1.1 | 2025-10-04 | 2026-09-27 | 0 | 693 | 棄却 H7 (2026-09-28) |
 | nrslib/takt | 1390 | MIT | 2026-01-25 | 2026-09-26 | 0 | 585 | 棄却 H1 (部品として再考) |
 | coollabsio/jean | 1296 | Apache-2.0 | 2026-01-23 | 2026-09-27 | 21 | 626 | 選別 (記述なし: H5) |
-| ChesterRa/cccc | 1254 | Apache-2.0 | 2025-08-15 | 2026-09-26 | 17 | 342 | 選別 (4 条件の記述あり) |
+| ChesterRa/cccc | 1254 | Apache-2.0 | 2025-08-15 | 2026-09-26 | 17 | 342 | 棄却 H9 |
 | Runfusion/Fusion | 1247 | MIT | 2026-04-13 | 2026-09-27 | 25 | 4221 | 棄却 H1 (2026-09-28) |
 | AltanS/collie | 1111 | MIT | 2026-06-28 | 2026-09-27 | 25 | 1761 | 選別 (記述なし: H1) |
 | banteg/takopi | 1051 | MIT | 2025-12-29 | 2026-05-25 | 0 | 0 | 棄却 H3 |
-| im4codes/imcodes | 971 | MIT | 2026-03-18 | 2026-09-27 | 25 | 790 | 選別 (記述なし: H1、H5) |
+| im4codes/imcodes | 971 | MIT | 2026-03-18 | 2026-09-27 | 25 | 790 | 棄却 H9 |
 | RizRiyz/luvus | 922 | Apache-2.0 | 2026-06-22 | 2026-09-27 | 25 | 492 | 選別 (4 条件の記述あり) |
 | milisp/codexia | 920 | MIT | 2025-08-13 | 2026-09-25 | 23 | 288 | 選別 (記述なし: H5) |
-| kdlbs/kandev | 849 | AGPL-3.0 | 2026-01-09 | 2026-09-27 | 25 | 2035 | 選別 (記述なし: H1) |
+| kdlbs/kandev | 849 | AGPL-3.0 | 2026-01-09 | 2026-09-27 | 25 | 2035 | 棄却 H9 |
 | thesongzhu/Friday | 838 | MIT | 2026-03-12 | 2026-07-20 | 0 | 313 | 棄却 H1 (BYOK) |
 | cyrusagents/cyrus | 830 | Apache-2.0 | 2025-04-19 | 2026-09-24 | 6 | 68 | 棄却 H7 (2026-09-28) |
 | openswarm-ai/openswarm | 820 | AGPL-3.0 | 2026-03-13 | 2026-09-23 | 25 | 1122 | 棄却 H1、H2 |
-| 23blocks-OS/ai-maestro | 799 | MIT | 2025-10-10 | 2026-09-25 | 25 | 158 | 選別 (記述なし: H1、H5、H6) |
+| 23blocks-OS/ai-maestro | 799 | MIT | 2025-10-10 | 2026-09-25 | 25 | 158 | 棄却 H11 |
 | openyak/openyak | 703 | Apache-2.0 | 2026-03-20 | 2026-09-05 | 3 | 69 | 棄却 H2 |
-| mvschwarz/openrig | 599 | Apache-2.0 | 2026-04-01 | 2026-09-27 | 25 | 1613 | 選別 (記述なし: H1、H2) |
-| Abilityai/trinity | 589 | Apache-2.0 | 2025-12-10 | 2026-09-27 | 8 | 244 | 選別 (記述なし: H1) |
+| mvschwarz/openrig | 599 | Apache-2.0 | 2026-04-01 | 2026-09-27 | 25 | 1613 | 棄却 H11 |
+| Abilityai/trinity | 589 | Apache-2.0 | 2025-12-10 | 2026-09-27 | 8 | 244 | 棄却 H9 |
 | Enderfga/claw-orchestrator | 583 | MIT | 2026-01-30 | 2026-09-26 | 25 | 191 | 選別 (記述なし: H1、H2) |
 | jaylfc/taOS | 552 | AGPL-3.0 | 2026-04-05 | 2026-09-27 | 25 | 2222 | 棄却 H1 |
-| BennyKok/omg.dev | 541 | MIT | 2026-06-17 | 2026-09-27 | 25 | 2973 | 選別 (記述なし: H1、H5) |
+| BennyKok/omg.dev | 541 | MIT | 2026-06-17 | 2026-09-27 | 25 | 2973 | 棄却 H11 |
 | aannoo/hcom | 521 | MIT | 2025-07-21 | 2026-09-26 | 4 | 116 | 棄却 H2 (部品として再考) |
 | proliferate-ai/proliferate | 507 | AGPL-3.0 | 2026-04-30 | 2026-09-27 | 25 | 1743 | 棄却 H7 (2026-09-28) |
-| mixpeek/amux | 505 | MIT + Commons Clause | 2026-02-18 | 2026-09-27 | 1 | 5264 | 選別 (記述なし: H1、H5) |
+| mixpeek/amux | 505 | MIT + Commons Clause | 2026-02-18 | 2026-09-27 | 1 | 5264 | 棄却 H9 |
 | greenfield-inc/Pane | 492 | AGPL-3.0 | 2026-02-27 | 2026-09-27 | 25 | 587 | 選別 (記述なし: H5、H6) |
 | razzant/claudexor | 488 | MIT | 2026-06-05 | 2026-09-26 | 25 | 1794 | 部品 |
 | formulahendry/acp-ui | 486 | MIT | 2026-01-31 | 2026-05-25 | 0 | 0 | 棄却 H3 |
@@ -102,45 +102,45 @@
 | vicoa-ai/vicoa | 362 | AGPL-3.0 | 2026-08-28 | 2026-09-27 | 15 | 159 | 棄却 H7 (2026-09-28) |
 | Charlie85270/Dorothy | 348 | MIT | 2026-01-24 | 2026-07-07 | 1 | 5 | 棄却 H2 (2026-09-28) |
 | Intelligent-Internet/zenith | 314 | Apache-2.0 | 2026-05-08 | 2026-09-06 | 0 | 13 | 部品 |
-| h0x91b/dev-3.0 | 299 | Apache-2.0 | 2026-02-18 | 2026-09-27 | 25 | 1076 | 選別 (記述なし: H1、H5) |
-| sahithvibudhi/vibe-tree | 267 | MIT | 2025-07-29 | 2026-07-25 | 1 | 72 | 選別 (記述なし: H5) |
+| h0x91b/dev-3.0 | 299 | Apache-2.0 | 2026-02-18 | 2026-09-27 | 25 | 1076 | 棄却 H11 |
+| sahithvibudhi/vibe-tree | 267 | MIT | 2025-07-29 | 2026-07-25 | 1 | 72 | 棄却 H9 |
 | open-mercato/cezar | 253 | MIT | 2026-05-19 | 2026-09-27 | 9 | 1071 | 選別 (4 条件の記述あり) |
 | Ryder-Sun/Meldwork | 231 | 表記に矛盾 | 2026-07-29 | 2026-09-17 | 6 | 212 | 棄却 H2 |
-| receptron/mulmoterminal | 225 | MIT | 2026-06-14 | 2026-09-27 | 25 | 5387 | 選別 (4 条件の記述あり) |
-| junhoyeo/contrabass | 222 | Apache-2.0 | 2026-03-05 | 2026-07-17 | 1 | 51 | 選別 (記述なし: H1) |
+| receptron/mulmoterminal | 225 | MIT | 2026-06-14 | 2026-09-27 | 25 | 5387 | 棄却 H11 |
+| junhoyeo/contrabass | 222 | Apache-2.0 | 2026-03-05 | 2026-07-17 | 1 | 51 | 棄却 H9 |
 | swarajbachu/zuse | 209 | AGPL-3.0 | 2026-05-02 | 2026-09-26 | 25 | 432 | 棄却 H2 (2026-09-28) |
-| Ivy-Interactive/Ivy-Tendril | 198 | FSL-1.1-ALv2 | 2026-04-15 | 2026-09-15 | 25 | 2334 | 選別 (記述なし: H1、H5、H6) |
-| sortie-ai/sortie | 192 | Apache-2.0 | 2026-03-17 | 2026-09-26 | 14 | 1389 | 選別 (記述なし: H1、H5、H6) |
-| OtoDock/oto-dock | 187 | FSL-1.1-Apache-2.0 | 2026-07-09 | 2026-09-15 | 13 | 27 | 選別 (記述なし: H5) |
-| amirfish1/claude-command-center | 173 | 非商用 | 2026-04-13 | 2026-09-27 | 25 | 3386 | 選別 (4 条件の記述あり) |
+| Ivy-Interactive/Ivy-Tendril | 198 | FSL-1.1-ALv2 | 2026-04-15 | 2026-09-15 | 25 | 2334 | 棄却 H9 |
+| sortie-ai/sortie | 192 | Apache-2.0 | 2026-03-17 | 2026-09-26 | 14 | 1389 | 棄却 H9、H10 |
+| OtoDock/oto-dock | 187 | FSL-1.1-Apache-2.0 | 2026-07-09 | 2026-09-15 | 13 | 27 | 棄却 H10 |
+| amirfish1/claude-command-center | 173 | 非商用 | 2026-04-13 | 2026-09-27 | 25 | 3386 | 棄却 H10 |
 | nxtg-ai/forge-orchestrator | 161 | FSL-1.1-ALv2 | 2026-02-09 | 2026-09-26 | 3 | 41 | 棄却 H1 |
 | rustykuntz/clideck | 159 | MIT | 2026-03-03 | 2026-09-22 | 14 | 51 | 棄却 H2 (2026-09-28) |
 | nutthouse/tutti | 128 | MIT | 2026-03-12 | 2026-07-28 | 0 | 1 | 棄却 H8 |
-| ldbumble/taskuary | 124 | MIT | 2026-08-17 | 2026-09-26 | 25 | 1652 | 選別 (記述なし: H1) |
-| tlbx-ai/tlbx | 112 | AGPL-3.0 | 2025-12-29 | 2026-09-27 | 25 | 510 | 選別 (記述なし: H1、H5) |
+| ldbumble/taskuary | 124 | MIT | 2026-08-17 | 2026-09-26 | 25 | 1652 | 棄却 H10 |
+| tlbx-ai/tlbx | 112 | AGPL-3.0 | 2025-12-29 | 2026-09-27 | 25 | 510 | 棄却 H9、H10 |
 | monorepo-labs/dray | 101 | Apache-2.0 | 2026-07-25 | 2026-09-26 | 25 | 598 | 棄却 H2 (2026-09-28) |
-| cfal/garcon | 88 | GPL-3.0 | 2026-02-23 | 2026-09-27 | 2 | 615 | 選別 (4 条件の記述あり) |
-| alamops/agetor | 79 | MIT | 2026-05-16 | 2026-09-24 | 13 | 182 | 選別 (記述なし: H1、H2) |
+| cfal/garcon | 88 | GPL-3.0 | 2026-02-23 | 2026-09-27 | 2 | 615 | 棄却 H9、H10 |
+| alamops/agetor | 79 | MIT | 2026-05-16 | 2026-09-24 | 13 | 182 | 棄却 H10 |
 | CompanyHelm/companyhelm | 76 | MIT | 2026-03-12 | 2026-08-28 | 0 | 2 | 棄却 H1 (2026-09-28) |
 | langgenius/mosoo-agent-driver | 74 | Apache-2.0 | 2026-06-05 | 2026-09-23 | 0 | 58 | 棄却 H1 |
 | BrokkAi/mjolnir | 64 | GPL-3.0 | 2026-05-18 | 2026-09-27 | 25 | 3314 | 棄却 H7 (2026-09-28) |
 | MarlBurroW/hivekeep | 63 | MIT | 2026-06-07 | 2026-09-26 | 1 | 122 | 棄却 H1 |
-| 5dive-ai/5dive | 61 | MIT | 2026-05-15 | 2026-09-27 | 25 | 1869 | 選別 (4 条件の記述あり) |
+| 5dive-ai/5dive | 61 | MIT | 2026-05-15 | 2026-09-27 | 25 | 1869 | 棄却 H10 |
 | tacyan/zaivern-code | 52 | Apache-2.0 | 2026-07-20 | 2026-09-25 | 25 | 844 | 棄却 H2 (2026-09-28) |
 | intentic/intentic | 46 | MIT | 2026-08-04 | 2026-09-27 | 25 | 3697 | 棄却 H7 (2026-09-28) |
 | crewplaneai/crewplane | 40 | Apache-2.0 | 2026-06-24 | 2026-09-25 | 18 | 94 | 部品 |
 | victor36max/shire | 40 | MIT | 2026-03-17 | 2026-05-03 | 0 | 0 | 棄却 H3 |
-| ai4kanban/ai4kanban | 38 | Apache-2.0 (web/ は再配布不可) | 2026-07-10 | 2026-09-27 | 16 | 771 | 選別 (記述なし: H2) |
+| ai4kanban/ai4kanban | 38 | Apache-2.0 (web/ は再配布不可) | 2026-07-10 | 2026-09-27 | 16 | 771 | 棄却 H9、H10 |
 | ramarlina/agx | 29 | なし | 2026-02-02 | 2026-05-06 | 0 | 0 | 棄却 H3、H4 |
-| madeinorbit/podium | 23 | Apache-2.0 | 2026-06-02 | 2026-09-26 | 3 | 9402 | 選別 (記述なし: H1) |
+| madeinorbit/podium | 23 | Apache-2.0 | 2026-06-02 | 2026-09-26 | 3 | 9402 | 棄却 H9、H10 |
 | ShreyPaharia/octomux | 22 | MIT | 2026-03-09 | 2026-09-18 | 6 | 493 | 棄却 H1 (Codex なし) |
 | moshthepitt/lionclaw | 19 | MIT | 2026-03-12 | 2026-09-01 | 0 | 79 | 棄却 H1 (Claude Code なし) |
-| agent-squid/squid | 18 | MIT | 2026-05-21 | 2026-09-26 | 6 | 665 | 選別 (4 条件の記述あり) |
-| its-ahoh/codey | 15 | MIT | 2026-02-20 | 2026-09-27 | 25 | 266 | 選別 (記述なし: H5) |
-| clawnify/ateam | 13 | GPL-3.0 と商用 | 2026-06-03 | 2026-09-26 | 25 | 214 | 選別 (記述なし: H5) |
-| cyclops-team/cyclops | 12 | MIT | 2026-08-01 | 2026-09-08 | 2 | 952 | 選別 (記述なし: H2) |
+| agent-squid/squid | 18 | MIT | 2026-05-21 | 2026-09-26 | 6 | 665 | 棄却 H9、H10 |
+| its-ahoh/codey | 15 | MIT | 2026-02-20 | 2026-09-27 | 25 | 266 | 棄却 H10 |
+| clawnify/ateam | 13 | GPL-3.0 と商用 | 2026-06-03 | 2026-09-26 | 25 | 214 | 棄却 H10 |
+| cyclops-team/cyclops | 12 | MIT | 2026-08-01 | 2026-09-08 | 2 | 952 | 棄却 H9、H10 |
 | evoelsewhere/evoflux | 10 | Apache-2.0 | 2026-08-03 | 2026-09-26 | 16 | 1349 | 棄却 H2 (2026-09-28) |
-| pragma-sh/pragma | 10 | AGPL-3.0 | 2026-06-11 | 2026-09-27 | 25 | 967 | 選別 (記述なし: H1、H5) |
+| pragma-sh/pragma | 10 | AGPL-3.0 | 2026-06-11 | 2026-09-27 | 25 | 967 | 棄却 H9、H10 |
 | AndyMik90/Aperant | 14572 | AGPL-3.0 | 2025-12-04 | 2026-06-14 | 0 | 0 | 棄却 H1、H2、H3 |
 | humanlayer/humanlayer | 11615 | NOASSERTION | 2024-08-05 | 2026-06-19 | 0 | 0 | 棄却 H3 (deprecated の告知) |
 | collabs-inc/collab-public | 2947 | FSL-1.1-ALv2 | 2026-03-15 | 2026-08-08 | 0 | 0 | 棄却 H2、H3 |
@@ -148,7 +148,7 @@
 | supabitapp/supacode | 2389 | FSL-1.1-ALv2 | 2026-01-21 | 2026-09-05 | 5 | 158 | 棄却 H2 (macOS 26.0+) |
 | Emanuele-web04/synara | 1896 | MIT | 2026-03-27 | 2026-09-26 | 25 | 1875 | 棄却 H7 (2026-09-28) |
 | hardbeat920/monocode | 1563 | MIT | 2026-08-20 | 2026-09-27 | 25 | 657 | 棄却 H2 |
-| egoist/waku | 1538 | GPL-3.0 | 2026-07-31 | 2026-09-23 | 14 | 481 | 選別 (4 条件の記述あり) |
+| egoist/waku | 1538 | GPL-3.0 | 2026-07-31 | 2026-09-23 | 14 | 481 | 棄却 H9 |
 | johannesjo/parallel-code | 1023 | MIT | 2026-02-18 | 2026-09-26 | 11 | 435 | 棄却 H2 |
 | block/berd | 946 | Apache-2.0 | 2026-08-11 | 2026-09-26 | 9 | 215 | 棄却 H1 (Goose のみ) |
 | maddada/Ghostex | 843 | MIT | 2026-04-27 | 2026-09-27 | 25 | 3332 | 選別 (記述なし: H1、H5) |
@@ -168,7 +168,7 @@
 | izll/agent-session-manager-desktop | 21 | MIT | 2026-06-22 | 2026-09-26 | 25 | 545 | 棄却 H2 (ヘッドレス不可と明記) |
 | mrmans0n/alas | 18 | MIT | 2026-04-29 | 2026-09-27 | 25 | 987 | 棄却 H2 (macOS 15+) |
 | amplifthq/opentag | 1378 | MIT | 2026-06-24 | 2026-09-14 | 8 | 482 | 棄却 H7 (2026-09-28) |
-| aaif-goose/goose | 54696 | Apache-2.0 | - | 2026-09-23 | 14 | - | 選別 (記述なし: H6) |
+| aaif-goose/goose | 54696 | Apache-2.0 | - | 2026-09-23 | 14 | - | 棄却 H9 |
 
 母集団に無く、前段で読んだもの: Vibe Kanban (棄却 H3、会社の解散)、Crystal (棄却 H3、2026-02 に終了)、Terragon (棄却 H3)、Conductor.build (棄却 H2、非公開ソースで Mac のみ)、Zed (棄却 H2、デスクトップのみ)、n8n と LangGraph Studio と Open WebUI と Mastra Studio (棄却 H1)。
 

@@ -112,7 +112,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 棄却は「机上の棄却」と「評価による棄却」に分ける。
 
-- 机上の棄却は、次のどれかに一次資料で反することが分かった場合に限る。H1: Claude Code と Codex の両方を定額ログインで動かせない (API キーが必須)。H2: GUI の無い Linux に常駐できず、別の端末から操作できない。H3: 直近 3 か月にコミットもリリースも無い、または保守終了の告知がある。H4: ライセンスが個人の自前運用を許さない。H5: 動いている実行を画面から途中で止められない (R7)。H6: 実行中の途中の出力が見えず、依頼 1 つに最終結果だけが返る (R13)。 H7: Claude を、Claude Agent SDK か、それを使った ACP の adapter を通して、オーナーの定額ログインで動かす (Anthropic の規約が第三者の製品に認めていない形。findings.md の 6 節)。手を加えていない Claude Code の実行ファイルを動かす経路を設定で選べるなら、その経路で評価し、棄却しない (2026-09-28 オーナー承認)。H8: 既定のブランチの最終コミットが 2 週間より前 (2026-10-01 オーナー承認。6.1 の未試用の 12 本に当てた)。
+- 机上の棄却は、次のどれかに一次資料で反することが分かった場合に限る。H1: Claude Code と Codex の両方を定額ログインで動かせない (API キーが必須)。H2: GUI の無い Linux に常駐できず、別の端末から操作できない。H3: 直近 3 か月にコミットもリリースも無い、または保守終了の告知がある。H4: ライセンスが個人の自前運用を許さない。H5: 動いている実行を画面から途中で止められない (R7)。H6: 実行中の途中の出力が見えず、依頼 1 つに最終結果だけが返る (R13)。 H7: Claude を、Claude Agent SDK か、それを使った ACP の adapter を通して、オーナーの定額ログインで動かす (Anthropic の規約が第三者の製品に認めていない形。findings.md の 6 節)。手を加えていない Claude Code の実行ファイルを動かす経路を設定で選べるなら、その経路で評価し、棄却しない (2026-09-28 オーナー承認)。H8: 既定のブランチの最終コミットが 2 週間より前 (2026-10-01 オーナー承認。6.1 の未試用の 12 本に当てた)。H9: GitHub で Latest のリリースが 2026-09-28 12:00 (日本時間) より前。H10: 星が 200 以下。H11: tmux に依存する。tmux が必須か、エージェントを動かす既定の方法が tmux か、tmux を使わない方法が Agent SDK だけのもの。tmux が任意の機能で既定では使わないものは依存に数えない (H9〜H11 は 2026-10-01 オーナー承認。試用を済ませた製品と 6.2 にも当てた)。
 - 「反する」は、制約を明記した記述を引用できる場合だけとする。記述が見つからないことは反する根拠にしない。
 - それ以外の理由 (画面が薄い、委譲が無い、若い、H1〜H6 が一次資料から分からない) は机上で棄却せず、選別に回す。
 - 評価による棄却は、S1〜S8 の記録と 4 節の判定表を根拠にする。
@@ -149,41 +149,31 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 13 本、選別 (記述なし) 40 本、棄却 98 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 6 本、選別 (記述なし) 9 本、棄却 136 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
-### 6.1 選別 (4 条件の記述あり、13 本)
+### 6.1 選別 (4 条件の記述あり、6 本)
 
-2026-09-28 に 20 本のうち 6 本を H7 で落とした (6.3)。happier、Orca、OpenClaw は Agent SDK か ACP の経路も持つが、Claude Code をそのまま動かす経路で試す。
+2026-09-28 に 20 本のうち 6 本を H7 で落とし、2026-10-01 に H8〜H11 で 8 本を落とした (6.3)。happier、Orca、OpenClaw は Agent SDK か ACP の経路も持つが、Claude Code をそのまま動かす経路で試す。
 
 | 製品 | 星 / ライセンス | 要点 |
 |---|---|---|
 | [happier](https://github.com/happier-dev/happier) | 1.7k / MIT | ベンダーの CLI をそのまま動かし、全端末へ映す。iOS / Android / Web。別のエージェントでレビュー・計画・委譲を起動 |
 | [multica](https://github.com/multica-ai/multica) | 51k / Apache に商用ホスティング制限を足した独自条項 | デーモン、Docker Compose。Web / デスクトップ / iPhone。Squads、SKILL.md、ボード。実行記録から停止 |
-| [5dive](https://github.com/5dive-ai/5dive) | 61 / MIT | 公式 CLI を systemd で常駐。組織図・待ち行列・ゲート、5dive.yaml。`task cancel` で停止 |
 | [Orca](https://github.com/stablyai/orca) | 79k / MIT | `orca serve` でヘッドレス、ブラウザ / Mac app / iOS / Android。埋め込み端末。Claude と Codex の worker への委譲と伝言、判断待ち (Experimental)。YC |
 | [OpenClaw](https://github.com/openclaw/openclaw) | 390k / MIT | Claude Code を CLI のバックエンドで、Codex は定額で。Control UI。第一の位置付けは個人アシスタント |
 | [cezar](https://github.com/open-mercato/cezar) | 253 / MIT | "No API key needed"。VPS に常駐。途中の文・ツール呼び出し・費用を生で。YAML で段ごとに runner |
-| [garcon](https://github.com/cfal/garcon) | 88 / GPL | 自前の Web とスマホ。中断と停止。子チャットへ委譲 |
-| [squid](https://github.com/agent-squid/squid) | 18 / MIT | 常駐、Tailscale。/stop。途中の出力とツールの動き |
-| [mulmoterminal](https://github.com/receptron/mulmoterminal) | 225 / MIT | ブラウザの端末グリッド、実 PTY、スマホ |
-| [waku](https://github.com/egoist/waku) | 1.5k / GPL | waku-daemon と Web。Escape で停止。stream-json |
-| [cccc](https://github.com/ChesterRa/cccc) | 1.3k / Apache | デーモンと Web、端末のタイル、Stop Group、@all / @peers の宛先指定 |
-| [claude-command-center](https://github.com/amirfish1/claude-command-center) | 173 / 現行は非商用 | Linux のヘッドレスとブラウザ。Pause で中断 |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
 
-### 6.2 選別 (記述なし、40 本)
+### 6.2 選別 (記述なし、9 本)
 
-括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
+括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とし、2026-10-01 に H9〜H11 で 31 本を落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
 
-- 記述なし H1 (11 本): [trinity](https://github.com/Abilityai/trinity)、[agent-of-empires](https://github.com/agent-of-empires/agent-of-empires)、[gastown](https://github.com/gastownhall/gastown)、[herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[contrabass](https://github.com/junhoyeo/contrabass)、[kandev](https://github.com/kdlbs/kandev)、[taskuary](https://github.com/ldbumble/taskuary)、[podium](https://github.com/madeinorbit/podium)、[hermes-agent](https://github.com/NousResearch/hermes-agent)、[paperclip](https://github.com/paperclipai/paperclip)、[ruflo](https://github.com/ruvnet/ruflo)。
-- 記述なし H5 (9 本): [ateam](https://github.com/clawnify/ateam)、[ai-devkit](https://github.com/codeaholicguy/ai-devkit)、[jean](https://github.com/coollabsio/jean)、[codey](https://github.com/its-ahoh/codey)、[OpenMausBot](https://github.com/milind-soni/OpenMausBot)、[codexia](https://github.com/milisp/codexia)、[omnigent](https://github.com/omnigent-ai/omnigent)、[oto-dock](https://github.com/OtoDock/oto-dock)、[vibe-tree](https://github.com/sahithvibudhi/vibe-tree)。
-- 記述なし H1、H5 (7 本): [omg.dev](https://github.com/BennyKok/omg.dev)、[dev-3.0](https://github.com/h0x91b/dev-3.0)、[imcodes](https://github.com/im4codes/imcodes)、[Ghostex](https://github.com/maddada/Ghostex)、[amux](https://github.com/mixpeek/amux)、[pragma](https://github.com/pragma-sh/pragma)、[tlbx](https://github.com/tlbx-ai/tlbx)。
+- 記述なし H1 (2 本): [herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[ruflo](https://github.com/ruvnet/ruflo)。
+- 記述なし H5 (3 本): [jean](https://github.com/coollabsio/jean)、[OpenMausBot](https://github.com/milind-soni/OpenMausBot)、[codexia](https://github.com/milisp/codexia)。
+- 記述なし H1、H5 (1 本): [Ghostex](https://github.com/maddada/Ghostex)。
 - 記述なし H5、H6 (1 本): [Pane](https://github.com/greenfield-inc/Pane)。
-- 記述なし H1、H5、H6 (4 本): [ai-maestro](https://github.com/23blocks-OS/ai-maestro)、[mission-control](https://github.com/builderz-labs/mission-control)、[Ivy-Tendril](https://github.com/Ivy-Interactive/Ivy-Tendril)、[sortie](https://github.com/sortie-ai/sortie)。
-- 記述なし H1、H2 (3 本): [agetor](https://github.com/alamops/agetor)、[claw-orchestrator](https://github.com/Enderfga/claw-orchestrator)、[openrig](https://github.com/mvschwarz/openrig)。
-- 記述なし H2 (3 本): [ai4kanban](https://github.com/ai4kanban/ai4kanban)、[cyclops](https://github.com/cyclops-team/cyclops)、[superset](https://github.com/superset-sh/superset)。
-- 記述なし H6 (1 本): [goose](https://github.com/aaif-goose/goose)。
-- 記述なし H2、H5、H6 (1 本): [kungfu](https://github.com/kungfu-systems/kungfu)。
+- 記述なし H1、H2 (1 本): [claw-orchestrator](https://github.com/Enderfga/claw-orchestrator)。
+- 記述なし H2 (1 本): [superset](https://github.com/superset-sh/superset)。
 
 ### 6.3 棄却 (反した条件と根拠は findings.md の 5.3、5.4、5.5)
 
@@ -193,6 +183,11 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - H7 2026-09-28 (Claude を Agent SDK か ACP の adapter でしか動かさない。ソースの行は findings.md の 6 節): paseo、t3code、vicoa、intentic、synara、Archon、agor、bb、cyrus、qm、opensession (いずれも Agent SDK)、mjolnir、OpenHands、proliferate、termany、Octop、opentag (いずれも ACP の adapter。opentag は旧版が claude を直接起動していたので、設定でその経路が戻れば再考する)。
 - H1 2026-09-28 (ソースで、Claude Code を動かさないか API キーでしか動かさないと分かったもの): xum と companyhelm (Anthropic の API を API キーで直接呼ぶ)、agentconnect (ACP の adapter に API キーを渡す)、Fusion (Claude の実行器が、Claude Code 2.1.205 に無い `claude agent stdio` を前提にしている)。
 - H8 2026-10-01 (既定のブランチの最終コミットが 2 週間より前): tutti (最終コミット 2026-07-20)。
+- H9〜H11 2026-10-01 (H9: Latest のリリースが 2026-09-28 12:00 より前。H10: 星が 200 以下。H11: tmux に依存する。括弧の日付は Latest のリリースの日本時間、数は 2026-10-01 の星):
+  - H9: trinity (09-18)、mission-control (07-25)、gastown (06-07)、imcodes (09-17。Latest は SDK の配布物のリリース)、contrabass (07-16)、kandev (09-26)、kungfu (09-03)、amux (07-14)、paperclip (09-22)、vibe-tree (07-24)、Ivy-Tendril (09-14)、hermes-agent (09-24)、goose (09-23)、waku (09-11)、cccc (09-25。試用は通っていた)。
+  - H9 と H10: ai4kanban (09-28 00:08、40)、cyclops (09-05、12)、podium (08-22、28)、pragma (09-27、13)、sortie (09-28 03:49、194)、tlbx (09-25、113)、garcon (07-12、89)、squid (08-29、18)。
+  - H10: agetor (81)、ateam (13)、codey (15)、taskuary (132)、oto-dock (187)、5dive (63)、claude-command-center (175)。
+  - H11: openrig と agent-of-empires (tmux が必須)、mulmoterminal (tmux があれば自動で使う)、ai-devkit と dev-3.0 (既定の実行が tmux)、ai-maestro と omnigent (tmux を使わない方法は Agent SDK だけ)、omg.dev (Claude の今の経路は Agent SDK で、Claude Code をそのまま動かす経路は廃止予定で tmux を使う)。根拠のファイルと行は findings.md の 7 節。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
@@ -201,7 +196,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 ### 6.5 決まっていないこと
 
-- Claude を動かす形は、5.3 の H7 で判定した。選別に残した 54 本はすべて、Claude Code をそのまま動かす経路を持つ。Agent SDK か ACP の経路も持つ製品 (happier、Orca、OpenClaw、omnigent、kandev、imcodes、agent-of-empires、ai-maestro、tlbx、superset、goose、paperclip、omg.dev、codexia) は、そのままの経路で試し、どの経路が使われたかを評価記録に書く。
+- Claude を動かす形は、5.3 の H7 で判定した。選別に残した製品はすべて、Claude Code をそのまま動かす経路を持つ。Agent SDK か ACP の経路も持つ製品 (happier、Orca、OpenClaw、superset、codexia) は、そのままの経路で試し、どの経路が使われたかを評価記録に書く。
 - ミニ PC のヘッドレス環境で、個人契約のログイン (複製した認証ファイル) がそれぞれの製品でそのまま通るか。選別で確かめる。
 
 ## 7. 成果物
@@ -229,3 +224,4 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 複製した Claude の設定に、初回の設定が済んだ印 (`hasCompletedOnboarding`) を足した。オーナーが自分で実行し、元のファイルは `.claude.json.bak-20260928` として残した。
 - Orca の試用の間、Orca が自分の hook、状態表示の設定、作業場所を信頼済みにする印を、複製した Claude と Codex の設定へ書き足してよい。試用の終わりに Orca のコマンドで hook を外す。
 - 6.1 の未試用の 12 本のうち、最終メンテナンスが 2 週間以上前のものを外す。tutti を外した (既定のブランチの最終コミットが 2026-07-20)。
+- 最終リリースが 2026-09-28 12:00 より前の製品、星が 200 以下の製品、tmux に依存する製品を、すべて外す。試用を済ませた製品と、後で試す 40 本にも当てる。「最終リリースが09/28 12:00以前の製品、スター数が200以下の製品、tmuxに依存する製品を全て切り捨てろ」。
