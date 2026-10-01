@@ -1,0 +1,44 @@
+2026-10-01T07:09:17.423167+00:00
+T2 attempt 1: Claude created its own git worktree within scratch2 and committed there. Root worktree stayed at the initial commit.
+cwd=/home/user/v03/work/cccc/scratch2
+$ git status --short
+?? .claude/
+exit=0
+cwd=/home/user/v03/work/cccc/scratch2
+$ git worktree list
+/home/user/v03/work/cccc/scratch2                                               ac82981 [master]
+/home/user/v03/work/cccc/scratch2/.claude/worktrees/immutable-swinging-crystal  92c3e0d [worktree-immutable-swinging-crystal] locked
+exit=0
+cwd=/home/user/v03/work/cccc/scratch2
+$ git diff -- README.md hello.py
+exit=0
+cwd=/home/user/v03/work/cccc/scratch2
+$ git diff ac82981 92c3e0d -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..ed125c5 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python -c "from hello import greet; print(greet('world'))"` で挨拶を表示できます。
+diff --git a/hello.py b/hello.py
+index 11b15b1..8e72c00 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    return f"Hello, {name}!"
++
++
+ print("hello")
+exit=0
+cwd=/home/user/v03/work/cccc/scratch2/.claude/worktrees/immutable-swinging-crystal
+$ python3 -c from hello import greet; print(greet("太郎")); assert greet("太郎") == "Hello, 太郎!"
+hello
+Hello, 太郎!
+exit=0
+cwd=/home/user/v03/work/cccc/scratch2/.claude/worktrees/immutable-swinging-crystal
+$ python3 hello.py
+hello
+exit=0

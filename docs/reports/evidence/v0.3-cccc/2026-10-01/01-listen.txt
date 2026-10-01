@@ -1,0 +1,32 @@
+2026-10-01T07:05:41.622446+00:00
+$ systemctl --user start v03-cccc.service
+exit=0
+$ systemctl --user show v03-cccc.service -p ActiveState -p SubState -p MainPID
+MainPID=123908
+ActiveState=active
+SubState=running
+exit=0
+$ ss -ltnp
+
+exit=0
+$ curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:5109/ui/
+000
+curl: (7) Failed to connect to 127.0.0.1 port 5109 after 0 ms: Couldn't connect to server
+exit=7
+
+2026-10-01T07:06:32.040745+00:00
+First curl was before listener ready; retry once after startup.
+$ ss -ltnp
+LISTEN 0      128        127.0.0.1:5109       0.0.0.0:*    users:(("cccc",pid=123908,fd=12))
+exit=0
+$ curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:5109/ui/
+200
+exit=0
+2026-10-01T07:16:35.896+00:00 Trials finished. Stop Group, then stop the existing user unit; retain all installation and worktrees.
+2026-10-01T07:16:36.487+00:00 {"ok": true, "result": {"group": {"active_scope_key": "s_4580b851255e", "actors": [{"avatar_asset_path": "", "capability_autoload": [], "capability_hidden": [], "command": [], "created_at": "2026-10-01T07:07:24.332676Z", "default_scope_key": "s_4580b851255e", "enabled": true, "env": {}, "generation": "5a075182-3e69-4230-a73a-d84de41b8320", "id": "codex", "internal_kind": null, "pid": null, "profile_id": "", "profile_owner": "", "profile_revision_applied": 0, "profile_scope": "global", "role": "foreman", "runner": "pty", "running": false, "runtime": "codex", "runtime_state_source": "managed_session", "submit": "enter", "title": "", "updated_at": "2026-10-01T07:11:51.746169Z", "v": 1}, {"avatar_asset_path": "", "capability_autoload": [], "capability_hidden": [], "command": [], "created_at": "2026-10-01T07:07:24.361623Z", "default_scope_key": "s_4580b851255e", "enabled": true, "env": {}, "generation": "d07240c3-9052-4e71-9a0c-d0f6bcf34bd8", "id": "claude", "internal_kind": null, "pid": null, "profile_id": "", "profile_owner": "", "profile_revision_applied": 0, "profile_scope": "global", "role": "peer", "runner": "pty", "running": false, "runtime": "claude", "runtime_state_source": "managed_session", "submit": "enter", "title": "", "updated_at": "2026-10-01T07:14:36.456317Z", "v": 1}], "automation": {}, "created_at": "2026-10-01T07:05:41.662150Z", "desired_running": false, "generation": "940dc69c-6bfe-4924-a9e3-c6f9b7cf7f64", "group_id": "g_e45d5dc3155f", "running": false, "runtime_status": {"has_running_foreman": false, "lifecycle_state": "stopped", "running_actor_count": 0, "runtime_running": false}, "scopes": [{"git_remote": "", "label": "scratch2", "scope_key": "s_4580b851255e", "url": "/home/user/v03/work/cccc/scratch2"}], "state": "stopped", "title": "cccc scratch2 2026-10-01", "topic": "", "updated_at": "2026-10-01T07:14:36.566851Z", "v": 1, "web_model_browser_targets": {}}, "running": false, "runtimes": []}}
+2026-10-01T07:16:36.488+00:00 {"actors_after_group_stop": [{"id": "codex", "running": false, "pid": null, "effective_working_state": "stopped"}, {"id": "claude", "running": false, "pid": null, "effective_working_state": "stopped"}]}
+2026-10-01T07:16:36.493+00:00 {"unit_pids_before_stop": [123908, 125793, 126865, 126879]}
+2026-10-01T07:16:41.532+00:00 {"command": "systemctl --user stop v03-cccc.service", "exit": 0, "output": "", "seconds": 5.038478}
+2026-10-01T07:16:41.537+00:00 {"command": ["systemctl", "--user", "show", "v03-cccc.service", "-p", "ActiveState", "-p", "SubState", "-p", "MainPID", "-p", "Result"], "exit": 0, "output": "MainPID=0\nResult=success\nActiveState=inactive\nSubState=dead\n"}
+2026-10-01T07:16:41.543+00:00 {"command": ["systemctl", "--user", "status", "v03-cccc.service", "--no-pager"], "exit": 3, "output": "○ v03-cccc.service - PDA v0.3 CCCC trial\n     Loaded: loaded (/home/user/.config/systemd/user/v03-cccc.service; enabled; preset: enabled)\n     Active: inactive (dead) since Thu 2026-10-01 16:16:41 JST; 11ms ago\n   Duration: 10min 54.934s\n    Process: 123908 ExecStart=/home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109 (code=exited, status=0/SUCCESS)\n   Main PID: 123908 (code=exited, status=0/SUCCESS)\n        CPU: 1min 12.349s\n\nOct 01 16:05:41 agent-node systemd[1274]: Started v03-cccc.service - PDA v0.3 CCCC trial.\nOct 01 16:05:41 agent-node cccc[123908]: [cccc] Daemon: started by this process (stops when this process exits)\nOct 01 16:05:41 agent-node cccc[123908]: [cccc] Implementation: rust\nOct 01 16:05:41 agent-node cccc[123908]: [cccc] Starting web server...\nOct 01 16:05:41 agent-node cccc[123908]: [cccc]   Local:   http://127.0.0.1:5109\nOct 01 16:16:36 agent-node cccc[123908]: Stopping CCCC... (press Ctrl-C again to force exit)\nOct 01 16:16:36 agent-node systemd[1274]: Stopping v03-cccc.service - PDA v0.3 CCCC trial...\nOct 01 16:16:41 agent-node systemd[1274]: Stopped v03-cccc.service - PDA v0.3 CCCC trial.\nOct 01 16:16:41 agent-node systemd[1274]: v03-cccc.service: Consumed 1min 12.349s CPU time, 998.8M memory peak, 0B memory swap peak.\n"}
+2026-10-01T07:16:41.554+00:00 {"ss_5109_after_stop": [], "unit_pids_still_existing": []}

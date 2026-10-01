@@ -1,0 +1,12 @@
+2026-10-01T07:07:56.789+00:00 {"rss_total_kib": 1067120, "rss_total_mib": 1042.11}
+2026-10-01T07:07:56.789+00:00 Observed actor working after task send.
+$ ps -p <unit cgroup PIDs> -o pid,ppid,rss,etime,args
+    PID    PPID   RSS     ELAPSED COMMAND
+ 123908    1274 49844       02:15 /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+ 124609    1274 159540      00:04 /home/user/.local/share/claude/versions/2.1.274 daemon run --origin transient --spawned-by {"label":"claude --bg","cwd":"/home/user/v03/work/cccc/scratch2","pid":124601}
+ 124621  124609 105684      00:04 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-1000/87894778/spare/3bdb6a09.pty.sock 200 50 -- /home/user/.local/share/claude/versions/2.1.274 --bg-spare /tmp/cc-daemon-1000/87894778/spare/3bdb6a09.claim.sock
+ 124622  124609 106784      00:04 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-1000/87894778/pty/2ad551d0.sock 200 50 -- /home/user/.local/share/claude/versions/2.1.274 --session-id 2ad551d0-6fd0-4ca7-a120-7c6ce47a2b1f --settings /home/user/v03/cccc/state/daemon/claude-managed/cc34a8cbfd01761367664f05.json --mcp-config {"mcpServers":{"cccc":{"args":["mcp"],"command":"/home/user/v03/cccc/bin/cccc","env":{"CCCC_ACTOR_ID":"claude","CCCC_GROUP_ID":"g_e45d5dc3155f","CCCC_HOME":"/home/user/v03/cccc/state"}}}} --dangerously-skip-permissions --name cccc-actor-9733d189
+ 124633  124621 155320      00:04 claude bg-spare --bg-spare /tmp/cc-daemon-1000/87894778/spare/3bdb6a09.claim.sock
+ 124634  124622 317908      00:04 /home/user/.local/share/claude/versions/2.1.274 --session-id 2ad551d0-6fd0-4ca7-a120-7c6ce47a2b1f --settings /home/user/v03/cccc/state/daemon/claude-managed/cc34a8cbfd01761367664f05.json --mcp-config {"mcpServers":{"cccc":{"args":["mcp"],"command":"/home/user/v03/cccc/bin/cccc","env":{"CCCC_ACTOR_ID":"claude","CCCC_GROUP_ID":"g_e45d5dc3155f","CCCC_HOME":"/home/user/v03/cccc/state"}}}} --dangerously-skip-permissions --name cccc-actor-9733d189
+ 124690  123908 150548      00:04 /home/user/.local/bin/claude attach 2ad551d0
+ 124693  124634 21492       00:04 /home/user/v03/cccc/bin/cccc mcp
