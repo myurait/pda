@@ -53,7 +53,7 @@
 | kungfu-systems/kungfu | 4524 | Apache-2.0 | 2017-11-15 | 2026-09-19 | 12 | 4105 | 棄却 H9 |
 | get-bb/bb | 3949 | MIT | 2026-02-24 | 2026-09-26 | 25 | 2191 | 棄却 H7 (2026-09-28) |
 | golutra/golutra | 3846 | NOASSERTION | 2026-02-15 | 2026-09-24 | 0 | 0 | 棄却 H3 |
-| milind-soni/OpenMausBot | 3593 | Apache-2.0 | 2026-08-11 | 2026-09-27 | 25 | 2853 | 選別 (記述なし: H5) |
+| milind-soni/OpenMausBot | 3593 | Apache-2.0 | 2026-08-11 | 2026-09-27 | 25 | 2853 | 棄却 (オーナーの判断) |
 | agent-of-empires/agent-of-empires | 3290 | MIT | 2026-01-09 | 2026-09-27 | 16 | 989 | 棄却 H11 |
 | ColeMurray/background-agents | 3291 | MIT | 2026-01-25 | 2026-09-27 | 0 | 969 | 棄却 H2 (Cloudflare Workers の基盤) |
 | AutoMaker-Org/automaker | 3221 | NOASSERTION | 2025-12-07 | 2026-05-22 | 0 | 0 | 棄却 H3 |

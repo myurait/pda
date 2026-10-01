@@ -149,7 +149,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 6 本、選別 (記述なし) 9 本、棄却 136 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 6 本、選別 (記述なし) 8 本、棄却 137 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
 ### 6.1 選別 (4 条件の記述あり、6 本)
 
@@ -164,12 +164,12 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [cezar](https://github.com/open-mercato/cezar) | 253 / MIT | "No API key needed"。VPS に常駐。途中の文・ツール呼び出し・費用を生で。YAML で段ごとに runner |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
 
-### 6.2 選別 (記述なし、9 本)
+### 6.2 選別 (記述なし、8 本)
 
-括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とし、2026-10-01 に H9〜H11 で 31 本を落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
+括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とし、2026-10-01 に H9〜H11 で 31 本を落とし、オーナーの判断で 1 本を落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
 
 - 記述なし H1 (2 本): [herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[ruflo](https://github.com/ruvnet/ruflo)。
-- 記述なし H5 (3 本): [jean](https://github.com/coollabsio/jean)、[OpenMausBot](https://github.com/milind-soni/OpenMausBot)、[codexia](https://github.com/milisp/codexia)。
+- 記述なし H5 (2 本): [jean](https://github.com/coollabsio/jean)、[codexia](https://github.com/milisp/codexia)。
 - 記述なし H1、H5 (1 本): [Ghostex](https://github.com/maddada/Ghostex)。
 - 記述なし H5、H6 (1 本): [Pane](https://github.com/greenfield-inc/Pane)。
 - 記述なし H1、H2 (1 本): [claw-orchestrator](https://github.com/Enderfga/claw-orchestrator)。
@@ -188,6 +188,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
   - H9 と H10: ai4kanban (09-28 00:08、40)、cyclops (09-05、12)、podium (08-22、28)、pragma (09-27、13)、sortie (09-28 03:49、194)、tlbx (09-25、113)、garcon (07-12、89)、squid (08-29、18)。
   - H10: agetor (81)、ateam (13)、codey (15)、taskuary (132)、oto-dock (187)、5dive (63)、claude-command-center (175)。
   - H11: openrig と agent-of-empires (tmux が必須)、mulmoterminal (tmux があれば自動で使う)、ai-devkit と dev-3.0 (既定の実行が tmux)、ai-maestro と omnigent (tmux を使わない方法は Agent SDK だけ)、omg.dev (Claude の今の経路は Agent SDK で、Claude Code をそのまま動かす経路は廃止予定で tmux を使う)。根拠のファイルと行は findings.md の 7 節。
+- オーナーの判断 2026-10-01: OpenMausBot (見たところの機能が PDA 向けではない)。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
@@ -227,3 +228,4 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 最終リリースが 2026-09-28 12:00 より前の製品、星が 200 以下の製品、tmux に依存する製品を、すべて外す。試用を済ませた製品と、後で試す 40 本にも当てる。「最終リリースが09/28 12:00以前の製品、スター数が200以下の製品、tmuxに依存する製品を全て切り捨てろ」。
 - Orca が写した Codex のログインの 3 つのファイルは、オーナーが消した。
 - ライセンスが改変か再配布を禁じる製品を外す。「改変、再配布不可のライセンスの製品は困るかもしれない。除外してくれ」。残る 15 本に当てたところ、該当は無かった (findings.md の 8 節)。
+- OpenMausBot を外す。「openmausbotはぱっと見の機能がpda向けじゃないため除外」。条件付きのライセンスの multica、superset、Pane は残す。
