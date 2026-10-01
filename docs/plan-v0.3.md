@@ -160,7 +160,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [happier](https://github.com/happier-dev/happier) | 1.7k / MIT | ベンダーの CLI をそのまま動かし、全端末へ映す。iOS / Android / Web。別のエージェントでレビュー・計画・委譲を起動 |
 | [multica](https://github.com/multica-ai/multica) | 51k / Apache に商用ホスティング制限を足した独自条項 | デーモン、Docker Compose。Web / デスクトップ / iPhone。Squads、SKILL.md、ボード。実行記録から停止 |
 | [5dive](https://github.com/5dive-ai/5dive) | 61 / MIT | 公式 CLI を systemd で常駐。組織図・待ち行列・ゲート、5dive.yaml。`task cancel` で停止 |
-| [Orca](https://github.com/stablyai/orca) | 79k / MIT | `orca serve` でヘッドレス、iOS / Android。埋め込み端末。委譲とワークフロー定義は無い。YC |
+| [Orca](https://github.com/stablyai/orca) | 79k / MIT | `orca serve` でヘッドレス、ブラウザ / Mac app / iOS / Android。埋め込み端末。Claude と Codex の worker への委譲と伝言、判断待ち (Experimental)。YC |
 | [OpenClaw](https://github.com/openclaw/openclaw) | 390k / MIT | Claude Code を CLI のバックエンドで、Codex は定額で。Control UI。第一の位置付けは個人アシスタント |
 | [cezar](https://github.com/open-mercato/cezar) | 253 / MIT | "No API key needed"。VPS に常駐。途中の文・ツール呼び出し・費用を生で。YAML で段ごとに runner |
 | [garcon](https://github.com/cfal/garcon) | 88 / GPL | 自前の Web とスマホ。中断と停止。子チャットへ委譲 |
