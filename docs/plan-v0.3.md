@@ -112,7 +112,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 棄却は「机上の棄却」と「評価による棄却」に分ける。
 
-- 机上の棄却は、次のどれかに一次資料で反することが分かった場合に限る。H1: Claude Code と Codex の両方を定額ログインで動かせない (API キーが必須)。H2: GUI の無い Linux に常駐できず、別の端末から操作できない。H3: 直近 3 か月にコミットもリリースも無い、または保守終了の告知がある。H4: ライセンスが個人の自前運用を許さない。H5: 動いている実行を画面から途中で止められない (R7)。H6: 実行中の途中の出力が見えず、依頼 1 つに最終結果だけが返る (R13)。 H7: Claude を、Claude Agent SDK か、それを使った ACP の adapter を通して、オーナーの定額ログインで動かす (Anthropic の規約が第三者の製品に認めていない形。findings.md の 6 節)。手を加えていない Claude Code の実行ファイルを動かす経路を設定で選べるなら、その経路で評価し、棄却しない (2026-09-28 オーナー承認)。
+- 机上の棄却は、次のどれかに一次資料で反することが分かった場合に限る。H1: Claude Code と Codex の両方を定額ログインで動かせない (API キーが必須)。H2: GUI の無い Linux に常駐できず、別の端末から操作できない。H3: 直近 3 か月にコミットもリリースも無い、または保守終了の告知がある。H4: ライセンスが個人の自前運用を許さない。H5: 動いている実行を画面から途中で止められない (R7)。H6: 実行中の途中の出力が見えず、依頼 1 つに最終結果だけが返る (R13)。 H7: Claude を、Claude Agent SDK か、それを使った ACP の adapter を通して、オーナーの定額ログインで動かす (Anthropic の規約が第三者の製品に認めていない形。findings.md の 6 節)。手を加えていない Claude Code の実行ファイルを動かす経路を設定で選べるなら、その経路で評価し、棄却しない (2026-09-28 オーナー承認)。H8: 既定のブランチの最終コミットが 2 週間より前 (2026-10-01 オーナー承認。6.1 の未試用の 12 本に当てた)。
 - 「反する」は、制約を明記した記述を引用できる場合だけとする。記述が見つからないことは反する根拠にしない。
 - それ以外の理由 (画面が薄い、委譲が無い、若い、H1〜H6 が一次資料から分からない) は机上で棄却せず、選別に回す。
 - 評価による棄却は、S1〜S8 の記録と 4 節の判定表を根拠にする。
@@ -149,9 +149,9 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 14 本、選別 (記述なし) 40 本、棄却 97 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 13 本、選別 (記述なし) 40 本、棄却 98 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
-### 6.1 選別 (4 条件の記述あり、14 本)
+### 6.1 選別 (4 条件の記述あり、13 本)
 
 2026-09-28 に 20 本のうち 6 本を H7 で落とした (6.3)。happier、Orca、OpenClaw は Agent SDK か ACP の経路も持つが、Claude Code をそのまま動かす経路で試す。
 
@@ -167,7 +167,6 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [squid](https://github.com/agent-squid/squid) | 18 / MIT | 常駐、Tailscale。/stop。途中の出力とツールの動き |
 | [mulmoterminal](https://github.com/receptron/mulmoterminal) | 225 / MIT | ブラウザの端末グリッド、実 PTY、スマホ |
 | [waku](https://github.com/egoist/waku) | 1.5k / GPL | waku-daemon と Web。Escape で停止。stream-json |
-| [tutti](https://github.com/nutthouse/tutti) | 128 / MIT | tutti.toml のワークフロー、Web ダッシュボード、個別の停止。3 か月のコミットが 1 件 |
 | [cccc](https://github.com/ChesterRa/cccc) | 1.3k / Apache | デーモンと Web、端末のタイル、Stop Group、@all / @peers の宛先指定 |
 | [claude-command-center](https://github.com/amirfish1/claude-command-center) | 173 / 現行は非商用 | Linux のヘッドレスとブラウザ。Pause で中断 |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
@@ -193,6 +192,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - H2 2026-09-28 (4 条件の判定で、反すると明記した記述を引用できたもの): agent-orchestrator (Untrivial。デーモンはデスクトップ app が動かし、"AO does not turn the local desktop product into a hosted multi-user service")、clideck ("CliDeck works on macOS and Windows.")、zaivern-code ("`--headless` is unimplemented in MVP")、dray、zuse、alethe-agents (いずれもデスクトップ app で、サーバの形の記述なし)、evoflux ("shipped as a desktop product")、nimbalyst ("couples the agent runtime and the GUI in one desktop process")、Dorothy ("Agent management and terminal features require the Electron app")。
 - H7 2026-09-28 (Claude を Agent SDK か ACP の adapter でしか動かさない。ソースの行は findings.md の 6 節): paseo、t3code、vicoa、intentic、synara、Archon、agor、bb、cyrus、qm、opensession (いずれも Agent SDK)、mjolnir、OpenHands、proliferate、termany、Octop、opentag (いずれも ACP の adapter。opentag は旧版が claude を直接起動していたので、設定でその経路が戻れば再考する)。
 - H1 2026-09-28 (ソースで、Claude Code を動かさないか API キーでしか動かさないと分かったもの): xum と companyhelm (Anthropic の API を API キーで直接呼ぶ)、agentconnect (ACP の adapter に API キーを渡す)、Fusion (Claude の実行器が、Claude Code 2.1.205 に無い `claude agent stdio` を前提にしている)。
+- H8 2026-10-01 (既定のブランチの最終コミットが 2 週間より前): tutti (最終コミット 2026-07-20)。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
@@ -228,3 +228,4 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 
 - 複製した Claude の設定に、初回の設定が済んだ印 (`hasCompletedOnboarding`) を足した。オーナーが自分で実行し、元のファイルは `.claude.json.bak-20260928` として残した。
 - Orca の試用の間、Orca が自分の hook、状態表示の設定、作業場所を信頼済みにする印を、複製した Claude と Codex の設定へ書き足してよい。試用の終わりに Orca のコマンドで hook を外す。
+- 6.1 の未試用の 12 本のうち、最終メンテナンスが 2 週間以上前のものを外す。tutti を外した (既定のブランチの最終コミットが 2026-07-20)。
