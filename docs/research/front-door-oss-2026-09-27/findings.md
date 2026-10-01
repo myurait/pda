@@ -478,3 +478,13 @@ H9 (Latest のリリースが 2026-09-28 12:00 より前) と H10 (星が 200 �
 - 23blocks-OS/ai-maestro | 既定 | "tmux path (default)" と "SDK path" (docs/CHAT-ARCHITECTURE.md の 18 行目)。tmux を使わない方法は Agent SDK
 - omnigent-ai/omnigent | 既定 | "`tmux`, required by the native `omnigent <harness>` terminal wrappers" (README.md の 156 行目)。tmux を使わない方法は SDK の harness
 - BennyKok/omg.dev | 既定 | Claude の今の経路は Agent SDK (docs/coding-agent-architecture.md の 13 行目)。Claude Code の TUI を動かす経路は tmux を使い、廃止予定で新しいセッションに使わない (src/coding-agent-adapters.ts の 45〜53 行目)
+
+## 8. ライセンス (2026-10-01)
+
+H12 (ライセンスが改変か再配布を禁じる) を、残る 15 本のリポジトリのライセンスの本文で確かめた。改変も再配布も禁じるものは無かった。条件を付けているものは次のとおり。
+
+- multica-ai/multica: Apache License 2.0 に Part I の追加条件を足した「Multica License」(LICENSE)。商用のライセンスなしに、第三者へのホスティングと、商用で配る製品への組み込みはできない (1a)。書面の許可なしに、画面のロゴ、製品名、著作権の表示を外すか変えることはできない (1b)。再配布するときはこのファイル全体を渡す (3d)。組織の中だけで使うことと、fork のソースを公開することは許されている (1a)。
+- superset-sh/superset: Elastic License 2.0 (LICENSE.md)。使用、複製、配布、派生物の作成を許す。第三者へのホスティングやマネージドサービスとしての提供、ライセンスキーの機能の回避、表示の削除はできない。`packages/sdk` は Apache License 2.0。
+- greenfield-inc/Pane: AGPL-3.0 に、7 条 (b) の追加条項として Dcouple Inc の表示を残す義務を足したもの (LICENSE)。改変と再配布は許される。
+- milind-soni/OpenMausBot: `enterprise/` だけが独自のライセンスで、再配布と、ライセンスキーなしの本番の利用を禁じる (enterprise/LICENSE の 2〜3 条)。それ以外は Apache License 2.0 で、`enterprise/` を消すとオープンソース版として動く (同 4 条)。`enterprise/` の機能は whitelabel、sso、admin、budgets、billing (enterprise/FEATURES)。
+- そのほか: stablyai/orca、happier-dev/happier、open-mercato/cezar、AltanS/collie、maddada/Ghostex、milisp/codexia、ruvnet/ruflo、Enderfga/claw-orchestrator は MIT。openclaw/openclaw は MIT の本文に第三者の表示への案内を 1 行足したもの (LICENSE)。RizRiyz/luvus、coollabsio/jean、herdrdev/herdr は Apache License 2.0。
