@@ -1,0 +1,303 @@
+
+[2026-10-01T06:27:48.974+00:00]
+Release v1.4.218, published 2026-09-30T20:53:08Z
+取得: curl -fL --retry 0 https://github.com/stablyai/orca/releases/download/v1.4.218/orca-linux.AppImage -o /home/user/v03/orca/orca-linux.AppImage
+217432095 bytes
+sha256=7c3163cf32575c90fe360bbecde901fb2dcc234940961bd15e22c11fde507044
+GitHub release asset digest と一致
+chmod +x orca-linux.AppImage; ./orca-linux.AppImage --appimage-extract
+展開成功、sudo/FUSE不使用。製品コード変更なし。
+
+[2026-10-01T06:27:49.039+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide --version
+exit=0
+1.4.218
+
+
+[2026-10-01T06:28:11.836+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide status --json
+exit=0
+{
+  "id": "local-status",
+  "ok": true,
+  "result": {
+    "target": {
+      "kind": "local"
+    },
+    "app": {
+      "running": true,
+      "pid": 105228,
+      "desktopWindowStatus": "openable"
+    },
+    "runtime": {
+      "state": "ready",
+      "reachable": true,
+      "connectionState": "connected",
+      "runtimeId": "250e726c-72a3-46cd-a9a1-a4af38d14561",
+      "appVersion": "1.4.218",
+      "remoteUpdateSupport": {
+        "installMode": "interactive",
+        "automatic": false,
+        "reason": "updater-unavailable"
+      },
+      "capabilities": [
+        "agentSession.create.tab-id.v1",
+        "git.antigravity-configured-model.v1",
+        "files.pathsExist",
+        "runtime.status.compat.v1",
+        "runtime.environments.v1",
+        "remote-runtime.shared-control.v1",
+        "orchestration.federation.v1",
+        "orchestration.federation-control-mail.v1",
+        "orchestration.federation-lifecycle-settlement.v1",
+        "orchestration.worker-stop-verdict.v1",
+        "orchestration.worker-launch-preferences.v1",
+        "orchestration.federation-structured-read.v1",
+        "orchestration.federation-fleet-snapshot.v1",
+        "orchestration.federation-release-archive.v1",
+        "orchestration.contract.v1",
+        "browser.screencast.v1",
+        "browser.tab-create-known-id.v1",
+        "browser.clientHost.v1",
+        "browser.clientHost.pageMetadata.v1",
+        "browser.clientHost.automation.v1",
+        "browser.clientHost.fileChannel.v1",
+        "network.browserTunnel.v1",
+        "network.browserTunnel.executionHosts.v1",
+        "terminal.binary-stream.v1",
+        "terminal.multiplex.v1",
+        "workspace-ports.v1",
+        "mobile.tasks.v1",
+        "project-host-setup.v1",
+        "task-source-context.v1",
+        "workspace-run-context.v1",
+        "worktree.linked-work-item-context.v1",
+        "worktree.github-pr-suppression.v1",
+        "folder-workspace.path-status.v1",
+        "linear.issue-attribute-filter.v1",
+        "jira.user-fields.v1",
+        "aiVault.v1",
+        "aiVault.session-titles.v1",
+        "terminal.query-reply-input.v1",
+        "terminal.prompt-delivery.v1",
+        "terminal.paired-parking.v1",
+        "terminal.quick-commands.v1",
+        "worktree.create-idempotency.v1",
+        "worktree.archive-failure-blocking.v1",
+        "terminal.create-idempotency.v2",
+        "terminal.create-shell-selection.v1",
+        "session-tabs.close-intent.v1",
+        "session-tabs.authoritative-inventory.v1",
+        "session-tabs.split-group-placement.v1",
+        "agent-session.session-boundary.v1",
+        "updater.remote-control.v1",
+        "agent-session.host-authority.v1",
+        "agent-session.omp-resume-path.v1",
+        "agent-session.keyboard.v1",
+        "agent-session.structured.v1",
+        "agent-session.pending-send-result.v1",
+        "agent-session.accepted-send.v1",
+        "agent-session.conversation-stop.v1",
+        "agent-session.structured.hold.v1",
+        "agent-session.structured.reveal.v1",
+        "agent-session.structured.resume-history.v1",
+        "agent-session.status-feed.v1",
+        "agent-session.turn-completion.v1",
+        "agent-session.rewind.v1",
+        "agent-session.conversation-outline.v1",
+        "agent-session.background-task-stop.v1",
+        "agent-session.prompt-cancel.v1",
+        "agent-session.question-answers.v1",
+        "agent-session.turn-item.v1",
+        "agent-session.background-task-row-stop.v1",
+        "agent-session.kimi-resume.v1",
+        "agent-session.opencode2-resume.v1",
+        "agent-session.muse-resume.v1",
+        "agent-session.dsh-resume.v1",
+        "agent-session.qoder-resume.v1",
+        "agent-session.codebuddy-resume.v1",
+        "agent-session.zcode-resume.v1",
+        "files.mutation-ownership.v1",
+        "github.markPRReadyForReview",
+        "gitlab.updateMR.readyForReview.v1",
+        "worktree.visibility-defaults.v1",
+        "worktree.visibility-source-defaults.v1",
+        "accounts.import-host-credentials.v1",
+        "accounts.codex-reset-credit.v1",
+        "skills.install.v1",
+        "skills.install.bundle.v1",
+        "skills.install-cancel.v1",
+        "skills.install-progress.v1",
+        "skills.install-result.v2",
+        "skills.upload.v1",
+        "skills.manage.v1",
+        "skills.install-providers.v1",
+        "skills.delete.v1",
+        "automation.list-host-scope.v1",
+        "automation.owner-fencing.v1",
+        "automation.create-idempotency.v1",
+        "notifications.remote-push.v1",
+        "agent.launch.v2",
+        "agent.launch.replay.v1",
+        "agent.launch.replay-required.v1",
+        "browser.headless.v1",
+        "browser.identity.v1",
+        "browser.certificate-trust.v1",
+        "mobileWeb.bundle.v1"
+      ]
+    },
+    "graph": {
+      "state": "ready"
+    }
+  },
+  "_meta": {
+    "runtimeId": "250e726c-72a3-46cd-a9a1-a4af38d14561"
+  }
+}
+
+
+[2026-10-01T06:28:42.796+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide repo add --path /home/user/v03/work/orca/scratch --json
+exit=0
+{
+  "id": "3b6e1dfd-a340-43ea-8163-d0a424444fdc",
+  "ok": true,
+  "result": {
+    "repo": {
+      "id": "57dfa938-108f-4327-96be-d2c95d463a77",
+      "path": "/home/user/v03/work/orca/scratch",
+      "displayName": "scratch",
+      "badgeColor": "#737373",
+      "addedAt": 1790836122784,
+      "kind": "git",
+      "externalWorktreeVisibilityLegacy": false,
+      "upstream": null,
+      "gitUsername": "",
+      "hookSettings": {
+        "mode": "auto",
+        "setupRunPolicy": "run-by-default",
+        "setupAgentStartupPolicy": "start-immediately",
+        "scripts": {
+          "setup": "",
+          "archive": ""
+        }
+      },
+      "externalWorktreeVisibility": "hide"
+    }
+  },
+  "_meta": {
+    "runtimeId": "250e726c-72a3-46cd-a9a1-a4af38d14561"
+  }
+}
+
+
+[2026-10-01T06:28:42.933+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide worktree list --json
+exit=0
+{
+  "id": "18a5c183-6eea-4e17-b8e1-7c2b4d031f59",
+  "ok": true,
+  "result": {
+    "worktrees": [
+      {
+        "id": "57dfa938-108f-4327-96be-d2c95d463a77::/home/user/v03/work/orca/scratch",
+        "identity": {
+          "key": "wt2:local:25b37e3e-1cba-48c7-a4b6-93ba820f7116",
+          "executionHostId": "local",
+          "instanceId": "25b37e3e-1cba-48c7-a4b6-93ba820f7116"
+        },
+        "instanceId": "25b37e3e-1cba-48c7-a4b6-93ba820f7116",
+        "repoId": "57dfa938-108f-4327-96be-d2c95d463a77",
+        "hostId": "local",
+        "path": "/home/user/v03/work/orca/scratch",
+        "head": "fa4fad815334bf6abe4f840c72165271dfc425df",
+        "branch": "refs/heads/main",
+        "isBare": false,
+        "isMainWorktree": true,
+        "displayName": "main",
+        "displayNameMode": "automatic",
+        "comment": "",
+        "linkedIssue": null,
+        "linkedPR": null,
+        "linkedLinearIssue": null,
+        "linkedLinearIssueWorkspaceId": null,
+        "linkedLinearIssueOrganizationUrlKey": null,
+        "linkedGitLabMR": null,
+        "linkedGitLabIssue": null,
+        "linkedBitbucketPR": null,
+        "linkedAzureDevOpsPR": null,
+        "linkedGiteaPR": null,
+        "linkedWorkItem": null,
+        "linkedTaskSourceContext": null,
+        "isArchived": false,
+        "isUnread": false,
+        "isPinned": false,
+        "sortOrder": 1790836122921,
+        "lastActivityAt": 0,
+        "workspaceStatus": "in-progress",
+        "parentWorktreeId": null,
+        "childWorktreeIds": [],
+        "lineage": null,
+        "git": {
+          "path": "/home/user/v03/work/orca/scratch",
+          "head": "fa4fad815334bf6abe4f840c72165271dfc425df",
+          "branch": "refs/heads/main",
+          "isBare": false,
+          "isMainWorktree": true
+        }
+      }
+    ],
+    "hostScope": {
+      "hostIds": [
+        "local"
+      ],
+      "omittedHostIds": []
+    },
+    "totalCount": 1,
+    "truncated": false
+  },
+  "_meta": {
+    "runtimeId": "250e726c-72a3-46cd-a9a1-a4af38d14561"
+  }
+}
+
+
+[2026-10-01T06:36:43.444+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide terminal list --json
+exit=0
+{
+  "id": "7fff4bce-75d0-44db-8423-c873d9d781fa",
+  "ok": true,
+  "result": {
+    "terminals": [],
+    "hostScope": {
+      "hostIds": [
+        "local"
+      ],
+      "omittedHostIds": []
+    },
+    "topologyRevisions": {},
+    "totalCount": 0,
+    "truncated": false
+  },
+  "_meta": {
+    "runtimeId": "250e726c-72a3-46cd-a9a1-a4af38d14561"
+  }
+}
+
+
+[2026-10-01T06:36:43.444+00:00]
+既存CODEX_HOMEをcustom-homeと扱う分岐をソース確認。環境 ORCA_CODEX_HOME=/home/user/pda/secrets/codex を追加して指定CODEX_HOMEと一致させる。src/main/codex/codex-real-home-path.ts と runtime-home-service-home-routing.ts のsystem-default real-home経路を使い、認証複製を試用に使わない。製品による既存コピーの内容は読まない・変更しない。
+
+[2026-10-01T06:42:53.352+00:00]
+$ /home/user/.local/bin/claude --version
+exit=0
+2.1.274 (Claude Code)
+
+
+[2026-10-01T06:42:53.362+00:00]
+$ /home/user/.local/bin/codex --version
+exit=0
+codex-cli 0.156.1
+
+同梱CLI確認: 展開先のファイル名と app.asar のJSON索引を検査し、claude/codex/claude.exe/codex.exe、および @anthropic-ai/claude-agent-sdk の cli.js/package.json、@openai/codex/package.json は0件。認証ファイルは入力に使っていない。実際の使用版は既設CLIの --version と端末表示で2.1.274/0.156.1と確認。

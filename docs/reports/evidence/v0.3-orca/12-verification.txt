@@ -1,0 +1,12 @@
+
+[2026-10-01T06:56:42.578+00:00]
+報告書検証: 必須7節の順序、T1〜T9各3項目、未確定記述なし、必須証拠16ファイル非空、相対リンク解決を確認。
+秘密値検査: pairing/code/token URL値、JWT、ベンダーAPIキー形式、dispatch capability値のパターンを報告書と本製品の証拠だけで検査し検出なし。認証ファイルを検査の入力に使っていない。
+初回の検査で03/05の停止送信コマンドに生のEsc制御文字が見つかったため、意味を保つ <ESC> 表記へ変更。再検査で生のEscなし。
+T1: user unitとHTTP 200。T2/T4:途中出力と差分。T3/T5:Esc後の中断画面。T6:psとargv。T7:06:48:27 UTCの処理中RSS。T8:URLの構造・Mac/Mobile/Serve手順。T9:双方向のin_progress出力とsucceeded/released。
+終了: hooks offは1回で成功。保存待ち後とservice停止後のstatusがenabled=false、Claude/CodexのmanagedHooksPresent=false。terminal listは空、unit inactive、5113待ち受けなし、Orca残存PIDなし。
+指示の想定と異なる製品生成の認証複製は内容を取得せずメタデータとソースを記録し、残存を報告書に明記。
+
+証拠の整形: コマンド出力の末尾空白とファイル末尾の余分な空行だけを除去。git diff --cached --check の再実行は通過。
+
+コミット対象: 報告書1件と本製品の証拠17件のみ。mainと分岐点の一致を確認。

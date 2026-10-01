@@ -1,0 +1,44 @@
+
+[2026-10-01T06:28:12.057+00:00]
+$ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5113/
+exit=0
+200
+
+[2026-10-01T06:28:28.073+00:00]
+ss -ltnp 該当行:
+LISTEN 0      511          0.0.0.0:5113       0.0.0.0:*    users:(("orca-ide",pid=105228,fd=87))
+
+[2026-10-01T06:33:40.188+00:00]
+journalctl _PID=105228 -o cat の orca_server_ready 行 (値を除いて構造のみ抽出):
+{
+  "type": "orca_server_ready",
+  "schemaVersion": 1,
+  "boundEndpoint": "ws://0.0.0.0:5113",
+  "advertisedEndpoint": "ws://100.69.167.33:5113",
+  "pairing.available": true,
+  "pairing.url": {
+    "present": true,
+    "scheme": "orca",
+    "host": "pair",
+    "path": "",
+    "queryKeys": [
+      "code"
+    ],
+    "fragmentKeys": []
+  },
+  "pairing.webClientUrl": {
+    "present": true,
+    "scheme": "http",
+    "host": "100.69.167.33:5113",
+    "path": "/web-index.html",
+    "queryKeys": [],
+    "fragmentKeys": [
+      "pairing"
+    ]
+  }
+}
+
+[2026-10-01T06:37:02.030+00:00]
+$ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5113/web-index.html
+exit=0
+200

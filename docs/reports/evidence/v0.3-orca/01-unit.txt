@@ -1,0 +1,118 @@
+
+[2026-10-01T06:27:49.081+00:00]
+$ systemctl --user status v03-orca.service --no-pager --full
+exit=0
+● v03-orca.service - PDA v0.3 Orca trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-orca.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-01 15:27:48 JST; 93ms ago
+   Main PID: 105228 (orca-ide)
+      Tasks: 18 (limit: 15004)
+     Memory: 42.7M (peak: 42.7M)
+        CPU: 116ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-orca.service
+             ├─105228 "/home/user/v03/orca/squashfs-root/orca-ide --port --pairing-address --json serve 5113 100.69.167.33"
+             ├─105240 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote --no-zygote-sandbox"
+             ├─105241 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+             └─105250 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+
+Oct 01 15:27:48 agent-node systemd[1274]: Started v03-orca.service - PDA v0.3 Orca trial.
+
+
+[2026-10-01T06:27:49.081+00:00]
+[Unit]
+Description=PDA v0.3 Orca trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/orca
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=CODEX_HOME=/home/user/pda/secrets/codex
+Environment=PATH=/home/user/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=LIBGL_ALWAYS_SOFTWARE=1
+Environment=ORCA_TELEMETRY_DISABLED=1
+Environment=DO_NOT_TRACK=1
+UnsetEnvironment=DISPLAY
+ExecStart=/home/user/v03/orca/squashfs-root/AppRun serve --port 5113 --pairing-address 100.69.167.33 --json
+KillMode=mixed
+Restart=no
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
+
+
+[2026-10-01T06:29:23.728+00:00]
+$ systemctl --user status v03-orca.service --no-pager --full
+exit=0
+● v03-orca.service - PDA v0.3 Orca trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-orca.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-01 15:27:48 JST; 1min 34s ago
+   Main PID: 105228 (orca-ide)
+      Tasks: 26 (limit: 15004)
+     Memory: 239.6M (peak: 261.0M)
+        CPU: 1.170s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-orca.service
+             ├─105240 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote --no-zygote-sandbox"
+             ├─105241 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+             ├─105250 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+             ├─105271 /home/user/v03/orca/squashfs-root/chrome_crashpad_handler --monitor-self-annotation=ptype=crashpad-handler --no-rate-limit --no-upload-gzip --database=/home/user/v03/agent-home/.config/orca/Crashpad --annotation=_productName=orca --annotation=_version=1.4.218 "--annotation=lsb-release=Ubuntu 24.04.4 LTS" --annotation=plat=Linux --annotation=prod=Electron --annotation=ver=43.7.5 --initial-client-fd=38 --shared-client-connection
+             ├─105277 Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp -terminate
+             ├─105295 "/home/user/v03/orca/squashfs-root/orca-ide --type=gpu-process --disable-dev-shm-usage --ozone-platform=x11 --crashpad-handler-pid=105271 --enable-crash-reporter=2666ddc7-3055-45a0-8860-f53e4e56ec92,no_channel --user-data-dir=/home/user/v03/agent-home/.config/orca --gpu-preferences=WAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --use-gl=disabled --shared-files --field-trial-handle=3,i,7599542229375688347,1129643958641523806,262144 --enable-features=EarlyEstablishGpuChannel,EstablishGpuChannelAsync,GlobalShortcutsPortalPreferredTrigger,PdfUseShowSaveFilePicker --disable-features=DirectSockets,DirectSocketsInServiceWorkers,DirectSocketsInSharedWorkers,DropInputEventsWhilePaintHolding,FedCm,IntensiveWakeUpThrottling,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,15331934951832665108,1338904429344852863,4 --trace-process-track-uuid=3190708988185955192"
+             ├─105299 "/home/user/v03/orca/squashfs-root/orca-ide --type=broker"
+             └─105300 "/home/user/v03/orca/squashfs-root/orca-ide --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --disable-dev-shm-usage --crashpad-handler-pid=105271 --enable-crash-reporter=2666ddc7-3055-45a0-8860-f53e4e56ec92,no_channel --user-data-dir=/home/user/v03/agent-home/.config/orca --standard-schemes=orca-preview --secure-schemes=orca-preview --cors-schemes=orca-preview --fetch-schemes=orca-preview --streaming-schemes=orca-preview --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,7599542229375688347,1129643958641523806,262144 --enable-features=EarlyEstablishGpuChannel,EstablishGpuChannelAsync,GlobalShortcutsPortalPreferredTrigger,PdfUseShowSaveFilePicker --disable-features=DirectSockets,DirectSocketsInServiceWorkers,DirectSocketsInSharedWorkers,DropInputEventsWhilePaintHolding,FedCm,IntensiveWakeUpThrottling,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,15331934951832665108,1338904429344852863,4 --trace-process-track-uuid=3190708989122997041"
+             ‣ 105228 "/home/user/v03/orca/squashfs-root/orca-ide --port --pairing-address --json serve 5113 100.69.167.33"
+
+Oct 01 15:27:48 agent-node systemd[1274]: Started v03-orca.service - PDA v0.3 Orca trial.
+
+
+[2026-10-01T06:37:02.020+00:00]
+Codex用環境追加後の最終unit:
+[Unit]
+Description=PDA v0.3 Orca trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/orca
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=CODEX_HOME=/home/user/pda/secrets/codex
+Environment=ORCA_CODEX_HOME=/home/user/pda/secrets/codex
+Environment=PATH=/home/user/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=LIBGL_ALWAYS_SOFTWARE=1
+Environment=ORCA_TELEMETRY_DISABLED=1
+Environment=DO_NOT_TRACK=1
+UnsetEnvironment=DISPLAY
+ExecStart=/home/user/v03/orca/squashfs-root/AppRun serve --port 5113 --pairing-address 100.69.167.33 --json
+KillMode=mixed
+Restart=no
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target
+
+
+[2026-10-01T06:52:48.710+00:00]
+$ systemctl --user status v03-orca.service --no-pager --full
+exit=0
+● v03-orca.service - PDA v0.3 Orca trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-orca.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-01 15:36:43 JST; 16min ago
+   Main PID: 109287 (orca-ide)
+      Tasks: 23 (limit: 15004)
+     Memory: 136.8M (peak: 161.4M)
+        CPU: 1.019s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-orca.service
+             ├─109298 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote --no-zygote-sandbox"
+             ├─109299 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+             ├─109301 "/home/user/v03/orca/squashfs-root/orca-ide --type=zygote"
+             ├─109321 /home/user/v03/orca/squashfs-root/chrome_crashpad_handler --monitor-self-annotation=ptype=crashpad-handler --no-rate-limit --no-upload-gzip --database=/home/user/v03/agent-home/.config/orca/Crashpad --annotation=_productName=orca --annotation=_version=1.4.218 "--annotation=lsb-release=Ubuntu 24.04.4 LTS" --annotation=plat=Linux --annotation=prod=Electron --annotation=ver=43.7.5 --initial-client-fd=38 --shared-client-connection
+             ├─109327 Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp -terminate
+             ├─109345 "/home/user/v03/orca/squashfs-root/orca-ide --type=gpu-process --disable-dev-shm-usage --ozone-platform=x11 --crashpad-handler-pid=109321 --enable-crash-reporter=2666ddc7-3055-45a0-8860-f53e4e56ec92,no_channel --user-data-dir=/home/user/v03/agent-home/.config/orca --gpu-preferences=WAAAAAAAAAAgAQAEAAAAAAAAAAAAAGAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAACAAAAAAAAAAIAAAAAAAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAAIAAAAAAAAAA== --use-gl=disabled --shared-files --field-trial-handle=3,i,2234921501687356423,3338846651481056972,262144 --enable-features=EarlyEstablishGpuChannel,EstablishGpuChannelAsync,GlobalShortcutsPortalPreferredTrigger,PdfUseShowSaveFilePicker --disable-features=DirectSockets,DirectSocketsInServiceWorkers,DirectSocketsInSharedWorkers,DropInputEventsWhilePaintHolding,FedCm,IntensiveWakeUpThrottling,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,1498847432704298423,5641907088550909505,4 --trace-process-track-uuid=3190708988185955192"
+             ├─109349 "/home/user/v03/orca/squashfs-root/orca-ide --type=broker"
+             └─109350 "/home/user/v03/orca/squashfs-root/orca-ide --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --disable-dev-shm-usage --crashpad-handler-pid=109321 --enable-crash-reporter=2666ddc7-3055-45a0-8860-f53e4e56ec92,no_channel --user-data-dir=/home/user/v03/agent-home/.config/orca --standard-schemes=orca-preview --secure-schemes=orca-preview --cors-schemes=orca-preview --fetch-schemes=orca-preview --streaming-schemes=orca-preview --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,2234921501687356423,3338846651481056972,262144 --enable-features=EarlyEstablishGpuChannel,EstablishGpuChannelAsync,GlobalShortcutsPortalPreferredTrigger,PdfUseShowSaveFilePicker --disable-features=DirectSockets,DirectSocketsInServiceWorkers,DirectSocketsInSharedWorkers,DropInputEventsWhilePaintHolding,FedCm,IntensiveWakeUpThrottling,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,1498847432704298423,5641907088550909505,4 --trace-process-track-uuid=3190708989122997041"
+             ‣ 109287 "/home/user/v03/orca/squashfs-root/orca-ide --port --pairing-address --json serve 5113 100.69.167.33"
+
+Oct 01 15:36:43 agent-node systemd[1274]: Started v03-orca.service - PDA v0.3 Orca trial.

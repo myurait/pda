@@ -1,0 +1,118 @@
+
+[2026-10-01T06:52:48.004+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide terminal close --terminal term_6caa4e11-d7c3-4f70-8d16-b5095974d63c --json
+exit=0
+{
+  "id": "a94cc48f-fe4b-40ed-87d9-53283d26b16a",
+  "ok": true,
+  "result": {
+    "close": {
+      "handle": "term_6caa4e11-d7c3-4f70-8d16-b5095974d63c",
+      "tabId": "1014ac0a-7ef0-4bd8-aef3-c272226d185f",
+      "ptyKilled": true
+    }
+  },
+  "_meta": {
+    "runtimeId": "716c4d23-e109-4c3f-b913-341945ae60e3"
+  }
+}
+
+
+[2026-10-01T06:52:48.133+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide terminal list --json
+exit=0
+{
+  "id": "b0d3d528-6348-4870-8efa-b5f12de8d9c1",
+  "ok": true,
+  "result": {
+    "terminals": [],
+    "hostScope": {
+      "hostIds": [
+        "local"
+      ],
+      "omittedHostIds": []
+    },
+    "topologyRevisions": {},
+    "totalCount": 0,
+    "truncated": false
+  },
+  "_meta": {
+    "runtimeId": "716c4d23-e109-4c3f-b913-341945ae60e3"
+  }
+}
+
+
+[2026-10-01T06:52:48.714+00:00]
+$ systemctl --user list-units --all 'orca-daemon-*.scope' --no-pager --no-legend
+exit=0
+  orca-daemon-5529da85-d4fb-4329-ae53-a3a7c77bfb03.scope loaded active running /home/user/v03/orca/squashfs-root/orca-ide /home/user/v03/orca/squashfs-root/resources/app.asar.unpacked/out/main/daemon-entry.js --socket /home/user/v03/agent-home/.config/orca/daemon/daemon-v37.sock --token /home/user/v03/agent-home/.config/orca/daemon/daemon-v37.token --pid-record /home/user/v03/agent-home/.config/orca/daemon/daemon-v37.pid --launch-nonce 5529da85-d4fb-4329-ae53-a3a7c77bfb03 --entry-path /home/user/v03/orca/squashfs-root/resources/app.asar.unpacked/out/main/daemon-entry.js --app-version 1.4.218 --spawner-exec-path /home/user/v03/orca/squashfs-root/orca-ide --log-file /home/user/v03/agent-home/.config/orca/logs/daemon.log --fresh-daemon-scope
+
+
+[2026-10-01T06:53:27.851+00:00]
+$ systemctl --user stop v03-orca.service
+exit=0
+
+
+[2026-10-01T06:53:27.860+00:00]
+$ systemctl --user stop orca-daemon-5529da85-d4fb-4329-ae53-a3a7c77bfb03.scope
+exit=0
+
+
+[2026-10-01T06:53:27.868+00:00]
+$ systemctl --user status v03-orca.service --no-pager --full
+exit=3
+○ v03-orca.service - PDA v0.3 Orca trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-orca.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 01 15:36:43 agent-node systemd[1274]: v03-orca.service: Consumed 1.243s CPU time, 261.0M memory peak, 0B memory swap peak.
+Oct 01 15:36:43 agent-node systemd[1274]: Started v03-orca.service - PDA v0.3 Orca trial.
+Oct 01 15:53:27 agent-node systemd[1274]: Stopping v03-orca.service - PDA v0.3 Orca trial...
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Killing process 109298 (orca-ide) with signal SIGKILL.
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Killing process 109299 (orca-ide) with signal SIGKILL.
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Killing process 109301 (orca-ide) with signal SIGKILL.
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Killing process 109321 (chrome_crashpad) with signal SIGKILL.
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Killing process 109327 (Xvfb) with signal SIGKILL.
+Oct 01 15:53:27 agent-node systemd[1274]: Stopped v03-orca.service - PDA v0.3 Orca trial.
+Oct 01 15:53:27 agent-node systemd[1274]: v03-orca.service: Consumed 1.045s CPU time, 161.4M memory peak, 0B memory swap peak.
+
+
+[2026-10-01T06:53:27.878+00:00]
+ss -ltnp: 5113の行はなし。既存5080の該当行:
+LISTEN 0      4096         0.0.0.0:5080       0.0.0.0:*
+LISTEN 0      4096            [::]:5080          [::]:*
+
+[2026-10-01T06:53:27.901+00:00]
+$ docker ps --format '{{.Names}}	{{.Status}}'
+exit=0
+pda-otel-collector-1	Up 8 days
+pda-openobserve-1	Up 8 days
+
+
+[2026-10-01T06:53:27.908+00:00]
+抽出先Orca実行ファイルを使用する残存PID: []
+
+[2026-10-01T06:54:34.842+00:00]
+$ tmux has-session -t v03-orca-trust-claude
+exit=1
+no server running on /tmp/tmux-1000/default
+
+
+[2026-10-01T06:54:34.845+00:00]
+$ tmux has-session -t v03-orca-trust-codex
+exit=1
+no server running on /tmp/tmux-1000/default
+
+
+[2026-10-01T06:54:34.849+00:00]
+$ systemctl --user list-units --all 'v03-*' 'orca-daemon-*.scope' --no-pager
+exit=0
+  UNIT             LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service loaded inactive dead PDA v0.3 CCCC trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+1 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.

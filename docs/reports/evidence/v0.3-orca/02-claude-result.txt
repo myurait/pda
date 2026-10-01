@@ -1,0 +1,50 @@
+
+[2026-10-01T06:32:34.473+00:00]
+$ git diff
+exit=0
+diff --git a/README.md b/README.md
+index af0f694..99b276f 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++`greet(name)` を呼ぶと `hello, <name>` と表示されます。
+diff --git a/hello.py b/hello.py
+index 11b15b1..55d7302 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    print(f"hello, {name}")
++
++
+ print("hello")
+
+
+[2026-10-01T06:33:40.191+00:00]
+$ git restore --source=HEAD -- README.md hello.py
+exit=0
+
+
+[2026-10-01T06:34:06.688+00:00]
+$ git diff
+exit=0
+diff --git a/README.md b/README.md
+index af0f694..99b276f 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++`greet(name)` を呼ぶと `hello, <name>` と表示されます。
+diff --git a/hello.py b/hello.py
+index 11b15b1..55d7302 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    print(f"hello, {name}")
++
++
+ print("hello")
