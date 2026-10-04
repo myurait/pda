@@ -1,0 +1,171 @@
+Codexia: 9220b196d88f3b9d8b631228aa58db6167998d29 (v0.53.2)
+claude-agent-sdk-rs: 1d9bbaed097740c19f2f136d324dd0f54d5ca335 (v0.8.0; crate version from lock 0.8.0)
+Read-only source inspection.
+
+/home/user/v03/codexia/source/Cargo.lock
+905: ]
+906:
+907: [[package]]
+908: name = "claude-agent-sdk-rs"
+909: version = "0.8.0"
+910: source = "git+https://github.com/milisp/claude-agent-sdk-rs?tag=v0.8.0#1d9bbaed097740c19f2f136d324dd0f54d5ca335"
+911: dependencies = [
+912:  "anyhow",
+913:  "async-stream",
+914:  "async-trait",
+
+/home/user/v03/codexia/source/crates/cc/src/services/session_service.rs
+267: ) -> Result<String, String> {
+268:     let session_id = uuid::Uuid::new_v4().to_string();
+269:     let session_id_arc: SessionIdArc = Arc::new(Mutex::new(session_id.clone()));
+270:     let permission_mode_str = options.permission_mode.clone();
+271:     let mut claude_options = options.to_claude_options(None);
+272:
+273:     if needs_permission_callback(permission_mode_str.as_deref()) {
+274:         claude_options.hooks = Some(build_permission_hooks(
+275:             state.clone(), session_id_arc.clone(),
+276:         ));
+277:     }
+278:
+279:     state.session_arcs.insert(session_id.clone(), session_id_arc);
+280:     state.create_client(session_id.clone(), claude_options, permission_mode_str).await?;
+281:     Ok(session_id)
+282: }
+283:
+284: pub async fn set_permission_mode(session_id: &str, mode: &str, state: &CCState) -> Result<(), String> {
+285:     let permission_mode = parse_permission_mode(mode).ok_or("Invalid permission mode")?;
+286:
+287:     // Update session metadata — the hook closure reads this on every invocation.
+288:     state.set_permission_mode(session_id, mode.to_string());
+289:
+
+/home/user/v03/codexia/source/crates/cc/src/state.rs
+64:         if let Some(old_client) = clients.get(&client_id) {
+65:             let mut old_client = old_client.write().await;
+66:             let _ = old_client.disconnect().await;
+67:         }
+68:
+69:         let client = ClaudeClient::new(options);
+70:         clients.insert(client_id.clone(), Arc::new(RwLock::new(client)));
+71:
+
+/home/user/v03/codexia/source/crates/cc/src/services/message_service.rs
+34:     {
+35:         let mut client = client.write().await;
+36:         client.connect().await.map_err(|e| e.to_string())?;
+37:     }
+38:
+39:     if image_paths.is_empty() {
+40:         let mut client = client.write().await;
+41:         client.query_with_session(message, session_id).await.map_err(|e| e.to_string())?;
+42:     } else {
+43:         let mut content: Vec<UserContentBlock> = Vec::new();
+
+/home/user/v03/codexia/claude-agent-sdk-rs/src/internal/transport/subprocess.rs
+153:     fn find_cli() -> Result<PathBuf> {
+154:         // Strategy 1: Try executing 'claude' directly from PATH
+155:         // This is the most reliable method as it respects the shell's PATH resolution
+156:         if let Ok(output) = create_sync_hidden_command("claude")
+157:             .arg("--version")
+158:             .output()
+159:             && output.status.success()
+160:         {
+161:             // 'claude' is in PATH and executable, return it as-is
+162:             // The OS will resolve it when we spawn the process
+163:             return Ok(PathBuf::from("claude"));
+164:         }
+
+/home/user/v03/codexia/claude-agent-sdk-rs/src/internal/transport/subprocess.rs
+257:     /// Build command arguments from options
+258:     fn build_command(&self) -> Vec<String> {
+259:         let mut args = vec!["--output-format".to_string(), "stream-json".to_string()];
+260:
+261:         // --verbose is REQUIRED when using --output-format=stream-json
+262:         // CLI enforces this: "When using --print, --output-format=stream-json requires --verbose"
+263:         // So we always add --verbose regardless of the options.verbose setting
+264:         args.push("--verbose".to_string());
+265:
+266:         // For streaming mode or content mode, enable stream-json input
+267:         if matches!(
+268:             self.prompt,
+269:             QueryPrompt::Streaming | QueryPrompt::Content(_)
+270:         ) {
+271:             args.push("--input-format".to_string());
+272:             args.push("stream-json".to_string());
+273:         }
+274:
+
+/home/user/v03/codexia/claude-agent-sdk-rs/src/internal/transport/subprocess.rs
+693:
+694: #[async_trait]
+695: impl Transport for SubprocessTransport {
+696:     async fn connect(&self) -> Result<()> {
+697:         // Note: cwd validation is done in new() for early error detection
+698:
+699:         // Check version
+700:         self.check_claude_version().await?;
+701:
+702:         // Build command
+703:         let args = self.build_command();
+704:         let env = self.build_env();
+705:
+706:         // Build command (hidden console window on Windows)
+707:         let mut cmd = create_async_hidden_command(&self.cli_path);
+708:         cmd.args(&args)
+709:             .stdin(Stdio::piped())
+710:             .stdout(Stdio::piped())
+711:             .stderr(Stdio::piped())
+712:             .envs(&env);
+713:
+714:         if let Some(ref cwd) = self.cwd {
+715:             cmd.current_dir(cwd);
+716:         }
+717:
+718:         // Spawn process
+719:         let mut child = cmd.spawn().map_err(|e| {
+720:             ClaudeError::Process(ProcessError::new(
+721:                 format!("Failed to spawn Claude CLI process: {}", e),
+722:                 None,
+723:                 None,
+724:             ))
+725:         })?;
+726:
+
+/home/user/v03/codexia/source/crates/codex/src/app_server.rs
+103: pub async fn connect_codex(event_sink: Arc<dyn EventSink>) -> Result<Arc<CodexAppServer>, String> {
+104:     log::info!("Connecting to codex app-server");
+105:     let codex_bin =
+106:         discover_codex_command().ok_or_else(|| "Unable to locate codex binary".to_string())?;
+107:
+108:     let mut command = {
+109:         let mut cmd = Command::new(codex_bin);
+110:         cmd.arg("app-server");
+111:         cmd
+112:     };
+113:
+114:     // A GUI launch inherits none of the login shell's exports, so providers
+115:     // configured with `env_key` would see a missing variable. Resolve them the
+116:     // same way the settings UI does and pass them to the child.
+117:     for (key, value) in crate::env::get_envs(&crate::env::provider_env_keys()) {
+118:         command.env(key, value);
+119:     }
+120:
+121:     command.stdin(std::process::Stdio::piped());
+122:     command.stdout(std::process::Stdio::piped());
+123:     command.stderr(std::process::Stdio::piped());
+124:     #[cfg(target_os = "windows")]
+125:     command.creation_flags(CREATE_NO_WINDOW);
+126:
+127:     let mut child = command.spawn().map_err(|e| e.to_string())?;
+128:     let stdin = child.stdin.take().ok_or("missing stdin")?;
+129:     let stdout = child.stdout.take().ok_or("missing stdout")?;
+130:     let stderr = child.stderr.take().ok_or("missing stderr")?;
+131:
+132:     let client = Arc::new(CodexAppServer {
+133:         stdin: Mutex::new(stdin),
+134:         pending: Mutex::new(HashMap::new()),
+135:         next_id: AtomicU64::new(1),
+
+$ git -C /home/user/v03/codexia/source status --porcelain
+
+$ git -C /home/user/v03/codexia/claude-agent-sdk-rs status --porcelain

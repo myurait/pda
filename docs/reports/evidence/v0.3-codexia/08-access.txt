@@ -1,0 +1,83 @@
+2026-10-04T11:52:15.171504+00:00
+Local UI URL: http://127.0.0.1:5120/
+Playwright 1.61.1 / Chromium 1243; headless; temporary browser context.
+Attempt 1: page.goto(waitUntil='networkidle') failed after 30000 ms. The frontend keeps /api/events SSE connections open.
+Attempt 2: waitUntil='domcontentloaded', then wait 4000 ms: page displayed; screenshot 08-local-ui.png.
+
+Visible body:
+Toggle Sidebar
+Agent
+Bot
+New Chat
+Plugins
+Automations
+Insights
+No projects yet.
+Toggle Sidebar
+
+
+
+
+Do anything... / $ @
+Approval for me
+Select model
+Medium
+No project
+Local
+
+Capture now with a shortcut. Turn it into a todo, send it to (ChatGPT / Claude / Codexia) anytime.
+
+Try Plux
+Review
++
+unstaged (0)
+No workspace open
+File tree
+Stage all
+No files matched current filter.
+Select a project
+
+Codexia will be able to edit files and run commands in selected folders. You can select multiple history projects and continue.
+
+Codex
+Claude Agent
+Select all
+0/0 selected
+
+No history projects found.
+
+Add new project
+Continue
+Skip
+
+API request methods and paths (no bodies):
+GET /api/filesystem/home-directory
+POST /api/codex/account/get
+GET /api/events
+GET /api/events
+POST /api/filesystem/read-text-file
+POST /api/telemetry/active
+GET /api/codex/account/snapshot/list
+GET /api/telemetry/status
+POST /api/codex/plugin/installed
+POST /api/codex/plugin/installed
+GET /api/acp/agents
+
+Local request with non-loopback Host header; no external connection:
+$ ["curl", "-sS", "-i", "-H", "Host: codexia-trial.ts.net:19120", "-H", "Content-Type: application/json", "-d", "{}", "http://127.0.0.1:5120/api/bots/list"]
+HTTP/1.1 401 Unauthorized
+content-type: text/plain; charset=utf-8
+www-authenticate: Bearer
+vary: origin, access-control-request-method, access-control-request-headers
+content-length: 21
+date: Sun, 04 Oct 2026 11:52:15 GMT
+
+device token required
+
+No API key or login was requested for localhost UI/API. Initial UI was Select a project.
+Device token location: /home/user/v03/agent-home/.codexia/device-token (contents never read).
+Human can retrieve a token using local GET /api/pairing; do not put its output in evidence.
+The web browser build does not expose the native iOS/Android Pair desktop entry: src/hooks/runtime.ts isPhone(), src/components/layout/AppSidebar.tsx conditional.
+Actual SSH forwarding, Tailscale Serve and PC/phone connectivity were not tested here, as instructed.
+
+/api/codex/account/get response metadata only: {"accountType": "chatgpt", "requiresOpenaiAuth": true}

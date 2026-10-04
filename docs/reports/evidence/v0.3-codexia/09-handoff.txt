@@ -1,0 +1,28 @@
+2026-10-04T11:50:33.798230+00:00
+T9: native Claude Code (Rust crate -> CLI) <-> Codex app-server handoff
+
+$ ["curl", "-sS", "http://127.0.0.1:5120/api/acp/agents"]
+[{"id":"keke","name":"Keke","command":"npx","args":["-y","@milisp/keke@latest","agent","stdio"],"env":{},"available":true,"local":false},{"id":"claude","name":"Claude Code","command":"npx","args":["-y","@agentclientprotocol/claude-agent-acp@latest"],"env":{},"available":true,"local":false}]
+exit=0
+
+$ ["curl", "-sS", "-H", "Content-Type: application/json", "-d", "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}", "http://127.0.0.1:5120/mcp/bots"]
+{"id":1,"jsonrpc":"2.0","result":{"tools":[{"description":"List the other bots you can ask for help: id, name and role.","inputSchema":{"properties":{},"type":"object"},"name":"list_bots"},{"description":"Hand a job to another bot and wait for its answer. It works in its own project with its own permissions and does not see this conversation, so make the message self-contained.","inputSchema":{"properties":{"bot":{"description":"The bot's id or name.","type":"string"},"message":{"description":"What to ask it.","type":"string"}},"required":["bot","message"],"type":"object"},"name":"ask_bot"}]}}
+exit=0
+
+$ ["curl", "-sS", "-H", "Content-Type: application/json", "-d", "{}", "http://127.0.0.1:5120/api/bots/list"]
+[]
+exit=0
+
+製品に Bot 間の ask_bot はある。実装は ACP の AcpState::run_bot_unattended を呼ぶ。
+API の ACP agent 一覧は keke / claude の2件。claude は claude-agent-acp の adapter。
+Codex は ACP preset に無い。Claude の Rust crate 経路・Codex app-server の間で渡す製品機能には無い。
+Codex -> Claude Code: 実行0回（指定経路を選択できないため未実施）。
+Claude Code -> Codex: 実行0回（指定経路を選択できないため未実施）。
+skill/MCP の追加で機能を補う操作と ACP adapter の起動は行っていない。受け手の出力は未確認。
+
+Source commit 9220b196d88f3b9d8b631228aa58db6167998d29:
+https://github.com/milisp/codexia/blob/9220b196d88f3b9d8b631228aa58db6167998d29/docs/BOTS.md
+https://github.com/milisp/codexia/blob/9220b196d88f3b9d8b631228aa58db6167998d29/crates/acp/src/agents.rs#L13
+https://github.com/milisp/codexia/blob/9220b196d88f3b9d8b631228aa58db6167998d29/crates/acp/src/agents.rs#L88
+https://github.com/milisp/codexia/blob/9220b196d88f3b9d8b631228aa58db6167998d29/crates/acp/src/bots.rs#L57
+https://github.com/milisp/codexia/blob/9220b196d88f3b9d8b631228aa58db6167998d29/web/src/handlers/bots_mcp.rs#L153

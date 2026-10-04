@@ -1,0 +1,55 @@
+2026-10-04T11:47:39.747745+00:00
+
+$ systemctl --user status v03-codexia.service --no-pager
+● v03-codexia.service - PDA v0.3 Codexia headless trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-codexia.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 20:45:31 JST; 2min 8s ago
+   Main PID: 329314 (codexia-web)
+      Tasks: 39 (limit: 15004)
+     Memory: 220.9M (peak: 354.3M)
+        CPU: 1.292s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-codexia.service
+             ├─329314 /home/user/v03/codexia/runtime/codexia-web --port 5120
+             └─329331 /home/user/.local/bin/codex app-server
+
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z WARN  codexia_codex::app_server] codex:stderr: 2026-10-04T11:45:31.868385Z ERROR codex_app_server: Codex could not find bubblewrap on PATH. Install bubblewrap with your OS package manager. See the sandbox prerequisites: https://developers.openai.com/codex/concepts/sandboxing#prerequisites. Codex will use the bundled bubblewrap in the meantime.
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_codex::app_server] Codex initialized successfully, userAgent: codexia/0.156.1 (Ubuntu 24.4.0; x86_64) unknown (codexia; 0.53.2)
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] [web] startup timing: initialize_codex finished in 87.852534ms
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] [web] boot completed in 651.77548ms
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] [web] startup cwd: /home/user/v03/work/codexia/scratch
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] [web] requested port: 5120
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::auth] [auth] generated a new device token at /home/user/v03/agent-home/.codexia/device-token
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] Web server listening on http://127.0.0.1:5120
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_web::server_web] [remote] Tailscale not detected; remote clients unavailable
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_cc::scan] [cc session scanner] synced 64 sessions in 98.59544ms
+
+exit=0
+
+$ systemctl --user cat v03-codexia.service
+# /home/user/.config/systemd/user/v03-codexia.service
+[Unit]
+Description=PDA v0.3 Codexia headless trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/codexia/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=CODEXIA_NO_BROWSER=1
+ExecStart=/home/user/v03/codexia/runtime/codexia-web --port 5120
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+
+exit=0
+
+MainPID environment (only requested non-secret keys):
+HOME=/home/user/v03/agent-home
+CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+CODEX_HOME=<unset>
+CODEXIA_NO_BROWSER=1

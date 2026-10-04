@@ -1,0 +1,85 @@
+試用日: 2026-10-04 JST。以下は実行コマンドと出力の要点。
+
+事前確認:
+$ git status --short --branch
+## main...origin/main
+変更なし。
+$ systemctl --user list-units --all 'v03-*.service' --no-pager
+v03-cccc / cezar / happier / luvus / multica はいずれも inactive (dead)。動作中の他製品なし。
+$ ss -ltnp
+5120 の待ち受けなし。5080 / 22 / 44105 / 22037 の既存待ち受けには操作していない。
+$ git switch -c v0.3/setup-codexia main
+Switched to a new branch 'v0.3/setup-codexia'
+
+製品取得（導入1回、ソースの変更なし）:
+$ mkdir -p /home/user/v03/codexia /home/user/v03/work/codexia/scratch
+$ git clone --depth 1 https://github.com/milisp/codexia.git /home/user/v03/codexia/source
+$ curl -fsSL https://api.github.com/repos/milisp/codexia/releases/latest
+tag_name=v0.53.2; published_at=2026-10-02T06:08:26Z
+Linux headless asset: codexia-web-0.53.2-linux-x86_64-gnu.tar.gz
+$ git -C /home/user/v03/codexia/source fetch --depth 1 origin tag v0.53.2
+$ git -C /home/user/v03/codexia/source checkout --detach v0.53.2
+$ git -C /home/user/v03/codexia/source rev-parse HEAD
+9220b196d88f3b9d8b631228aa58db6167998d29
+$ curl -fL https://github.com/milisp/codexia/releases/download/v0.53.2/codexia-web-0.53.2-linux-x86_64-gnu.tar.gz -o /home/user/v03/codexia/codexia-web-0.53.2-linux-x86_64-gnu.tar.gz
+取得成功、約14.6 MiB。
+$ sha256sum /home/user/v03/codexia/codexia-web-0.53.2-linux-x86_64-gnu.tar.gz
+568188f608c5f6ed4c86dd6647b56b0c38145e35c41d10ae7cc5579501ebe93a
+$ mkdir -p /home/user/v03/codexia/runtime
+$ tar -xzf /home/user/v03/codexia/codexia-web-0.53.2-linux-x86_64-gnu.tar.gz -C /home/user/v03/codexia/runtime
+runtime/codexia-web (38229432 bytes), runtime/dist/, runtime/start-server.sh を配置。
+Claude Code / Codex / keke の実行ファイルはこの headless archive に含まれない。
+$ ldd /home/user/v03/codexia/runtime/codexia-web
+依存ライブラリに not found なし（01-preflight.txt）。ビルド、cargo、sudo、apt、docker は使っていない。
+
+参照した公式文書（同じコミット）:
+README.md, docs/WEB_SERVER.md, docs/USAGE.md, docs/BOTS.md, AGENTS.md。
+認証・停止・引き継ぎの実装は 06-source-paths.txt と報告書のソースリンクを参照。
+$ git clone --depth 1 --branch v0.8.0 https://github.com/milisp/claude-agent-sdk-rs.git /home/user/v03/codexia/claude-agent-sdk-rs
+1d9bbaed097740c19f2f136d324dd0f54d5ca335 (Codexia Cargo.lock の参照と一致)。読むための取得のみ。
+
+使い捨てリポジトリ:
+$ git init /home/user/v03/work/codexia/scratch
+README.md は「# scratch」の1行、hello.py は「print("hello")」の1行を作成、git add。
+$ git -C /home/user/v03/work/codexia/scratch commit -m '試用の初期ファイルを用意する'
+1回目: Author identity unknown / fatal: unable to auto-detect email address (got 'user@agent-node.(none)')
+原因調査: git -C /home/user/pda-v03a config user.name も未設定で exit=1。ここでは再commitしていない。
+$ git -C /home/user/v03/work/codexia/scratch config user.name Codex
+$ git -C /home/user/v03/work/codexia/scratch config user.email codex@localhost
+$ git -C /home/user/v03/work/codexia/scratch commit -m '試用の初期ファイルを用意する'
+2回目: [master (root-commit) 0a1232f] 試用の初期ファイルを用意する
+2 files changed, 2 insertions(+)
+
+CLI は HOME=/home/user/v03/agent-home、CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude、
+PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin、env -u CODEX_HOME で起動。
+$ /home/user/.local/bin/claude --version
+2.1.274 (Claude Code)
+$ /home/user/.local/bin/codex --version
+codex-cli 0.156.1
+隔離 tmux socket v03-codexia の trust-claude / trust-codex で両CLIの信頼確認に回答し、Ctrl-Cを2回送って終了（00-trust.txt）。
+
+user unit:
+/home/user/.config/systemd/user/v03-codexia.service を作成（内容は01-unit.txt）。
+$ systemctl --user daemon-reload
+$ systemctl --user start v03-codexia.service
+1回目で起動。127.0.0.1:5120、GET / = 200、GET /health = {"status":"ok"}。
+Codexの起動ログには PATH 上に bubblewrap が無い警告と bundled bubblewrap を使う旨が出た。
+T4は既存の同梱sandboxで完了し、OSパッケージの追加は必要なかった。
+
+試用（各1回、作業前に scratch の追跡2ファイルだけを初期コミットへ戻した）:
+$ node /home/user/v03/codexia/trial.mjs claude
+done=true, observed=true, finalStatus=success
+$ node /home/user/v03/codexia/trial.mjs claude-stop
+done=true, observed=true, stopRequested=true, terminal_reason=aborted_streaming
+$ node /home/user/v03/codexia/trial.mjs codex
+done=true, observed=true, finalStatus=completed
+$ node /home/user/v03/codexia/trial.mjs codex-stop
+done=true, observed=true, stopRequested=true, finalStatus=interrupted
+計測スクリプトそのもの: 00-trial-harness.mjs。製品コードではなくHTTP/WSクライアント。
+
+画面確認の補助道具:
+$ npm install --prefix /home/user/v03/codexia/tools playwright@1.61.1 --no-audit --no-fund
+added 2 packages。既存の /home/user/.cache/ms-playwright/chromium-1243 を使用。
+画面の初回 networkidle 待機は30秒でtimeout、常時SSEを待たないdomcontentloadedへ変更した再試行で表示確認（08-access.txt）。
+
+停止・認証メタデータ・生成backupの削除: 10-cleanup.txt。

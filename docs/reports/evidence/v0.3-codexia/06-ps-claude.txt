@@ -1,0 +1,60 @@
+2026-10-04T11:47:42.954Z claude: three seconds after request
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:11  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:11      \_ /home/user/.local/bin/codex app-server
+ 329732  329314       00:03      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329732 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:47:48.256Z claude: first assistant output
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:17  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:16      \_ /home/user/.local/bin/codex app-server
+ 329732  329314       00:08      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329732 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:47:51.213Z claude: completion
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:19  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:19      \_ /home/user/.local/bin/codex app-server
+ 329732  329314       00:11      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329732 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:48:21.615Z claude-stop: three seconds after request
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:50  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:49      \_ /home/user/.local/bin/codex app-server
+ 329918  329314       00:02      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329918 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:48:22.592Z claude-stop: first assistant output
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:51  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:50      \_ /home/user/.local/bin/codex app-server
+ 329918  329314       00:03      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329918 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:48:22.616Z claude-stop: completion
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:51  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:50      \_ /home/user/.local/bin/codex app-server
+ 329918  329314       00:03      \_ claude --output-format stream-json --verbose --input-format stream-json --permission-mode bypassPermissions
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=329918 exe=/home/user/.local/share/claude/versions/2.1.274 cwd=/home/user/v03/work/codexia/scratch

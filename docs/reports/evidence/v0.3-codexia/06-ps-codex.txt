@@ -1,0 +1,56 @@
+2026-10-04T11:48:30.625Z codex: three seconds after request
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       02:59  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:58      \_ /home/user/.local/bin/codex app-server
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:48:31.612Z codex: first assistant output
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       03:00  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       02:59      \_ /home/user/.local/bin/codex app-server
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:49:03.872Z codex: completion
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       03:32  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       03:32      \_ /home/user/.local/bin/codex app-server
+ 330151  329331       00:26          \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=330151 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:49:35.186Z codex-stop: three seconds after request
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       04:03  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       04:03      \_ /home/user/.local/bin/codex app-server
+ 330151  329331       00:57          \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=330151 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:49:36.228Z codex-stop: first assistant output
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       04:05  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       04:04      \_ /home/user/.local/bin/codex app-server
+ 330151  329331       00:58          \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=330151 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host cwd=/home/user/v03/work/codexia/scratch
+2026-10-04T11:49:36.252Z codex-stop: completion
+$ ps -eo pid,ppid,etime,args --forest (service descendants only)
+    PID    PPID     ELAPSED COMMAND
+ 329314    1274       04:05  \_ /home/user/v03/codexia/runtime/codexia-web --port 5120
+ 329331  329314       04:04      \_ /home/user/.local/bin/codex app-server
+ 330151  329331       00:58          \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+
+pid=329314 exe=/home/user/v03/codexia/runtime/codexia-web cwd=/home/user/v03/work/codexia/scratch
+pid=329331 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex cwd=/home/user/v03/work/codexia/scratch
+pid=330151 exe=/home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host cwd=/home/user/v03/work/codexia/scratch

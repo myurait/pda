@@ -1,0 +1,86 @@
+2026-10-04T11:54:06.156031+00:00
+CLI commands used the same HOME/CLAUDE_CONFIG_DIR/PATH as the unit; CODEX_HOME unset; cwd=scratch.
+
+$ codex mcp list
+No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.
+exit=0
+
+$ claude mcp list
+Checking MCP server health…
+claude.ai Claude Docs: https://api.anthropic.com/v1/pages/mcp - ✔ Connected
+exit=0
+Claude Docs is an existing claude.ai connector; Codexia registration commands were not called.
+T2 init reports mcp_servers=[] and plugins=[]. No persistent hooks, MCP servers or plugins were added by this trial.
+
+$ systemctl --user stop v03-codexia.service
+exit=0
+
+Metadata before deletion (contents not read):
+-rw------- 1 user user 64 Oct  4 20:45 /home/user/v03/agent-home/.codexia/device-token
+Removed /home/user/v03/agent-home/.codexia/device-token; exists=False
+
+Metadata before deletion (contents not read):
+-rw------- 1 user user 79467 Oct  4 20:45 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791114310165
+Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791114310165; exists=False
+
+Metadata before deletion (contents not read):
+-rw------- 1 user user 80514 Oct  4 20:47 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791114460431
+Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791114460431; exists=False
+Removed new trial cache directory /home/user/v03/agent-home/.config/google-chrome-for-testing
+Removed new trial cache directory /home/user/v03/agent-home/.cache/radv_builtin_shaders
+Removed new trial cache directory /home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-codexia-scratch
+
+No codexia-accounts directory: True
+No new auth.json or .credentials.json copy found by filename metadata comparison.
+Credential originals, .claude.json, settings.json and config.toml were not manually edited, copied, or deleted. CLI trust writes were made by the CLIs.
+
+$ systemctl --user status v03-codexia.service --no-pager
+○ v03-codexia.service - PDA v0.3 Codexia headless trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-codexia.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 20:45:31 agent-node codexia-web[329314]: [2026-10-04T11:45:31Z INFO  codexia_cc::scan] [cc session scanner] synced 64 sessions in 98.59544ms
+Oct 04 20:48:23 agent-node codexia-web[329314]: [2026-10-04T11:48:23Z WARN  claude_agent_sdk_rs::internal::transport::subprocess] Claude CLI exited with non-zero status (exit code Some(1)). This is often normal.
+Oct 04 20:49:14 agent-node codexia-web[329314]: [2026-10-04T11:49:14Z ERROR codexia_web::types] [api] 500: File does not exist or is a directory
+Oct 04 20:49:32 agent-node codexia-web[329314]: [2026-10-04T11:49:32Z ERROR codexia_web::types] [api] 500: General D-Bus Error
+Oct 04 20:49:33 agent-node codexia-web[329314]: [2026-10-04T11:49:33Z WARN  codexia_web::auth] [auth] rejected unauthenticated request from 127.0.0.1:59164 to /api/bots/list
+Oct 04 20:50:33 agent-node codexia-web[329314]: [2026-10-04T11:50:33Z ERROR codexia_web::types] [api] 500: File does not exist or is a directory
+Oct 04 20:52:15 agent-node codexia-web[329314]: [2026-10-04T11:52:15Z WARN  codexia_web::auth] [auth] rejected unauthenticated request from 127.0.0.1:34634 to /api/bots/list
+Oct 04 20:52:52 agent-node systemd[1274]: Stopping v03-codexia.service - PDA v0.3 Codexia headless trial...
+Oct 04 20:52:52 agent-node systemd[1274]: Stopped v03-codexia.service - PDA v0.3 Codexia headless trial.
+Oct 04 20:52:52 agent-node systemd[1274]: v03-codexia.service: Consumed 6.358s CPU time, 434.0M memory peak, 0B memory swap peak.
+
+exit=3
+
+$ systemctl --user list-units --all v03-*.service --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+exit=0
+
+$ ss -ltnp ( sport = :5120 )
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+exit=0
+
+$ tmux -L v03-codexia list-sessions
+no server running on /tmp/tmux-1000/v03-codexia
+
+exit=1
+
+$ pgrep -af ^/home/user/.cache/ms-playwright/chromium-1243
+
+exit=1
+
+Installed archive/runtime/source/SDK source/Playwright and the user unit remain installed. Codexia cache.db and ordinary CLI session history remain; no new agent settings remain.

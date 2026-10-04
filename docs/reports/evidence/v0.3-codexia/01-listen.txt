@@ -1,0 +1,16 @@
+2026-10-04T11:47:39.759381+00:00
+
+$ ss -ltnp ( sport = :5120 )
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:5120      0.0.0.0:*    users:(("codexia-web",pid=329314,fd=12))
+
+exit=0
+
+$ curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:5120/
+200
+
+exit=0
+
+$ curl -sS http://127.0.0.1:5120/health
+{"status":"ok"}
+exit=0
