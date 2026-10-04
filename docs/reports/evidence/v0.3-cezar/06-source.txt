@@ -1,0 +1,333 @@
+cezar v0.14.0 / 1b13522dd3642a4ea8331629b3680838164d2a2e
+公式ソースの参照箇所 (行番号はこの固定コミット)。製品コードは変更していない。
+
+packages/cezar/src/core/runner-factory.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/core/runner-factory.ts
+1: import type { AgentBackend, AgentRunner, RunnerId } from './agent-runner.ts';
+2: import { ClaudeCliRunner } from './claude-cli-runner.ts';
+3: import { CodexAppServerRunner } from './codex-app-server-runner.ts';
+4: import { JunieRunner } from './junie-runner.ts';
+5: import { CopilotAcpRunner } from './copilot-acp-runner.ts';
+6: import { OpencodeServerRunner } from './opencode-server-runner.ts';
+7: import { CursorAgentRunner } from './cursor-agent-runner.ts';
+8: import { PiRunner } from './pi-runner.ts';
+9: 
+10: /**
+11:  * The single place that maps a backend id onto a concrete runner. Everything
+12:  * that used to `new ClaudeCliRunner()` (the planner and the workflow engine)
+13:  * goes through here so switching the agent backend is one function call.
+14:  * `claude-cli` is the legacy id for `claude`.
+15:  */
+16: export function createRunner(backend: AgentBackend | RunnerId | undefined): AgentRunner {
+17:   switch (backend) {
+18:     case 'codex':
+19:       return new CodexAppServerRunner();
+20:     case 'opencode':
+21:       return new OpencodeServerRunner();
+22:     case 'cursor':
+23:       return new CursorAgentRunner();
+24:     case 'pi':
+25:       return new PiRunner();
+26:     case 'junie':
+27:       return new JunieRunner();
+28:     case 'copilot':
+29:       return new CopilotAcpRunner();
+30:     case 'claude':
+31:     case 'claude-cli':
+32:     default:
+33:       return new ClaudeCliRunner();
+34:   }
+35: }
+
+packages/cezar/src/core/claude-cli-runner.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/core/claude-cli-runner.ts
+58:  * therefore which account and which model list, is authoritative.
+59:  */
+60: export function resolveClaudeExecutable(override?: string): string {
+61:   if (override) return override;
+62:   // CEZ_DRY_RUN=1 swaps in the bundled mock so the cockpit / store /
+63:   // GUI can be exercised without a logged-in claude or burning tokens.
+64:   if (process.env.CEZ_CLAUDE_BIN) return process.env.CEZ_CLAUDE_BIN;
+65:   return process.env.CEZ_DRY_RUN === '1' ? mockClaudePath() : resolveClaudeBin();
+66: }
+67: 
+68: /**
+69:  * `AgentRunner` over the Claude Code CLI in headless stream-json mode. Auth =
+100: 
+101:   startSession(
+102:     spec: AgentRunSpec,
+103:     onEvent?: (event: AgentEvent) => void,
+104:     opts: SessionOptions = {},
+105:   ): AgentSession {
+106:     const args = buildClaudeArgs(spec);
+107: 
+108:     let child: ChildProcessWithoutNullStreams;
+109:     try {
+110:       const env = buildChildEnv({ backend: this.backend, extraEnv: spec.env });
+111:       const [file, argv] = disclaimedCommand(this.bin, args, env);
+112:       child = nodeSpawn(file, argv, { cwd: spec.cwd, env });
+113:     } catch (err) {
+114:       throw wrapSpawnError(err, this.bin);
+115:     }
+189:         eofKillTimer = setTimeout(() => {
+190:           if (!hasExited()) signalChild('SIGKILL');
+191:         }, EOF_KILL_GRACE_MS);
+192:         eofKillTimer.unref?.();
+193:       }, EOF_TERM_GRACE_MS);
+194:       eofTermTimer.unref?.();
+195:     };
+196: 
+197:     const interrupt = (): void => {
+198:       stdinOpen = false;
+199:       if (!hasExited()) signalChild('SIGTERM');
+200:     };
+201: 
+373: export function buildClaudeArgs(
+374:   spec: AgentRunSpec,
+375:   env: NodeJS.ProcessEnv = process.env,
+376: ): string[] {
+377:   const args: string[] = [
+378:     '--print',
+379:     '--input-format',
+380:     'stream-json',
+381:     '--output-format',
+382:     'stream-json',
+383:     '--verbose',
+384:     '--include-partial-messages',
+385:     '--permission-mode',
+386:     env.CEZ_APPROVAL_GATE === '1' ? 'acceptEdits' : 'dontAsk',
+387:   ];
+388:   if (spec.systemPrompt) {
+389:     args.push('--append-system-prompt', spec.systemPrompt);
+390:   }
+391:   // Pin the session so the user can `claude --resume <sessionId>` in the repo
+392:   // to take over interactively after a run. With `resume` we reopen the
+393:   // existing on-disk conversation instead.
+394:   if (spec.sessionId) {
+395:     if (spec.resume) {
+396:       args.push('--resume', spec.sessionId);
+397:     } else {
+398:       args.push('--session-id', spec.sessionId);
+399:     }
+400:   }
+401:   const allowed = buildAllowedTools(spec.allowedTools ?? [], spec.bashAllowlist);
+402:   if (allowed.length > 0) {
+403:     args.push('--allowedTools', allowed.join(','));
+404:   }
+405:   if (spec.model) {
+406:     args.push('--model', spec.model);
+407:   }
+408:   for (const dir of spec.additionalDirectories ?? []) {
+409:     args.push('--add-dir', dir);
+410:   }
+411:   return args;
+412: }
+413: 
+414: /**
+415:  * Map `allowedTools` onto claude's `--allowedTools` syntax. `Bash` with a
+416:  * `bashAllowlist` becomes one `Bash(<prefix>:*)` entry per allowed prefix;
+417:  * `Bash` with no allowlist stays plain `Bash`.
+418:  */
+
+packages/cezar/src/core/codex-app-server-transport.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/core/codex-app-server-transport.ts
+20: export function resolveCodexExecutable(override?: string): string {
+21:   return override ?? process.env.CEZ_CODEX_BIN ?? 'codex';
+22: }
+23: 
+24: export function buildCodexAppServerEnv(extraEnv?: Record<string, string>): NodeJS.ProcessEnv {
+25:   return buildChildEnv({ backend: 'codex', extraEnv });
+26: }
+27: 
+28: /** Spawn the authenticated host's app-server with the same least-privilege env used by runs. */
+29: export function spawnCodexAppServer(
+30:   bin: string,
+31:   cwd: string,
+32:   extraEnv?: Record<string, string>,
+33: ): ChildProcessWithoutNullStreams {
+34:   try {
+35:     const env = buildCodexAppServerEnv(extraEnv);
+36:     const [file, argv] = disclaimedCommand(bin, ['app-server'], env);
+37:     return nodeSpawn(file, argv, { cwd, env });
+38:   } catch (error) {
+39:     throw codexSpawnError(error, bin);
+40:   }
+41: }
+
+packages/cezar/src/core/agent-env.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/core/agent-env.ts
+35: const BASE_ALLOW_NAMES: ReadonlySet<string> = upperSet([
+36:   // Core shell / process identity
+37:   'PATH',
+38:   'HOME',
+39:   'SHELL',
+40:   'USER',
+41:   'LOGNAME',
+42:   'LNAME',
+226:   // pi selects models as `provider/model` (#387), so it needs both its own config and any
+227:   // provider a configured model id can name — the same set OpenCode gets, for the same reason.
+228:   // Deliberately NOT `CLAUDE_`: pi is not Claude Code and reads none of its variables, and the
+229:   // prefix is load-bearing below — it is what unlocks the Bedrock/Vertex cloud credentials, so
+230:   // granting it here handed pi the whole `AWS_*` / `GOOGLE_CLOUD_*` family on any host that had
+231:   // set `CLAUDE_CODE_USE_BEDROCK=1` for Claude Code, plus Claude's own config dir.
+232:   pi: ['PI_', ...MULTI_PROVIDER_PREFIXES],
+233:   // junie's default auth (JetBrains account) lives entirely under `~/.junie/`
+234:   // (already reachable via the base `HOME` allowlist — no env var needed). Its BYOK
+
+packages/cezar/src/core/agent-profiles.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/core/agent-profiles.ts
+74:  *
+75:  * `{}` is load-bearing, not a convenience: `buildChildEnv` applies `extraEnv` AFTER its allowlist
+76:  * and so bypasses it entirely, which makes this function the only thing standing between a
+77:  * profile and the child environment. Returning nothing for the zero-config case means the
+78:  * overwhelmingly common path adds literally no variable — the same environment cezar has always
+79:  * spawned. It also means this can never emit one provider's variable for another provider's
+80:  * process: the name comes from `PROFILE_ENV_VAR[provider]` and nowhere else.
+81:  */
+82: export function profileEnv(provider: ProviderId, configDir: string | null | undefined): Record<string, string> {
+83:   const name = PROFILE_ENV_VAR[provider];
+84:   const dir = configDir?.trim();
+85:   if (name === null || !dir) return {};
+86:   return { [name]: dir };
+87: }
+88: 
+89: /**
+90:  * Does `entries` look like a config dir this provider actually wrote?
+91:  *
+92:  * ADVISORY, never a gate. The honest first-run flow for a second account is *add the profile →
+
+packages/cezar/src/server/server.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/server/server.ts
+4258:     .post('/runs/:id/cancel', (c) => {
+4259:       const { store, manager } = c.get('project');
+4260:       const id = c.req.param('id');
+4261:       if (!store.getRun(id)) return c.json({ error: 'not found' }, 404);
+4262:       const cancelled = manager.cancel(id);
+4263:       return c.json({ cancelled });
+4264:     })
+4265: 
+5266:   // ---- chained family: SSE streams (project-scoped) ----
+5267:   const sseRoutes = new Hono<ProjectApiEnv>()
+5268:     .get(
+5269:       '/runs/:id/events',
+5270:       paramZodValidator(runIdParamSchema),
+5271:       queryZodValidator(runEventsQuerySchema),
+5272:       async (c) => {
+5273:       const { store, dataDir } = c.get('project');
+5293:         let maxSeq = requestedAfter;
+5294:         const buffered: RunEvent[] = [];
+5295:         // One endpoint, two SSE event names: v1 lines stay `run-event` (the name
+5296:         // the legacy UI listened to — its default branch JSON-dumped unknown
+5297:         // types into the transcript, which is why v2 never rode that name; the
+5298:         // split outlives the R7 retirement as wire shape); protocol-v2 lines
+5299:         // (dotted types, persisted snapshots AND ephemeral coalesced deltas)
+5300:         // ride `ui-event`, which only v2-aware clients subscribe to.
+5301:         // EventSource ignores names it has no listener for.
+5302:         const writeEvent = (event: RunEvent) =>
+5303:           stream.writeSSE({
+5304:             id: String(event.seq),
+5305:             event: isV2WireEventType(event.type) ? 'ui-event' : 'run-event',
+5306:             data: JSON.stringify(event),
+5307:           });
+5308:         const onEvent = (payload: { runId: string; event: RunEvent }) => {
+5309:           if (payload.runId !== id) return;
+
+packages/cezar/src/dispatch/task-cli.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/cezar/src/dispatch/task-cli.ts
+1: /**
+2:  * `cez task …` — the CLI a running agent uses to dispatch other tasks and to report
+3:  * (spec `.ai/specs/2026-09-10-dispatch.md`).
+4:  *
+5:  * It is a thin HTTP client over the dispatch family, addressed by three variables the engine puts
+6:  * in every agent's environment while dispatch is on (the default; `CEZ_DISPATCH=0` turns it off): `CEZ_API_URL` (the cockpit), `CEZ_PROJECT_ID`
+7:  * (which project the run belongs to) and `CEZ_TASK_ID` (the run itself). A human at a shell can
+8:  * set the same three and use it too. No server, no dispatch: the command says so and exits 2.
+9:  */
+10: import { parseArgs } from 'node:util';
+11: 
+25: 
+26:   cez task create "<objective>" [--title "…"] [--kind implement|review] [--review-of <branch|run>]
+27:                   [--scope "…"] [--budget <usd>] [--success "…"] [--evidence "…"] [--tools A,B]
+28:                   [--runner claude|codex|opencode] [--model <model>] [--retry-limit <0-3>]
+29:   cez task report --status done|partial|failed|blocked --result "…" [--evidence "…"]…
+30:                   [--verdict approve|changes|reject] [--suggestions "…"]… [--confidence <0-1>]
+31:                   [--side-effect "…"]… [--error "…"]… [--next "…"]
+32:   cez task list                       the tree this task belongs to, with status and cost
+33:   cez task tree <run id>              the tree rooted at (or containing) another run`;
+34: 
+35: function base(env: TaskCliEnv): { url: string; scope: string } | null {
+36:   const url = env.CEZ_API_URL?.replace(/\/+$/, '');
+92:             success: { type: 'string' },
+93:             evidence: { type: 'string' },
+94:             tools: { type: 'string' },
+95:             runner: { type: 'string' },
+96:             model: { type: 'string' },
+97:             'retry-limit': { type: 'string' },
+98:           },
+99:         });
+100:         const objective = positionals.join(' ').trim();
+101:         if (!objective) throw new Error('an objective is required: cez task create "<objective>"');
+102:         if (!env.CEZ_TASK_ID) throw new Error('CEZ_TASK_ID is not set — only a running task can dispatch');
+103:         const body = {
+104:           objective,
+105:           ...(values.title ? { title: values.title } : {}),
+106:           ...(values.kind ? { kind: values.kind } : {}),
+107:           ...(values['review-of']?.length ? { review_of: values['review-of'] } : {}),
+108:           ...(values.scope ? { scope: values.scope } : {}),
+109:           ...(values.budget !== undefined ? { max_cost: number(values.budget, 'budget') } : {}),
+110:           ...(values.success ? { success_criteria: values.success } : {}),
+111:           ...(values.evidence ? { required_evidence: values.evidence } : {}),
+112:           ...(values.tools ? { allowed_tools: values.tools.split(',').map((tool) => tool.trim()).filter(Boolean) } : {}),
+113:           ...(values.runner ? { runner: values.runner } : {}),
+114:           ...(values.model ? { model: values.model } : {}),
+115:           ...(values['retry-limit'] !== undefined ? { retry_limit: number(values['retry-limit'], 'retry-limit') } : {}),
+116:         };
+117:         const response = await io.fetch(`${api.scope}/runs/${encodeURIComponent(env.CEZ_TASK_ID)}/dispatch`, {
+118:           method: 'POST',
+119:           headers: { 'content-type': 'application/json' },
+120:           body: JSON.stringify(body),
+121:         });
+122:         if (!response.ok) throw new Error(`dispatch refused — ${await readError(response)}`);
+123:         const created = (await response.json()) as { id: string; branch?: string };
+124:         io.log(`dispatched ${created.id}${created.branch ? ` on branch ${created.branch}` : ''}`);
+125:         io.log('It reports into this session when it settles. End your turn with CEZ:MONITORING to wait for it.');
+126:         return 0;
+127:       }
+128:       case 'report': {
+129:         const { values } = parseArgs({
+130:           args: rest,
+131:           allowPositionals: false,
+132:           options: {
+133:             status: { type: 'string' },
+134:             result: { type: 'string' },
+135:             evidence: { type: 'string', multiple: true },
+136:             verdict: { type: 'string' },
+
+packages/contract/src/dispatch.ts
+https://github.com/open-mercato/cezar/blob/1b13522dd3642a4ea8331629b3680838164d2a2e/packages/contract/src/dispatch.ts
+113:  * `POST /runs/:id/dispatch` — the task order for ONE child. `.strict()`: an unknown key here is a
+114:  * brake that did not fire (a misspelled `max_cost` would spawn an uncapped child).
+115:  */
+116: export const dispatchInputSchema = z
+117:   .object({
+118:     title: z.string().min(1).max(120).optional(),
+119:     objective: z.string().min(1).max(4000),
+120:     kind: dispatchKindSchema.optional(),
+121:     review_of: z.array(z.string().max(120)).max(8).optional(),
+122:     scope: z.string().max(1000).optional(),
+123:     allowed_tools: z.array(z.string().max(80)).max(16).optional(),
+124:     max_cost: z.number().positive().optional(),
+125:     success_criteria: z.string().max(1000).optional(),
+126:     required_evidence: z.string().max(1000).optional(),
+127:     retry_limit: z.number().int().min(0).max(3).optional(),
+128:     /** The child's backend and model. Absent = the parent's. */
+129:     runner: runnerSchema.optional(),
+130:     model: z.string().max(200).optional(),
+131:   })
+132:   .strict();
+133: export type DispatchInput = z.infer<typeof dispatchInputSchema>;
+134: 
+135: /** `POST /runs/:id/dispatch` → the child's id and branch (the branch is what the parent merges). */
+136: export const dispatchResponseSchema = z.object({
+137:   id: z.string(),
+138:   branch: z.string().optional(),

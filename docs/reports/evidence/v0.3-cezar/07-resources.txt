@@ -1,0 +1,13 @@
+2026-10-04T08:49:44.618+00:00
+02-claude 実行中。RSS の単位は KiB。
+$ ps -p 255814,256859,256880 -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 255814    1274 129200      03:48 MainThread
+ 256859  255814 266040      00:02 claude
+ 256880  255814 287192      00:02 claude
+
+採取時の役割 (06-ps-claude.txt の引数から):
+255814: cezar 本体 129200 KiB
+256859: 製品のタイトル生成用 claude --model haiku 266040 KiB
+256880: T2 タスク用 claude 287192 KiB
+RSS 合計 682432 KiB = 666.4375 MiB。共有ページの重複を含む単時点の合計で、ピーク計測ではない。

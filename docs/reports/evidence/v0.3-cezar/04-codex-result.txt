@@ -1,0 +1,33 @@
+2026-10-04T08:55:04.417+00:00
+Run: {"id": "afd2f2fb-7b22-416b-bdd5-7127a6f450f5", "runner": "codex", "status": "done", "steps": [{"id": "task", "name": "Do the task", "kind": "agent", "status": "done", "iterations": 1, "tokensUsed": 111076, "startedAt": "2026-10-04T08:50:45.491Z", "sessionId": "01a1061b-c4d8-7850-ad0c-141b37a62702", "backend": "codex", "profileId": "default", "usageInvocationEpoch": 1, "usageInvocationsStarted": 1, "usageTurnsStarted": 1, "usageInvocationsObserved": 1, "inputTokens": 19265, "outputTokens": 69, "usageTurnsRecorded": 1, "finishedAt": "2026-10-04T08:51:26.908Z"}], "branch": "cez/afd2f2fb", "worktreePath": "/home/user/v03/work/cezar/scratch/.ai/cezar/worktrees/afd2f2fb-7b22-416b-bdd5-7127a6f450f5", "createdAt": "2026-10-04T08:50:45.418Z", "startedAt": "2026-10-04T08:50:45.436Z", "finishedAt": "2026-10-04T08:51:26.942Z"}
+$ git -C /home/user/v03/work/cezar/scratch/.ai/cezar/worktrees/afd2f2fb-7b22-416b-bdd5-7127a6f450f5 diff main
+diff --git a/README.md b/README.md
+index af0f694..8f90128 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` → `Hello, 太郎!`
+diff --git a/hello.py b/hello.py
+index 11b15b1..c1db390 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,6 @@
+-print("hello")
++def greet(name):
++    print(f"Hello, {name}!")
++
++
++if __name__ == "__main__":
++    print("hello")
+
+$ git -C /home/user/v03/work/cezar/scratch/.ai/cezar/worktrees/afd2f2fb-7b22-416b-bdd5-7127a6f450f5 status --short
+
+$ git -C /home/user/v03/work/cezar/scratch diff
+
+(製品が分けた task worktree の差分は上記。)
+
+追加の動作確認 (作業終了後):
+$ python3 -B -c 'from hello import greet; greet("太郎")'
+Hello, 太郎!
+exit=0

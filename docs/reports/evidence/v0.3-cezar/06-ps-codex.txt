@@ -1,0 +1,9 @@
+2026-10-04T08:50:49.062+00:00
+$ ps -eo pid,ppid,etime,args --forest -ww
+cezar の親と子孫だけを抽出。他サービスは省略。
+    PID    PPID     ELAPSED COMMAND
+   1274       1 77-09:10:13 /usr/lib/systemd/systemd --user --deserialize=8
+ 255814    1274       04:53  \_ /home/user/.local/bin/node /home/user/v03/cezar/node_modules/@open-mercato/cezar/dist/index.js serve --repo /home/user/v03/work/cezar/scratch --port 5103 --bind-host 127.0.0.1 --no-open
+ 257371  255814       00:03      \_ /home/user/.local/bin/claude --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --permission-mode dontAsk --append-system-prompt You are a task-naming assistant for an AI coding agent cockpit. Respond with ONLY a JSON object: {"title": string, "pr"?: number, "issue"?: number}. Rules: "title" is a terse lowercase gerund phrase naming the task INTENT (e.g. "implementing cr fixes", "verifying pr ui"), at most 40 characters, no trailing period, and NEVER a restatement of an assistant reply. When the task is about a GitHub pull request or issue, set "pr" or "issue" to that number and do NOT repeat the number inside the title text. Never invent a number that is not in the task. --model haiku
+ 257393  255814       00:03      \_ /home/user/.local/bin/codex app-server
+ 257516  257393       00:03          \_ /home/user/v03/cccc/bin/cccc mcp

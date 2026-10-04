@@ -1,0 +1,38 @@
+完了条件の点検 (2026-10-04 JST)
+- 共通指示・個別指示を読み、作業前の create_goal と作業中の get_goal を実行。
+- main=58fb05f9871dfa8f58bf94358bb064219f9b3785 から v0.3/setup-cezar を作成。
+- 提出対象は docs/reports/v0.3-cezar-codex.md と evidence/v0.3-cezar/ のみ。
+- 報告の7節の順序、T1〜T9各3項目、参照した証拠ファイルの存在を機械確認。
+- T1 導入/起動/HTTP=200、T2/T4 done と全差分、T3/T5 cancelled と停止後のPID消失を確認。
+- T6 実行中の親子関係/引数、T7 実行中のRSSを保存。
+- T8 URL とログイン手順、Tailscale Serve 19103 の人のコマンドを記載。別端末到達は未実施として明記。
+- T9 双方向で親子done、子の出力時刻が子の終了より前であることを確認 (下記)。
+- T2のみ採取器の失敗で2回。T1/T3/T4/T5 と T9各方向は1回。scratch初期commitはidentity未設定を直して2回。
+- stream 証拠の JSON 875件を parse できた。初回T2以外に採取エラーなし。
+- 秘密値の代表的な形 (API key/JWT/private key/Bearer) の全文検査は0件。認証ファイルの内容を用いた照合はしていない。
+- 製品ソースの git status --porcelain は空。変更は user unit と製品設定・試用データだけ。
+- 最終 unit は inactive、MainPID=0、5103待ち受けなし。OpenObserve / otel-collector は起動継続。
+- 全worktreeと導入物は保存。Tailscale Serve の設定は行っていない。
+- 報告書と採取用Pythonの git diff --check を実施する。生の端末出力・git diff証拠の空白は原文どおり保存する。
+コミットと push の結果は、この報告を含む Git のコミットと origin/v0.3/setup-cezar の一致で確認する。
+
+T9 時刻照合:
+[
+  {
+    "child": "2cb5982e-b3c5-436e-92b6-cc50b389fc52",
+    "firstOutput": "2026-10-04T08:53:23.935Z",
+    "finishedAt": "2026-10-04T08:53:43.123Z",
+    "allDone": true
+  },
+  {
+    "child": "07c0e584-0c11-4812-bb64-3bb059d5e774",
+    "firstOutput": "2026-10-04T08:54:37.072Z",
+    "finishedAt": "2026-10-04T08:55:44.900Z",
+    "allDone": true
+  }
+]
+
+最後の systemctl show:
+MainPID=0
+ActiveState=inactive
+SubState=dead

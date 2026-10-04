@@ -1,0 +1,59 @@
+2026-10-04T08:47:02.019260+00:00
+$ systemctl --user status v03-cezar.service --no-pager
+● v03-cezar.service - PDA v0.3 cezar trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-cezar.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 17:45:55 JST; 1min 6s ago
+   Main PID: 255814 (MainThread)
+      Tasks: 11 (limit: 15004)
+     Memory: 103.6M (peak: 118.0M)
+        CPU: 787ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-cezar.service
+             └─255814 /home/user/.local/bin/node /home/user/v03/cezar/node_modules/@open-mercato/cezar/dist/index.js serve --repo /home/user/v03/work/cezar/scratch --port 5103 --bind-host 127.0.0.1 --no-open
+
+Oct 04 17:45:56 agent-node node[255814]:   ✓ claude 2.1.274 (Claude Code)
+Oct 04 17:45:56 agent-node node[255814]:   ✓ codex  codex-cli 0.156.1
+Oct 04 17:45:56 agent-node node[255814]:   ✗ opencode optional: install OpenCode (https://opencode.ai) and configure a provider to use the OpenCode runner
+Oct 04 17:45:56 agent-node node[255814]:   ✗ cursor optional: install the Cursor CLI (curl https://cursor.com/install -fsS | bash) and run `agent login`
+Oct 04 17:45:56 agent-node node[255814]:   ✗ pi     optional: install the pi CLI and log in to use the pi runner
+Oct 04 17:45:56 agent-node node[255814]:   ✗ junie  optional: install Junie (https://junie.jetbrains.com/cli) and log in to use the Junie runner
+Oct 04 17:45:56 agent-node node[255814]:   ✗ copilot optional: install GitHub Copilot CLI (`npm i -g @github/copilot`) and run `copilot login` to use the copilot runner
+Oct 04 17:45:56 agent-node node[255814]:   ✗ gh     install the GitHub CLI and run `gh auth login` (only needed for PR creation)
+Oct 04 17:45:56 agent-node node[255814]:   ✓ git    git version 2.43.0
+Oct 04 17:45:56 agent-node node[255814]:   cockpit → http://localhost:5103
+
+exit=0
+
+$ systemctl --user cat v03-cezar.service
+# /home/user/.config/systemd/user/v03-cezar.service
+[Unit]
+Description=PDA v0.3 cezar trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/cezar/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/cezar/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+Environment=CEZ_HOME=/home/user/v03/cezar/state
+Environment=XDG_CACHE_HOME=/home/user/v03/cezar/cache
+Environment=CEZ_CLAUDE_BIN=/home/user/.local/bin/claude
+Environment=CEZ_CODEX_BIN=/home/user/.local/bin/codex
+Environment=CEZ_AGENT_MODELS_LOCKED=1
+Environment=CEZ_REMOTE=1
+Environment=CEZ_SINGLE_PROJECT=1
+Environment=CEZ_BROWSE_ROOT=/home/user/v03/work/cezar
+Environment=CEZ_SKILLS_AUTO_UPDATE=0
+Environment=CEZ_UPDATE_CHANNEL=development
+Environment=CEZ_NO_BANNER=1
+UnsetEnvironment=CODEX_HOME ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN OPENAI_API_KEY
+ExecStart=/home/user/.local/bin/node /home/user/v03/cezar/node_modules/@open-mercato/cezar/dist/index.js serve --repo /home/user/v03/work/cezar/scratch --port 5103 --bind-host 127.0.0.1 --no-open
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillMode=control-group
+
+[Install]
+WantedBy=default.target
+
+exit=0

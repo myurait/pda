@@ -1,0 +1,37 @@
+2026-10-04 JST / T1
+開始前: systemctl --user list-units 'v03-*.service' --all は全て inactive/dead。
+ss -ltnp に 5103 の待ち受けなし。既存サービス・ポートは変更していない。
+PDA main: 58fb05f9871dfa8f58bf94358bb064219f9b3785
+$ git switch -c v0.3/setup-cezar main
+成功。
+$ npm view cezar-cli version dist.tarball gitHead --json
+version=0.14.0 gitHead=1b13522dd3642a4ea8331629b3680838164d2a2e
+$ git clone --depth 1 --branch v0.14.0 https://github.com/open-mercato/cezar.git /home/user/v03/cezar/source
+成功。commit=1b13522dd3642a4ea8331629b3680838164d2a2e
+$ npm install --prefix /home/user/v03/cezar --save-exact @open-mercato/cezar@0.14.0
+added 16 packages in 2s / exit=0 / 導入1回。
+Node=v24.18.0 npm=11.16.0 Python=3.12.3 tmux=3.4
+既存CLI: /home/user/.local/bin/claude = 2.1.274 (Claude Code)
+既存CLI: /home/user/.local/bin/codex = codex-cli 0.156.1
+製品同梱の Claude Code / Codex はない。npm ls と package.json で確認。
+公式 Ubuntu VPS wizard は nginx / htpasswd / 任意の certbot 等で root を要する。
+指示に従い wizard は実行せず、既存 Node と user unit で起動した。sudo/apt は実行していない。
+設定: scratch/.ai/cezar/config.json = {"skillsRepos": [], "worktreeRetention": 0, "baseBranch": "main"}
+(外部skillを足さず、試用のworktreeを保存する。)
+$ systemctl --user daemon-reload
+$ systemctl --user enable --now v03-cezar.service
+成功。最初の起動で active/running、再試行なし。
+
+依存関係の確認:
+cezar@ /home/user/v03/cezar
+└─┬ @open-mercato/cezar@0.14.0
+  ├── @clack/prompts@0.11.0
+  ├── @hono/node-server@1.19.17
+  ├── dotenv@16.6.1
+  ├── hono@4.13.13
+  ├── proper-lockfile@4.1.2
+  ├── smol-toml@1.9.0
+  ├── ws@8.22.0
+  ├── yaml@2.9.1
+  └── zod@4.6.5
+

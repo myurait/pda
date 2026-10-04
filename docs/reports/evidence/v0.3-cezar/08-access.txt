@@ -1,0 +1,10 @@
+2026-10-04T08:52:59.662+00:00
+$ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:5103/
+200
+$ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:5103/tasks
+200
+$ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:5103/tasks/ee1356dc-d174-4d9c-a694-2f7ce4ac76af
+200
+$ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:5103/tasks/afd2f2fb-7b22-416b-bdd5-7127a6f450f5/changes
+200
+認証情報を付けないリクエスト。cezar 自体に画面ログインはない。開発 PC からの到達、SSH 転送、Tailscale Serve はこの走行では行わない。

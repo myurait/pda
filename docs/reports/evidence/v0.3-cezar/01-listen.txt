@@ -1,0 +1,11 @@
+2026-10-04T08:47:02.019260+00:00
+$ ss -ltnp (5103 の行)
+LISTEN 0      511        127.0.0.1:5103       0.0.0.0:*    users:(("MainThread",pid=255814,fd=27)) 
+$ curl -sS -o /dev/null -w %{http_code}
+ http://127.0.0.1:5103/
+200
+
+exit=0
+$ curl -sS http://127.0.0.1:5103/api/v1/health
+{"version":"0.14.0","repoRoot":"scratch","repo":{"root":"/home/user/v03/work/cezar/scratch","branch":"main"},"checks":[{"name":"claude","available":true,"version":"2.1.274 (Claude Code)","hint":"if not authenticated, run `claude` once and log in"},{"name":"codex","available":true,"version":"codex-cli 0.156.1","hint":"if not authenticated, run `codex` once and log in"},{"name":"opencode","available":false,"hint":"optional: install OpenCode (https://opencode.ai) and configure a provider to use the OpenCode runner"},{"name":"cursor","available":false,"hint":"optional: install the Cursor CLI (curl https://cursor.com/install -fsS | bash) and run `agent login`"},{"name":"pi","available":false,"hint":"optional: install the pi CLI and log in to use the pi runner"},{"name":"junie","available":false,"hint":"optional: install Junie (https://junie.jetbrains.com/cli) and log in to use the Junie runner"},{"name":"copilot","available":false,"hint":"optional: install GitHub Copilot CLI (`npm i -g @github/copilot`) and run `copilot login` to use the copilot runner"},{"name":"gh","available":false,"hint":"install the GitHub CLI and run `gh auth login` (only needed for PR creation)"},{"name":"git","available":true,"version":"git version 2.43.0"}],"defaultRunner":"claude","forge":null,"capabilities":{"localHandoff":false,"followups":false,"singleProject":true,"automations":true,"dispatch":true,"tokenMetrics":true,"tokenUsageMetrics":true,"costMetrics":true},"projects":[{"id":"scratch","name":"scratch"}],"bootProject":"scratch"}
+exit=0

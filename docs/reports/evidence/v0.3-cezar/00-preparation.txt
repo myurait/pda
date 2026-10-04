@@ -1,0 +1,19 @@
+2026-10-04 JST
+読み物: 個別指示、共通指示、docs/plan-v0.3.md の要件・標準シナリオ・セットアップ規律、cezar v0.14.0 の README、docs/reference.md、docs/server-install/ubuntu-vps.md。
+他製品の docs/reports/ と docs/research/ は読んでいない。
+$ git init -b main /home/user/v03/work/cezar/scratch
+README.md = # scratch\n
+hello.py = print("hello")\n
+最初の git commit は Author identity unknown で失敗 (1回)。当該 scratch だけに git config user.name Codex / user.email codex@localhost を設定し、再試行で成功 (2回目)。
+初期コミット=4d5bbfa。PDA/製品のリポジトリはエージェントの作業場所にしていない。
+共通の起動環境:
+  env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+別の tmux socket cezar-trial を作り、scratch を cwd に以下の CLI を起動。
+Claude 2.1.274: Accessing workspace: /home/user/v03/work/cezar/scratch。既定 No, exit から Down → Enter で Yes, I trust this folder を選択。Sonnet 5 / Claude Pro の入力画面へ遷移。/exit で終了。タスク送信なし。
+Codex 0.156.1: Folder access / Trust this folder? に Enter で Trust and continue を選択。入力画面へ遷移。タスク送信なし。
+CLI の設定ファイルは手動で読み書きしていない。CLI 自身に信頼設定を保存させた。
+既存 symlink は ls -ld のメタデータだけ確認:
+/home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+/home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+秘密ディレクトリ・認証ファイルの内容は読み取り、表示、転記していない。
+Codex 終了: /exit が入力欄に残ったため Ctrl-C を2回送って終了。信頼確認以外の依頼なし。
