@@ -1,0 +1,35 @@
+2026-10-04T08:25:27.159+00:00 $ ps -eo pid,ppid,etime,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED COMMAND
+ 249123    1274       05:00  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       04:59  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       05:00  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       04:59      \_ /bin/bash
+ 249556  249126       03:19      |   \_ claude
+ 250229  249125       00:12      \_ /bin/bash
+ 250233  250229       00:12          \_ codex --sandbox workspace-write --ask-for-approval never
+ 250360  250233       00:11              \_ /home/user/v03/cccc/bin/cccc mcp
+2026-10-04T08:25:44.206+00:00 $ ps -eo pid,ppid,etime,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED COMMAND
+ 249123    1274       05:17  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       05:16  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       05:17  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       05:17      \_ /bin/bash
+ 249556  249126       03:36      |   \_ claude
+ 250229  249125       00:29      \_ /bin/bash
+ 250233  250229       00:29          \_ codex --sandbox workspace-write --ask-for-approval never
+ 250360  250233       00:28              \_ /home/user/v03/cccc/bin/cccc mcp
+ 250506  250233       00:07              \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+2026-10-04T08:39:10.004+00:00 T4 追試中。unit 再開時の製品標準 resume により再開された Codex。
+2026-10-04T08:39:10.023+00:00 $ ps -eo pid,ppid,etime,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED COMMAND
+ 253503    1274       00:23  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 253552  253503       00:23  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 253505    1274       00:23  \_ /home/user/v03/luvus/luvus --session default server
+ 253509  253505       00:23      \_ /bin/bash
+ 253522  253509       00:23      |   \_ claude --resume 55f5b967-e172-4d56-8b5f-04b3d8d9d06a
+ 253510  253505       00:23      \_ /bin/bash
+ 253523  253510       00:23          \_ codex resume 01a1060c-a36f-7101-bfa6-c336f095b218
+ 253699  253523       00:22              \_ /home/user/v03/cccc/bin/cccc mcp

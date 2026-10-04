@@ -1,0 +1,16 @@
+2026-10-04T08:23:40.877+00:00 $ ps -eo pid,ppid,etime,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED COMMAND
+ 249123    1274       03:13  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       03:13  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       03:13  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       03:13      \_ /bin/bash
+ 249556  249126       01:33          \_ claude
+2026-10-04T08:24:07.076+00:00 $ ps -eo pid,ppid,etime,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED COMMAND
+ 249123    1274       03:39  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       03:39  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       03:39  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       03:39      \_ /bin/bash
+ 249556  249126       01:59          \_ claude

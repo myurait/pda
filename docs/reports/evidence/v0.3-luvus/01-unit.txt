@@ -1,0 +1,57 @@
+2026-10-04T08:21:14.393701+00:00
+● v03-luvus.service - PDA v0.3 Luvus trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-luvus.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 17:20:27 JST; 47s ago
+   Main PID: 249123 (luvus)
+      Tasks: 12 (limit: 15004)
+     Memory: 3.3M (peak: 7.1M)
+        CPU: 90ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-luvus.service
+             ├─249123 /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+             ├─249125 /home/user/v03/luvus/luvus --session default server
+             ├─249126 /bin/bash
+             └─249161 /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+
+Oct 04 17:20:27 agent-node systemd[1274]: Started v03-luvus.service - PDA v0.3 Luvus trial.
+
+[Unit]
+Description=PDA v0.3 Luvus trial
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/luvus/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=LUVUS_HOME=/home/user/v03/luvus/state
+Environment=PATH=/home/user/.local/bin:/home/user/v03/luvus:/usr/local/bin:/usr/bin:/bin
+Environment=TERM=xterm-256color
+UnsetEnvironment=CODEX_HOME LUVUS_SOCKET_PATH LUVUS_SESSION
+ExecStart=/home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ExecStop=/home/user/v03/luvus/luvus server stop
+KillMode=control-group
+TimeoutStopSec=20
+UMask=0077
+StandardOutput=append:/home/user/v03/luvus/web-console.log
+StandardError=append:/home/user/v03/luvus/web-console.log
+
+[Install]
+WantedBy=default.target
+2026-10-04T08:37:06.072+00:00 追加確認: Web 操作再試行のための再起動後
+● v03-luvus.service - PDA v0.3 Luvus trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-luvus.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 17:36:06 JST; 59s ago
+   Main PID: 252868 (luvus)
+      Tasks: 82 (limit: 15004)
+     Memory: 466.1M (peak: 588.3M)
+        CPU: 5.083s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-luvus.service
+             ├─252868 /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+             ├─252871 /home/user/v03/luvus/luvus --session default server
+             ├─252875 /bin/bash
+             ├─252876 /bin/bash
+             ├─252888 codex resume 01a1060c-a36f-7101-bfa6-c336f095b218
+             ├─252889 claude --resume 55f5b967-e172-4d56-8b5f-04b3d8d9d06a
+             ├─252917 /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+             └─253097 /home/user/v03/cccc/bin/cccc mcp
+
+Oct 04 17:36:06 agent-node systemd[1274]: Started v03-luvus.service - PDA v0.3 Luvus trial.

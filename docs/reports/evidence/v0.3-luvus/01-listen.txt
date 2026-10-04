@@ -1,0 +1,8 @@
+2026-10-04T08:21:14.402143+00:00
+起動直後23msの初回 curl は listener 準備前: curl (7) Failed to connect / HTTP 000。
+原因: systemd start 完了は HTTP readiness を保証しない。23秒後に1回再試行して成功。unit の再起動はしていない。
+ss -ltnp '( sport = :5111 )':
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:5111      0.0.0.0:*    users:(("luvus",pid=249123,fd=9))
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5111/
+200

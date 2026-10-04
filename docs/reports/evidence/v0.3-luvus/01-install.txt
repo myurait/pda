@@ -1,0 +1,16 @@
+2026-10-04T08:20:11.803758+00:00 UTC
+製品: https://github.com/RizRiyz/luvus
+固定版: v0.14.3 (GitHub release published_at=2026-09-30T14:38:11Z)
+場所: /home/user/v03/luvus
+curl -fL https://github.com/RizRiyz/luvus/releases/download/v0.14.3/luvus-v0.14.3-x86_64-unknown-linux-musl.tar.gz -o luvus-v0.14.3-x86_64-unknown-linux-musl.tar.gz
+sha256sum -c: 1d96580525f23b21143c05850dbd9a1b4fe95e66d7e173dc27aab6caf9b676bf => OK
+tar -xzf luvus-v0.14.3-x86_64-unknown-linux-musl.tar.gz => luvus の1ファイル。
+git clone --depth 1 --branch v0.14.3 https://github.com/RizRiyz/luvus.git source
+commit: 54003ce9568acb2977e4bbdbb30a61f99faa0465
+./luvus --version => luvus 0.14.3
+導入は1回で成功。sudo、apt、ビルド不要。配布物に Claude/Codex 実行ファイルなし。
+一次資料: README.md、website/src/content/docs/docs/getting-started/installation.mdx、guides/web.mdx、guides/agent-messaging.mdx、explanation/security.mdx、reference/cli.mdx。
+公式 Web: https://luvus.dev/docs/guides/web/ と https://luvus.dev/docs/guides/agent-messaging/
+公式 GitHub API の latest 取得は curl で成功 (web 閲覧ツールでは Internal Error)。
+systemctl --user daemon-reload; systemctl --user enable --now v03-luvus.service => 成功。unit は enabled。LUVUS_HOME=/home/user/v03/luvus/state で製品状態を分離。標準出力は製品の私有 web-console.log (0600) に置き、一回限りのペアリング値は証拠に収集しない。
+2026-10-04T08:40:00.777+00:00 採取補助: npm install --prefix /home/user/v03/luvus/harness --no-audit --no-fund ws => ws 8.22.0。Python 標準 socket で UHP を記録し、Node + ws で WebSocket ペアリングを検証。製品コードとは別の採取用スクリプト。

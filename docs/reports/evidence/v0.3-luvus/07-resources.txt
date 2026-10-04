@@ -1,0 +1,43 @@
+2026-10-04T08:23:40.895+00:00 $ ps -eo pid,ppid,etime,rss,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED   RSS COMMAND
+ 249123    1274       03:13  8252  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       03:13  6176  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       03:13 11232  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       03:13  4484      \_ /bin/bash
+ 249556  249126       01:33 261584          \_ claude
+2026-10-04T08:23:40.895+00:00 RSS sum (KiB)=291728; shared pages can be counted more than once
+2026-10-04T08:24:07.093+00:00 $ ps -eo pid,ppid,etime,rss,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED   RSS COMMAND
+ 249123    1274       03:39  8252  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       03:39  6176  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       03:39 11412  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       03:39  4484      \_ /bin/bash
+ 249556  249126       01:59 335576          \_ claude
+2026-10-04T08:24:07.093+00:00 RSS sum (KiB)=365900; shared pages can be counted more than once
+2026-10-04T08:25:27.177+00:00 $ ps -eo pid,ppid,etime,rss,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED   RSS COMMAND
+ 249123    1274       05:00  8252  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       04:59  6176  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       05:00 11768  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       05:00  4484      \_ /bin/bash
+ 249556  249126       03:19 273060      |   \_ claude
+ 250229  249125       00:12  4456      \_ /bin/bash
+ 250233  250229       00:12 330512          \_ codex --sandbox workspace-write --ask-for-approval never
+ 250360  250233       00:11 19300              \_ /home/user/v03/cccc/bin/cccc mcp
+2026-10-04T08:25:27.177+00:00 RSS sum (KiB)=658008; shared pages can be counted more than once
+2026-10-04T08:25:44.224+00:00 $ ps -eo pid,ppid,etime,rss,args --forest
+Only v03-luvus.service cgroup PIDs are retained.
+    PID    PPID     ELAPSED   RSS COMMAND
+ 249123    1274       05:17  8252  \_ /home/user/v03/luvus/luvus web --control --port 5111 --no-open
+ 249161  249123       05:17  6176  |   \_ /home/user/v03/luvus/luvus --session default uhp access --control --no-expiry
+ 249125    1274       05:17 11800  \_ /home/user/v03/luvus/luvus --session default server
+ 249126  249125       05:17  4484      \_ /bin/bash
+ 249556  249126       03:36 274112      |   \_ claude
+ 250229  249125       00:29  4456      \_ /bin/bash
+ 250233  250229       00:29 280796          \_ codex --sandbox workspace-write --ask-for-approval never
+ 250360  250233       00:28 19300              \_ /home/user/v03/cccc/bin/cccc mcp
+ 250506  250233       00:07 23196              \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+2026-10-04T08:25:44.224+00:00 RSS sum (KiB)=632572; shared pages can be counted more than once

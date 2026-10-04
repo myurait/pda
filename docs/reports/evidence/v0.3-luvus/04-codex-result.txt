@@ -1,0 +1,41 @@
+2026-10-04T08:26:25.665+00:00 $ git diff -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..7c7ba14 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` で `Hello, 太郎!` と表示します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..c1db390 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,6 @@
+-print("hello")
++def greet(name):
++    print(f"Hello, {name}!")
++
++
++if __name__ == "__main__":
++    print("hello")
+
+2026-10-04T08:40:00.777+00:00 再試行1回の git diff
+diff --git a/README.md b/README.md
+index af0f694..7c7ba14 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` で `Hello, 太郎!` と表示します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..c1db390 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,6 @@
+-print("hello")
++def greet(name):
++    print(f"Hello, {name}!")
++
++
++if __name__ == "__main__":
++    print("hello")
