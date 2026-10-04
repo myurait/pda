@@ -1,0 +1,46 @@
+2026-10-04T07:20:57.632739+00:00
+$ systemctl --user status v03-openclaw.service --no-pager
+● v03-openclaw.service - PDA v0.3 OpenClaw trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 16:20:09 JST; 48s ago
+   Main PID: 203946 (openclaw-gatewa)
+      Tasks: 59 (limit: 15004)
+     Memory: 1.3G (peak: 1.5G)
+        CPU: 36.069s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-openclaw.service
+             ├─203946 openclaw-gateway
+             ├─204000 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+             ├─204007 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+             └─204355 /home/user/.local/bin/codex app-server --listen stdio://
+
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.064+09:00 [gateway] agent model: openai/gpt-6-astra (thinking=medium, fast=off)
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.064+09:00 [gateway] http server listening (14 plugins: anthropic, browser, canvas, codex, cua-computer, device-pair, file-transfer, geolocation, github, linux-node, memory-core, ollama, talk-voice, xai; 5.4s)
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.065+09:00 [gateway] log file: /tmp/openclaw/openclaw-2026-10-04.log
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.065+09:00 [gateway] native runtime: {"pid":203946,"platform":"linux","arch":"x64","node":"24.18.0","v8":"13.6.233.17-node.50","uv":"1.52.1","openssl":"3.5.7","sqlite":"3.53.1"}
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.066+09:00 [gateway] worker startup state: {"workerCount":3,"workerLifecycle":[{"script":"other","started":1,"retired":[{"reason":"exit","count":1}]},{"script":"sqlite-store.worker.js","started":1,"retired":[]},{"script":"openclaw-state-lease-heartbeat.worker.js","started":1,"retired":[]},{"script":"openclaw-state-read.worker.js","started":1,"retired":[]}],"compute":{"limit":11,"active":0,"waitingPools":0,"pendingTasks":0,"pendingBytes":0}}
+Oct 04 16:20:18 agent-node openclaw[203946]: 2026-10-04T16:20:18.095+09:00 [gateway] starting channels and sidecars...
+Oct 04 16:20:22 agent-node openclaw[203946]: 2026-10-04T16:20:22.074+09:00 [gateway] startup outcomes: internal-hooks=skipped (not-configured); internal-startup-hook=skipped (no-handlers-loaded); gateway-start-hooks=scheduled; gmail-watcher=skipped (hooks-disabled); gmail-model=skipped (not-configured)
+Oct 04 16:20:22 agent-node openclaw[203946]: 2026-10-04T16:20:22.080+09:00 [gateway] ready
+Oct 04 16:20:22 agent-node openclaw[203946]: 2026-10-04T16:20:22.112+09:00 [skill-workshop] scheduled skill collection reviews are disabled because the cron scheduler is disabled; enable cron and restart the gateway
+Oct 04 16:20:22 agent-node openclaw[203946]: 2026-10-04T16:20:22.113+09:00 [heartbeat] disabled
+
+$ cat /home/user/.config/systemd/user/v03-openclaw.service
+[Unit]
+Description=PDA v0.3 OpenClaw trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/openclaw/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=OPENCLAW_STATE_DIR=/home/user/v03/openclaw/state
+Environment=OPENCLAW_CONFIG_PATH=/home/user/v03/openclaw/openclaw.json
+ExecStart=/home/user/v03/openclaw/bin/openclaw gateway run --port 5114 --bind loopback
+Restart=no
+TimeoutStopSec=30
+KillMode=control-group
+
+[Install]
+WantedBy=default.target

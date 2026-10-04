@@ -1,0 +1,14 @@
+2026-10-04T07:28:28.355723+00:00
+Gateway と子プロセスのパス環境変数のみ。秘密値を出力しない。
+{"pid": 203946, "ppid": 1274, "comm": "openclaw-gatewa", "environment": {"HOME": "/home/user/v03/agent-home", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude"}}
+{"pid": 204355, "ppid": 203946, "comm": "codex", "environment": {"HOME": "/home/user/v03/agent-home", "PATH": "/home/user/.nvm/versions/node/v24.18.0/bin:/usr/bin:/bin:/home/user/.local/bin:/usr/local/bin:/home/user/v03/agent-home/.local/bin", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "/home/user/v03/agent-home/.codex"}}
+{"pid": 204970, "ppid": 203946, "comm": "claude", "environment": {"HOME": "/home/user/v03/agent-home", "PATH": "/home/user/.nvm/versions/node/v24.18.0/bin:/usr/bin:/bin:/home/user/.local/bin:/usr/local/bin:/home/user/v03/agent-home/.local/bin", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude"}}
+{"pid": 205967, "ppid": 203946, "comm": "claude", "environment": {"HOME": "/home/user/v03/agent-home", "PATH": "/home/user/.nvm/versions/node/v24.18.0/bin:/usr/bin:/bin:/home/user/.local/bin:/usr/local/bin:/home/user/v03/agent-home/.local/bin", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude"}}
+
+2026-10-04T07:35:29.952443+00:00
+$ find /home/user/v03/openclaw/state -type f (auth.json / auth-profiles.json / .credentials.json / credentials.json) -exec ls -l
+該当ファイルなし。ファイル名の確認のみで、DB 内部や秘密ファイルの内容は調べていない。
+lrwxrwxrwx 1 user user 29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user 28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+-rw------- 1 user user      32 Oct  2 00:12 /home/user/v03/openclaw/state/config-journal-fingerprint.key
+-rw------- 1 user user 4087808 Oct  4 16:32 /home/user/v03/openclaw/state/state/openclaw.sqlite

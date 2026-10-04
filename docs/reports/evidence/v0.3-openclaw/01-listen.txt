@@ -1,0 +1,6 @@
+2026-10-04T07:20:57.640428+00:00
+$ ss -ltnp (5114 または openclaw 行のみ)
+LISTEN 0      511        127.0.0.1:5114       0.0.0.0:*    users:(("openclaw-gatewa",pid=203946,fd=52))
+LISTEN 0      511            [::1]:5114          [::]:*    users:(("openclaw-gatewa",pid=203946,fd=53))
+$ curl -sS -o /dev/null -w "%{http_code}" http://127.0.0.1:5114/
+200

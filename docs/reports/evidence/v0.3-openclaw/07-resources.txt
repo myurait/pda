@@ -1,0 +1,61 @@
+{"utc":"2026-10-04T07:24:13.178Z","elapsedSeconds":1.83,"reason":"after-send"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1140692     04:04 openclaw-gatewa
+ 204000  203946 71380       04:00 MainThread
+ 204007  203946 84980       04:00 MainThread
+ 204355  203946 180812      03:41 codex
+
+{"utc":"2026-10-04T07:24:18.215Z","elapsedSeconds":6.866,"reason":"periodic"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1352892     04:09 openclaw-gatewa
+ 204000  203946 71436       04:05 MainThread
+ 204007  203946 84980       04:05 MainThread
+ 204355  203946 180812      03:46 codex
+ 204970  203946 290528      00:04 claude
+
+{"utc":"2026-10-04T07:24:18.746Z","elapsedSeconds":7.397,"reason":"first-output"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1353568     04:09 openclaw-gatewa
+ 204000  203946 71436       04:06 MainThread
+ 204007  203946 84980       04:05 MainThread
+ 204355  203946 180812      03:46 codex
+ 204970  203946 297040      00:04 claude
+
+{"utc":"2026-10-04T07:24:23.217Z","elapsedSeconds":11.868,"reason":"periodic"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1390568     04:14 openclaw-gatewa
+ 204000  203946 71436       04:10 MainThread
+ 204007  203946 84980       04:10 MainThread
+ 204355  203946 180812      03:51 codex
+ 204970  203946 302980      00:09 claude
+
+{"utc":"2026-10-04T07:24:28.215Z","elapsedSeconds":16.866,"reason":"periodic"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1391588     04:19 openclaw-gatewa
+ 204000  203946 71436       04:15 MainThread
+ 204007  203946 84980       04:15 MainThread
+ 204355  203946 180812      03:56 codex
+ 204970  203946 319108      00:14 claude
+
+{"utc":"2026-10-04T07:24:33.218Z","elapsedSeconds":21.869,"reason":"periodic"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1393124     04:24 openclaw-gatewa
+ 204000  203946 71436       04:20 MainThread
+ 204007  203946 84980       04:20 MainThread
+ 204355  203946 180812      04:01 codex
+ 204970  203946 309176      00:19 claude
+
+{"utc":"2026-10-04T07:24:35.335Z","elapsedSeconds":23.987,"reason":"after-terminal"}
+$ ps -ww -p <Gateway と子孫 PID> -o pid,ppid,rss,etime,comm
+    PID    PPID   RSS     ELAPSED COMMAND
+ 203946    1274 1399692     04:26 openclaw-gatewa
+ 204000  203946 71436       04:22 MainThread
+ 204007  203946 84980       04:22 MainThread
+ 204355  203946 180812      04:03 codex
+ 204970  203946 308920      00:21 claude

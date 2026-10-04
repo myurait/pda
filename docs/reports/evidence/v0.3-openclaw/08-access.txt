@@ -1,0 +1,11 @@
+T8 到達とログインの確認
+2026-10-04T07:29:37.774119+00:00
+Control UI URL: http://127.0.0.1:5114/ (パス /)
+WebSocket: ws://127.0.0.1:5114/
+Gateway 設定: bind=loopback, port=5114, auth.mode=none, tailscale.mode=off。既存設定を再利用。
+API 実測: direct loopback の署名済み device identity で接続成功。protocol=4, auth.method=none、operator read/write/admin を取得。秘密は記録せず。API キー・再ログインの要求なし。
+画面は HTTP GET / を確認。ブラウザの画面操作・別端末からの SSH 転送・Tailscale Serve 公開はこの走行で実施しない。
+同梱公式文書 docs/web/control-ui/connect-and-pair.md による手順: 直接 loopback で auth.mode=none の場合、共有トークン不要。通常のブラウザの device identity を使い初回ローカル pairing を自動承認。SSH ローカル転送で http://127.0.0.1:5114/ を開く。別 origin/remote で pairing required が出た場合はホストで /home/user/v03/openclaw/oc devices list、/home/user/v03/openclaw/oc devices approve <requestId>。画面を開いたまま待つ。
+Tailscale Serve は別途人が実施: /home/user/.local/bin/tailscale-pda serve --bg --https=19114 http://127.0.0.1:5114
+公開 origin の allowedOrigins と pairing が別途必要になる可能性があるため公式 control-ui 文書の設定手順を参照。公開後の接続は未確認。
+公式: https://docs.openclaw.ai/web/control-ui/connect-and-pair

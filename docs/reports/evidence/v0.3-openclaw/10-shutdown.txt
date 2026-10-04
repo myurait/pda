@@ -1,0 +1,55 @@
+2026-10-04T07:34:39.087732+00:00
+$ systemctl --user stop v03-openclaw.service
+exit 0 (2026-10-04T07:32 頃 UTC)
+
+$ systemctl --user status v03-openclaw.service --no-pager
+○ v03-openclaw.service - PDA v0.3 OpenClaw trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.303+09:00 [admission] closed: stop (SIGTERM)
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.303+09:00 [gateway] received SIGTERM; shutting down
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.339+09:00 [gateway] shutdown budget at shutdown: drain=14963ms shutdown=24963ms reserve=10000ms exitMargin=5000ms; source=systemd user v03-openclaw.service TimeoutStopUSec=30000ms
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.341+09:00 [gateway] active-work drain settled; beginning server close
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.369+09:00 [gmail-watcher] gmail watcher stopped
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.579+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=413587 opsServed=10
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.602+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=507232 opsServed=13
+Oct 04 16:32:40 agent-node openclaw[203946]: 2026-10-04T16:32:40.680+09:00 [shutdown] completed cleanly in 335ms
+Oct 04 16:32:41 agent-node systemd[1274]: Stopped v03-openclaw.service - PDA v0.3 OpenClaw trial.
+Oct 04 16:32:41 agent-node systemd[1274]: v03-openclaw.service: Consumed 2min 1.550s CPU time, 2.5G memory peak, 0B memory swap peak.
+exit 3
+
+$ systemctl --user show v03-openclaw.service -p MainPID -p ActiveState -p SubState -p Result
+MainPID=0
+Result=success
+ActiveState=inactive
+SubState=dead
+exit 0
+
+$ systemctl --user list-units --all v03-*.service --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+2 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+exit 0
+
+$ docker ps --format {{.Names}} {{.Status}} {{.Ports}}
+pda-otel-collector-1 Up 11 days 4317-4318/tcp, 55679/tcp
+pda-openobserve-1 Up 11 days 0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+exit 0
+
+$ ss -ltnp (5114 / openclaw の行)
+
+該当行なし。
+
+既知の Gateway と子 PID 生存確認: {203946: False, 204000: False, 204007: False, 204355: False, 204970: False, 205209: False, 205967: False}
+
+scratch cwd を持つアクセス可能な残存 PID: []
+
+採取補助の1回目は /proc/1/cwd の PermissionError で書込前に停止。root の他プロセスは対象外として除外し、この採取を1回再実行。製品停止は初回で成功。

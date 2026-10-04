@@ -1,0 +1,85 @@
+2026-10-04 OpenClaw rerun の採取方法
+
+指示:
+docs/codex-runs/2026-10-04-v0.3-setup-openclaw-rerun.md
+docs/codex-runs/2026-09-28-v0.3-setup-common.md
+docs/codex-runs/2026-09-28-v0.3-setup-openclaw.md
+docs/plan-v0.3.md の4、5.2、5.4節
+
+製品と導入方法:
+既存 OpenClaw 2026.9.7 (c074824) を再利用。
+製品コード・既存設定・既存 unit を変更していない。
+補助スクリプトは /home/user/v03/openclaw/rerun/ に作成。
+製品の処理にラッパー・hook・追加 skill・独自 MCP は挿入していない。
+Node 標準 WebSocket/crypto で製品の公開 API に接続した。
+agent の cwd は /home/user/v03/work/openclaw/scratch。
+
+API:
+ws://127.0.0.1:5114/ の protocol 4。
+device identity は採取プロセス内のメモリで生成。
+既存設定 auth.mode=none の直接 loopback 接続。
+sessions.patch で当該試用セッションの verboseLevel=on。
+sessions.messages.subscribe で agent/chat/session.message を購読。
+chat.send で依頼、chat.abort で中断。
+T9 はモデルが標準 sessions_spawn を呼び、返された childSessionKey を購読。
+T9 で Claude に見える mcp__openclaw__sessions_spawn は製品の標準 bridge。
+acpx は設定で disabled、導入・使用しなかった。
+
+採取ファイル:
+02/03/04/05/09 は JSON Lines。utc はクライアント受信・操作の時刻。
+elapsedSeconds は各採取プロセス開始からの単調時計。
+receive/send は受信/送信フレーム（認証情報だけ伏せる）。
+trial-start、first-output、terminal 等は採取側の注記。
+first-output は T2/T3/T4 では agent assistant/tool または chat delta の最初の一致。
+従って T2/T4 の preamble はこの注記より早く届いている。報告書の最初の文章時刻は生イベントから算出。
+T5/T9 は item.progressText も first-output の判定に含めた。
+02/04-result は各試用直後の git diff。
+06 は ps -ww -eo pid,ppid,etime,args --forest のうち Gateway MainPID と子孫の行。
+07 は同じ PID 集合の RSS（KiB）、約5秒間隔と途中出力受信時。
+08-auth-environment は HOME/CLAUDE_CONFIG_DIR/CODEX_HOME/PATH のみ。
+秘密ファイルは開かず、認証ファイル名の検査と symlink/状態ファイルの ls -l のみ。
+
+実行コマンド（各1回。scratch を cwd とした）:
+node /home/user/v03/openclaw/rerun/trial.mjs claude 1
+node /home/user/v03/openclaw/rerun/trial.mjs stop-claude 1
+node /home/user/v03/openclaw/rerun/trial.mjs codex 1
+node /home/user/v03/openclaw/rerun/trial.mjs stop-codex 1
+node /home/user/v03/openclaw/rerun/trial.mjs handoff-codex 1
+node /home/user/v03/openclaw/rerun/trial.mjs handoff-claude 1
+
+後続試用の前に、直前の差分を保存してから次を実行:
+git -C /home/user/v03/work/openclaw/scratch restore --source=HEAD -- README.md hello.py
+生成された __pycache__ は削除しなかった。
+
+採取補助の不備と対処:
+T9 逆方向で subagents/list の応答内に前方向の完了済み childSessionKey も現れ、
+採取側の広い正規表現がこれを購読・待ち合わせ対象に加えた。
+今回の親子の final は取得済みだった。別接続の chat.history で同じ親子が
+status=done、hasActiveRun=false、activeRunIds=[] であることを確認した後、
+採取プロセス PID 206385 だけを SIGTERM で終了した。タスクは再送していない。
+その確認、最終差分、trial-summary は09に追記した。
+終了採取の最初の補助処理は /proc/1/cwd の PermissionError でファイル書込前に停止。
+権限のない他プロセスを除外して1回再実行した。製品の systemctl stop 自体は初回成功。
+
+製品側の内部で見えたエラー:
+T4 の確認用コマンド1回に python 呼出しが2個あり、command not found が2行。
+Codex は python3 に変更して動作確認し、README の使用例も直した。
+T9 Codex→Claude の最初の確認コマンドは存在しない AGENTS.md で exit 1。
+子の Claude は個別の Read と git 確認で続行した。最終 README の python の例は未修正。
+その他、試用タスクを再送する失敗・導入の再試行はなかった。
+
+閲覧した公式文書（実行版同梱の docs も照合）:
+https://github.com/openclaw/openclaw
+https://docs.openclaw.ai/install
+https://docs.openclaw.ai/platforms/linux
+https://docs.openclaw.ai/gateway/cli-backends
+https://docs.openclaw.ai/plugins/codex-harness
+https://docs.openclaw.ai/plugins/codex-harness-reference/app-server-transport
+https://docs.openclaw.ai/plugins/codex-harness-reference/auth
+https://docs.openclaw.ai/gateway/protocol/handshake
+https://docs.openclaw.ai/gateway/protocol/auth
+https://docs.openclaw.ai/gateway/protocol/rpc-session-control
+https://docs.openclaw.ai/gateway/protocol/rpc-bootstrap-and-events
+https://docs.openclaw.ai/web/control-ui/connect-and-pair
+https://docs.openclaw.ai/help/faq/chat-commands-and-stopping
+https://docs.openclaw.ai/tools/subagents/tool-reference

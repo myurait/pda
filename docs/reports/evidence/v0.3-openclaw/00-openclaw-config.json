@@ -1,0 +1,126 @@
+{
+  "plugins": {
+    "entries": {
+      "codex": {
+        "enabled": true,
+        "config": {
+          "appServer": {
+            "homeScope": "user",
+            "command": "/home/user/.local/bin/codex",
+            "mode": "yolo"
+          },
+          "sessionCatalog": {
+            "enabled": false
+          }
+        }
+      },
+      "anthropic": {
+        "config": {
+          "sessionCatalog": {
+            "enabled": false
+          }
+        }
+      },
+      "acpx": {
+        "enabled": false
+      }
+    }
+  },
+  "meta": {
+    "migrations": {
+      "modelPolicyAllowlist": true,
+      "utilityModelSeparation": true
+    },
+    "lastTouchedVersion": "2026.9.7"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 5114,
+    "auth": {
+      "mode": "none"
+    },
+    "controlUi": {
+      "enabled": true,
+      "sessionObserver": false
+    },
+    "tailscale": {
+      "mode": "off"
+    }
+  },
+  "agents": {
+    "ownership": "explicit",
+    "defaults": {
+      "workspace": "/home/user/v03/work/openclaw/scratch",
+      "cwd": "/home/user/v03/work/openclaw/scratch",
+      "skipBootstrap": true,
+      "skills": [],
+      "heartbeat": {
+        "every": "0m"
+      },
+      "timeoutSeconds": 300,
+      "utilityModel": "",
+      "models": {
+        "claude-cli/claude-sonnet-5": {},
+        "openai/gpt-6-astra": {
+          "agentRuntime": {
+            "id": "codex"
+          }
+        }
+      }
+    },
+    "entries": {
+      "claude": {
+        "name": "Claude Code",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "claude-cli/claude-sonnet-5",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "codex"
+          ]
+        }
+      },
+      "codex": {
+        "name": "Codex",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "openai/gpt-6-astra",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "claude"
+          ]
+        }
+      }
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "exec": {
+      "mode": "full"
+    },
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "claude",
+        "codex"
+      ]
+    }
+  },
+  "browser": {
+    "enabled": false
+  },
+  "discovery": {
+    "mdns": {
+      "mode": "off"
+    }
+  },
+  "update": {
+    "checkOnStart": false
+  },
+  "cron": {
+    "enabled": false
+  }
+}

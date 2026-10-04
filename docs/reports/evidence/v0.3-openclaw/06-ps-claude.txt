@@ -1,0 +1,63 @@
+{"utc":"2026-10-04T07:24:13.178Z","elapsedSeconds":1.83,"reason":"after-send"}
+$ ps -ww -eo pid,ppid,etime,args --forest (unit の MainPID と子孫を抽出)
+    PID    PPID     ELAPSED COMMAND
+ 203946    1274       04:04  \_ openclaw-gateway
+ 204000  203946       04:00      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 204007  203946       04:00      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 204355  203946       03:41      \_ /home/user/.local/bin/codex app-server --listen stdio://
+203946 cwd=/home/user/v03/work/openclaw/scratch
+204000 cwd=/home/user/v03/work/openclaw/scratch
+204007 cwd=/home/user/v03/work/openclaw/scratch
+204355 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-04T07:24:18.215Z","elapsedSeconds":6.866,"reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (unit の MainPID と子孫を抽出)
+    PID    PPID     ELAPSED COMMAND
+ 203946    1274       04:09  \_ openclaw-gateway
+ 204000  203946       04:05      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 204007  203946       04:05      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 204355  203946       03:46      \_ /home/user/.local/bin/codex app-server --listen stdio://
+ 204970  203946       00:04      \_ /home/user/.local/bin/claude --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-VXXW9t/mcp.json --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 0488c1b3-b9b2-4037-b433-3b9177f6b287
+203946 cwd=/home/user/v03/work/openclaw/scratch
+204000 cwd=/home/user/v03/work/openclaw/scratch
+204007 cwd=/home/user/v03/work/openclaw/scratch
+204355 cwd=/home/user/v03/work/openclaw/scratch
+204970 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-04T07:24:18.746Z","elapsedSeconds":7.397,"reason":"first-output"}
+$ ps -ww -eo pid,ppid,etime,args --forest (unit の MainPID と子孫を抽出)
+    PID    PPID     ELAPSED COMMAND
+ 203946    1274       04:09  \_ openclaw-gateway
+ 204000  203946       04:05      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 204007  203946       04:05      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 204355  203946       03:46      \_ /home/user/.local/bin/codex app-server --listen stdio://
+ 204970  203946       00:04      \_ /home/user/.local/bin/claude --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-VXXW9t/mcp.json --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 0488c1b3-b9b2-4037-b433-3b9177f6b287
+203946 cwd=/home/user/v03/work/openclaw/scratch
+204000 cwd=/home/user/v03/work/openclaw/scratch
+204007 cwd=/home/user/v03/work/openclaw/scratch
+204355 cwd=/home/user/v03/work/openclaw/scratch
+204970 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-04T07:24:23.217Z","elapsedSeconds":11.868,"reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (unit の MainPID と子孫を抽出)
+    PID    PPID     ELAPSED COMMAND
+ 203946    1274       04:14  \_ openclaw-gateway
+ 204000  203946       04:10      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 204007  203946       04:10      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 204355  203946       03:51      \_ /home/user/.local/bin/codex app-server --listen stdio://
+ 204970  203946       00:09      \_ /home/user/.local/bin/claude --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-VXXW9t/mcp.json --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 0488c1b3-b9b2-4037-b433-3b9177f6b287
+203946 cwd=/home/user/v03/work/openclaw/scratch
+204000 cwd=/home/user/v03/work/openclaw/scratch
+204007 cwd=/home/user/v03/work/openclaw/scratch
+204355 cwd=/home/user/v03/work/openclaw/scratch
+204970 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-04T07:24:28.215Z","elapsedSeconds":16.866,"reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (unit の MainPID と子孫を抽出)
+    PID    PPID     ELAPSED COMMAND
+ 203946    1274       04:19  \_ openclaw-gateway
+ 204000  203946       04:15      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 204007  203946       04:15      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 204355  203946       03:56      \_ /home/user/.local/bin/codex app-server --listen stdio://
+ 204970  203946       00:14      \_ /home/user/.local/bin/claude --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-VXXW9t/mcp.json --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 0488c1b3-b9b2-4037-b433-3b9177f6b287
+203946 cwd=/home/user/v03/work/openclaw/scratch
+204000 cwd=/home/user/v03/work/openclaw/scratch
+204007 cwd=/home/user/v03/work/openclaw/scratch
+204355 cwd=/home/user/v03/work/openclaw/scratch
+204970 cwd=/home/user/v03/work/openclaw/scratch
