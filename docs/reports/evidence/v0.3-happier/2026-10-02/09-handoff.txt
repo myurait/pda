@@ -1,0 +1,181 @@
+2026-10-04T07:59:22.510172+00:00
+T9: Codex → Claude Code の製品内 subagent 委譲は未実施 (0回)。
+導入版 factory は ClaudeSdkAgentBackend を無条件に返す。unified terminal 設定を受け取る分岐はない。query は製品内 sdk/query で、stream-json を使う。@anthropic-ai/claude-agent-sdk パッケージの remote 経路との同一視はしない。指定された unified terminal の TUI 経路ではないため起動しなかった。
+
+/home/user/v03/happier/source/apps/cli/src/agent/executionRuns/registry/executionRunBackendRegistry.ts
+20: }>;
+21:
+22: const REGISTRY: Record<string, ExecutionRunBackendDescriptor> = {
+23:   claude: { factory: claude, resolveIsolation: claudeResolveIsolation },
+24:   codex: { factory: codex },
+25:   gemini: { factory: gemini },
+26:   opencode: { factory: opencode },
+27:   auggie: { factory: auggie },
+28:   qwen: { factory: qwen },
+29:   kimi: { factory: createCatalogDefinedExecutionRunBackendFactory('kimi') },
+30:   kilo: { factory: kilo },
+31:   copilot: { factory: copilot },
+32:   pi: { factory: pi },
+33:   devin: { factory: devin },
+34:   agy: { factory: createCatalogDefinedExecutionRunBackendFactory('agy') },
+35:   fx: { factory: createCatalogDefinedExecutionRunBackendFactory('fx') },
+36:   droid: { factory: createCatalogDefinedExecutionRunBackendFactory('droid') },
+37: };
+38:
+39: // Aliases: UI/agents may reference provider IDs that are distinct from the execution-run backend ID.
+40: REGISTRY['claude-code'] = REGISTRY.claude;
+41:
+42: for (const engineId of listNativeReviewEngineIds()) {
+43:   const factory = resolveNativeReviewExecutionRunBackendFactory(engineId);
+
+/home/user/v03/happier/source/apps/cli/src/backends/claude/executionRuns/executionRunBackendFactory.ts
+1: import { ClaudeSdkAgentBackend } from '@/backends/claude/sdkAgentBackend/ClaudeSdkAgentBackend';
+2: import type { ExecutionRunBackendFactory } from '@/agent/executionRuns/registry/executionRunBackendTypes';
+3: import type { BackendIsolationBundle, BackendIsolationRequest } from '@/runtime/isolation/types';
+4: import { configuration } from '@/configuration';
+5: import { mkdirSync, writeFileSync } from 'node:fs';
+6: import { join } from 'node:path';
+7: import { resolveClaudeCodeXdgIsolation } from '@/backends/claude/utils/resolveClaudeCodeXdgIsolation';
+8:
+9: export const executionRunBackendFactory: ExecutionRunBackendFactory = (opts) => {
+10:   return new ClaudeSdkAgentBackend({
+11:     cwd: opts.cwd,
+12:     modelId: opts.modelId ?? 'default',
+13:     permissionHandler: opts.permissionHandler,
+14:     settingsPath: opts.isolation?.settingsPath,
+15:     env: opts.isolation?.env,
+16:   });
+17: };
+
+/home/user/v03/happier/source/apps/cli/src/backends/claude/sdkAgentBackend/ClaudeSdkAgentBackend.ts
+1: import { randomUUID } from 'node:crypto';
+2:
+3: import type { AgentBackend, AgentMessage, AgentMessageHandler, SessionId, StartSessionResult } from '@/agent/core/AgentBackend';
+4: import { PushableAsyncIterable } from '@/utils/PushableAsyncIterable';
+5: import { query } from '@/backends/claude/sdk/query';
+6: import type { CanCallToolCallback, SDKAssistantMessage, SDKMessage, SDKResultMessage, SDKSystemMessage } from '@/backends/claude/sdk/types';
+7: import { createSubprocessStderrAppender, type BoundedTextFileAppender } from '@/agent/runtime/subprocessArtifacts';
+8: import { emitCanonicalTurnDiffTool } from '@/agent/runtime/emitCanonicalTurnDiffTool';
+
+/home/user/v03/happier/source/apps/cli/src/backends/claude/sdkAgentBackend/ClaudeSdkAgentBackend.ts
+119:       pid: null,
+120:       label: 'claude-sdk',
+121:     });
+122:     const runtimeExecutable = await ensureClaudeJsRuntimeExecutable();
+123:     const q = query({
+124:       prompt: this.promptStream,
+125:       options: {
+126:         cwd: this.opts.cwd,
+127:         model: model ?? undefined,
+128:         executable: runtimeExecutable,
+129:         // Execution runs are noninteractive and their admitted permission mode is enforced by
+130:         // canCallTool. Pin Claude's outer mode so an ambient bypass default cannot open a blocking
+131:         // safety-confirmation dialog before the stdio permission owner becomes usable.
+132:         permissionMode: 'default',
+133:         forcePermissionMode: true,
+134:         canCallTool,
+135:         settingsPath: this.opts.settingsPath,
+136:         env: this.env,
+137:         ...(params.resume ? { resume: params.resume } : {}),
+138:         abort: this.abortController.signal,
+139:         stderr: (data) => {
+140:           this.stderrAppender?.append(data);
+141:         },
+142:       },
+143:     });
+144:
+145:     this.query = q;
+146:     this.queryIter = q[Symbol.asyncIterator]();
+
+/home/user/v03/happier/source/apps/cli/src/backends/claude/sdk/query.ts
+330:     const args = ['--output-format', 'stream-json', '--verbose']
+331:
+332:     if (customSystemPrompt) args.push('--system-prompt', customSystemPrompt)
+333:     if (appendSystemPrompt) args.push('--append-system-prompt', appendSystemPrompt)
+334:     if (maxTurns) args.push('--max-turns', maxTurns.toString())
+335:     if (model) args.push('--model', model)
+336:     if (canCallTool) {
+337:         if (typeof prompt === 'string') {
+338:             throw new Error('canCallTool callback requires --input-format stream-json. Please set prompt as an AsyncIterable.')
+339:         }
+340:         args.push('--permission-prompt-tool', 'stdio')
+341:     }
+342: 	    if (continueConversation) args.push('--continue')
+343: 	    if (resume) args.push('--resume', resume)
+344: 	    if (strictMcpConfig) args.push('--strict-mcp-config')
+345: 	    if (includeHookEvents) args.push('--include-hook-events')
+346: 	    // Omit `--permission-mode default` so the Claude CLI honors the user's
+347: 	    // `permissions.defaultMode` from `.claude/settings.json` (user/project/local).
+348: 	    // Any non-'default' mode still wins, overriding settings.json as before.
+349: 	    if (permissionMode && (forcePermissionMode || permissionMode !== 'default')) {
+350: 	        args.push('--permission-mode', permissionMode)
+351: 	    }
+352: 	    if (settingsPath) args.push('--settings', settingsPath)
+353:
+354: 	    if (fallbackModel) {
+355:         if (model && fallbackModel === model) {
+356:             throw new Error('Fallback model cannot be the same as the main model. Please specify a different model for fallbackModel option.')
+357:         }
+358:         args.push('--fallback-model', fallbackModel)
+359: 	    }
+360:
+361: 	    if (Array.isArray(extraArgs) && extraArgs.length > 0) {
+362: 	        // Forward raw args before the prompt/positional payload is appended.
+363: 	        args.push(...extraArgs);
+364: 	    }
+365:
+366: 	    // Handle prompt input
+367: 	    if (typeof prompt === 'string') {
+368: 	        args.push('--print', prompt.trim())
+369: 	    } else {
+370:         args.push('--input-format', 'stream-json')
+371:     }
+
+/home/user/v03/happier/cli/node_modules/@happier-dev/cli/package-dist/api-xTIAcnds.mjs
+86919: const executionRunBackendFactory$9 = (opts) => {
+86920:   return new ClaudeSdkAgentBackend({
+86921:     cwd: opts.cwd,
+86922:     modelId: opts.modelId ?? "default",
+86923:     permissionHandler: opts.permissionHandler,
+86924:     settingsPath: opts.isolation?.settingsPath,
+86925:     env: opts.isolation?.env
+86926:   });
+86927: };
+86928: function resolveIsolation(request, baseBundle) {
+
+/home/user/v03/happier/cli/node_modules/@happier-dev/cli/package-dist/api-xTIAcnds.mjs
+86435:     });
+86436:     const runtimeExecutable = await ensureClaudeJsRuntimeExecutable();
+86437:     const q = query({
+86438:       prompt: this.promptStream,
+86439:       options: {
+86440:         cwd: this.opts.cwd,
+86441:         model: model ?? void 0,
+86442:         executable: runtimeExecutable,
+86443:         // Execution runs are noninteractive and their admitted permission mode is enforced by
+86444:         // canCallTool. Pin Claude's outer mode so an ambient bypass default cannot open a blocking
+86445:         // safety-confirmation dialog before the stdio permission owner becomes usable.
+86446:         permissionMode: "default",
+86447:         forcePermissionMode: true,
+86448:         canCallTool,
+86449:         settingsPath: this.opts.settingsPath,
+86450:         env: this.env,
+86451:         ...params.resume ? { resume: params.resume } : {},
+86452:         abort: this.abortController.signal,
+86453:         stderr: (data) => {
+86454:           this.stderrAppender?.append(data);
+86455:         }
+86456:       }
+86457:     });
+86458:     this.query = q;
+86459:     this.queryIter = q[Symbol.asyncIterator]();
+86460:     this.loopPromise = this.runLoop();
+
+/home/user/v03/happier/cli/node_modules/@happier-dev/cli/package-dist/api-xTIAcnds.mjs
+111515: const REGISTRY = {
+111516:   claude: { factory: executionRunBackendFactory$9, resolveIsolation: resolveIsolation },
+111517:   codex: { factory: executionRunBackendFactory$8 },
+111518:   gemini: { factory: executionRunBackendFactory$7 },
+111519:   opencode: { factory: executionRunBackendFactory$6 },
+111520:   auggie: { factory: executionRunBackendFactory$5 },
+111521:   qwen: { factory: executionRunBackendFactory$4 },

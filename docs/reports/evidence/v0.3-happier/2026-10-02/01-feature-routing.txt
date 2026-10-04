@@ -1,0 +1,90 @@
+2026-10-04T07:59:22.510172+00:00
+公式: https://docs.happier.dev/sessions/claude-unified-terminal
+公式: https://docs.happier.dev/extras/feature-flags
+公式文書には server flag とあるが、参照ソースと導入済み CLI は client representation。起動した Web 設定画面には最初から Unified terminal runtime の節が表示された。
+relay compose は既存値のまま。HAPPIER_FEATURE_* の推測値追加や build allowlist の限定はしていない。Web の Use unified terminal runtime=true、Terminal host=zellij を保存し、再読み込み後も同じ値を確認。tuiRuntimeControl の CLI local policy は既定 true、環境変数 HAPPIER_FEATURE_CLAUDE_UNIFIED_TUI_RUNTIME_CONTROL__ENABLED は無指定。
+
+/home/user/v03/happier/source/packages/protocol/src/features/catalog.ts
+452:   'providers.claude.unifiedTerminal': {
+453:     description: 'Claude unified terminal runtime availability.',
+454:     defaultFailMode: 'fail_closed',
+455:     dependencies: [],
+456:     representation: 'client',
+457:   },
+458:   'providers.claude.unifiedTerminal.tuiRuntimeControl': {
+459:     description: 'Claude unified terminal TUI runtime-control controller (live model/effort/permission-mode controls). Falls back to restart/unsupported outcomes when disabled.',
+460:     defaultFailMode: 'fail_closed',
+461:     dependencies: ['providers.claude.unifiedTerminal'],
+462:     representation: 'client',
+463:   },
+
+/home/user/v03/happier/source/apps/ui/sources/sync/domains/features/featureDecisionRuntime.ts
+364:         const buildPolicy = getFeatureBuildPolicyDecision(featureId);
+365:         const localPolicyEnabled = resolveLocalFeaturePolicyEnabled(featureId, params.settings);
+366:
+367:         // Global policy gates apply before any server probing.
+368:         const global = evaluateFeatureDecision({
+369:             featureId,
+370:             scope,
+371:             supportsClient: true,
+372:             buildPolicy,
+373:             localPolicyEnabled,
+374:             serverSupported: true,
+375:             serverEnabled: true,
+376:         });
+377:         if (global.blockedBy && global.blockedBy !== 'server') {
+378:             return global;
+379:         }
+380:
+381:         if (!isFeatureServerRepresented(featureId)) {
+382:             return global;
+383:         }
+384:
+385:         if (params.snapshot.status === 'loading') {
+
+/home/user/v03/happier/source/apps/cli/src/features/featureDecisionService.ts
+49:
+50:     if (globalDecision.blockedBy && globalDecision.blockedBy !== 'server') {
+51:       memo.set(featureId, globalDecision);
+52:       return globalDecision;
+53:     }
+54:
+55:     if (!serverRepresented) {
+56:       const out = applyFeatureDependencies({
+57:         featureId,
+58:         baseDecision: globalDecision,
+59:         resolveDependencyDecision: resolve,
+60:       });
+61:
+62:       memo.set(featureId, out);
+63:       return out;
+64:     }
+65:
+66:     if (!inputs.serverSnapshot) {
+67:       const out = createFeatureDecision({
+68:         featureId,
+
+/home/user/v03/happier/source/apps/cli/src/features/featureLocalPolicy.ts
+11:   'connectedServices.quotas': (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CONNECTED_SERVICES_QUOTAS__ENABLED, true),
+12:   channelBridges: (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CHANNEL_BRIDGES__ENABLED, true),
+13:   'channelBridges.telegram': (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CHANNEL_BRIDGES_TELEGRAM__ENABLED, true),
+14:   // Claude Unified TUI runtime-control rides the unified-mode opt-in (unified is itself off by
+15:   // default), so it defaults ON; the env flag is a KILL-SWITCH (=0) if a Claude update breaks the
+16:   // screen verification. The controller fails closed on any unverified control regardless, and the
+17:   // kill-switch restores the legacy restart-notice path.
+18:   'providers.claude.unifiedTerminal.tuiRuntimeControl': (env) =>
+19:     parseBooleanEnv(env.HAPPIER_FEATURE_CLAUDE_UNIFIED_TUI_RUNTIME_CONTROL__ENABLED, true),
+20: };
+
+/home/user/v03/happier/cli/node_modules/@happier-dev/cli/package-dist/api-xTIAcnds.mjs
+49854:   "connectedServices.quotas": (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CONNECTED_SERVICES_QUOTAS__ENABLED, true),
+49855:   channelBridges: (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CHANNEL_BRIDGES__ENABLED, true),
+49856:   "channelBridges.telegram": (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CHANNEL_BRIDGES_TELEGRAM__ENABLED, true),
+49857:   // Claude Unified TUI runtime-control rides the unified-mode opt-in (unified is itself off by
+49858:   // default), so it defaults ON; the env flag is a KILL-SWITCH (=0) if a Claude update breaks the
+49859:   // screen verification. The controller fails closed on any unverified control regardless, and the
+49860:   // kill-switch restores the legacy restart-notice path.
+49861:   "providers.claude.unifiedTerminal.tuiRuntimeControl": (env) => parseBooleanEnv(env.HAPPIER_FEATURE_CLAUDE_UNIFIED_TUI_RUNTIME_CONTROL__ENABLED, true)
+49862: };
+49863: function resolveCliLocalFeaturePolicyEnabled(featureId, env) {
+49864:   const resolver = LOCAL_POLICY_BY_FEATURE[featureId];

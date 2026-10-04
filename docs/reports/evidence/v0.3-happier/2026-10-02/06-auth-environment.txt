@@ -1,0 +1,65 @@
+2026-10-04T07:56:09.404370+00:00
+実行プロセス環境から HOME, CLAUDE_CONFIG_DIR, CODEX_HOME, PATH, ZELLIJ, ZELLIJ_SESSION_NAME, TMUX だけを抽出。
+[
+  {
+    "pid": 210289,
+    "executable": "/home/user/.nvm/versions/node/v24.18.0/bin/node",
+    "HOME": "/home/user/v03/agent-home",
+    "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude",
+    "CODEX_HOME": "<unset>",
+    "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin",
+    "ZELLIJ": "<unset>",
+    "ZELLIJ_SESSION_NAME": "<unset>",
+    "TMUX": "<unset>",
+    "cwd": "/home/user/v03/work/happier/scratch"
+  },
+  {
+    "pid": 211783,
+    "executable": "/home/user/.nvm/versions/node/v24.18.0/bin/node",
+    "HOME": "/home/user/v03/agent-home",
+    "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude",
+    "CODEX_HOME": "<unset>",
+    "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+    "ZELLIJ": "<unset>",
+    "ZELLIJ_SESSION_NAME": "<unset>",
+    "TMUX": "<unset>",
+    "cwd": "/home/user/v03/work/happier/scratch2"
+  },
+  {
+    "pid": 211869,
+    "executable": "/home/user/v03/happier/cli/node_modules/@happier-dev/cli/tools/unpacked/zellij",
+    "HOME": "/home/user/v03/agent-home",
+    "CLAUDE_CONFIG_DIR": "<unset>",
+    "CODEX_HOME": "<unset>",
+    "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+    "ZELLIJ": "0",
+    "ZELLIJ_SESSION_NAME": "happier-claude-unified-211783-1791100454622",
+    "TMUX": "<unset>",
+    "cwd": "/home/user/v03/work/happier/scratch2"
+  },
+  {
+    "pid": 211927,
+    "executable": "/home/user/.local/bin/claude",
+    "HOME": "/home/user/v03/agent-home",
+    "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude",
+    "CODEX_HOME": "<unset>",
+    "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+    "ZELLIJ": "<unset>",
+    "ZELLIJ_SESSION_NAME": "<unset>",
+    "TMUX": "<unset>",
+    "cwd": "/home/user/v03/work/happier/scratch2"
+  }
+]
+
+2026-10-04T08:05:25.503071+00:00
+Happier state 配下だけをファイル名で調査 (symlink の先は探索しない)。対象: auth.json, .credentials.json, credentials.json, access.key。ファイル内容は読まない。
+-rw------- 1 user user 500 Oct  1 23:34 /home/user/v03/happier/state/servers/env_36095987/access.key
+
+T3 Claude 244905
+{
+  "HOME": "/home/user/v03/agent-home",
+  "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude",
+  "CODEX_HOME": "<unset>",
+  "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin",
+  "TMUX": "<unset>"
+}

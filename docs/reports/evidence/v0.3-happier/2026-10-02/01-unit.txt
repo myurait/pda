@@ -1,0 +1,56 @@
+2026-10-04T07:52:08.762274+00:00
+$ systemctl --user status v03-happier.service --no-pager --full
+● v03-happier.service - PDA v0.3 Happier relay, web and daemon trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-happier.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 16:49:57 JST; 2min 11s ago
+    Process: 210066 ExecStartPre=/usr/bin/sg docker -c /usr/bin/docker compose -f /home/user/v03/happier/compose.yaml up -d --wait (code=exited, status=0/SUCCESS)
+   Main PID: 210265 (MainThread)
+      Tasks: 11 (limit: 15004)
+     Memory: 298.1M (peak: 479.0M)
+        CPU: 3.379s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-happier.service
+             └─210289 /home/user/.nvm/versions/node/v24.18.0/bin/node --no-warnings --no-deprecation /home/user/v03/happier/cli/node_modules/@happier-dev/cli/bin/happier.mjs daemon start-sync
+             ‣ 210265 node /home/user/v03/happier/cli/node_modules/.bin/happier daemon start-sync
+
+Oct 04 16:49:56 agent-node systemd[1274]: Starting v03-happier.service - PDA v0.3 Happier relay, web and daemon trial...
+Oct 04 16:49:56 agent-node sg[210066]: user 'user' (login 'user' on ???) switched to group 'docker'
+Oct 04 16:49:56 agent-node sg[210104]:  Container v03-happier-relay-1 Starting
+Oct 04 16:49:56 agent-node sg[210104]:  Container v03-happier-relay-1 Started
+Oct 04 16:49:56 agent-node sg[210104]:  Container v03-happier-relay-1 Waiting
+Oct 04 16:49:57 agent-node sg[210104]:  Container v03-happier-relay-1 Healthy
+Oct 04 16:49:57 agent-node sg[210066]: user 'user' (login 'user' on ???) returned to group 'user'
+Oct 04 16:49:57 agent-node systemd[1274]: Started v03-happier.service - PDA v0.3 Happier relay, web and daemon trial.
+
+exit=0
+$ systemctl --user cat v03-happier.service
+# /home/user/.config/systemd/user/v03-happier.service
+[Unit]
+Description=PDA v0.3 Happier relay, web and daemon trial
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/happier/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=HAPPIER_HOME_DIR=/home/user/v03/happier/state
+Environment=HAPPIER_SERVER_URL=http://127.0.0.1:5112
+Environment=HAPPIER_WEBAPP_URL=http://127.0.0.1:5112
+Environment=HAPPIER_CLI_UPDATE_CHECK=0
+Environment=DISABLE_AUTOUPDATER=1
+UnsetEnvironment=CODEX_HOME ANTHROPIC_API_KEY OPENAI_API_KEY
+ExecStartPre=/usr/bin/sg docker -c "/usr/bin/docker compose -f /home/user/v03/happier/compose.yaml up -d --wait"
+ExecStart=/home/user/v03/happier/happier daemon start-sync
+ExecStop=/home/user/v03/happier/happier daemon stop --kill-sessions
+ExecStopPost=/usr/bin/sg docker -c "/usr/bin/docker compose -f /home/user/v03/happier/compose.yaml stop"
+KillMode=control-group
+Restart=no
+TimeoutStartSec=120
+TimeoutStopSec=90
+
+[Install]
+WantedBy=default.target
+
+exit=0

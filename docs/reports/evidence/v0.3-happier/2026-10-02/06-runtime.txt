@@ -1,0 +1,44 @@
+2026-10-04T07:56:09.404370+00:00
+/home/user/v03/happier/state/logs/2026-10-04-16-54-13-pid-211783.log
+[16:54:14.054] [CLAUDE_STARTUP] stage=process_entered {"startedBy":"daemon","startingMode":"remote","hasExistingSessionId":false}
+[16:54:14.055] [CLAUDE_STARTUP] stage=backend_api_context_started
+[16:54:14.058] [CLAUDE_STARTUP] stage=backend_api_context_completed
+[16:54:14.104] [CLAUDE_STARTUP] stage=runtime_activity_started
+[16:54:14.105] [CLAUDE_STARTUP] stage=runtime_activity_completed
+[16:54:14.116] [CLAUDE_STARTUP] stage=runtime_activity_attach_started
+[16:54:14.161] [CLAUDE_STARTUP] stage=runtime_activity_attach_completed
+[16:54:14.161] [CLAUDE_STARTUP] stage=effective_prompt_started
+[16:54:14.164] [CLAUDE_STARTUP] stage=effective_prompt_completed
+[16:54:14.561] [CLAUDE_STARTUP] stage=mcp_resolution_started
+[16:54:14.569] [CLAUDE_STARTUP] stage=mcp_resolution_completed
+[16:54:14.569] [CLAUDE_STARTUP] stage=provider_loop_started
+[16:54:14.570] [CLAUDE_STARTUP] stage=provider_loop_entered
+[16:54:14.570] [CLAUDE_STARTUP] stage=provider_activity_binding_started
+[16:54:14.570] [CLAUDE_STARTUP] stage=provider_activity_binding_completed
+[16:54:14.571] [CLAUDE_STARTUP] stage=session_ready_callback_started
+[16:54:14.587] [CLAUDE_STARTUP] stage=session_ready_callback_completed
+[16:54:14.588] [CLAUDE_STARTUP] stage=provider_launcher_entered {"runtime":"unified-terminal"}
+
+T3 session log
+/home/user/v03/happier/state/logs/2026-10-04-17-03-20-pid-244736.log
+[17:03:20.513] [CLAUDE_STARTUP] stage=process_entered {"startedBy":"daemon","startingMode":"remote","hasExistingSessionId":false}
+[17:03:20.515] [CLAUDE_STARTUP] stage=backend_api_context_started
+[17:03:20.518] [CLAUDE_STARTUP] stage=backend_api_context_completed
+[17:03:20.568] [CLAUDE_STARTUP] stage=runtime_activity_started
+[17:03:20.569] [CLAUDE_STARTUP] stage=runtime_activity_completed
+[17:03:20.578] [CLAUDE_STARTUP] stage=runtime_activity_attach_started
+[17:03:20.624] [CLAUDE_STARTUP] stage=runtime_activity_attach_completed
+[17:03:20.624] [CLAUDE_STARTUP] stage=effective_prompt_started
+[17:03:20.632] [CLAUDE_STARTUP] stage=effective_prompt_completed
+[17:03:21.028] [CLAUDE_STARTUP] stage=mcp_resolution_started
+[17:03:21.038] [CLAUDE_STARTUP] stage=mcp_resolution_completed
+[17:03:21.039] [CLAUDE_STARTUP] stage=provider_loop_started
+[17:03:21.039] [CLAUDE_STARTUP] stage=provider_loop_entered
+[17:03:21.040] [CLAUDE_STARTUP] stage=provider_activity_binding_started
+[17:03:21.040] [CLAUDE_STARTUP] stage=provider_activity_binding_completed
+[17:03:21.041] [CLAUDE_STARTUP] stage=session_ready_callback_started
+[17:03:21.057] [CLAUDE_STARTUP] stage=session_ready_callback_completed
+[17:03:21.057] [CLAUDE_STARTUP] stage=provider_launcher_entered {"runtime":"unified-terminal"}
+
+T2/T3 の provider_launcher_entered 行は runtime=unified-terminal。runtime=agent-sdk の launcher 行は両ログに0件。
+T2 の最初の ps は初回ターン完了後。T2-2 の ps は同じ Claude プロセスが動作し、2件目の入力が保留されている時点。T3 は途中出力後、停止操作直前に採録。

@@ -1,0 +1,428 @@
+{
+  "features": {
+    "bugReports": {
+      "enabled": true
+    },
+    "e2ee": {
+      "keylessAccounts": {
+        "enabled": false
+      }
+    },
+    "encryption": {
+      "plaintextStorage": {
+        "enabled": false
+      },
+      "accountOptOut": {
+        "enabled": false
+      }
+    },
+    "attachments": {
+      "uploads": {
+        "enabled": true
+      }
+    },
+    "session": {
+      "media": {
+        "generated": {
+          "enabled": false
+        }
+      }
+    },
+    "pets": {
+      "companion": {
+        "enabled": true
+      },
+      "sync": {
+        "enabled": false
+      }
+    },
+    "automations": {
+      "enabled": true
+    },
+    "connectedServices": {
+      "enabled": true,
+      "quotas": {
+        "enabled": true
+      },
+      "subscription": {
+        "enabled": true
+      },
+      "accountGroups": {
+        "enabled": true
+      },
+      "accountFallback": {
+        "enabled": true
+      },
+      "autoQuotaReset": {
+        "enabled": true
+      },
+      "autoDisablePlanInvalid": {
+        "enabled": true
+      },
+      "poolQuotaLimitSelection": {
+        "enabled": true
+      }
+    },
+    "channelBridges": {
+      "enabled": true,
+      "telegram": {
+        "enabled": true
+      }
+    },
+    "updates": {
+      "ota": {
+        "enabled": true
+      }
+    },
+    "sharing": {
+      "session": {
+        "enabled": true
+      },
+      "public": {
+        "enabled": true
+      },
+      "contentKeys": {
+        "enabled": true
+      },
+      "pendingQueueV2": {
+        "enabled": true
+      },
+      "pendingDeliveryState": {
+        "enabled": true
+      }
+    },
+    "sessions": {
+      "enabled": true,
+      "agentSwitching": {
+        "enabled": true
+      },
+      "folders": {
+        "enabled": true
+      },
+      "drafts": {
+        "enabled": true
+      },
+      "usageLimitRecovery": {
+        "enabled": true
+      },
+      "handoff": {
+        "enabled": true
+      }
+    },
+    "machines": {
+      "enabled": true,
+      "transfer": {
+        "enabled": true,
+        "directPeer": {
+          "enabled": true
+        },
+        "serverRouted": {
+          "enabled": true
+        }
+      }
+    },
+    "terminal": {
+      "embeddedPty": {
+        "enabled": true
+      }
+    },
+    "voice": {
+      "enabled": true,
+      "happierVoice": {
+        "enabled": false
+      }
+    },
+    "social": {
+      "friends": {
+        "enabled": true
+      }
+    },
+    "auth": {
+      "recovery": {
+        "providerReset": {
+          "enabled": false
+        }
+      },
+      "mtls": {
+        "enabled": false
+      },
+      "login": {
+        "keyChallenge": {
+          "enabled": true
+        }
+      },
+      "pairing": {
+        "desktopQrMobileScan": {
+          "enabled": true
+        }
+      },
+      "ui": {
+        "recoveryKeyReminder": {
+          "enabled": true
+        }
+      }
+    }
+  },
+  "capabilities": {
+    "bugReports": {
+      "providerUrl": "https://reports.happier.dev",
+      "defaultIncludeDiagnostics": true,
+      "maxArtifactBytes": 10485760,
+      "acceptedArtifactKinds": [
+        "ui-mobile",
+        "ui-desktop",
+        "cli",
+        "daemon",
+        "server",
+        "stack-service",
+        "user-note",
+        "session-log",
+        "provider-transcript",
+        "attachment"
+      ],
+      "uploadTimeoutMs": 120000,
+      "contextWindowMs": 1800000
+    },
+    "voice": {
+      "configured": false,
+      "provider": null,
+      "requested": true,
+      "disabledByBuildPolicy": false
+    },
+    "pets": {
+      "companion": {
+        "builtInPetIds": [
+          "blink",
+          "fury",
+          "milo",
+          "oli",
+          "titi"
+        ]
+      },
+      "limits": {
+        "maxManifestBytes": 16384,
+        "maxCanonicalSpritesheetBytes": 5242880,
+        "maxCanonicalPackageBytes": 6291456,
+        "maxPreCanonicalImportBytes": 16777216,
+        "maxImportedPetsPerAccount": 20,
+        "maxImportedPetBytesPerAccount": 104857600,
+        "maxImportedPetsPerDevice": 20,
+        "maxImportedPetBytesPerDevice": 104857600
+      },
+      "sync": {
+        "maxManifestBytes": 16384,
+        "maxCanonicalSpritesheetBytes": 5242880,
+        "maxCanonicalPackageBytes": 6291456,
+        "maxPreCanonicalImportBytes": 16777216,
+        "maxImportedPetsPerAccount": 20,
+        "maxImportedPetBytesPerAccount": 104857600,
+        "maxImportedPetsPerDevice": 20,
+        "maxImportedPetBytesPerDevice": 104857600,
+        "supportedMediaTypes": [
+          "image/png",
+          "image/webp"
+        ],
+        "encryptedCustomPetSyncPolicy": "disabled"
+      }
+    },
+    "encryption": {
+      "storagePolicy": "required_e2ee",
+      "allowAccountOptOut": false,
+      "defaultAccountMode": "e2ee",
+      "plainAccountSettingsAtRest": "server_sealed",
+      "plainAccountCredentialsAtRest": "server_sealed"
+    },
+    "server": {},
+    "serverIdentity": {
+      "serverIdentityId": "srv_GmsmaZkx4JvFhdhurcj40dUeZkC8EL2K"
+    },
+    "machines": {
+      "transfer": {
+        "serverRouted": {
+          "maxBytes": 2147483648
+        }
+      }
+    },
+    "social": {
+      "friends": {
+        "allowUsername": true,
+        "requiredIdentityProviderId": null
+      }
+    },
+    "oauth": {
+      "providers": {
+        "github": {
+          "enabled": true,
+          "configured": false
+        }
+      }
+    },
+    "auth": {
+      "methods": [
+        {
+          "id": "key_challenge",
+          "actions": [
+            {
+              "id": "login",
+              "enabled": true,
+              "mode": "keyed"
+            },
+            {
+              "id": "provision",
+              "enabled": true,
+              "mode": "keyed"
+            }
+          ],
+          "ui": {
+            "displayName": "Device key",
+            "iconHint": null
+          }
+        },
+        {
+          "id": "mtls",
+          "actions": [
+            {
+              "id": "login",
+              "enabled": false,
+              "mode": "keyless"
+            },
+            {
+              "id": "provision",
+              "enabled": false,
+              "mode": "keyless"
+            }
+          ],
+          "ui": {
+            "displayName": "Certificate",
+            "iconHint": null
+          }
+        },
+        {
+          "id": "github",
+          "actions": [
+            {
+              "id": "connect",
+              "enabled": false,
+              "mode": "either"
+            },
+            {
+              "id": "provision",
+              "enabled": false,
+              "mode": "keyed"
+            },
+            {
+              "id": "login",
+              "enabled": false,
+              "mode": "keyless"
+            },
+            {
+              "id": "provision",
+              "enabled": false,
+              "mode": "keyless"
+            }
+          ],
+          "ui": {
+            "displayName": "GitHub",
+            "iconHint": "github"
+          }
+        }
+      ],
+      "signup": {
+        "methods": [
+          {
+            "id": "anonymous",
+            "enabled": true
+          }
+        ]
+      },
+      "login": {
+        "methods": [
+          {
+            "id": "key_challenge",
+            "enabled": true
+          },
+          {
+            "id": "mtls",
+            "enabled": false
+          }
+        ],
+        "requiredProviders": []
+      },
+      "recovery": {
+        "providerReset": {
+          "providers": []
+        }
+      },
+      "ui": {
+        "autoRedirect": {
+          "enabled": false,
+          "providerId": null
+        }
+      },
+      "providers": {
+        "github": {
+          "enabled": true,
+          "configured": false,
+          "ui": {
+            "displayName": "GitHub",
+            "iconHint": "github",
+            "connectButtonColor": "#24292F",
+            "supportsProfileBadge": true,
+            "badgeIconName": "github"
+          },
+          "restrictions": {
+            "usersAllowlist": false,
+            "orgsAllowlist": false,
+            "orgMatch": "any"
+          },
+          "offboarding": {
+            "enabled": false,
+            "intervalSeconds": 86400,
+            "mode": "per-request-cache",
+            "source": "oauth_user_token"
+          }
+        }
+      },
+      "misconfig": [],
+      "mtls": {
+        "mode": "forwarded",
+        "autoProvision": false,
+        "identitySource": "san_email",
+        "policy": {
+          "trustForwardedHeaders": false,
+          "issuerAllowlist": {
+            "enabled": false,
+            "count": 0
+          },
+          "emailDomainAllowlist": {
+            "enabled": false,
+            "count": 0
+          }
+        }
+      }
+    },
+    "session": {
+      "messages": {
+        "role": true,
+        "turns": true
+      },
+      "runtimeActivity": {
+        "protocolVersion": 2
+      },
+      "pendingInput": {
+        "protocolVersion": 2
+      }
+    },
+    "sharing": {
+      "pendingQueueV2": {
+        "deliveryState": true,
+        "deliveryBlockedReason": true
+      }
+    },
+    "connectedServices": {
+      "credentialDelete": {
+        "revisionGuard": true
+      }
+    }
+  }
+}

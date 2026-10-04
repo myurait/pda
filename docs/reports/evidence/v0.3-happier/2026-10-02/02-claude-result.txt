@@ -1,0 +1,33 @@
+2026-10-04T07:56:36.119756+00:00
+$ git -C /home/user/v03/work/happier/scratch2 diff
+diff --git a/README.md b/README.md
+index af0f694..2527919 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python hello.py` または `from hello import greet; greet("名前")` で挨拶を出力します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..a173fd5 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
+-print("hello")
++def greet(name):
++    print(f"hello, {name}")
++
++
++greet("world")
+
+$ python3 -B hello.py
+hello, world
+exit=0
+
+$ python3 -B -c from hello import greet; greet("太郎")
+hello, world
+hello, 太郎
+exit=0
+
+$ git diff --check
+exit=0

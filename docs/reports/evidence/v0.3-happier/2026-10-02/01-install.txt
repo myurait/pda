@@ -1,0 +1,49 @@
+2026-10-04T07:52:08.762274+00:00
+既存環境をそのまま使用。再導入・pull・コード変更なし。
+開始時: v03-cccc.service と v03-happier.service は inactive/dead。
+$ git switch -c v0.3/setup-happier-2 main
+成功。
+$ systemctl --user start v03-happier.service
+exit=0 (1回)
+$ /home/user/v03/happier/happier --version
+0.2.14
+
+exit=0
+$ /home/user/v03/happier/cli/node_modules/@happier-dev/cli/tools/unpacked/zellij --version
+zellij 0.44.3
+
+exit=0
+$ git -C /home/user/v03/happier/source rev-parse HEAD
+d2e97f110b10177a19226e73debbf225d612eeac
+
+exit=0
+
+compose.yaml:
+name: v03-happier
+services:
+  relay:
+    image: happierdev/relay-server@sha256:a350a537d5ef4d0ef7ff6780d583bd6e674cb4f133426de0fb2aa08f02cd04d7
+    ports:
+      - "127.0.0.1:5112:3005"
+    environment:
+      HOME: /home/user/v03/agent-home
+      PORT: "3005"
+      HAPPIER_SERVER_FLAVOR: light
+      HAPPIER_DB_PROVIDER: sqlite
+      HAPPIER_SERVER_LIGHT_DATA_DIR: /data
+    volumes:
+      - ./server-data:/data
+    restart: "no"
+
+Scratch: /home/user/v03/work/happier/scratch2
+README.md: # scratch\n
+hello.py: print("hello")\n
+$ git -C /home/user/v03/work/happier/scratch2 log -1 --format=%h %s
+f2678c9 試用の初期ファイルを作成
+
+exit=0
+
+2026-10-04T08:05:25.503071+00:00
+$ docker image inspect (image labels only)
+{"org.opencontainers.image.revision":"88d45f33a5e5faf3235f621ee168a6f0ca58762d"}
+exit=0
