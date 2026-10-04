@@ -1,0 +1,11 @@
+[2026-10-04T10:29:15.245+00:00] $ ps -eo pid,ppid,etime,args --forest
+Scope: service cgroup + ancestors; unrelated processes omitted.
+    PID    PPID     ELAPSED COMMAND
+      1       0 77-10:49:09 /usr/lib/systemd/systemd --system --deserialize=80
+   1274       1 77-10:48:39 /usr/lib/systemd/systemd --user --deserialize=8
+ 290272    1274       02:44  \_ /bin/bash /home/user/v03/herdr-collie/start.sh
+ 290273  290272       02:44      \_ /home/user/v03/herdr-collie/bin/herdr server
+ 290300  290273       02:44      |   \_ /bin/bash
+ 291021  290300       00:44      |   |   \_ /home/user/.local/bin/claude --permission-mode acceptEdits
+ 290429  290273       02:25      |   \_ /bin/bash
+ 290325  290272       02:44      \_ /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie _exec-bridge

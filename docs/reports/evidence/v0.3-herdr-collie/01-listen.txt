@@ -1,0 +1,103 @@
+[2026-10-04T10:28:31.232+00:00] $ ss -ltnp (5117 only)
+LISTEN 0      512        127.0.0.1:5117       0.0.0.0:*    users:(("collie",pid=290325,fd=11))
+[2026-10-04T10:28:31.240+00:00] $ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5117/
+200
+[2026-10-04T10:28:31.241+00:00] GET /api/snapshot
+{
+  "bridge": "connected",
+  "agents": [],
+  "shellPanes": [
+    {
+      "paneId": "w1:p1",
+      "workspaceId": "w1",
+      "workspaceLabel": "v03-trial",
+      "workspaceNumber": 1,
+      "tabId": "w1:t1",
+      "agent": "shell",
+      "status": "unknown",
+      "cwd": "/home/user/v03/work/herdr-collie/scratch",
+      "focused": true,
+      "kind": "shell",
+      "readableLines": 50,
+      "tabPosition": 0,
+      "lastActiveAt": 1791109688173,
+      "lastSeenAt": 1791109710860
+    },
+    {
+      "paneId": "w1:p2",
+      "workspaceId": "w1",
+      "workspaceLabel": "v03-trial",
+      "workspaceNumber": 1,
+      "tabId": "w1:t2",
+      "agent": "shell",
+      "status": "unknown",
+      "cwd": "/home/user/v03/work/herdr-collie/scratch",
+      "focused": false,
+      "kind": "shell",
+      "tabLabel": "codex",
+      "readableLines": 55,
+      "tabPosition": 0,
+      "soleTabName": "codex",
+      "lastActiveAt": 1791109688477,
+      "lastSeenAt": 1791109688477
+    }
+  ],
+  "workspaces": [
+    {
+      "workspaceId": "w1",
+      "number": 1,
+      "label": "v03-trial",
+      "focused": true,
+      "activeTabId": "w1:t1",
+      "tabCount": 2,
+      "paneCount": 2
+    }
+  ],
+  "tabs": [
+    {
+      "tabId": "w1:t1",
+      "workspaceId": "w1",
+      "number": 1,
+      "label": "1",
+      "focused": true,
+      "paneCount": 1
+    },
+    {
+      "tabId": "w1:t2",
+      "workspaceId": "w1",
+      "number": 2,
+      "label": "codex",
+      "focused": false,
+      "paneCount": 1
+    }
+  ],
+  "sessions": [
+    {
+      "name": "default",
+      "isPrimary": true,
+      "reachable": true,
+      "agents": 0,
+      "working": 0,
+      "blocked": 0
+    }
+  ],
+  "notifications": {
+    "snoozedUntil": null
+  },
+  "update": {
+    "current": "1.16.1",
+    "latest": "1.16.1",
+    "latestUrl": "https://github.com/AltanS/collie/releases/tag/v1.16.1",
+    "releaseAvailable": false,
+    "majorAvailable": null,
+    "majorUrl": null,
+    "installKind": "packaged",
+    "dismissedVersion": null,
+    "dismissedCrewVersion": null,
+    "bridgeStale": false,
+    "restartNeeded": false,
+    "checkedAt": 1791109681492,
+    "newerVersions": []
+  },
+  "ts": 1791109711241
+}

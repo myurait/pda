@@ -1,0 +1,110 @@
+[2026-10-04T10:41:32.210+00:00] Before stop
+● v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-herdr-collie.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 19:26:31 JST; 15min ago
+   Main PID: 290272 (start.sh)
+      Tasks: 153 (limit: 15004)
+     Memory: 568.5M (peak: 769.9M)
+        CPU: 1min 9.101s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-herdr-collie.service
+             ├─290272 /bin/bash /home/user/v03/herdr-collie/start.sh
+             ├─290273 /home/user/v03/herdr-collie/bin/herdr server
+             ├─290325 /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie _exec-bridge
+             ├─290429 /bin/bash
+             ├─291888 /home/user/.local/bin/codex --dangerously-bypass-approvals-and-sandbox
+             ├─292635 /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+             ├─295405 /bin/bash
+             ├─295415 /home/user/.local/bin/codex --dangerously-bypass-approvals-and-sandbox
+             ├─295756 /bin/bash
+             ├─295765 /home/user/.local/bin/claude
+             └─296191 /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+
+Oct 04 19:27:05 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:28:08 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:28:08 agent-node start.sh[290325]: [events] resubscribed (0 panes watched)
+Oct 04 19:28:31 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:31:05 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:32:32 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:33:14 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:38:37 agent-node start.sh[290325]: [events] resubscribed (3 panes watched)
+Oct 04 19:39:28 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:39:29 agent-node start.sh[290325]: [events] resubscribed (3 panes watched)
+
+[2026-10-04T10:41:32.211+00:00] $ systemctl --user stop v03-herdr-collie.service
+[2026-10-04T10:41:32.537+00:00] ○ v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-herdr-collie.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 19:31:05 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:32:32 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:33:14 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:38:37 agent-node start.sh[290325]: [events] resubscribed (3 panes watched)
+Oct 04 19:39:28 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:39:29 agent-node start.sh[290325]: [events] resubscribed (3 panes watched)
+Oct 04 19:41:32 agent-node start.sh[290325]: [bridge] shutting down
+Oct 04 19:41:32 agent-node systemd[1274]: Stopping v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial...
+Oct 04 19:41:32 agent-node systemd[1274]: Stopped v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial.
+Oct 04 19:41:32 agent-node systemd[1274]: v03-herdr-collie.service: Consumed 1min 9.244s CPU time, 769.9M memory peak, 0B memory swap peak.
+
+[2026-10-04T10:41:32.543+00:00] MainPID=0
+ControlGroup=
+ActiveState=inactive
+SubState=dead
+
+[2026-10-04T10:41:32.553+00:00] $ ss -ltnp (reserved ports and 5117)
+LISTEN 0      4096         0.0.0.0:5080       0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:44105      0.0.0.0:*    users:(("tailscaled",pid=2474188,fd=15))
+LISTEN 0      128        127.0.0.1:22037      0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*
+LISTEN 0      4096            [::]:5080          [::]:*
+LISTEN 0      4096            [::]:22            [::]:*
+[2026-10-04T10:41:32.556+00:00]   UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+[2026-10-04T10:41:57.412+00:00] Backup metadata only before removal:
+-rw------- 1 user user 78735 Oct  4 19:41 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110492231
+
+[2026-10-04T10:41:57.412+00:00] Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110492231; exists=False
+[2026-10-04T10:41:57.414+00:00] Backup metadata only before removal:
+-rw------- 1 user user 78678 Oct  4 19:37 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110279453
+
+[2026-10-04T10:41:57.414+00:00] Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110279453; exists=False
+[2026-10-04T10:41:57.416+00:00] Backup metadata only before removal:
+-rw------- 1 user user 78677 Oct  4 19:36 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110175515
+
+[2026-10-04T10:41:57.416+00:00] Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110175515; exists=False
+[2026-10-04T10:41:57.418+00:00] Backup metadata only before removal:
+-rw------- 1 user user 78676 Oct  4 19:33 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791109994376
+
+[2026-10-04T10:41:57.418+00:00] Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791109994376; exists=False
+[2026-10-04T10:41:57.419+00:00] Backup metadata only before removal:
+-rw------- 1 user user 78734 Oct  4 19:39 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110369006
+
+[2026-10-04T10:41:57.420+00:00] Removed /home/user/pda/secrets/claude/backups/.claude.json.backup.1791110369006; exists=False
+[2026-10-04T10:41:57.420+00:00] Removed newly created trial CLI cache directory (contents not read): /home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch; files=4
+[2026-10-04T10:41:57.421+00:00] New backup files removed: 5. Original .credentials.json/auth.json/.claude.json, settings.json and config.toml were not read, copied, manually edited or removed. Trust was written by the CLIs. Pre-existing other-product files, including their .bak files, were not changed.
+[2026-10-04T10:41:57.421+00:00] No Herdr/Collie MCP, hook, plugin or skill registration was performed. Used herdr server and collie _exec-bridge directly. Therefore no newly registered entry required removal. No extra agent credential file was created outside the supplied symlinks. No tmux/zellij session was started. Installed products, release archives, unit and product-local state are retained; unit was not enabled and is stopped.
+[2026-10-04T10:41:57.463+00:00] $ git -C /home/user/v03/herdr-collie/herdr-src status --short
+
+[2026-10-04T10:41:57.470+00:00] $ git -C /home/user/v03/herdr-collie/collie status --short
+
+[2026-10-04T10:46:46.906+00:00] Python __pycache__ was removed before T5 after saving T4 diff; final cleanup found none. All screenshots/recorders had exited before unit stop.
+[2026-10-04T10:46:46.907+00:00] Trial cgroup exists after stop: False
+[2026-10-04T10:46:46.908+00:00] Original executable symlinks after trial
+lrwxrwxrwx 1 user user 47 Sep 28 20:39 /home/user/.local/bin/claude -> /home/user/.local/share/claude/versions/2.1.274
+lrwxrwxrwx 1 user user 55 Sep 24 22:40 /home/user/.local/bin/codex -> /home/user/.codex/packages/standalone/current/bin/codex
+
+[2026-10-04T10:46:46.914+00:00] Post-stop curl
+curl: (7) Failed to connect to 127.0.0.1 port 5117 after 0 ms: Couldn't connect to server
+000

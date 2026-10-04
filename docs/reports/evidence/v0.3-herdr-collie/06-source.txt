@@ -1,0 +1,244 @@
+[2026-10-04T10:34:49.132+00:00] Fixed release source only; product code unmodified. Startup / input routes:
+[2026-10-04T10:34:49.135+00:00] herdr-src/src/pane.rs
+1979: fn pane_shell_command_builder_for_target(
+1980:     shell_config: PaneShellConfig<'_>,
+1981:     target: ShellLaunchTarget,
+1982: ) -> io::Result<CommandBuilder> {
+1983:     let shell = pane_shell(shell_config.default_shell);
+1984:     // Unix login shells go through portable-pty's default-program builder so
+1985:     // they receive the login argv0 convention. Windows has no such convention
+1986:     // and the default-program builder would launch cmd.exe, so Windows login
+1987:     // shells are built directly below like every other direct-shell target.
+1988:     if shell_mode_uses_login_shell(shell_config.mode, target)
+1989:         && target != ShellLaunchTarget::Windows
+1990:     {
+1991:         let mut cmd = CommandBuilder::new_default_prog();
+1992:         cmd.env("SHELL", resolve_shell_for_login_mode(&shell)?);
+1993:         return Ok(cmd);
+1994:     }
+1995:
+1996:     let mut cmd = CommandBuilder::new(&shell);
+1997:     if shell_mode_uses_login_shell(shell_config.mode, target) {
+1998:         cmd.args(windows_login_shell_args(&shell));
+1999:     }
+2000:     if uses_windows_powershell_pane_shell_for_target(shell_config, target) {
+2001:         cmd.args([
+2002:             "-NoExit",
+2003:             "-Command",
+2004:             WINDOWS_POWERSHELL_SHELL_INTEGRATION_COMMAND,
+2005:         ]);
+2006:     }
+2007:     Ok(cmd)
+[2026-10-04T10:34:49.135+00:00] herdr-src/src/pty/backend/unix.rs
+12: pub(crate) fn spawn_with_portable_pty(
+13:     rows: u16,
+14:     cols: u16,
+15:     cmd: CommandBuilder,
+16: ) -> std::io::Result<SpawnedPty> {
+17:     let pty_system = native_pty_system();
+18:     let pair = pty_system
+19:         .openpty(PtySize {
+20:             rows,
+21:             cols,
+22:             pixel_width: 0,
+23:             pixel_height: 0,
+24:         })
+25:         .map_err(|err| std::io::Error::other(err.to_string()))?;
+26:     let master_fd = pair
+27:         .master
+28:         .as_raw_fd()
+29:         .ok_or_else(|| std::io::Error::other("pty master fd is unavailable"))?;
+30:     let actor_fd = fd::duplicate_cloexec_fd(master_fd)?;
+31:     let actor_fd = unsafe { OwnedFd::from_raw_fd(actor_fd) };
+32:     let child = pair
+33:         .slave
+34:         .spawn_command(cmd)
+35:         .map_err(|err| std::io::Error::other(err.to_string()))?;
+[2026-10-04T10:34:49.135+00:00] herdr-src/src/cli/agent.rs
+777: fn agent_prompt(args: &[String]) -> std::io::Result<i32> {
+778:     let Some(target) = args.first() else {
+779:         eprintln!(
+780:             "usage: herdr agent prompt <target> <text> [--wait] [--until STATUS]... [--timeout MS]"
+781:         );
+782:         return Ok(2);
+783:     };
+784:     let Some(text) = args.get(1) else {
+785:         eprintln!("agent prompt requires text");
+786:         return Ok(2);
+787:     };
+788:     let mut wait = false;
+789:     let mut until = Vec::new();
+790:     let mut timeout_ms = None;
+791:     let mut index = 2;
+792:     while index < args.len() {
+793:         match args[index].as_str() {
+794:             "--wait" => {
+795:                 wait = true;
+796:                 index += 1;
+797:             }
+798:             "--until" => {
+799:                 let Some(value) = args.get(index + 1) else {
+800:                     eprintln!("--until requires at least one status");
+801:                     return Ok(2);
+802:                 };
+803:                 let status = match super::parse_agent_status(value) {
+804:                     Ok(status) => status,
+805:                     Err(err) => {
+806:                         eprintln!("{err}");
+807:                         return Ok(2);
+808:                     }
+809:                 };
+810:                 until.push(status);
+811:                 index += 2;
+812:             }
+813:             "--timeout" => {
+814:                 let Some(value) = args.get(index + 1) else {
+815:                     eprintln!("missing value for --timeout");
+816:                     return Ok(2);
+817:                 };
+818:                 timeout_ms = match parse_timeout(value) {
+819:                     Ok(timeout_ms) => Some(timeout_ms),
+820:                     Err(exit_code) => return Ok(exit_code),
+821:                 };
+822:                 index += 2;
+823:             }
+824:             option => {
+825:                 eprintln!("unknown option: {option}");
+826:                 return Ok(2);
+827:             }
+828:         }
+829:     }
+830:     if !until.is_empty() && !wait {
+831:         eprintln!("--until requires --wait");
+832:         return Ok(2);
+833:     }
+834:     if timeout_ms.is_some() && !wait {
+835:         eprintln!("--timeout requires --wait");
+836:         return Ok(2);
+837:     }
+838:     let response = super::send_request(&Request {
+839:         id: "cli:agent:prompt".into(),
+840:         method: Method::AgentPrompt(AgentPromptParams {
+841:             target: target.clone(),
+842:             text: text.clone(),
+843:             wait: wait.then_some(AgentPromptWaitOptions {
+844:                 until,
+845:                 timeout_ms,
+846:                 submission_deadline: None,
+847:             }),
+848:         }),
+849:     })?;
+850:     super::print_response(&response)
+851: }
+852:
+853: fn agent_send_keys(args: &[String]) -> std::io::Result<i32> {
+854:     if args.len() < 2 {
+[2026-10-04T10:34:49.136+00:00] collie/bridge/mux/herdr/client.ts
+619:   /** Type literal text into a pane's terminal (does not submit). */
+620:   sendPaneText(paneId: string, text: string): Promise<void> {
+621:     return this.request<void>("pane.send_text", { pane_id: paneId, text });
+622:   }
+623:
+624:   /** Send key names (e.g. ["Enter"]) to a pane — used to submit a reply. */
+625:   sendPaneKeys(paneId: string, keys: string[]): Promise<void> {
+626:     return this.request<void>("pane.send_keys", { pane_id: paneId, keys });
+627:   }
+628:
+629:   /** Close a pane, terminating its agent ("kill"). Resolves on Herdr's `{type:"ok"}` reply. */
+630:   closePane(paneId: string): Promise<void> {
+631:     return this.request<void>("pane.close", { pane_id: paneId });
+[2026-10-04T10:34:49.136+00:00] collie/bridge/mux/herdr/adapter.ts
+336:   async typeText(paneId: string, text: string): Promise<MuxAck> {
+337:     return this.attempt(() => this.client.sendPaneText(paneId, text));
+338:   }
+339:
+340:   /**
+341:    * Keys in the contract's spelling, translated and applied in order.
+342:    *
+343:    * A batch containing one chord Herdr cannot express sends NOTHING — the keys of one call are a
+344:    * sequence, and delivering its front half is worse than delivering none of it (the pane would be
+345:    * left mid-chord with no way for the caller to know where it stopped).
+346:    */
+347:   async sendKeys(paneId: string, keys: readonly string[]): Promise<MuxAck> {
+348:     const translated: string[] = [];
+349:     for (const key of keys) {
+350:       const result = toHerdrKey(key);
+351:       if (!result.ok) {
+352:         return muxRefused(
+353:           result.reason === "unsendable"
+354:             ? `herdr cannot send ${key} — no key sends it (paging and edit keys); scroll the mirror instead`
+355:             : `not a key: ${key}`,
+356:         );
+357:       }
+358:       translated.push(result.key);
+359:     }
+360:     return this.attempt(() => this.client.sendPaneKeys(paneId, translated));
+[2026-10-04T10:34:49.137+00:00] collie/bridge/server.ts
+2810:   session: string,
+2811: ): Promise<Response> {
+2812:   let body: JsonValue;
+2813:   try {
+2814:     // SAFETY: `Request.json()` output IS a JsonValue by construction. Every field is checked below
+2815:     // before it is used — which is the point: the shape this used to be *declared* as was the
+2816:     // client's claim, never a fact.
+2817:     body = (await req.json()) as JsonValue;
+2818:   } catch {
+2819:     return text("bad body", 400);
+2820:   }
+2821:   const fields = asJsonRecord(body) ?? {};
+2822:   const expected = expectedPrompt(fields);
+2823:   if (!expected.ok) return text("bad expected_prompt", 400);
+2824:   const styled = expectedStyled(fields, expected.present);
+2825:   if (!styled.ok) return text("bad expected_styled", 400);
+2826:   // `text`/`submit` are CHECKED, not assumed. They used only to be declared string/boolean, so a
+2827:   // body that lied handed a non-string to `pane.send_text` (herdr refused it one layer down) or
+2828:   // made `submit ?? true` follow a truthiness path nobody wrote. A malformed write is refused here,
+2829:   // with nothing typed and nothing submitted.
+2830:   if (fields.text !== undefined && typeof fields.text !== "string") return text("bad text", 400);
+2831:   if (fields.submit !== undefined && typeof fields.submit !== "boolean") return text("bad submit", 400);
+2832:   const txt = fields.text ?? "";
+2833:   const submit = fields.submit ?? true;
+2834:   const ae = req.headers.get("accept-encoding");
+2835:   const binding = expected.present
+2836:     ? await checkPromptBinding(herdr, cfg, paneId, expected.value, styled.value)
+2837:     : null;
+2838:   if (binding && !binding.ok) {
+2839:     audit.record({
+2840:       action: "reply",
+2841:       paneId,
+2842:       session,
+2843:       device,
+2844:       detail: {
+2845:         text: txt,
+2846:         submit,
+2847:         submitted: false,
+2848:         textDelivered: false,
+2849:         promptBinding: binding.audit,
+2850:       },
+2851:     });
+2852:     return promptBindingFailure(binding, ae);
+2853:   }
+2854:   const outcome = await sendReplySteps(herdr, paneId, txt, submit, cfg.submitKeys);
+2855:   const replyDetail: AuditDetail = {
+2856:     text: txt,
+2857:     submit,
+2858:     submitted: outcome.ok,
+2859:     textDelivered: outcome.textDelivered,
+2860:   };
+2861:   // Assigned, never conditionally spread: an unbound reply records no `promptBinding` key.
+2862:   if (binding) replyDetail.promptBinding = binding.audit;
+2863:   // Audit the attempt regardless of outcome — text may have landed even when the submit failed.
+2864:   audit.record({
+2865:     action: "reply",
+2866:     paneId,
+2867:     session,
+2868:     device,
+2869:     detail: replyDetail,
+2870:   });
+2871:   if (outcome.ok) return json({ ok: true } satisfies ActionResponse, ae);
+2872:   const failure: ActionResponse = {
+2873:     ok: false,
+2874:     error: outcome.error,
+2875:     textDelivered: outcome.textDelivered,
+2876:     code: outcome.code,
+[2026-10-04T10:39:04.224+00:00] Stop-key spelling finding: collie bridge/mux/keys.ts:39-65 lists Escape; parseMuxKey uses exact named-key spelling, case-insensitive, but does not alias Esc. Herdr itself documents esc; Collie and Herdr key vocabularies differ here. The trial used Esc at the Collie endpoint and got keys.send_failed. No conclusion about a correctly spelled Escape request follows.

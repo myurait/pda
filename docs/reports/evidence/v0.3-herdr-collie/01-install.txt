@@ -1,0 +1,36 @@
+[2026-10-04T10:30:29.942+00:00] Products pinned to public releases. No sudo, apt, cargo, Go, Docker, tmux or zellij used.
+[2026-10-04T10:30:29.942+00:00] Commands executed:
+git clone --depth 1 https://github.com/herdrdev/herdr.git /home/user/v03/herdr-collie/herdr-src
+git -C herdr-src fetch --depth 1 origin tag v0.9.3
+git -C herdr-src checkout --detach v0.9.3
+git clone --depth 1 https://github.com/AltanS/collie.git /home/user/v03/herdr-collie/collie
+git -C collie fetch --depth 1 origin tag v1.16.1
+git -C collie checkout --detach v1.16.1
+curl -fL https://github.com/herdrdev/herdr/releases/download/v0.9.3/herdr-linux-x86_64 -o bin/herdr
+chmod +x bin/herdr
+curl -fL https://github.com/AltanS/collie/releases/download/v1.16.1/collie-1.16.1-linux-x64.tar.gz -o downloads/collie-1.16.1-linux-x64.tar.gz
+curl -fL https://github.com/AltanS/collie/releases/download/v1.16.1/collie-1.16.1-linux-x64.tar.gz.sha256 -o downloads/collie-1.16.1-linux-x64.tar.gz.sha256
+cd downloads; sha256sum -c collie-1.16.1-linux-x64.tar.gz.sha256 => OK
+tar -xzf collie-1.16.1-linux-x64.tar.gz -C ../release
+npm install --prefix /home/user/v03/herdr-collie/browser playwright --no-audit --no-fund => added 2 packages
+[2026-10-04T10:30:29.944+00:00] herdr-src commit 7b116c05bfda646af39d2524c54e70c751f57ee8
+
+[2026-10-04T10:30:29.945+00:00] collie commit 0890f72e7d858e25f3a886a96a839350b2fd346b
+
+[2026-10-04T10:30:29.989+00:00] $ sha256sum /home/user/v03/herdr-collie/bin/herdr /home/user/v03/herdr-collie/downloads/collie-1.16.1-linux-x64.tar.gz
+18a8dc65f1c2fa485884344356dea1cfd911c6f06cf46fa78e193f4087f4dba7  /home/user/v03/herdr-collie/bin/herdr
+47d717a4c66f5ac3db1752063e1b1868cf090634940e684310dda5a9f3a06b11  /home/user/v03/herdr-collie/downloads/collie-1.16.1-linux-x64.tar.gz
+
+[2026-10-04T10:30:29.992+00:00] $ /home/user/v03/herdr-collie/env-run herdr --version
+herdr 0.9.3
+
+[2026-10-04T10:30:30.058+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie version
+1.16.1+0890f72
+
+[2026-10-04T10:30:30.069+00:00] $ /home/user/v03/herdr-collie/env-run claude --version
+2.1.274 (Claude Code)
+
+[2026-10-04T10:30:30.081+00:00] $ /home/user/v03/herdr-collie/env-run codex --version
+codex-cli 0.156.1
+
+[2026-10-04T10:30:30.081+00:00] Preparation: scratch README.md="# scratch\n", hello.py="print(\"hello\")\n". First commit attempt failed: "Author identity unknown" / "fatal: unable to auto-detect email address" (exit 128). Querying repo user.name found it unset; setup script aborted before unit creation. Subsequent shell commands reported "Unit v03-herdr-collie.service not found" and "server_not_running". Set commit-only identity -c user.name=Codex -c user.email=codex@localhost and retried initial commit once: success c931afc. Created unit afterward; first actual start succeeded. An immediate curl before bridge readiness returned connection refused; next readiness check succeeded. Binary downloads, extraction and actual product startup each succeeded first attempt.

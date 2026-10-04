@@ -1,0 +1,34 @@
+UTC 2026-10-04T10:23:34.028203+00:00
+$ git rev-parse main
+f4e5286513bfce370237f5a4c1c4496fa195a1b6
+$ systemctl --user list-units v03-*.service --all --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+$ ss -ltnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      4096         0.0.0.0:5080       0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:44105      0.0.0.0:*    users:(("tailscaled",pid=2474188,fd=15))
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*
+LISTEN 0      128        127.0.0.1:22037      0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*
+LISTEN 0      4096            [::]:5080          [::]:*
+LISTEN 0      4096            [::]:22            [::]:*
+$ uname -m
+x86_64
+$ node --version
+v24.18.0
+$ npm --version
+11.16.0
+tmux/zellij は製品別指示に従い使用しない。信頼確認は Herdr の PTY 内で CLI に書かせる。

@@ -1,0 +1,89 @@
+[2026-10-04T10:28:31.220+00:00] ● v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-herdr-collie.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 19:26:31 JST; 2min 0s ago
+   Main PID: 290272 (start.sh)
+      Tasks: 40 (limit: 15004)
+     Memory: 63.9M (peak: 499.6M)
+        CPU: 7.955s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-herdr-collie.service
+             ├─290272 /bin/bash /home/user/v03/herdr-collie/start.sh
+             ├─290273 /home/user/v03/herdr-collie/bin/herdr server
+             ├─290300 /bin/bash
+             ├─290325 /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie _exec-bridge
+             ├─290429 /bin/bash
+             └─291021 /home/user/.local/bin/claude --permission-mode acceptEdits
+
+Oct 04 19:26:31 agent-node start.sh[290325]: warn: /home/user/v03/herdr-collie/config/collie/.env was mode 664 (expected 600); tightened it to 600.
+Oct 04 19:26:31 agent-node start.sh[290325]: [push] disabled (no VAPID keys configured)
+Oct 04 19:26:31 agent-node start.sh[290325]: [bridge] mux: herdr · socket /home/user/v03/herdr-collie/config/herdr/herdr.sock
+Oct 04 19:26:31 agent-node start.sh[290325]: [bridge] listening on http://127.0.0.1:5117  (poll 500ms)
+Oct 04 19:26:31 agent-node start.sh[290325]: [bridge] WARNING: no non-loopback Host is allowed — every request except one addressed to localhost/127.0.0.1 will be rejected with "host not allowed". Set COLLIE_PUBLIC_HOSTS to the exact host(s) you serve on (required behind your own reverse proxy).
+Oct 04 19:26:31 agent-node start.sh[290325]: [events] stream up (0 panes watched)
+Oct 04 19:26:50 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:27:05 agent-node start.sh[290325]: [events] resubscribed (2 panes watched)
+Oct 04 19:28:08 agent-node start.sh[290325]: [events] resubscribed (1 panes watched)
+Oct 04 19:28:08 agent-node start.sh[290325]: [events] resubscribed (0 panes watched)
+
+[2026-10-04T10:28:31.220+00:00] [Unit]
+Description=PDA v0.3 Herdr and Collie trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/herdr-collie/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/herdr-collie/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_CONFIG_HOME=/home/user/v03/herdr-collie/config
+Environment=XDG_STATE_HOME=/home/user/v03/herdr-collie/state
+Environment=HERDR_CONFIG_PATH=/home/user/v03/herdr-collie/config/herdr/config.toml
+Environment=HERDR_SOCKET_PATH=/home/user/v03/herdr-collie/config/herdr/herdr.sock
+Environment=HERDR_PLUGIN_CONFIG_DIR=/home/user/v03/herdr-collie/config/collie
+Environment=COLLIE_PLUGIN_ROOT=/home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64
+Environment=COLLIE_STATE_DIR=/home/user/v03/herdr-collie/state/collie
+ExecStart=/home/user/v03/herdr-collie/start.sh
+KillMode=control-group
+TimeoutStopSec=20
+Restart=no
+
+[Install]
+WantedBy=default.target
+
+[2026-10-04T10:28:31.220+00:00] /home/user/v03/herdr-collie/start.sh
+#!/bin/bash
+set -eu
+/home/user/v03/herdr-collie/bin/herdr server &
+herdr_pid=$!
+trap 'kill "$herdr_pid" "${collie_pid:-}" 2>/dev/null || true' EXIT
+for attempt in {1..100}; do
+  test -S /home/user/v03/herdr-collie/config/herdr/herdr.sock && break
+  sleep 0.1
+done
+/home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie _exec-bridge &
+collie_pid=$!
+wait -n "$herdr_pid" "$collie_pid"
+
+[2026-10-04T10:28:31.220+00:00] /home/user/v03/herdr-collie/config/herdr/config.toml
+onboarding = false
+[server]
+headless_cols = 160
+headless_rows = 50
+[terminal]
+default_shell = "/bin/bash"
+shell_mode = "non_login"
+new_cwd = "/home/user/v03/work/herdr-collie/scratch"
+
+[2026-10-04T10:28:31.221+00:00] /home/user/v03/herdr-collie/config/collie/.env
+COLLIE_PORT=5117
+COLLIE_HOST=127.0.0.1
+COLLIE_MUX=herdr
+COLLIE_SKIP_SERVE=1
+COLLIE_MULTI_SESSION=off
+COLLIE_TRANSCRIPT=off
+COLLIE_STATE_DIR=/home/user/v03/herdr-collie/state/collie
+COLLIE_POLL_MS=500
+COLLIE_READ_LINES=250
+
+[2026-10-04T10:28:31.221+00:00] /home/user/v03/herdr-collie/env-run
+#!/bin/bash
+exec env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/home/user/v03/herdr-collie/bin:/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/user/v03/herdr-collie/config XDG_STATE_HOME=/home/user/v03/herdr-collie/state HERDR_CONFIG_PATH=/home/user/v03/herdr-collie/config/herdr/config.toml HERDR_SOCKET_PATH=/home/user/v03/herdr-collie/config/herdr/herdr.sock HERDR_PLUGIN_CONFIG_DIR=/home/user/v03/herdr-collie/config/collie COLLIE_PLUGIN_ROOT=/home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64 COLLIE_STATE_DIR=/home/user/v03/herdr-collie/state/collie "$@"
