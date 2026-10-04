@@ -1,0 +1,13 @@
+Scratch: /home/user/v03/work/ghostex/scratch
+git init; README.md = # scratch\n; hello.py = print("hello")\n
+Initial commit failed: Author identity unknown; fatal: unable to auto-detect email address.
+Retry after repository-local user.name=PDA trial, user.email=pda-trial@example.invalid: e6bb7a3, success. Attempts=2.
+
+Dedicated tmux server: tmux -L v03-ghostex
+Claude: launched /home/user/.local/bin/claude with gx-env in scratch; selected "Yes, I trust this folder"; reached Claude Code v2.1.274 / Sonnet 5 / Claude Pro; exited with /exit.
+Codex: launched /home/user/.local/bin/codex with gx-env in scratch; selected "1. Trust and continue"; reached Codex v0.156.1 / GPT-6-Astra; sent /exit. Final validation found this preparation Codex still alive in trust-codex (PID 299144); it was terminated with the dedicated tmux server during cleanup (10-cleanup.txt).
+No configuration files edited manually; CLIs saved their own trust decisions.
+
+Environment for product, terminal setup, and helper CLI:
+#!/bin/sh
+exec env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/home/user/v03/ghostex/bin:/usr/local/bin:/usr/bin:/bin XDG_CONFIG_HOME=/home/user/v03/ghostex/xdg/config XDG_DATA_HOME=/home/user/v03/ghostex/xdg/data XDG_STATE_HOME=/home/user/v03/ghostex/xdg/state XDG_CACHE_HOME=/home/user/v03/ghostex/xdg/cache GHOSTEX_GXSERVER_DEV_PORT=5118 GHOSTEX_AGENT_SKILLS_REMOTE=off "$@"

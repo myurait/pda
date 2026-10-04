@@ -1,0 +1,25 @@
+2026-10-04T11:14:21.200531+00:00
+Final screen URL: http://127.0.0.1:5118/
+API: http://127.0.0.1:58744/ (product default; web and API are separate processes)
+POST /api/webBootstrap from Origin http://127.0.0.1:5118: HTTP 200
+Selected public response metadata:
+{
+  "ok": true,
+  "product": "gxserver",
+  "protocolVersion": 1,
+  "requestId": "adf37c2b-43d3-4636-949a-3c86c35d8656",
+  "result": {
+    "baseUrl": "http://127.0.0.1:58744",
+    "machineLabel": "agent-node",
+    "protocolVersion": 1
+  }
+}
+Authentication token obtained by the product bootstrap; it is not displayed or copied to evidence.
+Token file location: /home/user/v03/ghostex/xdg/state/ghostex/gxserver/auth/token (mode 0600).
+Command for an SSH client: /home/user/v03/ghostex/gx-env /home/user/v03/ghostex/bin/gxserver endpoint (prints token: handle privately; never paste into evidence).
+Headless render attempts=2. Both initialize BrowserWebGpu then report:
+wgpu device lost: reason=Unknown, message=A valid external Instance reference no longer exists.
+Browser graphics context was lost; rendering has stopped. Reload the page to recover.
+Attempt 2 added --disable-blink-features=WebGPU, but the log still selected BrowserWebGpu. Both PNGs are blank/dark.
+External development-PC SSH reachability and Tailscale Serve were not tested, as instructed.
+Bootstrap returns absolute baseUrl=http://127.0.0.1:58744, so forwarding/serving only port 5118 does not by itself provide remote-browser API reachability. This is an inference from the returned baseUrl and source, not a remote-device test.

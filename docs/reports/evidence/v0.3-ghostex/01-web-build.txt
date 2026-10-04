@@ -1,0 +1,87 @@
+Web startup attempt 1:
+$ gx-env ghostex web --no-open --port 5118
+exit=1
+Ghostex Web is not built at /home/runner/work/Ghostex/Ghostex/apps/gpui-web/www/dist. Run `cargo xtask web-build` from the checkout or pass --dist-dir <directory>.
+
+Full Linux tarball inspected with tar --zstd -tf; it also contains no apps/gpui-web/www/dist.
+Official guide skills/ghostex-help/references/features.md:1670-1674 states the web app is source-built and not part of the installed app.
+
+Recovery without sudo or product-source edits:
+Rust 1.95.0 (minimal), wasm32-unknown-unknown target; Zig 0.16.0; wasm-bindgen-cli 0.2.125; sccache 0.18.0; Bun 1.4.2 installed under /home/user/v03/ghostex.
+git submodule update --init --depth 1 .dependencies/zed .dependencies/gpui-component
+bun install --frozen-lockfile (684 packages, exit=0)
+Build environment:
+#!/bin/sh
+exec env RUSTUP_HOME=/home/user/v03/ghostex/rustup CARGO_HOME=/home/user/v03/ghostex/cargo CARGO_BUILD_JOBS=2 SCCACHE_DIR=/home/user/v03/ghostex/sccache-cache GHOSTEX_ZIG=/home/user/v03/ghostex/zig-x86_64-linux-0.16.0/zig PATH=/home/user/.local/bin:/home/user/v03/ghostex/cargo/bin:/home/user/v03/ghostex/bun-linux-x64:/home/user/v03/ghostex/sccache-v0.18.0-x86_64-unknown-linux-musl:/home/user/v03/ghostex/wasm-bindgen-0.2.125-x86_64-unknown-linux-musl:/usr/local/bin:/usr/bin:/bin "$@"
+
+$ cd /home/user/v03/ghostex/source
+$ /home/user/v03/ghostex/build-env cargo xtask web-build
+Build attempt 1, exit=0. Output summary (ANSI removed):
+warning: unused import: `set_touch_composer`
+warning: unused import: `Focusable as _`
+warning: unused import: `helpers::*`
+warning: unused import: `px`
+warning: unused import: `InteractiveElement as _`
+warning: unused import: `px`
+warning: unused import: `render::table_preview_content`
+warning: unused import: `gpui::prelude::FluentBuilder`
+warning: unused variable: `window`
+warning: function `workarea_theme_script` is never used
+warning: function `pane_prepaint_background_color` is never used
+warning: function `gpui_play_copy_sound` is never used
+warning: struct `GpuiExtensionViewPresentation` is never constructed
+warning: function `gpui_extension_view_presentation` is never used
+warning: constant `WINDOW_GLASS_MENU_ALPHA` is never used
+warning: function `gpui_chat_owned_hotkey_action_id` is never used
+warning: function `gpui_focused_chat_hotkey_action_id` is never used
+warning: function `gpui_key_binding_from_shared_hotkey` is never used
+warning: function `gpui_hotkey_feature_enabled` is never used
+warning: function `gpui_workarea_switch_hotkey_action_id` is never used
+warning: function `gpui_titlebar_view_hotkey_index` is never used
+warning: function `gpui_configured_hotkey_key_bindings_from_settings` is never used
+warning: function `gpui_configured_hotkey_unbinds_from_settings` is never used
+warning: method `run_configured_ghostex_hotkey` is never used
+warning: struct `WebsiteProvider` is never constructed
+warning: method `automatic` is never used
+warning: method `website_provider` is never used
+warning: variants `BotFeed` and `Extension` are never constructed
+warning: multiple associated items are never used
+warning: struct `TitlebarModeSwitcherItem` is never constructed
+warning: struct `GpuiTitlebarExitFocusControlSignature` is never constructed
+warning: function `gpui_titlebar_exit_focus_control_signature` is never used
+warning: associated function `for_variant` is never used
+warning: function `focus_requested` is never used
+warning: methods `renders_region_above_transcript` and `set_under_workarea_header` are never used
+warning: field `0` is never read
+warning: method `receive_callback` is never used
+warning: function `collect_messages` is never used
+warning: function `replies_newest_first` is never used
+warning: function `last_fenced_code_block` is never used
+warning: methods `focus_composer_from_hotkey` and `copy_last_reply_from_hotkey` are never used
+warning: methods `active_child_window_source`, `dismiss_windows_for_hidden_pane`, `restore_windows_for_shown_pane`, and `sync_pane_modal_windows` are never used
+warning: method `bind_launched_session` is never used
+warning: method `active_option_menu_source` is never used
+warning: methods `mark_menu_outside_pane` and `toggle_model_menu` are never used
+warning: method `configured_tooltip_delay` is never used
+warning: associated function `new` is never used
+warning: method `render_docked_native_sidebar` is never used
+warning: field `last_interaction_at` is never read
+warning: method `native_sidebar_input_owns_focus` is never used
+warning: fields `host` and `armed_actions` are never read
+warning: method `refresh_project_view_scope_options` is never used
+warning: methods `run_focused_chat_hotkey` and `request_focused_session_model_picker` are never used
+warning: method `dispatch_gpui_titlebar_resources_project_state_update` is never used
+warning: method `gx_store_queue_attention_acknowledge` is never used
+warning: field `revision` is never read
+warning: methods `revision` and `content_hash` are never used
+warning: function `install` is never used
+warning: `ghostex-gpui-web` (lib) generated 58 warnings (run `cargo fix --lib -p ghostex-gpui-web` to apply 8 suggestions)
+    Finished `release` profile [optimized] target(s) in 4m 18s
+vite v8.0.10 building client environment for production...
+apps/gpui-web/www/dist/index.html                                     0.80 kB │ gzip:      0.50 kB
+apps/gpui-web/www/dist/assets/ghostex_gpui_web_bg-DtmCYdAs.wasm  62,354.97 kB │ gzip: 21,516.76 kB
+apps/gpui-web/www/dist/assets/index-D1Fm91nU.js                      29.77 kB │ gzip:     10.03 kB
+apps/gpui-web/www/dist/assets/ghostex_gpui_web-DvbtXuo1.js          109.81 kB │ gzip:     26.55 kB
+✓ built in 848ms
+
+Web startup attempt 2: final user unit starts ghostex web --port 5118 --dist-dir /home/user/v03/ghostex/source/apps/gpui-web/www/dist --no-open; HTTP 200.

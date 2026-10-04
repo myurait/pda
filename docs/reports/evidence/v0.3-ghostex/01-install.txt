@@ -1,0 +1,31 @@
+Selected release: v10.10.0
+Published: 2026-10-04T08:21:48Z
+URL: https://github.com/maddada/Ghostex/releases/tag/v10.10.0
+Commands (all succeeded on first attempt):
+git clone --depth 1 --branch v10.10.0 https://github.com/maddada/Ghostex.git /home/user/v03/ghostex/source
+curl -fL https://github.com/maddada/Ghostex/releases/download/v10.10.0/gxserver-linux-x64.tar.gz -o /home/user/v03/ghostex/gxserver-linux-x64.tar.gz
+cd /home/user/v03/ghostex
+tar -xzf gxserver-linux-x64.tar.gz
+4d936b548ce547bcf929c2ed1b51d42dfa1d3c18f36c2908cb5862a0e3dbb8e7  gxserver-linux-x64.tar.gz
+620a3e8e179c75ae55df84f3494a865fbda7a941078419b8f0a08875cf30aa6b  bin/gxserver
+bf27fa3aefb08cea0689eddd52010c16ae3349b976c52ae703843a88fc0643d9  bin/ghostex
+7794e7aa3a7922f6d8730e4946c116911b3ed5ef629d6a4bceb7c529d20a87f9  bin/zmx
+GitHub asset digest: sha256:4d936b548ce547bcf929c2ed1b51d42dfa1d3c18f36c2908cb5862a0e3dbb8e7
+Build identity:
+{
+  "buildIdentity": "gxserver:0.1.0:sha256:fb1010fd103fcd5cd15f7226395114e02ead45957f5a0f250764dedd5ec9a348",
+  "fingerprint": "sha256:fb1010fd103fcd5cd15f7226395114e02ead45957f5a0f250764dedd5ec9a348",
+  "packageVersion": "0.1.0",
+  "sourceDirty": false,
+  "sourceRevision": "85e925a9e9c8527d2f05e58e3a3df9fef65b28ab",
+  "zmxSourceDirty": false,
+  "zmxSourceRevision": "feaefff987232ed4628873eb6154813ea760f284"
+}
+
+No bundled claude or codex executable (archive includes gxserver, ghostex, zmx and skills only).
+Host CLI versions: Claude Code 2.1.274; codex-cli 0.156.1
+
+Web UI built from the same pinned checkout; see 01-web-build.txt.
+Product source status after build:
+$ git -C /home/user/v03/ghostex/source status --short
+(empty = no tracked/untracked source changes)

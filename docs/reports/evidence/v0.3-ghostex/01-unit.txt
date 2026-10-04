@@ -1,0 +1,102 @@
+2026-10-04T10:54:56.939321+00:00
+$ systemctl --user status v03-ghostex.service --no-pager -n 0
+● v03-ghostex.service - PDA v0.3 Ghostex trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-ghostex.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 19:52:35 JST; 2min 21s ago
+   Main PID: 299018 (gxserver)
+      Tasks: 45 (limit: 15004)
+     Memory: 169.9M (peak: 259.7M)
+        CPU: 6.330s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-ghostex.service
+             ├─299018 /home/user/v03/ghostex/bin/gxserver
+             ├─299342 /home/user/v03/ghostex/bin/zmx run S2d-P6xce-G3rty -d --initial-command /bin/bash -lic "case \"\${GHOSTEX_HOME:-}\" in\n  /*) ghostex_prompt_editor_state_dir=\"\$GHOSTEX_HOME/state\" ;;\n  *) case \"\${XDG_STATE_HOME:-}\" in\n       /*) ghostex_prompt_editor_state_dir=\"\${XDG_STATE_HOME%/}/ghostex\" ;;\n       *) ghostex_prompt_editor_state_dir=\"\$HOME/.local/state/ghostex\" ;;\n     esac ;;\nesac\nghostex_prompt_editor_wrapper=\"\$ghostex_prompt_editor_state_dir/prompt-editor\"\nghostex_prompt_editor_machine_visual=\"\${VISUAL:-}\"\nghostex_prompt_editor_machine_editor=\"\${EDITOR:-}\"\n[ \"\$ghostex_prompt_editor_machine_visual\" != \"\$ghostex_prompt_editor_wrapper\" ] || ghostex_prompt_editor_machine_visual=\"\${GHOSTEX_PROMPT_EDITOR_MACHINE_VISUAL:-}\"\n[ \"\$ghostex_prompt_editor_machine_editor\" != \"\$ghostex_prompt_editor_wrapper\" ] || ghostex_prompt_editor_machine_editor=\"\${GHOSTEX_PROMPT_EDITOR_MACHINE_EDITOR:-}\"\nmkdir -p \"\$(dirname \"\$ghostex_prompt_editor_wrapper\")\" 2>/dev/null || true\ncat > \"\$ghostex_prompt_editor_wrapper\" <<'__GHOSTEX_PROMPT_EDITOR_WRAPPER__'\n#!/bin/sh\nif [ -n \"\${GHOSTEX_ZMX_BIN:-}\" ] && [ -x \"\${GHOSTEX_ZMX_BIN:-}\" ]; then\n  export GHOSTEX_ZMX_BIN\nfi\nif [ -n \"\${GHOSTEX_CLI_EXECUTABLE:-}\" ] && [ -x \"\${GHOSTEX_CLI_EXECUTABLE:-}\" ]; then\n  exec \"\$GHOSTEX_CLI_EXECUTABLE\" prompt-editor \"\$@\"\nfi\nif command -v ghostex >/dev/null 2>&1; then\n  exec ghostex prompt-editor \"\$@\"\nfi\nprintf '%s\\n' 'Ghostex could not find its ghostex command, so the prompt editor did not open. Restart this session from Ghostex.' >&2\nexit 127\n__GHOSTEX_PROMPT_EDITOR_WRAPPER__\nchmod 755 \"\$ghostex_prompt_editor_wrapper\" 2>/dev/null || true\nexport GHOSTEX_PROMPT_EDITOR_MACHINE_VISUAL=\"\$ghostex_prompt_editor_machine_visual\"\nexport GHOSTEX_PROMPT_EDITOR_MACHINE_EDITOR=\"\$ghostex_prompt_editor_machine_editor\"\nexport EDITOR=\"\$ghostex_prompt_editor_wrapper\"\nexport VISUAL=\"\$ghostex_prompt_editor_wrapper\"\nexport GHOSTEX_CLI_EXECUTABLE='/home/user/v03/ghostex/bin/ghostex'\nexport GHOSTEX_PROMPT_EDITING_ENABLED=1\n claude\nexec '/bin/bash' -li"
+             ├─299343 /bin/bash -lic "case \"\${GHOSTEX_HOME:-}\" in\n  /*) ghostex_prompt_editor_state_dir=\"\$GHOSTEX_HOME/state\" ;;\n  *) case \"\${XDG_STATE_HOME:-}\" in\n       /*) ghostex_prompt_editor_state_dir=\"\${XDG_STATE_HOME%/}/ghostex\" ;;\n       *) ghostex_prompt_editor_state_dir=\"\$HOME/.local/state/ghostex\" ;;\n     esac ;;\nesac\nghostex_prompt_editor_wrapper=\"\$ghostex_prompt_editor_state_dir/prompt-editor\"\nghostex_prompt_editor_machine_visual=\"\${VISUAL:-}\"\nghostex_prompt_editor_machine_editor=\"\${EDITOR:-}\"\n[ \"\$ghostex_prompt_editor_machine_visual\" != \"\$ghostex_prompt_editor_wrapper\" ] || ghostex_prompt_editor_machine_visual=\"\${GHOSTEX_PROMPT_EDITOR_MACHINE_VISUAL:-}\"\n[ \"\$ghostex_prompt_editor_machine_editor\" != \"\$ghostex_prompt_editor_wrapper\" ] || ghostex_prompt_editor_machine_editor=\"\${GHOSTEX_PROMPT_EDITOR_MACHINE_EDITOR:-}\"\nmkdir -p \"\$(dirname \"\$ghostex_prompt_editor_wrapper\")\" 2>/dev/null || true\ncat > \"\$ghostex_prompt_editor_wrapper\" <<'__GHOSTEX_PROMPT_EDITOR_WRAPPER__'\n#!/bin/sh\nif [ -n \"\${GHOSTEX_ZMX_BIN:-}\" ] && [ -x \"\${GHOSTEX_ZMX_BIN:-}\" ]; then\n  export GHOSTEX_ZMX_BIN\nfi\nif [ -n \"\${GHOSTEX_CLI_EXECUTABLE:-}\" ] && [ -x \"\${GHOSTEX_CLI_EXECUTABLE:-}\" ]; then\n  exec \"\$GHOSTEX_CLI_EXECUTABLE\" prompt-editor \"\$@\"\nfi\nif command -v ghostex >/dev/null 2>&1; then\n  exec ghostex prompt-editor \"\$@\"\nfi\nprintf '%s\\n' 'Ghostex could not find its ghostex command, so the prompt editor did not open. Restart this session from Ghostex.' >&2\nexit 127\n__GHOSTEX_PROMPT_EDITOR_WRAPPER__\nchmod 755 \"\$ghostex_prompt_editor_wrapper\" 2>/dev/null || true\nexport GHOSTEX_PROMPT_EDITOR_MACHINE_VISUAL=\"\$ghostex_prompt_editor_machine_visual\"\nexport GHOSTEX_PROMPT_EDITOR_MACHINE_EDITOR=\"\$ghostex_prompt_editor_machine_editor\"\nexport EDITOR=\"\$ghostex_prompt_editor_wrapper\"\nexport VISUAL=\"\$ghostex_prompt_editor_wrapper\"\nexport GHOSTEX_CLI_EXECUTABLE='/home/user/v03/ghostex/bin/ghostex'\nexport GHOSTEX_PROMPT_EDITING_ENABLED=1\n claude\nexec '/bin/bash' -li"
+             ├─299353 /home/user/v03/ghostex/bin/zmx watch-title S2d-P6xce-G3rty
+             └─299354 claude
+
+Unit file:
+[Unit]
+Description=PDA v0.3 Ghostex trial
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/ghostex/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/ghostex/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_CONFIG_HOME=/home/user/v03/ghostex/xdg/config
+Environment=XDG_DATA_HOME=/home/user/v03/ghostex/xdg/data
+Environment=XDG_STATE_HOME=/home/user/v03/ghostex/xdg/state
+Environment=XDG_CACHE_HOME=/home/user/v03/ghostex/xdg/cache
+Environment=GHOSTEX_GXSERVER_DEV_PORT=5118
+Environment=GHOSTEX_AGENT_SKILLS_REMOTE=off
+ExecStart=/home/user/v03/ghostex/bin/gxserver
+Restart=no
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+
+FINAL CONFIGURATION 2026-10-04T11:09:20.734912+00:00
+● v03-ghostex.service - PDA v0.3 Ghostex trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-ghostex.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 20:08:56 JST; 23s ago
+   Main PID: 321808 (run-service)
+      Tasks: 37 (limit: 15004)
+     Memory: 4.8M (peak: 7.7M)
+        CPU: 512ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-ghostex.service
+             ├─321808 /bin/bash /home/user/v03/ghostex/run-service
+             ├─321809 /home/user/v03/ghostex/bin/gxserver
+             └─321810 /home/user/v03/ghostex/bin/ghostex web --port 5118 --dist-dir /home/user/v03/ghostex/source/apps/gpui-web/www/dist --no-open
+
+Unit file:
+[Unit]
+Description=PDA v0.3 Ghostex trial
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/ghostex/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/ghostex/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_CONFIG_HOME=/home/user/v03/ghostex/xdg/config
+Environment=XDG_DATA_HOME=/home/user/v03/ghostex/xdg/data
+Environment=XDG_STATE_HOME=/home/user/v03/ghostex/xdg/state
+Environment=XDG_CACHE_HOME=/home/user/v03/ghostex/xdg/cache
+Environment=GHOSTEX_AGENT_SKILLS_REMOTE=off
+Environment=SHELL=/bin/bash
+ExecStart=/home/user/v03/ghostex/run-service
+Restart=no
+KillMode=control-group
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+
+ExecStart wrapper (product code unchanged):
+#!/bin/bash
+set -euo pipefail
+/home/user/v03/ghostex/bin/gxserver &
+ghostex_api_pid=$!
+/home/user/v03/ghostex/bin/ghostex web --port 5118 --dist-dir /home/user/v03/ghostex/source/apps/gpui-web/www/dist --no-open &
+ghostex_web_pid=$!
+trap 'kill "$ghostex_api_pid" "$ghostex_web_pid" 2>/dev/null || true; wait || true' EXIT
+trap 'exit 0' TERM INT
+wait -n "$ghostex_api_pid" "$ghostex_web_pid"
+
+Product config.json (contains no secrets):
+{
+  "cors": {
+    "allowedOrigins": [
+      "http://127.0.0.1:5118",
+      "http://localhost:5118"
+    ]
+  },
+  "createdAt": "2026-10-04T10:52:35.617Z",
+  "product": "gxserver",
+  "web": {
+    "distDir": "/home/user/v03/ghostex/source/apps/gpui-web/www/dist"
+  }
+}

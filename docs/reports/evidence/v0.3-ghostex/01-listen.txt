@@ -1,0 +1,18 @@
+2026-10-04T10:54:56.939321+00:00
+$ ss -ltnp (sport = :5118)
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:5118      0.0.0.0:*    users:(("gxserver",pid=299018,fd=13))
+
+$ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5118/
+404
+Initial request at service start before bind: curl exit 7 / HTTP 000; retried after confirming listener: HTTP 404.
+gxserver is the control API, not the web UI (server/src/ghostex_cli/web.rs:22).
+
+FINAL CONFIGURATION 2026-10-04T11:09:20.734912+00:00
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:58744      0.0.0.0:*    users:(("gxserver",pid=321809,fd=13))
+LISTEN 0      128        127.0.0.1:5118       0.0.0.0:*    users:(("ghostex",pid=321810,fd=9))
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5118/
+exit=0 HTTP=200
+curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:58744/
+exit=0 HTTP=404

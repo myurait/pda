@@ -1,0 +1,531 @@
+Ghostex v10.10.0, commit 85e925a9e9c8527d2f05e58e3a3df9fef65b28ab
+Source URLs: https://github.com/maddada/Ghostex/blob/85e925a9e9c8527d2f05e58e3a3df9fef65b28ab/<path>#L<line>
+
+
+server/src/agents/helpers.rs:37-47
+37: pub(crate) fn default_agent_command(agent_id: &str) -> Option<&'static str> {
+38:     match agent_id {
+39:         "amp" => Some("amp"),
+40:         "antigravity" => Some("agy"),
+41:         "claude" => Some("claude"),
+42:         "codebuddy" => Some("codebuddy"),
+43:         "codex" => Some("codex"),
+44:         "command-code" => Some("commandcode"),
+45:         "copilot" => Some("copilot"),
+46:         "cursor" => Some("cursor-agent"),
+47:         "mastra" => Some("mastracode"),
+
+server/src/agents/launch_plan.rs:439-506
+439:
+440: pub(crate) struct AgentLaunchInput {
+441:     pub(crate) accept_all_mode: Option<String>,
+442:     pub(crate) agent_id: String,
+443:     pub(crate) agent_session_id: Option<String>,
+444:     pub(crate) command: Option<String>,
+445:     pub(crate) delayed_send_deadline_at: Option<String>,
+446:     pub(crate) first_user_message: Option<String>,
+447:     pub(crate) global_accept_all_enabled: bool,
+448:     pub(crate) icon: Option<String>,
+449: }
+450:
+451: pub(crate) fn build_agent_launch_plan(input: AgentLaunchInput) -> Value {
+452:     let base_command = input
+453:         .command
+454:         .or_else(|| default_agent_command(&input.agent_id).map(str::to_string))
+455:         .unwrap_or_default();
+456:     let launch_command = resolve_agent_launch_command(
+457:         &input.agent_id,
+458:         &base_command,
+459:         input.accept_all_mode.as_deref(),
+460:         input.global_accept_all_enabled,
+461:         input.icon.as_deref(),
+462:     );
+463:     let command = if input.agent_id == "cursor" {
+464:         input
+465:             .agent_session_id
+466:             .filter(|value| !value.trim().is_empty())
+467:             .and_then(|session_id| get_cursor_chat_session_id(Some(&session_id)))
+468:             .map(|chat_id| {
+469:                 format!(
+470:                     "{launch_command} --resume {}",
+471:                     quote_shell_double_arg(&chat_id)
+472:                 )
+473:             })
+474:             .unwrap_or(launch_command)
+475:     } else {
+476:         launch_command
+477:     };
+478:     let mut plan = Map::new();
+479:     plan.insert("agentCommand".to_string(), Value::String(base_command));
+480:     plan.insert("command".to_string(), Value::String(command.clone()));
+481:     if let Some(deadline) = input.delayed_send_deadline_at {
+482:         plan.insert(
+483:             "delayedSend".to_string(),
+484:             json!({ "deadlineAt": deadline, "disposition": "scheduled" }),
+485:         );
+486:     }
+487:     if let Some(message) = input.first_user_message {
+488:         plan.insert("firstUserMessage".to_string(), Value::String(message));
+489:     }
+490:     plan.insert(
+491:         "startupText".to_string(),
+492:         Value::String(if command.is_empty() {
+493:             String::new()
+494:         } else {
+495:             as_atuin_ignored_shell_input(&command)
+496:         }),
+497:     );
+498:     plan.insert(
+499:         "startupTextDisposition".to_string(),
+500:         Value::String(if command.is_empty() {
+501:             "none".to_string()
+502:         } else {
+503:             "queueAfterTerminalReady".to_string()
+504:         }),
+505:     );
+506:     Value::Object(plan)
+
+server/src/agents/launch_plan.rs:540-566
+540: /// CDXC:AgentProviders 2026-09-04 DECISION:
+541: /// User: Agent approvals defaults to Ask first, so interactive Claude and Codex launches must not force permission-bypass flags unless the global or per-agent policy explicitly selects Run without asking.
+542: /// SEE-ALSO: packages/shared/ghostex-settings/defaults.ts, packages/find/src/agent.rs, apps/history-cli/src/ui/resume.rs.
+543: pub(crate) fn resolve_agent_launch_command(
+544:     agent_id: &str,
+545:     command: &str,
+546:     accept_all_mode: Option<&str>,
+547:     global_accept_all_enabled: bool,
+548:     icon: Option<&str>,
+549: ) -> String {
+550:     let enabled = match accept_all_mode {
+551:         Some("enabled") => true,
+552:         Some("disabled") => false,
+553:         _ => global_accept_all_enabled,
+554:     };
+555:     let command = apply_accept_all_spec(
+556:         command,
+557:         agent_id,
+558:         enabled,
+559:         icon,
+560:         accept_all_mode == Some("disabled"),
+561:     );
+562:     let command = with_codex_no_daemon(agent_id, icon, &command);
+563:     #[cfg(windows)]
+564:     let command = native_cli_command(&command);
+565:     command
+566: }
+
+server/src/agents/accept_all.rs:7-32
+7:     let trimmed = command.trim();
+8:     if trimmed.is_empty() {
+9:         return String::new();
+10:     }
+11:     let (canonical, single_token_alternatives, paired_alternatives): (&str, &[&str], &[&str]) =
+12:         match agent_id {
+13:             "codex" | "command-code" => (
+14:                 "--yolo",
+15:                 &[
+16:                     "--yolo",
+17:                     "--approve-for-me",
+18:                     "--dangerously-bypass-approvals-and-sandbox",
+19:                 ],
+20:                 &["-a", "--ask-for-approval", "-s", "--sandbox"],
+21:             ),
+22:             "claude" => (
+23:                 "--dangerously-skip-permissions",
+24:                 &[
+25:                     "--dangerously-skip-permissions",
+26:                     "--allow-dangerously-skip-permissions",
+27:                 ],
+28:                 &["--permission-mode"],
+29:             ),
+30:             _ => return trimmed.to_string(),
+31:         };
+32:     let tokens = trimmed.split_whitespace().collect::<Vec<_>>();
+
+server/src/zmx/scripts.rs:44-83
+44:     gxserver-generated attach commands may only connect to providers already
+45:     initialized through startSessionProvider. --require-existing closes the
+46:     probe/attach race without changing direct zmx CLI create-if-missing
+47:     behavior or the per-client prompt-editor capability decision.
+48:     */
+49:     let shell = command_shell();
+50:     let prompt_editor_attach_args = zmx_prompt_editor_attach_args(input.prompt_editor.as_deref());
+51:     let script = format!(
+52:         r#"
+53: zmx_session={}
+54: zmx_cwd={}
+55: zmx_global_session_ref={}
+56: zmx_gxserver_auth_token_file={}
+57: zmx_gxserver_base_url={}
+58: zmx_gxserver_protocol_version={}
+59: zmx_persistence_notice_command={}
+60: zmx_title_notice_command={}
+61: zmx_bin={}
+62: zmx_prompt_editor_attach_args={}
+63: if [ ! -x "$zmx_bin" ]; then
+64:   printf '%s\n' 'session persistence is set to zmx, but Ghostex bundled zmx was not found.'
+65:   exit 127
+66: fi
+67: export GHOSTEX_ZMX_BIN="$zmx_bin"
+68: {}
+69: if [ -n "$zmx_global_session_ref" ]; then
+70:   export GHOSTEX_GLOBAL_SESSION_REF="$zmx_global_session_ref"
+71: fi
+72: if [ -n "$zmx_session" ]; then
+73:   export GHOSTEX_SESSION_ID="$zmx_session"
+74: fi
+75: if [ -n "$zmx_gxserver_auth_token_file" ]; then
+76:   export GHOSTEX_GXSERVER_AUTH_TOKEN_FILE="$zmx_gxserver_auth_token_file"
+77: fi
+78: if [ -n "$zmx_gxserver_base_url" ]; then
+79:   export GHOSTEX_GXSERVER_BASE_URL="$zmx_gxserver_base_url"
+80: fi
+81: if [ -n "$zmx_gxserver_protocol_version" ]; then
+82:   export GHOSTEX_GXSERVER_PROTOCOL_VERSION="$zmx_gxserver_protocol_version"
+83: fi
+
+server/src/zmx/launch.rs:506-548
+506:         } else if !result.stdout.is_empty() {
+507:             result.stdout.clone()
+508:         } else {
+509:             format!(
+510:                 "zmx session interaction command exited {}",
+511:                 result.exit_code
+512:             )
+513:         };
+514:         return Err(ZmxEndpointError::DependencyUnavailable(message));
+515:     }
+516:     Ok(result)
+517: }
+518:
+519: fn run_zsh_script_blocking(
+520:     script: &str,
+521:     options: ZmxCommandOptions,
+522:     profile_mode: ZmxShellProfileMode,
+523: ) -> Result<ZmxCommandResult, String> {
+524:     let shell = command_shell();
+525:     let shell_args = match profile_mode {
+526:         ZmxShellProfileMode::Login => shell.script_args(script),
+527:         ZmxShellProfileMode::Profileless => shell.profileless_script_args(script),
+528:     };
+529:     #[cfg(windows)]
+530:     let (mut process, native_environment) = match super::scripts_windows::process(script)? {
+531:         Some(invocation) => invocation,
+532:         None => {
+533:             let mut command = Command::new(&shell.executable);
+534:             command.args(shell_args);
+535:             (command, std::collections::HashMap::new())
+536:         }
+537:     };
+538:     #[cfg(not(windows))]
+539:     let mut process = {
+540:         let mut command = Command::new(&shell.executable);
+541:         command.args(shell_args);
+542:         command
+543:     };
+544:     #[cfg(windows)]
+545:     {
+546:         // CDXC:PlatformSupport 2026-09-14 WHY:
+547:         // Session polling is background work. Without CREATE_NO_WINDOW, Windows Terminal opens a new window for every PowerShell probe.
+548:         use std::os::windows::process::CommandExt;
+
+server/src/config.rs:104-133
+104:     }
+105: }
+106:
+107: pub fn read_selected_local_api_port() -> Result<u16> {
+108:     let Some(raw_port) = env::var(GXSERVER_DEV_LOCAL_API_PORT_ENV)
+109:         .ok()
+110:         .map(|value| value.trim().to_string())
+111:         .filter(|value| !value.is_empty())
+112:     else {
+113:         return Ok(if cfg!(windows) {
+114:             58_746
+115:         } else {
+116:             GXSERVER_LOCAL_API_PORT
+117:         });
+118:     };
+119:     let port = raw_port.parse::<u16>().map_err(|_| {
+120:         anyhow!("{GXSERVER_DEV_LOCAL_API_PORT_ENV} must be an integer from 1 to 65535.")
+121:     })?;
+122:     if port == 0 {
+123:         return Err(anyhow!(
+124:             "{GXSERVER_DEV_LOCAL_API_PORT_ENV} must be an integer from 1 to 65535."
+125:         ));
+126:     }
+127:     Ok(port)
+128: }
+129:
+130: fn merge_gxserver_config(value: serde_json::Value) -> Result<GxserverConfig> {
+131:     let defaults = create_default_gxserver_config()?;
+132:     validate_local_listener_config(&value, &defaults.listeners.local)?;
+133:     let allowed_origins = value
+
+server/src/constants.rs:1-32
+1: pub const GXSERVER_PRODUCT: &str = "gxserver";
+2: pub const GXSERVER_PROTOCOL_VERSION: u64 = 1;
+3: pub const GXSERVER_PROTOCOL_HEADER: &str = "x-gxserver-protocol-version";
+4: pub const GXSERVER_LOCAL_API_HOST: &str = "127.0.0.1";
+5: pub const GXSERVER_LOCAL_API_PORT: u16 = 58744;
+6: pub const GXSERVER_DEV_LOCAL_API_PORT_ENV: &str = "GHOSTEX_GXSERVER_DEV_PORT";
+7: pub const GXSERVER_REMOTE_API_HOST: &str = "0.0.0.0";
+8: pub const GXSERVER_REMOTE_API_PORT: u16 = 58745;
+9: pub const GXSERVER_JSON_BODY_LIMIT_BYTES: usize = 1024 * 1024;
+10: /*
+11: CDXC:Clipboard 2026-08-01:
+12: saveSessionChatImage carries a pasted image as base64 inside the JSON body.
+13: The terminal paste path caps images at 12 MiB on disk; base64 inflates that
+14: by 4/3, so 20 MiB leaves headroom for the JSON envelope without opening the
+15: general RPC surface to oversized bodies.
+16: */
+17: pub const GXSERVER_IMAGE_BODY_LIMIT_BYTES: usize = 20 * 1024 * 1024;
+18: /*
+19: Chat attachments cap at 32 MiB on disk (saveSessionChatAttachment); the same
+20: 4/3 base64 inflation plus envelope headroom lands at 44 MiB.
+21: */
+22: pub const GXSERVER_ATTACHMENT_BODY_LIMIT_BYTES: usize = 44 * 1024 * 1024;
+23: pub const GXSERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
+24:
+25: pub const GXSERVER_CAPABILITIES: &[&str] = &[
+26:     "health",
+27:     "events",
+28:     "localFullApi",
+29:     "remoteLimitedApi",
+30:     "strictProtocolVersion",
+31:     /*
+32:     CDXC:PlatformSupport 2026-08-03:
+
+server/src/paths.rs:57-92
+57:         .map(GhostexPaths::for_explicit_home)
+58:         .unwrap_or_else(GhostexPaths::resolve);
+59:     let home_dir = storage.home_dir.clone();
+60:     let root_dir = storage.gxserver_state_dir();
+61:     let config_file = storage.gxserver_config_dir().join("config.json");
+62:     let auth_dir = root_dir.join("auth");
+63:     let logs_dir = storage.logs_dir.clone();
+64:     let migrations_dir = root_dir.join("migrations");
+65:     let portless_state_dir = root_dir.join("portless");
+66:     let runtime_dir = root_dir.join("runtime");
+67:     // CDXC:RemotePairing 2026-09-01: the tailcat server key and its derived address
+68:     // blob are daemon-owned state, so they live beside the other gxserver
+69:     // state directories rather than in a tailcat-default home location.
+70:     let tailcat_dir = root_dir.join("tailcat");
+71:     let zmx_dir = root_dir.join("zmx");
+72:     let extensions_dir = storage.extensions_dir();
+73:     let extensions_store_file = storage.extensions_store_file();
+74:
+75:     GxserverPaths {
+76:         app_cache_dir: storage.cache_dir,
+77:         app_config_dir: storage.config_dir.clone(),
+78:         app_data_dir: storage.data_dir,
+79:         app_state_dir: storage.state_dir,
+80:         auth_token_file: auth_dir.join("token"),
+81:         auth_dir,
+82:         config_file,
+83:         extensions_dir,
+84:         extensions_store_file,
+85:         home_dir,
+86:         identity_file: root_dir.join("identity.json"),
+87:         isolated_agent_home_dir,
+88:         log_file: logs_dir.join("gxserver.jsonl"),
+89:         logs_dir,
+90:         migrations_dir,
+91:         portless_state_dir,
+92:         runtime_metadata_file: runtime_dir.join("server.json"),
+
+server/src/ghostex_cli/web.rs:20-81
+20: const USAGE: &str = "Usage: ghostex web [--port <port>] [--dist-dir <directory>] [--no-open]\n\nStart Ghostex Web on http://127.0.0.1:4173 and open it in the default browser.\nRuns in the foreground; Ctrl+C stops only the web server.\nServes the GPUI web build (cargo xtask web-build) and requires a running gxserver.";
+21:
+22: /// CDXC:ServerApi 2026-09-06 DECISION:
+23: /// User: `ghostex web` must run its own separate server, not be served automatically on gxserver's ports.
+24: /// Static files and the browser bootstrap belong to this foreground CLI process; the browser uses gxserver directly for authenticated HTTP and WebSocket APIs.
+25: /// SEE-ALSO: apps/desktop/src/app/helpers/os_cli/process_and_constants.rs, apps/gpui-web/www/vite.config.js.
+26: pub fn web_command(args: &[String]) -> CliResult<()> {
+27:     let mut port = 4173_u16;
+28:     let mut dist_dir = None;
+29:     let mut open_browser = true;
+30:     let mut args = args.iter();
+31:     while let Some(argument) = args.next() {
+32:         match argument.as_str() {
+33:             "help" | "-h" | "--help" => {
+34:                 println!("{USAGE}");
+35:                 return Ok(());
+36:             }
+37:             "--no-open" => open_browser = false,
+38:             "--port" => {
+39:                 port = args
+40:                     .next()
+41:                     .and_then(|value| value.parse().ok())
+42:                     .filter(|port| *port > 0)
+43:                     .ok_or_else(|| {
+44:                         CliError::Other("--port requires a number from 1 to 65535.".into())
+45:                     })?;
+46:             }
+47:             "--dist-dir" => {
+48:                 dist_dir = Some(PathBuf::from(args.next().ok_or_else(|| {
+49:                     CliError::Other("--dist-dir requires a directory.".into())
+50:                 })?));
+51:             }
+52:             _ => {
+53:                 return Err(CliError::Other(format!(
+54:                     "Unknown web argument: {argument}\n\n{USAGE}"
+55:                 )))
+56:             }
+57:         }
+58:     }
+59:     let mut config = read_gxserver_config(&get_gxserver_paths(None))?;
+60:     if let Some(dist_dir) = dist_dir {
+61:         config.web.dist_dir = Some(dist_dir);
+62:     }
+63:     let dist_dir = static_files::resolve_web_dist_dir(&config);
+64:     if !dist_dir.join("index.html").is_file() {
+65:         return Err(CliError::Other(format!("Ghostex Web is not built at {}. Run `cargo xtask web-build` from the checkout or pass --dist-dir <directory>.", dist_dir.display())));
+66:     }
+67:     config.web.dist_dir = Some(dist_dir.canonicalize()?);
+68:     let runtime = tokio::runtime::Builder::new_multi_thread()
+69:         .enable_all()
+70:         .build()?;
+71:     runtime.block_on(serve(config, port, open_browser))
+72: }
+73:
+74: struct WebState {
+75:     config: GxserverConfig,
+76:     port: u16,
+77:     api_url: String,
+78: }
+79:
+80: async fn serve(config: GxserverConfig, port: u16, open_browser: bool) -> CliResult<()> {
+81:     let listener = tokio::net::TcpListener::bind(("127.0.0.1", port))
+
+server/src/ghostex_cli/web/bootstrap.rs:17-37
+17:     let result = (|| -> anyhow::Result<_> {
+18:         let auth = read_gxserver_auth_token(&get_gxserver_paths(None))?
+19:             .ok_or_else(|| anyhow::anyhow!("Start gxserver before connecting Ghostex Web."))?;
+20:         let label = local_machine_label().map_err(anyhow::Error::msg)?;
+21:         Ok((auth.token, label))
+22:     })();
+23:     let (token, label) = match result {
+24:         Ok(result) => result,
+25:         Err(error) => {
+26:             return (
+27:                 StatusCode::SERVICE_UNAVAILABLE,
+28:                 Json(rpc_error(
+29:                     "unavailable",
+30:                     error.to_string(),
+31:                     Some(request_id),
+32:                 )),
+33:             )
+34:                 .into_response()
+35:         }
+36:     };
+37:     // CDXC:Telemetry 2026-09-06 WHY:
+
+server/src/ghostex_cli/web/bootstrap.rs:71-84
+71:         .headers_mut()
+72:         .insert(header::CACHE_CONTROL, "no-store".parse().unwrap());
+73:     response
+74: }
+75:
+76: #[cfg(unix)]
+77: pub(crate) fn local_machine_label() -> std::result::Result<String, String> {
+78:     let mut buffer = [0_u8; 256];
+79:     let status = unsafe { libc::gethostname(buffer.as_mut_ptr().cast(), buffer.len()) };
+80:     if status != 0 {
+81:         return Err("Failed to read the local machine hostname.".to_string());
+82:     }
+83:     let length = buffer
+84:         .iter()
+
+server/src/ghostex_cli/agents/delivery.rs:15-80
+15: /// User: messages between agents "shouldn't be added to the queue and stuck there, they should be just sent as normal, except if the agent intentionally queues". A default or interrupt send to a sleeping recipient goes to `/api/sendSessionChatMessage` like Enter in chat, which wakes the session and types the message once its agent is ready (SessionChat 2026-09-25 decision); only `--queue` holds a message for the recipient's next stop.
+16: /// WHY: the old refusal for a sleeping recipient told the sender to use `--queue`, and agents kept reaching for `--queue` afterwards, even for running recipients, so their messages waited behind whole turns.
+17: pub(super) fn send(args: &Arguments) -> CliResult<Value> {
+18:     let body = match &args.body_file {
+19:         Some(path) => std::fs::read_to_string(path).map_err(|error| {
+20:             CliError::Other(format!("Could not read message file {path}: {error}"))
+21:         })?,
+22:         None => args.positional[1].clone(),
+23:     };
+24:     if body.trim().is_empty() {
+25:         return Err(CliError::Other("Message body must not be empty.".into()));
+26:     }
+27:     let sender = identity::caller()?;
+28:     let message = identity::message(&sender, &body);
+29:     if message.len() > crate::zmx::GXSERVER_ZMX_SEND_TEXT_LIMIT_BYTES {
+30:         return Err(CliError::Other(format!(
+31:             "Message including sender header exceeds the {}-byte send limit.",
+32:             crate::zmx::GXSERVER_ZMX_SEND_TEXT_LIMIT_BYTES
+33:         )));
+34:     }
+35:     let reference = &args.positional[0];
+36:     let flags = identity::inventory_flags(&args.flags, reference)?;
+37:     let recipient = selector::resolve_live_or_closed_session(reference, &flags)?;
+38:     if !identity::is_agent(&recipient) {
+39:         return Err(CliError::Other(
+40:             "The recipient is not an agent session. Run ghostex agents list --all.".into(),
+41:         ));
+42:     }
+43:     // A sleeping or closed recipient has nothing to interrupt; the send itself wakes it and
+44:     // resumes its conversation.
+45:     let waking =
+46:         args.delivery != Delivery::Queue && text(&recipient, "lifecycleState") != "running";
+47:     let mut payload = json!({"globalRef": recipient["globalRef"], "projectId": recipient["projectId"], "sessionId": recipient["sessionId"]});
+48:     let interrupted = args.delivery == Delivery::Interrupt && !waking;
+49:     if interrupted {
+50:         call_gxserver_rpc("/api/interruptSessionChat", &payload, &flags)?;
+51:     }
+52:     let read_payload = payload.clone();
+53:     let sent_at_ms = chrono::Utc::now().timestamp_millis();
+54:     let rows_before = if args.delivery == Delivery::Queue {
+55:         TranscriptRows::Unknown
+56:     } else {
+57:         transcript_rows_before_send(&read_payload, &flags)
+58:     };
+59:     payload["text"] = json!(message);
+60:     let endpoint = if args.delivery == Delivery::Queue {
+61:         "/api/queueSessionChatPrompt"
+62:     } else {
+63:         "/api/sendSessionChatMessage"
+64:     };
+65:     let result = call_gxserver_rpc(endpoint, &payload, &flags).map_err(|error| {
+66:         let next_step = if waking {
+67:             format!("The recipient was asleep: run ghostex wake {} and send again once it is running, after inspecting its chat.", text(&recipient, "globalRef"))
+68:         } else {
+69:             "Inspect chat and queue before retrying.".to_string()
+70:         };
+71:         CliError::Other(format!(
+72:             "{}{} {}",
+73:             if interrupted {
+74:                 "Interruption was requested, but message delivery failed or is uncertain: "
+75:             } else {
+76:                 "Message delivery failed or is uncertain: "
+77:             },
+78:             error,
+79:             next_step
+80:         ))
+
+skills/ghostex-help/references/features.md:1653-1676
+1653: - **From another computer**: Settings > Remote > Remote machines > Add a
+1654:   machine with SSH details or an Easy Connect code, then Install / Connect
+1655:   gxserver on it. The machine appears as a sidebar section with its own
+1656:   projects and sessions; its terminals stream into the desktop app. Windows,
+1657:   Linux, and macOS clients use the connected computer's folders and shell.
+1658:   Files and folders you drop onto a remote terminal or add with its attach
+1659:   (paperclip) button are uploaded to that computer first, so the terminal gets
+1660:   references the agent there can open.
+1661:   Open Code from the view panel's + menu to edit the remote project; if prompted,
+1662:   install the editor component first. Folder links in remote chats also browse
+1663:   the remote folder in Code.
+1664:   Remote localhost links open in the built-in Browser through that computer,
+1665:   even when ordinary web links are set to open in your external browser.
+1666:   When a machine cannot connect, its tab's cloud turns red and its list says
+1667:   why, with Reconnect and Remote Settings buttons. Ghostex keeps retrying a
+1668:   dropped connection, but a rejected username or password is not retried (so
+1669:   the account is not locked out); saving a new SSH password reconnects it.
+1670: - **Web app**: the desktop's sidebar (with its session, group and project
+1671:   actions, the Git menu and Quick Access), chat and terminal running in a
+1672:   browser and talking to gxserver; remote machines, Settings and the commit
+1673:   review stay in the desktop app. It is built from a Ghostex source checkout
+1674:   with `cargo xtask start-web` and is not part of the installed app.
+1675: - **CLI**: `ghostex attach <selector>` attaches to a session from any terminal,
+1676:   including over SSH.
