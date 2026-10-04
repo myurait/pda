@@ -1,0 +1,41 @@
+UTC 2026-10-04T12:58:50.994205+00:00
+$ systemctl --user status v03-claw-orchestrator.service --no-pager --full
+● v03-claw-orchestrator.service - PDA v0.3 claw-orchestrator trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-claw-orchestrator.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 21:57:54 JST; 56s ago
+   Main PID: 354693 (MainThread)
+      Tasks: 7 (limit: 15004)
+     Memory: 28.0M (peak: 29.2M)
+        CPU: 159ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-claw-orchestrator.service
+             └─354693 /home/user/.local/bin/node /home/user/v03/claw-orchestrator/runtime/node_modules/@enderfga/claw-orchestrator/dist/bin/cli.js serve --host 127.0.0.1 --port 5123
+
+Oct 04 21:57:54 agent-node systemd[1274]: Started v03-claw-orchestrator.service - PDA v0.3 claw-orchestrator trial.
+Oct 04 21:57:54 agent-node node[354693]: [ultraapp] runtime mode: host
+Oct 04 21:57:54 agent-node node[354693]: [ultraapp] router on http://127.0.0.1:19000/forge/<slug>/
+Oct 04 21:57:54 agent-node node[354693]: [embedded-server] OPENCLAW_SERVER_TOKEN=disabled — authentication is OFF. All endpoints are reachable to any process that can connect. Only safe on a trusted single-user host.
+Oct 04 21:57:54 agent-node node[354693]: [embedded-server] Listening on http://127.0.0.1:5123 (AUTH DISABLED)
+Oct 04 21:57:54 agent-node node[354693]: Standalone server running on http://127.0.0.1:5123
+Oct 04 21:57:54 agent-node node[354693]: Press Ctrl+C to stop
+
+$ systemctl --user cat v03-claw-orchestrator.service
+# /home/user/.config/systemd/user/v03-claw-orchestrator.service
+[Unit]
+Description=PDA v0.3 claw-orchestrator trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/claw-orchestrator
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=OPENCLAW_SERVER_TOKEN=disabled
+Environment=OPENCLAW_SERVE_MAX_SESSIONS=4
+ExecStart=/home/user/.local/bin/node /home/user/v03/claw-orchestrator/runtime/node_modules/@enderfga/claw-orchestrator/dist/bin/cli.js serve --host 127.0.0.1 --port 5123
+Restart=no
+KillMode=control-group
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

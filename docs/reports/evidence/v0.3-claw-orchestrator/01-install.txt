@@ -1,0 +1,26 @@
+UTC 2026-10-04T12:56:58.022760+00:00
+git clone https://github.com/Enderfga/claw-orchestrator.git /home/user/v03/claw-orchestrator/source
+git checkout --detach ffa595abfb6f6671ac995041f9c44f5e1a67f50f
+$ git -C /home/user/v03/claw-orchestrator/source show -s --format=%H %cI %s HEAD
+ffa595abfb6f6671ac995041f9c44f5e1a67f50f 2026-10-01T07:42:47+08:00 Merge pull request #126 from Enderfga/release/7.6.1
+
+npm install --prefix /home/user/v03/claw-orchestrator/runtime --legacy-peer-deps --no-audit --no-fund @enderfga/claw-orchestrator@7.6.1
+
+added 121 packages in 3s
+npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn allow-scripts   re2@1.27.0 (install: install-from-cache --artifact build/Release/re2.node --host-var RE2_DOWNLOAD_MIRROR --skip-path-var RE2_DOWNLOAD_SKIP_PATH --skip-ver-var RE2_DOWNLOAD_SKIP_VER --force-build-var RE2_DOWNLOAD_FORCE_BUILD || node-gyp -j max rebuild)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+$ node --version
+v24.18.0
+
+$ npm --version
+11.16.0
+
+$ /home/user/.local/bin/claude --version
+2.1.274 (Claude Code)
+
+$ /home/user/.local/bin/codex --version
+codex-cli 0.156.1
+
+Standalone mode: OpenClaw peer dependency omitted with --legacy-peer-deps; no bundled Claude/Codex installed.

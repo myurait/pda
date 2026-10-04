@@ -1,0 +1,90 @@
+UTC 2026-10-04T13:13:56.824176+00:00
+PASS Report has the 7 required sections in order
+PASS Report covers T1 through T9
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-install.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-unit.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-listen.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/00-preflight.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/00-trust-claude.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/00-trust-codex.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/00-trial-client.py
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-install.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-unit.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-listen.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/02-claude-stream.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/02-claude-result.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/03-claude-stop.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/04-codex-stream.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/04-codex-result.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/05-codex-stop.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/06-ps-claude.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/06-ps-codex.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/06-source.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/07-resources.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/08-access.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/01-listen.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/09-handoff.txt
+PASS Local link exists: evidence/v0.3-claw-orchestrator/09-handoff-client.mjs
+PASS Local link exists: evidence/v0.3-claw-orchestrator/10-auth-cleanup.txt
+PASS Required evidence nonempty: 01-install.txt
+PASS Required evidence nonempty: 01-unit.txt
+PASS Required evidence nonempty: 01-listen.txt
+PASS Required evidence nonempty: 02-claude-stream.txt
+PASS Required evidence nonempty: 02-claude-result.txt
+PASS Required evidence nonempty: 03-claude-stop.txt
+PASS Required evidence nonempty: 04-codex-stream.txt
+PASS Required evidence nonempty: 04-codex-result.txt
+PASS Required evidence nonempty: 05-codex-stop.txt
+PASS Required evidence nonempty: 06-ps-claude.txt
+PASS Required evidence nonempty: 06-ps-codex.txt
+PASS Required evidence nonempty: 07-resources.txt
+PASS Required evidence nonempty: 09-handoff.txt
+PASS 02 stream received without engine error
+PASS 02 engine reports successful turn
+PASS 02 diff has both files and validated named greeting
+PASS 04 stream received without engine error
+PASS 04 engine reports successful turn
+PASS 04 diff has both files and validated named greeting
+PASS 03 stopped after real content and child processes exited
+PASS 05 stopped after real content and child processes exited
+PASS Two directional handoffs carried history
+PASS Two targets emitted chunks before completion
+PASS No handoff trial error
+PASS Secret-pattern scan: v0.3-claw-orchestrator-codex.md
+PASS Secret-pattern scan: 00-trust-codex.txt
+PASS Secret-pattern scan: 09-handoff-client.mjs
+PASS Secret-pattern scan: 09-handoff.txt
+PASS Secret-pattern scan: 06-ps-claude.txt
+PASS Secret-pattern scan: 10-auth-cleanup.txt
+PASS Secret-pattern scan: 01-listen.txt
+PASS Secret-pattern scan: 07-resources.txt
+PASS Secret-pattern scan: 06-source.txt
+PASS Secret-pattern scan: 00-trial-client.py
+PASS Secret-pattern scan: 05-codex-stop.txt
+PASS Secret-pattern scan: 01-install.txt
+PASS Secret-pattern scan: 08-access.txt
+PASS Secret-pattern scan: 03-claude-stop.txt
+PASS Secret-pattern scan: 04-codex-result.txt
+PASS Secret-pattern scan: 00-preflight.txt
+PASS Secret-pattern scan: 02-claude-stream.txt
+PASS Secret-pattern scan: 02-claude-result.txt
+PASS Secret-pattern scan: 01-unit.txt
+PASS Secret-pattern scan: 06-ps-codex.txt
+PASS Secret-pattern scan: 04-codex-stream.txt
+PASS Secret-pattern scan: 00-trust-claude.txt
+PASS Unit inactive
+PASS Trial ports closed
+PASS Trial tmux exited
+PASS Shared-home trial state removed: .openclaw
+PASS Shared-home trial state removed: .claw-orchestrator
+PASS Product source unchanged
+PASS No newly generated backups remain: /home/user/pda/secrets/claude
+PASS No newly generated backups remain: /home/user/pda/secrets/codex
+PASS No newly generated backups remain: /home/user/v03/agent-home
+PASS No Claude/Codex process remains in scratch
+Secret scanning checks recognizable token formats; no protected authentication/settings file content was read.
+Captured command/terminal output: trailing spaces and excess blank lines at EOF normalized; timestamps, values and messages retained.
+UTC 2026-10-04T13:14:54.442329+00:00
+PASS git diff --cached --check after whitespace normalization.
+PASS staged changes are only the requested report and its evidence.
+PASS branch v0.3/setup-claw-orchestrator descends from current main.

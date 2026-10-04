@@ -1,0 +1,23 @@
+2026-10-04T13:00:47.829+00:00 $ git diff -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..ce0a4ae 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++`greet(name)` で指定した名前に挨拶できます（例: `greet("太郎")`）。
+diff --git a/hello.py b/hello.py
+index 11b15b1..55d7302 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    print(f"hello, {name}")
++
++
+ print("hello")
+
+Validation UTC 2026-10-04T13:01:35.487498+00:00
+runpy hello.py; greet("Alice"): 'hello\nhello, Alice\n'
+PASS: name appears in greeting.

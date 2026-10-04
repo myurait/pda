@@ -1,0 +1,6 @@
+2026-10-04T13:00:34.985+00:00 $ ps -eo pid,ppid,etime,rss,args --forest
+Filtered to v03-claw-orchestrator.service cgroup PIDs.
+    PID    PPID     ELAPSED   RSS COMMAND
+ 354693    1274       02:40 81916  \_ /home/user/.local/bin/node /home/user/v03/claw-orchestrator/runtime/node_modules/@enderfga/claw-orchestrator/dist/bin/cli.js serve --host 127.0.0.1 --port 5123
+ 355269  354693       00:04 262156      \_ claude -p --input-format stream-json --output-format stream-json --replay-user-messages --verbose --include-partial-messages --permission-mode bypassPermissions --permission-prompts none
+sum_RSS_KiB=344072

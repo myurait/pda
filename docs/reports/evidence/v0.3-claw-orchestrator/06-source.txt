@@ -1,0 +1,358 @@
+UTC 2026-10-04T13:04:55.882141+00:00
+Source commit: ffa595abfb6f6671ac995041f9c44f5e1a67f50f
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/persistent-session.ts#L199
+  199       '--input-format',
+  200       'stream-json',
+  201       '--output-format',
+  202       'stream-json',
+  203       '--replay-user-messages',
+  204       '--verbose',
+  205       '--include-partial-messages',
+  206       '--permission-mode',
+  207       // `sandboxMode: 'read-only'` is the engine-agnostic "look, don't touch"
+  208       // hint; Claude's native equivalent is plan mode. It must win over any
+  209       // permissionMode the caller also passed, otherwise the DEFAULT engine
+  210       // would accept the flag and still run write-enabled (acceptEdits) — a
+  211       // silent no-op on the most likely call.
+  212       this.options.sandboxMode === 'read-only' ? 'plan' : this.options.permissionMode || 'acceptEdits',
+  213     ];
+  214
+  215     // Model alias resolution
+  216     if (this.options.model) {
+  217       const resolved = this.resolveModel(this.options.model);
+  218       if (resolved !== this.options.model) this.options.model = resolved;
+  219     }
+  220
+  221     // Resume / fork
+  222     const resumeId = this.options.claudeResumeId || this.options.resumeSessionId;
+  223     // A resumed process inherits the spend of the turns it is resuming, so the
+  224     // first `total_cost_usd` it reports is not this process's own. See
+  225     // `_applyReportedCost`.
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/persistent-session.ts#L376
+  376       PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin',
+  377     };
+  378     // Without a baseUrl the child talks to the official API — an inherited
+  379     // proxy-scoped ANTHROPIC_API_KEY (not sk-ant-*) would take precedence over the
+  380     // CLI's own login there and 401. Official-format keys are left untouched.
+  381     const inheritedKey = spawnEnv.ANTHROPIC_API_KEY;
+  382     if (
+  383       inheritedKey &&
+  384       !inheritedKey.startsWith('sk-ant-') &&
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/persistent-session.ts#L413
+  413     this._unanswered.clear();
+  414     this.proc = spawn(resolvedBin, args, {
+  415       cwd: this.options.cwd,
+  416       env: spawnEnv,
+  417       stdio: ['pipe', 'pipe', 'pipe'],
+  418       detached: true,
+  419     });
+  420     // Unref so the parent process can exit independently of the child.
+  421     this.proc.unref();
+  422
+  423     // Parse stdout line-by-line
+  424     this._rl = readline.createInterface({ input: this.proc.stdout!, crlfDelay: Infinity });
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/persistent-codex-session.ts#L245
+  245   private _buildArgs(message: string): string[] {
+  246     const args: string[] = ['exec'];
+  247     const isResume = !!this.codexThreadId;
+  248     const sandbox = this.options.sandboxMode || 'workspace-write';
+  249     if (isResume) {
+  250       // `codex exec resume` rejects --sandbox and -C (still true as of 0.146.0:
+  251       // passing --sandbox errors with "unexpected argument"), so the policy has
+  252       // to be restated as a `-c` config override, which resume does accept.
+  253       //
+  254       // Do NOT rely on the resumed thread inheriting the first turn's sandbox.
+  255       // It does not: against 0.146.0, a read-only session whose first turn was
+  256       // spawned with `--sandbox read-only` wrote to disk on the very next turn,
+  257       // reproducibly, when resume was left to inherit. Restating the mode keeps
+  258       // a read-only session read-only for its whole life.
+  259       args.push('resume', this.codexThreadId!, '--skip-git-repo-check', '--json');
+  260       args.push('-c', `sandbox_mode="${sandbox}"`);
+  261     } else {
+  262       args.push('--sandbox', sandbox, '--skip-git-repo-check', '--json');
+  263       if (this.options.cwd) args.push('-C', this.options.cwd);
+  264     }
+  265     // Structured output: Codex 0.132+ accepts `--output-schema <FILE>` on both
+  266     // `exec` and `exec resume`, enforcing the model's final response shape.
+  267     // The engine-agnostic `jsonSchema` config is inline; Codex needs a path.
+  268     const schemaPath = this._ensureSchemaFile();
+  269     if (schemaPath) args.push('--output-schema', schemaPath);
+  270     if (this.options.model) args.push('--model', this.options.model);
+  271     args.push(...this._reasoningEffortArgs());
+  272     // `--profile` is rejected by `codex exec resume` (like --sandbox/-C); the
+  273     // resumed thread already carries the profile's config, so only pass it on
+  274     // the first turn. (`-c` and `--model` ARE accepted on resume, verified
+  275     // against `codex exec resume --help` on 0.137.)
+  276     if (!isResume && this.options.codexProfile) args.push('--profile', this.options.codexProfile);
+  277     // `--ephemeral` is codex's counterpart to Claude Code's
+  278     // `--no-session-persistence`, so the engine-agnostic option finally means
+  279     // something here. Accepted by both `exec` and `exec resume`.
+  280     if (this.options.noSessionPersistence) args.push('--ephemeral');
+  281     // Opt-in isolation from `$CODEX_HOME/config.toml`. That file is the user's,
+  282     // not the orchestrator's: a `model = …` line in it silently decides which
+  283     // model an orchestrated run uses and which one we then price it as. Auth
+  284     // still resolves from CODEX_HOME, so this does not log the session out.
+  285     if (this.options.ignoreUserConfig) args.push('--ignore-user-config');
+  286     // Extra writable roots. Rejected by `exec resume` (like --sandbox/-C), and
+  287     // the resumed thread keeps the roots the first turn opened.
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/persistent-codex-session.ts#L347
+  347     // append its own to the same file.
+  348     this._readRollout();
+  349     const args = this._buildArgs(message);
+  350     const timeout = options.timeout || 300_000;
+  351
+  352     return new Promise<TurnResult>((resolve, reject) => {
+  353       let stdoutBuf = '';
+  354       let stderr = '';
+  355       let assistantText = '';
+  356       let lastUsage: CodexTurnCompleted['usage'] | undefined;
+  357       let turnError: string | undefined;
+  358       let settled = false;
+  359
+  360       const proc = spawn(this.engineBin, args, {
+  361         cwd: this.options.cwd,
+  362         env: { ...process.env },
+  363         stdio: ['ignore', 'pipe', 'pipe'],
+  364       });
+  365       this.currentProc = proc;
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/embedded-server.ts#L510
+  510       if (path === '/session/start') {
+  511         if (body.cwd) body.cwd = sanitizeCwd(body.cwd as string);
+  512         const info = await this.manager.startSession(body as Parameters<SessionManager['startSession']>[0]);
+  513         json(200, { ok: true, ...info });
+  514         return;
+  515       }
+  516
+  517       if (path === '/session/send') {
+  518         const result = await this.manager.sendMessage(body.name as string, body.message as string, {
+  519           effort: body.effort as EffortLevel | undefined,
+  520           plan: body.plan as boolean | undefined,
+  521           timeout: body.timeout as number | undefined,
+  522         });
+  523         json(200, { ok: true, ...result });
+  524         return;
+  525       }
+  526
+  527       if (path === '/session/stop') {
+  528         await this.manager.stopSession(body.name as string);
+  529         json(200, { ok: true });
+  530         return;
+  531       }
+  532
+  533       if (path === '/session/list') {
+  534         json(200, { ok: true, sessions: this.manager.listSessions() });
+  535         return;
+  536       }
+  537
+  538       if (path === '/session/status') {
+  539         const status = this.manager.getStatus(body.name as string);
+  540         json(200, { ok: true, ...status });
+  541         return;
+  542       }
+  543
+  544       if (path === '/session/grep') {
+  545         validateRegex(body.pattern as string);
+  546         const matches = await this.manager.grepSession(
+  547           body.name as string,
+  548           body.pattern as string,
+  549           body.limit as number | undefined,
+  550         );
+  551         json(200, { ok: true, count: matches.length, matches });
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/openai-compat.ts#L1370
+ 1370
+ 1371   let clientDisconnected = false;
+ 1372   res.on('close', () => {
+ 1373     clientDisconnected = true;
+ 1374   });
+ 1375
+ 1376   const writeSSE = (data: string) => {
+ 1377     if (!clientDisconnected) {
+ 1378       try {
+ 1379         res.write(`data: ${data}\n\n`);
+ 1380       } catch {
+ 1381         clientDisconnected = true;
+ 1382       }
+ 1383     }
+ 1384   };
+ 1385
+ 1386   // Initial chunk with role
+ 1387   writeSSE(JSON.stringify(formatCompletionChunk(completionId, model, { role: 'assistant' }, null)));
+ 1388
+ 1389   // SSE keepalive heartbeat
+ 1390   const heartbeatTimer = setInterval(() => {
+ 1391     if (!clientDisconnected) {
+ 1392       try {
+ 1393         res.write(': keepalive\n\n');
+ 1394       } catch {
+ 1395         clientDisconnected = true;
+ 1396       }
+ 1397     }
+ 1398   }, 30_000);
+ 1399
+ 1400   // When tools are present, buffer the full response to parse for tool_calls.
+ 1401   // Without tools, stream text chunks directly for low latency.
+ 1402   let bufferedText = '';
+ 1403   // `sendMessage` reports the whole answer as its return value AND streams it
+ 1404   // through `onChunk` for engines that have a delta channel. Engines without one
+ 1405   // — opencode, agy, the per-send codex/cursor wrappers, one-shot custom engines
+ 1406   // — never call it, and this path then emitted the role chunk and the stop
+ 1407   // chunk with the reply nowhere in between: an empty 200. Counting what
+ 1408   // streamed is what lets the fallback below fire without doubling the answer
+ 1409   // for engines that do stream. Same shape as the ACP adapter's.
+ 1410   let streamedChars = 0;
+ 1411
+ 1412   try {
+ 1413     reportStatus('thinking', 'Processing request...');
+ 1414     const result = await manager.sendMessage(sessionName, userMessage, {
+ 1415       onChunk: (chunk: string) => {
+ 1416         if (hasTools) {
+ 1417           bufferedText += chunk;
+ 1418           // Send keepalive comments during buffering to prevent timeouts
+ 1419         } else {
+ 1420           streamedChars += chunk.length;
+ 1421           writeSSE(JSON.stringify(formatCompletionChunk(completionId, model, { content: chunk }, null)));
+ 1422         }
+ 1423       },
+ 1424       onEvent: (event: { type: string; tool?: { name?: string; input?: Record<string, unknown> } }) => {
+ 1425         if (event.type === 'tool_use' && event.tool?.name) {
+ 1426           reportStatus('working', getToolDescription(event.tool.name, event.tool.input), event.tool.name);
+ 1427         }
+ 1428       },
+ 1429     });
+ 1430     landed = true;
+ 1431     reportStatus('idle', 'Ready');
+ 1432     if (result.error) {
+ 1433       // Headers already went out as 200; the SSE error object is the only way
+ 1434       // left to tell the caller this turn failed rather than replied.
+ 1435       writeSSE(JSON.stringify({ error: { message: result.error, type: 'upstream_error' } }));
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/src/session-manager.ts#L995
+  995   async handoffSession(
+  996     name: string,
+  997     opts: {
+  998       engine: EngineType;
+  999       model?: string;
+ 1000       newName?: string;
+ 1001       message?: string;
+ 1002       maxChars?: number;
+ 1003       customEngine?: SessionConfig['customEngine'];
+ 1004     },
+ 1005   ): Promise<{
+ 1006     name: string;
+ 1007     engine: EngineType;
+ 1008     from: { name: string; engine: EngineType };
+ 1009     carried: { turns: number; omitted: number; chars: number };
+ 1010     result?: SendResult;
+ 1011   }> {
+ 1012     const source = this._getSession(name);
+ 1013     const record = source.transcript;
+ 1014     if (!record || record.entries.length === 0) {
+ 1015       throw new Error(`Session '${name}' has no completed exchange to hand off yet`);
+ 1016     }
+ 1017     if (opts.maxChars !== undefined && (!Number.isFinite(opts.maxChars) || opts.maxChars < MIN_HANDOFF_CHARS)) {
+ 1018       throw new Error(`maxChars must be a number of at least ${MIN_HANDOFF_CHARS}`);
+ 1019     }
+ 1020     const fromEngine = (source.config.engine || 'claude') as EngineType;
+ 1021     const targetName = opts.newName ?? `${name}-${opts.engine}`;
+ 1022
+ 1023     const inherited: Partial<SessionConfig> = {
+ 1024       cwd: source.cwd,
+ 1025       permissionMode: source.config.permissionMode,
+ 1026       dangerouslySkipPermissions: source.config.dangerouslySkipPermissions,
+ 1027       sandboxMode: source.config.sandboxMode,
+ 1028       effort: source.config.effort,
+ 1029       maxBudgetUsd: source.config.maxBudgetUsd,
+ 1030       systemPrompt: source.config.systemPrompt,
+ 1031       appendSystemPrompt: source.config.appendSystemPrompt,
+ 1032       addDir: source.config.addDir,
+ 1033     };
+ 1034     for (const k of Object.keys(inherited) as (keyof SessionConfig)[]) {
+ 1035       if (inherited[k] === undefined) delete inherited[k];
+ 1036     }
+ 1037
+ 1038     const rendered = renderHandoff(
+ 1039       record,
+ 1040       { engine: fromEngine, model: source.config.model, cwd: source.cwd },
+ 1041       opts.maxChars ?? DEFAULT_HANDOFF_CHARS,
+ 1042     );
+ 1043
+ 1044     await this.startSession({
+ 1045       ...inherited,
+ 1046       name: targetName,
+ 1047       engine: opts.engine,
+ 1048       ...(opts.model ? { model: opts.model } : {}),
+ 1049       ...(opts.customEngine ? { customEngine: opts.customEngine } : {}),
+ 1050     });
+ 1051     const target = this._getSession(targetName);
+ 1052     // The new session's record starts as the source's, so a second handoff from
+ 1053     // it carries the whole conversation rather than only the part it has seen.
+ 1054     target.transcript = cloneTranscript(record);
+ 1055     target.pendingHandoff = rendered.text;
+ 1056
+ 1057     const out = {
+ 1058       name: targetName,
+ 1059       engine: opts.engine,
+ 1060       from: { name, engine: fromEngine },
+ 1061       carried: { turns: rendered.turns, omitted: rendered.omitted, chars: rendered.text.length },
+ 1062     };
+ 1063     if (opts.message === undefined) return out;
+ 1064     return { ...out, result: await this.sendMessage(targetName, opts.message) };
+ 1065   }
+ 1066
+
+https://github.com/Enderfga/claw-orchestrator/blob/ffa595abfb6f6671ac995041f9c44f5e1a67f50f/bin/cli.ts#L111
+  111     // Both env-overridable so ops can tune without a code change.
+  112     const maxSessions = parseInt(process.env.OPENCLAW_SERVE_MAX_SESSIONS || '', 10) || 32;
+  113     const ttlMinutes = parseInt(process.env.OPENCLAW_SERVE_TTL_MINUTES || '', 10) || 60;
+  114     const manager = new SessionManager({
+  115       maxConcurrentSessions: maxSessions,
+  116       sessionTtlMinutes: ttlMinutes,
+  117     });
+  118
+  119     // ultraapp runtime mode (host = default, docker = opt-in for isolation)
+  120     const runtimeMode: 'host' | 'docker' = opts.ultraappRuntime === 'docker' ? 'docker' : 'host';
+  121     manager.setUltraappRuntimeMode(runtimeMode);
+  122     console.log(`[ultraapp] runtime mode: ${runtimeMode}`);
+  123
+  124     // Boot the ultraapp reverse-proxy router on port 19000 (with fallbacks).
+  125     // Best-effort — failure here doesn't block serve mode; ultraapp builds
+  126     // will simply rest at build-complete instead of progressing to deploy.
+  127     const router = new UltraappRouter({
+  128       port: 19000,
+  129       mapPath: path.join(defaultStoreRoot(), '_router.json'),
+  130     });
+  131     let routerStartedPort: number | null = null;
+  132     try {
+  133       routerStartedPort = await router.start();
+  134       manager.setUltraappRouter(router);
+  135       console.log(`[ultraapp] router on http://127.0.0.1:${routerStartedPort}/forge/<slug>/`);
+  136     } catch (err) {
+  137       console.warn(`[ultraapp] router failed to start: ${(err as Error).message} — deploys will be skipped`);
+  138     }
+  139
+  140     const server = new EmbeddedServer(manager, parseInt(opts.port), opts.host);
+  141     const port = await server.start();
+  142     if (port) {
+  143       console.log(`Standalone server running on http://127.0.0.1:${port}`);
+  144       console.log('Press Ctrl+C to stop');
+  145       const shutdown = async () => {
+  146         await server.stop();
+  147         if (routerStartedPort !== null) await router.stop().catch(() => {});
+  148         await manager.shutdown();
+  149         process.exit(0);
+  150       };
+  151       process.on('SIGINT', shutdown);
+  152       process.on('SIGTERM', shutdown);
+  153     }
+  154   });
+
+Metadata for configured binaries:
+lrwxrwxrwx 1 user user 47 Sep 28 20:39 /home/user/.local/bin/claude -> /home/user/.local/share/claude/versions/2.1.274
+lrwxrwxrwx 1 user user 55 Sep 24 22:40 /home/user/.local/bin/codex -> /home/user/.codex/packages/standalone/current/bin/codex

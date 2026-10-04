@@ -1,0 +1,9 @@
+UTC 2026-10-04T12:58:51.005690+00:00
+$ ss -ltnp ( sport = :5123 or sport = :19000 )
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      511        127.0.0.1:19000      0.0.0.0:*    users:(("MainThread",pid=354693,fd=21))
+LISTEN 0      511        127.0.0.1:5123       0.0.0.0:*    users:(("MainThread",pid=354693,fd=22))
+
+$ curl -sS -o /dev/null -w %{http_code}
+ http://127.0.0.1:5123/dash
+200
