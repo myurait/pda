@@ -1,0 +1,137 @@
+[2026-10-04T11:30:23.925+00:00] $ ss -ltnp 'sport = :5117'
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      512        127.0.0.1:5117      0.0.0.0:*    users:(("collie",pid=325701,fd=13))
+[exit=0]
+
+[2026-10-04T11:30:23.933+00:00] $ curl -sS -o /dev/null -w '%{http_code}
+' http://127.0.0.1:5117/
+200
+[exit=0]
+
+[2026-10-04T11:30:23.951+00:00] GET /api/snapshot HTTP 200
+{
+  "bridge": "connected",
+  "agents": [],
+  "shellPanes": [
+    {
+      "paneId": "w1:p2",
+      "workspaceId": "w1",
+      "workspaceLabel": "v03-trial",
+      "workspaceNumber": 1,
+      "tabId": "w1:t2",
+      "agent": "shell",
+      "status": "unknown",
+      "cwd": "/home/user/v03/work/herdr-collie/scratch",
+      "focused": true,
+      "kind": "shell",
+      "tabLabel": "codex",
+      "readableLines": 50,
+      "tabPosition": 0,
+      "soleTabName": "codex",
+      "lastActiveAt": 1791110282398,
+      "lastSeenAt": 1791110298001
+    },
+    {
+      "paneId": "w1:p4",
+      "workspaceId": "w1",
+      "workspaceLabel": "v03-trial",
+      "workspaceNumber": 1,
+      "tabId": "w1:t4",
+      "agent": "shell",
+      "status": "unknown",
+      "cwd": "/home/user/v03/work/herdr-collie/scratch",
+      "focused": false,
+      "kind": "shell",
+      "tabLabel": "codex-handoff-fresh",
+      "readableLines": 50,
+      "tabPosition": 0,
+      "soleTabName": "codex-handoff-fresh",
+      "lastActiveAt": 1791110434190,
+      "lastSeenAt": 1791110437325
+    },
+    {
+      "paneId": "w1:p5",
+      "workspaceId": "w1",
+      "workspaceLabel": "v03-trial",
+      "workspaceNumber": 1,
+      "tabId": "w1:t5",
+      "agent": "shell",
+      "status": "unknown",
+      "cwd": "/home/user/v03/work/herdr-collie/scratch",
+      "focused": false,
+      "kind": "shell",
+      "tabLabel": "claude-handoff-fresh",
+      "readableLines": 50,
+      "tabPosition": 0,
+      "soleTabName": "claude-handoff-fresh",
+      "lastActiveAt": 1791110417878,
+      "lastSeenAt": 1791110390540
+    }
+  ],
+  "workspaces": [
+    {
+      "workspaceId": "w1",
+      "number": 1,
+      "label": "v03-trial",
+      "focused": true,
+      "activeTabId": "w1:t2",
+      "tabCount": 3,
+      "paneCount": 3
+    }
+  ],
+  "tabs": [
+    {
+      "tabId": "w1:t2",
+      "workspaceId": "w1",
+      "number": 2,
+      "label": "codex",
+      "focused": true,
+      "paneCount": 1
+    },
+    {
+      "tabId": "w1:t4",
+      "workspaceId": "w1",
+      "number": 4,
+      "label": "codex-handoff-fresh",
+      "focused": false,
+      "paneCount": 1
+    },
+    {
+      "tabId": "w1:t5",
+      "workspaceId": "w1",
+      "number": 5,
+      "label": "claude-handoff-fresh",
+      "focused": false,
+      "paneCount": 1
+    }
+  ],
+  "sessions": [
+    {
+      "name": "default",
+      "isPrimary": true,
+      "reachable": true,
+      "agents": 0,
+      "working": 0,
+      "blocked": 0
+    }
+  ],
+  "notifications": {
+    "snoozedUntil": null
+  },
+  "update": {
+    "current": "1.16.1",
+    "latest": null,
+    "latestUrl": null,
+    "releaseAvailable": false,
+    "majorAvailable": null,
+    "majorUrl": null,
+    "installKind": "packaged",
+    "dismissedVersion": null,
+    "dismissedCrewVersion": null,
+    "bridgeStale": false,
+    "restartNeeded": false,
+    "checkedAt": null,
+    "newerVersions": []
+  },
+  "ts": 1791113423950
+}

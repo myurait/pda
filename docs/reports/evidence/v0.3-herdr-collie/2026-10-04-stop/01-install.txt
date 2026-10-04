@@ -1,0 +1,46 @@
+[2026-10-04T11:29:59.142+00:00] Existing installed releases reused. No install, update, product-code or configuration modification performed. Branch created with git switch -c v0.3/setup-herdr-collie-2 main.
+[2026-10-04T11:29:59.144+00:00] $ git rev-parse HEAD
+7b116c05bfda646af39d2524c54e70c751f57ee8
+[exit=0]
+
+[2026-10-04T11:29:59.159+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:29:59.162+00:00] $ git rev-parse HEAD
+0890f72e7d858e25f3a886a96a839350b2fd346b
+[exit=0]
+
+[2026-10-04T11:29:59.170+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:29:59.173+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/bin/herdr --version
+herdr 0.9.3
+[exit=0]
+
+[2026-10-04T11:29:59.297+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie version
+1.16.1+0890f72
+[exit=0]
+
+[2026-10-04T11:29:59.309+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/.local/bin/claude --version
+2.1.274 (Claude Code)
+[exit=0]
+
+[2026-10-04T11:29:59.320+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/.local/bin/codex --version
+codex-cli 0.156.1
+[exit=0]
+
+[2026-10-04T11:29:59.325+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/bin/herdr pane close --help
+Close a pane
+
+Usage: herdr pane close <pane_id>
+
+Arguments:
+  <pane_id>
+
+[exit=0]
+
+[2026-10-04T11:30:23.560+00:00] $ systemctl --user start v03-herdr-collie.service
+[exit=0]
+
+[2026-10-04T11:40:35.491+00:00] The first pair of git rev-parse/status commands above ran in /home/user/v03/herdr-collie/herdr-src; the second pair ran in /home/user/v03/herdr-collie/collie. Final product status checks in 10-cleanup.txt use the same order.
+[2026-10-04T11:41:01.809+00:00] Before committing, git var GIT_AUTHOR_IDENT exited 128: Author identity unknown. Use command-scoped -c user.name=Codex -c user.email=codex@localhost for the report commit; no global or repository Git configuration is modified.

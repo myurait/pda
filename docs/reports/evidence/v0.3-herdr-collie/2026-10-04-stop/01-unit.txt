@@ -1,0 +1,57 @@
+[2026-10-04T11:30:23.911+00:00] $ systemctl --user status v03-herdr-collie.service --no-pager --full
+● v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-herdr-collie.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 20:30:23 JST; 339ms ago
+   Main PID: 325668 (start.sh)
+      Tasks: 44 (limit: 15004)
+     Memory: 46.8M (peak: 47.1M)
+        CPU: 370ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-herdr-collie.service
+             ├─325668 /bin/bash /home/user/v03/herdr-collie/start.sh
+             ├─325670 /home/user/v03/herdr-collie/bin/herdr server
+             ├─325686 /bin/bash
+             ├─325689 /bin/bash
+             ├─325693 /bin/bash
+             ├─325701 /home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64/bin/collie _exec-bridge
+             └─325735 curl -sfL --retry 2 --connect-timeout 5 --max-time 15 --max-filesize 262144 https://herdr.dev/agent-detection/claude.toml
+
+Oct 04 20:30:23 agent-node start.sh[325670]: herdr server running; you can use any herdr CLI command in another terminal.
+Oct 04 20:30:23 agent-node start.sh[325670]: api socket: /home/user/v03/herdr-collie/config/herdr/herdr.sock
+Oct 04 20:30:23 agent-node start.sh[325670]: client socket: /home/user/v03/herdr-collie/config/herdr/herdr-client.sock
+Oct 04 20:30:23 agent-node start.sh[325670]: logs: /home/user/v03/herdr-collie/config/herdr/herdr-server.log
+Oct 04 20:30:23 agent-node start.sh[325670]: did you mean to open the Herdr TUI? run `herdr`; you do not need `herdr server`.
+Oct 04 20:30:23 agent-node start.sh[325701]: [push] disabled (no VAPID keys configured)
+Oct 04 20:30:23 agent-node start.sh[325701]: [bridge] mux: herdr · socket /home/user/v03/herdr-collie/config/herdr/herdr.sock
+Oct 04 20:30:23 agent-node start.sh[325701]: [bridge] listening on http://127.0.0.1:5117  (poll 500ms)
+Oct 04 20:30:23 agent-node start.sh[325701]: [bridge] WARNING: no non-loopback Host is allowed — every request except one addressed to localhost/127.0.0.1 will be rejected with "host not allowed". Set COLLIE_PUBLIC_HOSTS to the exact host(s) you serve on (required behind your own reverse proxy).
+Oct 04 20:30:23 agent-node start.sh[325701]: [events] stream up (0 panes watched)
+[exit=0]
+
+[2026-10-04T11:30:23.914+00:00] $ systemctl --user cat v03-herdr-collie.service
+# /home/user/.config/systemd/user/v03-herdr-collie.service
+[Unit]
+Description=PDA v0.3 Herdr and Collie trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/herdr-collie/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/herdr-collie/bin:/usr/local/bin:/usr/bin:/bin
+Environment=XDG_CONFIG_HOME=/home/user/v03/herdr-collie/config
+Environment=XDG_STATE_HOME=/home/user/v03/herdr-collie/state
+Environment=HERDR_CONFIG_PATH=/home/user/v03/herdr-collie/config/herdr/config.toml
+Environment=HERDR_SOCKET_PATH=/home/user/v03/herdr-collie/config/herdr/herdr.sock
+Environment=HERDR_PLUGIN_CONFIG_DIR=/home/user/v03/herdr-collie/config/collie
+Environment=COLLIE_PLUGIN_ROOT=/home/user/v03/herdr-collie/release/collie-1.16.1-linux-x64
+Environment=COLLIE_STATE_DIR=/home/user/v03/herdr-collie/state/collie
+ExecStart=/home/user/v03/herdr-collie/start.sh
+KillMode=control-group
+TimeoutStopSec=20
+Restart=no
+
+[Install]
+WantedBy=default.target
+[exit=0]
+

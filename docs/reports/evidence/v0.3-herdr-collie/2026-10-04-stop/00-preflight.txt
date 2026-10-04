@@ -1,0 +1,95 @@
+[2026-10-04T11:29:59.057+00:00] Metadata baseline recorded without reading file contents; symlinks not followed. Entries: 3039
+[2026-10-04T11:29:59.062+00:00] $ git status --short --branch
+## v0.3/setup-herdr-collie-2
+?? docs/reports/evidence/v0.3-herdr-collie/2026-10-04-stop/
+[exit=0]
+
+[2026-10-04T11:29:59.064+00:00] $ git rev-parse main
+bb20c9177a0bb703561cc3da153032666f6951a6
+[exit=0]
+
+[2026-10-04T11:29:59.077+00:00] $ systemctl --user list-unit-files 'v03-*.service' --no-legend --no-pager
+v03-cccc.service         enabled  enabled
+v03-cezar.service        enabled  enabled
+v03-ghostex.service      disabled enabled
+v03-happier.service      enabled  enabled
+v03-herdr-collie.service disabled enabled
+v03-jean.service         disabled enabled
+v03-luvus.service        enabled  enabled
+v03-multica.service      enabled  enabled
+v03-openclaw.service     disabled enabled
+v03-orca.service         disabled enabled
+v03-pane.service         disabled enabled
+[exit=0]
+
+[2026-10-04T11:29:59.083+00:00] $ systemctl --user show v03-cccc.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.089+00:00] $ systemctl --user show v03-cezar.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.096+00:00] $ systemctl --user show v03-ghostex.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.101+00:00] $ systemctl --user show v03-happier.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.107+00:00] $ systemctl --user show v03-herdr-collie.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.113+00:00] $ systemctl --user show v03-jean.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.117+00:00] $ systemctl --user show v03-luvus.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.122+00:00] $ systemctl --user show v03-multica.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.128+00:00] $ systemctl --user show v03-openclaw.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.134+00:00] $ systemctl --user show v03-orca.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.140+00:00] $ systemctl --user show v03-pane.service -p ActiveState -p SubState -p MainPID
+MainPID=0
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:29:59.142+00:00] $ ls -ld /home/user/v03/agent-home/.claude /home/user/v03/agent-home/.codex
+lrwxrwxrwx 1 user user 29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user 28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+[exit=0]
+

@@ -1,0 +1,267 @@
+[2026-10-04T11:33:16.893+00:00] T3 already confirmed interrupted via Escape. Close its pane solely for cleanup before T5; this is not a stop trial or fallback.
+[2026-10-04T11:33:17.205+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/bin/herdr pane close w1:p6
+{"id":"cli:pane:close","result":{"type":"ok"}}
+[exit=0]
+
+[2026-10-04T11:34:10.767+00:00] T5 already confirmed interrupted via Escape. Close its pane solely for cleanup; this is not a stop trial or fallback.
+[2026-10-04T11:34:10.800+00:00] $ /home/user/v03/herdr-collie/env-run /home/user/v03/herdr-collie/bin/herdr pane close w1:p7
+{"id":"cli:pane:close","result":{"type":"ok"}}
+[exit=0]
+
+[2026-10-04T11:34:10.805+00:00] Service cgroup PIDs before final stop: 325668,325670,325686,325689,325693,325701
+[2026-10-04T11:34:10.876+00:00] $ systemctl --user stop v03-herdr-collie.service
+[exit=0]
+
+[2026-10-04T11:34:10.883+00:00] $ systemctl --user show v03-herdr-collie.service -p ActiveState -p SubState -p MainPID -p Result
+MainPID=0
+Result=success
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:34:10.891+00:00] $ systemctl --user status v03-herdr-collie.service --no-pager --full
+○ v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-herdr-collie.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 20:30:23 agent-node start.sh[325701]: [bridge] listening on http://127.0.0.1:5117  (poll 500ms)
+Oct 04 20:30:23 agent-node start.sh[325701]: [bridge] WARNING: no non-loopback Host is allowed — every request except one addressed to localhost/127.0.0.1 will be rejected with "host not allowed". Set COLLIE_PUBLIC_HOSTS to the exact host(s) you serve on (required behind your own reverse proxy).
+Oct 04 20:30:23 agent-node start.sh[325701]: [events] stream up (0 panes watched)
+Oct 04 20:31:12 agent-node start.sh[325701]: [events] resubscribed (1 panes watched)
+Oct 04 20:33:17 agent-node start.sh[325701]: [events] resubscribed (0 panes watched)
+Oct 04 20:33:18 agent-node start.sh[325701]: [events] resubscribed (1 panes watched)
+Oct 04 20:34:10 agent-node systemd[1274]: Stopping v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial...
+Oct 04 20:34:10 agent-node start.sh[325701]: [bridge] shutting down
+Oct 04 20:34:10 agent-node systemd[1274]: Stopped v03-herdr-collie.service - PDA v0.3 Herdr and Collie trial.
+Oct 04 20:34:10 agent-node systemd[1274]: v03-herdr-collie.service: Consumed 11.723s CPU time, 415.7M memory peak, 0B memory swap peak.
+[exit=3]
+
+[2026-10-04T11:34:10.901+00:00] $ ss -ltnp 'sport = :5117'
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+[exit=0]
+
+[2026-10-04T11:34:10.901+00:00] Previously recorded service PIDs still present: []
+[2026-10-04T11:34:10.975+00:00] New entries (lstat metadata only; credential/config contents not read):
+{
+  "/home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch": {
+    "mode": "drwxrwxr-x",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 4096,
+    "mtime_ns": 1791113473553368487,
+    "symlink": false
+  },
+  "/home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch/mcp-logs-claude-ai-Claude-Docs": {
+    "mode": "drwxrwxr-x",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 4096,
+    "mtime_ns": 1791113473553368487,
+    "symlink": false
+  },
+  "/home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch/mcp-logs-claude-ai-Claude-Docs/2026-10-04T11-31-11-882Z.jsonl": {
+    "mode": "-rw-rw-r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 2065,
+    "mtime_ns": 1791113473553368487,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/claude/backups/.claude.json.backup.1791113472086": {
+    "mode": "-rw-------",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 80431,
+    "mtime_ns": 1791113472085386812,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/claude/backups/.claude.json.backup.1791113556964": {
+    "mode": "-rw-------",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 80432,
+    "mtime_ns": 1791113556963313155,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/claude/projects/-home-user-v03-work-herdr-collie-scratch/328dcc0f-e1c0-4866-b7e2-eb919dc34a76.jsonl": {
+    "mode": "-rw-------",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 90885,
+    "mtime_ns": 1791113596909798635,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/goals_1.sqlite-shm": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 32768,
+    "mtime_ns": 1791113598023784210,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/goals_1.sqlite-wal": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 8272,
+    "mtime_ns": 1791113606505674231,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/state_5.sqlite-wal": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 444992,
+    "mtime_ns": 1791113611440610138,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/state_5.sqlite-shm": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 32768,
+    "mtime_ns": 1791113598000784508,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/memories_1.sqlite-wal": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 4152,
+    "mtime_ns": 1791113598027784158,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/memories_1.sqlite-shm": {
+    "mode": "-rw-r--r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 32768,
+    "mtime_ns": 1791113598030784119,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/thread-writer-locks/01a106b0-984f-7450-8ce7-011603e5a428.lock": {
+    "mode": "-rw-rw-r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 0,
+    "mtime_ns": 1791113599058770803,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8": {
+    "mode": "drwxrwxr-x",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 4096,
+    "mtime_ns": 1791113597680788652,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/codex-linux-sandbox": {
+    "mode": "lrwxrwxrwx",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 90,
+    "mtime_ns": 1791113597680788652,
+    "symlink": true
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/applypatch": {
+    "mode": "lrwxrwxrwx",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 90,
+    "mtime_ns": 1791113597680788652,
+    "symlink": true
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/codex-execve-wrapper": {
+    "mode": "lrwxrwxrwx",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 90,
+    "mtime_ns": 1791113597680788652,
+    "symlink": true
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/.lock": {
+    "mode": "-rw-rw-r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 0,
+    "mtime_ns": 1791113597680788652,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/apply_patch": {
+    "mode": "lrwxrwxrwx",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 90,
+    "mtime_ns": 1791113597680788652,
+    "symlink": true
+  },
+  "/home/user/pda/secrets/codex/shell_snapshots/01a106b0-984f-7450-8ce7-011603e5a428.1791113599060691879.sh": {
+    "mode": "-rw-rw-r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 4314,
+    "mtime_ns": 1791113599084770466,
+    "symlink": false
+  },
+  "/home/user/pda/secrets/codex/sessions/2026/10/04/rollout-2026-10-04T20-33-19-01a106b0-984f-7450-8ce7-011603e5a428.jsonl": {
+    "mode": "-rw-rw-r--",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 54907,
+    "mtime_ns": 1791113611438610164,
+    "symlink": false
+  },
+  "/home/user/v03/herdr-collie/config/herdr/session-snapshots/session-000000000000000000001791113447509408388-325670-0.json": {
+    "mode": "-rw-------",
+    "uid": 1000,
+    "gid": 1000,
+    "size": 1552,
+    "mtime_ns": 1791113447508692204,
+    "symlink": false
+  }
+}
+[2026-10-04T11:35:30.390+00:00] Removed new trial residue (contents never read): /home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch/mcp-logs-claude-ai-Claude-Docs/2026-10-04T11-31-11-882Z.jsonl
+[2026-10-04T11:35:30.391+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/codex-linux-sandbox
+[2026-10-04T11:35:30.391+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/applypatch
+[2026-10-04T11:35:30.391+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/codex-execve-wrapper
+[2026-10-04T11:35:30.391+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/.lock
+[2026-10-04T11:35:30.391+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8/apply_patch
+[2026-10-04T11:36:06.515+00:00] Cleanup attempt 1 stopped at an AssertionError on the new Claude cache directory: removing its child changed the parent directory mtime. This was the cleanup script guard, not a product error. Retry 1: check unchanged mtime for files only and use rmdir (requires empty directory) for directories; preserve all pre-existing paths.
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch/mcp-logs-claude-ai-Claude-Docs
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/tmp/arg0/codex-arg0kjjnK8
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/v03/agent-home/.cache/claude-cli-nodejs/-home-user-v03-work-herdr-collie-scratch
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/claude/backups/.claude.json.backup.1791113472086
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/claude/backups/.claude.json.backup.1791113556964
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/thread-writer-locks/01a106b0-984f-7450-8ce7-011603e5a428.lock
+[2026-10-04T11:36:06.521+00:00] Removed new trial residue (contents never read): /home/user/pda/secrets/codex/shell_snapshots/01a106b0-984f-7450-8ce7-011603e5a428.1791113599060691879.sh
+[2026-10-04T11:36:06.521+00:00] Confirmed all 13 selected new entries removed. Existing files were not removed. Persistent CLI histories/database files (including WAL/SHM belonging to those databases) and product-specific state remain; their contents were not read. No MCP/hook/plugin was registered by this run, so no deregistration command was needed. No tmux or zellij was launched.
+[2026-10-04T11:36:06.525+00:00] $ git restore --source=c931afc56615ba15cc670b7a2cb7d8fa0d59116b --staged --worktree -- README.md hello.py
+[exit=0]
+
+[2026-10-04T11:36:06.528+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:36:06.540+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:36:06.547+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:36:06.606+00:00] New credential/config filenames in the metadata scan: []
+[2026-10-04T11:36:06.615+00:00] All pre-existing protected credential/config paths still present. No credential/config file was manually opened, edited, copied or removed.
+[2026-10-04T11:40:35.491+00:00] Final report/evidence audit: original main report retained verbatim as a 17961-byte prefix; only section 8 appended. Subsections 8.1 through 8.7 are in common-instruction order; trial result headings are exactly T1/T3/T5. Both stop records show intermediate assistant output before one Escape request, HTTP 200 and ok:true, explicit interruption plus input prompt, idle snapshot, and confirmation after 2 seconds. Report durations match the recorded monotonic measurements. Report whitespace check passed; common token/private-key pattern scan found no matches. systemctl status exit 3 above is the expected inactive result.
+[2026-10-04T11:40:35.499+00:00] $ systemctl --user show v03-herdr-collie.service -p ActiveState -p SubState -p MainPID -p Result
+MainPID=0
+Result=success
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+[2026-10-04T11:40:35.509+00:00] $ ss -ltnp 'sport = :5117'
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+[exit=0]
+
+[2026-10-04T11:40:35.512+00:00] $ git status --short
+[exit=0]
+
+[2026-10-04T11:40:35.514+00:00] Original report prefix SHA-256: 34efbfa47b94cda3ef9eeb1ee8058a5b63b6c21620b3bfd5d9494aaa92a0f542
