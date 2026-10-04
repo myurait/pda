@@ -1,0 +1,75 @@
+[2026-10-04T12:39:21+00:00] 製品指定: cli-v1.35.0。公式インストーラ https://superset.sh/cli/install.sh を downloads/install.sh に保存し確認。
+実行: env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/home/user/v03/superset/bin:/usr/local/bin:/usr/bin:/bin SUPERSET_HOME=/home/user/v03/superset SUPERSET_VERSION=cli-v1.35.0 sh /home/user/v03/superset/downloads/install.sh
+Installing Superset CLI
+
+==> Platform: linux-x64
+==> Downloading https://github.com/superset-sh/superset/releases/download/cli-v1.35.0/superset-linux-x64.tar.gz
+==> Extracting to /home/user/v03/superset
+==> /home/user/v03/superset/bin is already in PATH
+
+Installed!
+Run exec $SHELL (or open a new terminal) to load the updated PATH.
+Then run superset auth login to get started.
+
+exit=0; 導入試行1回。PATH に導入先を含めたため shell profile の変更なし。
+[2026-10-04T12:39:21+00:00] $ git rev-parse HEAD
+e15ae8cfacfdb08f5706a8a018672dc327b62d19
+
+exit=0
+
+[2026-10-04T12:39:21+00:00] $ git status --short
+
+exit=0
+
+[2026-10-04T12:39:21+00:00] $ sha256sum /home/user/v03/superset/bin/superset /home/user/v03/superset/bin/superset-host /home/user/v03/superset/downloads/install.sh
+1317c10d71bb5a88107134d296a58178ca172c8d9b26b403f973679ce41eea32  /home/user/v03/superset/bin/superset
+86892eb13e95b286d15d3273cd4d96eae55cdf822289891580f2fed6b3362199  /home/user/v03/superset/bin/superset-host
+a8f308efcd68fd968e52ea09b1bb39fbd45ba3c22befb9b68c362f7d75e6648d  /home/user/v03/superset/downloads/install.sh
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] (product environment) $ /home/user/v03/superset/bin/superset --version
+1.35.0
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] (product environment) $ /home/user/v03/superset/bin/superset start --help
+Usage: superset start [options]
+
+Start the host service
+
+Options:
+  --daemon         Run in background
+  --auto-update    Automatically update and restart this host hourly (requires --daemon)
+  --port <number>  Port to listen on
+  --org <string>   Organization to register under (id, slug, or name)
+
+Global options:
+  --json              Output as JSON (auto-on under CI/agent envs)
+  --quiet             Output IDs only
+  --api-key <string>  Use a Superset API key (sk_live_…) instead of OAuth login [$SUPERSET_API_KEY]
+
+  --help, -h       Show help
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] (product environment) $ /home/user/v03/superset/bin/superset auth login --help
+Usage: superset auth login [options]
+
+Authenticate with Superset. Re-run to switch organizations.
+
+Options:
+  --organization <string>  Organization id or slug — required for non-TTY logins when you belong to multiple orgs
+  --api-key <string>       Store a Superset API key (sk_live_…) at ~/.superset/config.json instead of running the OAuth flow
+
+Global options:
+  --json              Output as JSON (auto-on under CI/agent envs)
+  --quiet             Output IDs only
+  --api-key <string>  Use a Superset API key (sk_live_…) instead of OAuth login [$SUPERSET_API_KEY]
+
+  --help, -h       Show help
+
+exit=0
+
+[2026-10-04T12:45:55+00:00] 配布物 bin/lib/share 内の Claude/Codex 独立実行ファイル名を確認: ['lib/node_modules/rc/cli.js']。agent template は含まれる。source は別の調査用 clone。
+[2026-10-04T12:52:57+00:00] 上の配布物探索は一般名 cli.js も候補に含めた。該当した lib/node_modules/rc/cli.js は rc パッケージの CLI で、Claude/Codex ではない。claude/codex という独立実行ファイルは0件。01-install.txt の git rev-parse/status の cwd は /home/user/v03/superset/source。

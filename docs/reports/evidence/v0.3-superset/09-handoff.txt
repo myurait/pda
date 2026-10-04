@@ -1,0 +1,74 @@
+[2026-10-04T12:41:55+00:00] (product environment) $ /home/user/v03/superset/bin/superset agents create --help
+Usage: superset agents create [options]
+
+Create an agent session in an existing workspace
+
+Options:
+  --workspace <string>       Workspace ID
+  --host <string>            Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)
+  --local                    The workspace is on this machine
+  --agent <string>           Agent preset id (e.g. `claude`), HostAgentConfig instance UUID, or `superset` for a Superset session
+  --prompt <string>          Prompt sent to the agent (required unless resuming, forking, or handing off a session)
+  --resume-session <string>  Session id of a previous run of this agent to restore instead of starting fresh
+  --fork-session <string>    Session id of a previous run to clone into a new provider session
+  --from-terminal <string>   Terminal ID whose recent context seeds the new session, so another agent can pick the work up
+  --context-chars <number>   Cap the handed-over context, 1-36000 characters (default 36000, roughly 9-12k tokens)
+  --model <string>           Model for this launch (agent-specific; omit to use the agent default)
+  --effort <string>          Reasoning effort for this launch (agent-specific; omit to use the agent default)
+  --attachment-id <string>   Pre-uploaded attachment UUID; pass --attachment-id repeatedly
+  --attachment <string>      Local file path to upload as an attachment to the host. Repeatable
+
+Global options:
+  --json              Output as JSON (auto-on under CI/agent envs)
+  --quiet             Output IDs only
+  --api-key <string>  Use a Superset API key (sk_live_…) instead of OAuth login [$SUPERSET_API_KEY]
+
+  --help, -h       Show help
+
+exit=0
+
+[2026-10-04T12:41:55+00:00] (product environment) $ /home/user/v03/superset/bin/superset terminals read --help
+Usage: superset terminals read [options]
+
+Read a terminal's current screen back as text
+
+Options:
+  --workspace <string>  Workspace ID
+  --host <string>       Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)
+  --local               The workspace is on this machine
+  --terminal <string>   Terminal ID to read
+  --max-lines <number>  Cap returned rows from the bottom
+
+Global options:
+  --json              Output as JSON (auto-on under CI/agent envs)
+  --quiet             Output IDs only
+  --api-key <string>  Use a Superset API key (sk_live_…) instead of OAuth login [$SUPERSET_API_KEY]
+
+  --help, -h       Show help
+
+exit=0
+
+[2026-10-04T12:41:55+00:00] (product environment) $ /home/user/v03/superset/bin/superset terminals send --help
+Usage: superset terminals send [options]
+
+Send a follow-up message to a terminal already running in a workspace
+
+Options:
+  --workspace <string>  Workspace ID
+  --host <string>       Host the workspace lives on (default: the cloud if your account has cloud workspaces, else this machine)
+  --local               The workspace is on this machine
+  --terminal <string>   Terminal ID (the sessionId `agents create` returned)
+  --text <string>       Text to write into the terminal
+  --no-submit           Stage the text without pressing Enter
+
+Global options:
+  --json              Output as JSON (auto-on under CI/agent envs)
+  --quiet             Output IDs only
+  --api-key <string>  Use a Superset API key (sk_live_…) instead of OAuth login [$SUPERSET_API_KEY]
+
+  --help, -h       Show help
+
+exit=0
+
+[2026-10-04T12:45:55+00:00] 製品には agents create --agent <id> --from-terminal <id>、terminals read/send が存在（上記helpと00-source.txt）。機能なしとは判定しない。Codex→Claude Code と Claude Code→Codex はどちらも未実施、依頼送信0回、引き継ぎ先の途中出力は未観測。Superset host の起動が認証前提で阻害。systemd で計2回とも Error: Not logged in / Hint: Run: superset auth login (or set SUPERSET_API_KEY)、exit=1。既存の Claude/Codex ログインを Superset の認証として使う設定が見つからず、共通指示2.3に従い未実施。根拠: 01-unit.txt、00-source.txt。
+独自の skill/MCP を補っていない。

@@ -1,0 +1,113 @@
+[2026-10-04T12:39:50+00:00] $ systemctl --user daemon-reload
+
+exit=0
+
+[2026-10-04T12:39:50+00:00] 起動試行1回目。Restart=no として自動再試行を禁止。公式 host-server の KillMode=process を使用。
+[2026-10-04T12:39:50+00:00] $ systemctl --user start v03-superset.service
+
+exit=0
+
+[2026-10-04T12:39:50+00:00] $ systemctl --user status v03-superset.service --no-pager -l
+● v03-superset.service - PDA v0.3 Superset trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-superset.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 21:39:50 JST; 7ms ago
+   Main PID: 350623 (superset)
+      Tasks: 2 (limit: 15004)
+     Memory: 2.6M (peak: 2.8M)
+        CPU: 4ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-superset.service
+             └─350623 /home/user/v03/superset/bin/superset start --port 5122
+
+Oct 04 21:39:50 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+
+exit=0
+
+[2026-10-04T12:39:50+00:00] $ systemctl --user cat v03-superset.service
+# /home/user/.config/systemd/user/v03-superset.service
+[Unit]
+Description=PDA v0.3 Superset trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/superset/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/superset/bin:/usr/local/bin:/usr/bin:/bin
+Environment=SUPERSET_HOME_DIR=/home/user/v03/superset/state
+ExecStart=/home/user/v03/superset/bin/superset start --port 5122
+Restart=no
+KillMode=process
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+
+exit=0
+
+[2026-10-04T12:39:50+00:00] $ journalctl --user -u v03-superset.service --no-pager -n 30 -o short-iso-precise
+2026-10-04T21:39:50.642913+09:00 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+
+exit=0
+
+[2026-10-04T12:40:19+00:00] $ systemctl --user status v03-superset.service --no-pager -l
+× v03-superset.service - PDA v0.3 Superset trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-superset.service; disabled; preset: enabled)
+     Active: failed (Result: exit-code) since Sun 2026-10-04 21:39:50 JST; 28s ago
+   Duration: 289ms
+    Process: 350623 ExecStart=/home/user/v03/superset/bin/superset start --port 5122 (code=exited, status=1/FAILURE)
+   Main PID: 350623 (code=exited, status=1/FAILURE)
+        CPU: 365ms
+
+Oct 04 21:39:50 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+Oct 04 21:39:50 agent-node superset[350623]: Error: Not logged in
+Oct 04 21:39:50 agent-node superset[350623]: Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+Oct 04 21:39:50 agent-node systemd[1274]: v03-superset.service: Main process exited, code=exited, status=1/FAILURE
+Oct 04 21:39:50 agent-node systemd[1274]: v03-superset.service: Failed with result 'exit-code'.
+
+exit=3
+
+[2026-10-04T12:40:19+00:00] $ journalctl --user -u v03-superset.service --no-pager -n 30 -o short-iso-precise
+2026-10-04T21:39:50.642913+09:00 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+2026-10-04T21:39:50.922372+09:00 agent-node superset[350623]: Error: Not logged in
+2026-10-04T21:39:50.922372+09:00 agent-node superset[350623]: Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+2026-10-04T21:39:50.932432+09:00 agent-node systemd[1274]: v03-superset.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-04T21:39:50.932448+09:00 agent-node systemd[1274]: v03-superset.service: Failed with result 'exit-code'.
+
+exit=0
+
+[2026-10-04T12:40:47+00:00] 原因調査: 固定版 packages/cli/src/lib/resolve-auth.ts:21-81 は Superset API key・保存済み OAuth のみを通常ホストの認証として選び、Claude/Codex の既存ログインを受け取る設定は見つからない。start/command.ts:39-43 は Superset API から組織を取得してから起動する。API key を入れず、同一の設定で1回だけ再試行する。
+[2026-10-04T12:40:47+00:00] $ systemctl --user start v03-superset.service
+
+exit=0
+
+[2026-10-04T12:41:27+00:00] $ systemctl --user status v03-superset.service --no-pager -l
+× v03-superset.service - PDA v0.3 Superset trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-superset.service; disabled; preset: enabled)
+     Active: failed (Result: exit-code) since Sun 2026-10-04 21:40:48 JST; 38s ago
+   Duration: 295ms
+    Process: 350904 ExecStart=/home/user/v03/superset/bin/superset start --port 5122 (code=exited, status=1/FAILURE)
+   Main PID: 350904 (code=exited, status=1/FAILURE)
+        CPU: 374ms
+
+Oct 04 21:40:47 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+Oct 04 21:40:48 agent-node superset[350904]: Error: Not logged in
+Oct 04 21:40:48 agent-node superset[350904]: Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+Oct 04 21:40:48 agent-node systemd[1274]: v03-superset.service: Main process exited, code=exited, status=1/FAILURE
+Oct 04 21:40:48 agent-node systemd[1274]: v03-superset.service: Failed with result 'exit-code'.
+
+exit=3
+
+[2026-10-04T12:41:27+00:00] $ journalctl --user -u v03-superset.service --no-pager -n 30 -o short-iso-precise
+2026-10-04T21:39:50.642913+09:00 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+2026-10-04T21:39:50.922372+09:00 agent-node superset[350623]: Error: Not logged in
+2026-10-04T21:39:50.922372+09:00 agent-node superset[350623]: Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+2026-10-04T21:39:50.932432+09:00 agent-node systemd[1274]: v03-superset.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-04T21:39:50.932448+09:00 agent-node systemd[1274]: v03-superset.service: Failed with result 'exit-code'.
+2026-10-04T21:40:47.987528+09:00 agent-node systemd[1274]: Started v03-superset.service - PDA v0.3 Superset trial.
+2026-10-04T21:40:48.273061+09:00 agent-node superset[350904]: Error: Not logged in
+2026-10-04T21:40:48.273061+09:00 agent-node superset[350904]: Hint: Run: superset auth login (or set SUPERSET_API_KEY)
+2026-10-04T21:40:48.282408+09:00 agent-node systemd[1274]: v03-superset.service: Main process exited, code=exited, status=1/FAILURE
+2026-10-04T21:40:48.282423+09:00 agent-node systemd[1274]: v03-superset.service: Failed with result 'exit-code'.
+
+exit=0

@@ -1,0 +1,81 @@
+[2026-10-04T12:39:21+00:00] 開始時、main=origin/main=613511c3cbfba26051ad37f8af0d9e0eda421622。main から v0.3/setup-superset を作成。作業ツリーは clean。他製品の報告書・research は未読。
+[2026-10-04T12:39:21+00:00] $ systemctl --user list-units --all 'v03-*.service' --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+exit=0
+
+[2026-10-04T12:39:21+00:00] $ ss -ltnp 'sport = :5122'
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+exit=0
+
+[2026-10-04T12:39:21+00:00] (product environment) $ /home/user/.local/bin/claude --version
+2.1.274 (Claude Code)
+
+exit=0
+
+[2026-10-04T12:39:21+00:00] (product environment) $ /home/user/.local/bin/codex --version
+codex-cli 0.156.1
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] $ git init -b main
+Initialized empty Git repository in /home/user/v03/work/superset/scratch/.git/
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] $ git add README.md hello.py
+
+exit=0
+
+[2026-10-04T12:39:22+00:00] $ git commit -m '試用の初期ファイルを用意する'
+Author identity unknown
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+to set your account's default identity.
+Omit --global to set the identity only in this repository.
+
+fatal: unable to auto-detect email address (got 'user@agent-node.(none)')
+
+exit=128
+
+[2026-10-04T12:39:22+00:00] $ git log -1 '--format=%H %s'
+fatal: your current branch 'main' does not have any commits yet
+
+exit=128
+
+[2026-10-04T12:39:22+00:00] (product environment) $ tmux -L v03-superset -f /dev/null new-session -d -s claude-trust -c /home/user/v03/work/superset/scratch -x 140 -y 42 'exec env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin /home/user/.local/bin/claude'
+
+exit=0
+
+[2026-10-04T12:40:19+00:00] scratch 初期 commit の1回目は Git author identity 未設定で exit=128。既存設定を変更せず、この commit に限り Codex <codex@localhost> を指定して1回だけ再試行。
+[2026-10-04T12:40:19+00:00] $ git -c user.name=Codex -c user.email=codex@localhost commit -m '試用の初期ファイルを用意する'
+[main (root-commit) 4d48d6c] 試用の初期ファイルを用意する
+ 2 files changed, 2 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 hello.py
+
+exit=0
+
+[2026-10-04T12:40:19+00:00] $ git log -1 '--format=%H %s'
+4d48d6cc76a12318c4a1e97c588a4bba3a0a30d6 試用の初期ファイルを用意する
+
+exit=0

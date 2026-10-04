@@ -1,0 +1,112 @@
+[2026-10-04T12:43:08+00:00] $ systemctl --user stop v03-superset.service
+
+exit=0
+
+[2026-10-04T12:43:08+00:00] $ systemctl --user show v03-superset.service --property=MainPID,ActiveState,SubState,Result,NRestarts,UnitFileState
+MainPID=0
+Result=exit-code
+NRestarts=0
+ActiveState=failed
+SubState=failed
+UnitFileState=disabled
+
+exit=0
+
+[2026-10-04T12:43:08+00:00] (product environment) $ /home/user/.local/bin/claude --version
+2.1.274 (Claude Code)
+
+exit=0
+
+[2026-10-04T12:43:08+00:00] (product environment) $ /home/user/.local/bin/codex --version
+codex-cli 0.156.1
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ systemctl --user reset-failed v03-superset.service
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ systemctl --user show v03-superset.service --property=MainPID,ActiveState,SubState,Result,NRestarts,UnitFileState
+MainPID=0
+Result=success
+NRestarts=0
+ActiveState=inactive
+SubState=dead
+UnitFileState=disabled
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ tmux -L v03-superset list-sessions -F '#{session_name}'
+codex-trust
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ tmux -L v03-superset kill-server
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ ss -ltnp 'sport = :5122'
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ systemctl --user list-units --all 'v03-*.service' --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ git status --short
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ git status --short
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] $ ls -ld /home/user/v03/agent-home/.claude /home/user/v03/agent-home/.codex
+lrwxrwxrwx 1 user user 29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user 28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+
+exit=0
+
+[2026-10-04T12:44:18+00:00] agent-home の metadata 比較（symlink を辿らず、.cache と node_modules は除外）。追加エントリ=0、削除エントリ=0。新規 *.bak=0。内容は未読。
+[2026-10-04T12:44:18+00:00] Claude 起動後に .local/bin/claude の mtime のみ変化。元から存在し、symlink target は前後とも /home/user/v03/agent-home/.local/share/claude/versions/2.1.289。target 不変=True。指定の /home/user/.local/bin/claude は前後とも 2.1.274。既存リンク・インストールは保持。
+[2026-10-04T12:44:18+00:00] metadata existence: /home/user/v03/superset/state = False
+[2026-10-04T12:44:18+00:00] metadata existence: /home/user/v03/superset/state/config.json = False
+[2026-10-04T12:44:18+00:00] metadata existence: /home/user/v03/agent-home/.superset = False
+[2026-10-04T12:44:18+00:00] Superset は認証 middleware で終了し、host-service の provisioning に達していない。製品による MCP/hook/plugin 登録、認証複製、他エージェント設定の生成は発生していない。削除対象なし。信頼設定だけは両CLI自身に保存させ、認証本体・settings.json・config.toml は手で読まず変更せず削除せず。Docker、zellij、他製品の unit は操作していない。導入物と scratch は保持。
+[2026-10-04T12:45:55+00:00] $ tmux -L v03-superset list-sessions
+no server running on /tmp/tmux-1000/v03-superset
+
+exit=1
+
+[2026-10-04T12:45:55+00:00] Claude は /exit で終了。Codex に /exit を送った後も専用 tmux session が残っていたため tmux -L v03-superset kill-server で専用serverごと終了。上記の no server running は終了確認。
+[2026-10-04T12:45:55+00:00] 終了後、/proc の cwd/exe のメタデータで scratch にいるプロセスと Superset 配布実行ファイルのプロセスを照合: []
+[2026-10-04T12:46:51+00:00] 認証複製ディレクトリ内については backup の名前・mtime のみを追加確認（内容未読）。今回開始時刻以降の *.bak / *.backup* 候補: 2
+[2026-10-04T12:50:01+00:00] symlink先の追加確認で、信頼設定のために直接起動した Claude Code が作った .claude.json.backup.* を2件確認。先の「削除対象なし」は Superset 本体の生成物について。次の2件を試用の残りとして削除する。
+[2026-10-04T12:50:01+00:00] $ ls -l /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117619858
+-rw------- 1 user user 81029 Oct  4 21:40 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117619858
+
+exit=0
+
+[2026-10-04T12:50:02+00:00] 内容を開かず unlink: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117619858; exists after=False
+[2026-10-04T12:50:02+00:00] $ ls -l /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117687228
+-rw------- 1 user user 82355 Oct  4 21:41 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117687228
+
+exit=0
+
+[2026-10-04T12:50:02+00:00] 内容を開かず unlink: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791117687228; exists after=False
+[2026-10-04T12:50:02+00:00] 削除は上記の新規backup2件だけ。認証本体 .credentials.json / auth.json / .claude.json、settings.json、config.toml には手を触れていない。
+[2026-10-04T12:52:57+00:00] 12:44:18 の git status --short の対象は、順に /home/user/v03/superset/source と /home/user/v03/work/superset/scratch。両方出力なし。

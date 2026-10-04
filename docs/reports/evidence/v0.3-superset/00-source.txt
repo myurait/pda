@@ -1,0 +1,82 @@
+[2026-10-04T12:45:55+00:00] 固定版 cli-v1.35.0 / e15ae8cfacfdb08f5706a8a018672dc327b62d19。以下はソース・公式文書から確認した内容であり、製品経由の実行観測ではない。
+[2026-10-04T12:45:55+00:00] README.md (22-31, 211-254)
+Linux AppImage は experimental。standalone CLI、開発用ローカル環境も記載。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/README.md
+sha256=0a818f79c3612dde4ec0d3b2b09c38f1826081188b82c2601b21fe4a78ff5306
+[2026-10-04T12:45:55+00:00] apps/docs/content/docs/cli/getting-started.mdx (Standalone install / Sign in / Where state lives)
+CLI 導入、Superset OAuth/API key、SUPERSET_HOME_DIR。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/apps/docs/content/docs/cli/getting-started.mdx
+sha256=73fe8683bcc98a663fac26e6f00127da3316248182b40405ac66484f976e007c
+[2026-10-04T12:45:55+00:00] apps/docs/content/docs/cli/host-server.mdx (Authenticate / systemd / Stop)
+headless HTTP server、Superset session、KillMode=process、端末を止める --terminals。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/apps/docs/content/docs/cli/host-server.mdx
+sha256=2f729b2c669b19bd61d3d23e91253f14405bba4d49340ba13b254618ecaa5e1d
+[2026-10-04T12:45:55+00:00] DEVELOPMENT.md (36-62)
+開発用 Docker stack と dev account を記載。既存 Claude/Codex ログインを Superset の認証として使う設定ではない。この走行では未実施。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/DEVELOPMENT.md
+sha256=a3a9348ac9e7fbf2d9887b3c7a9efc126b2f7dd672861e0de4da47671e771154
+[2026-10-04T12:45:55+00:00] packages/cli/src/commands/middleware.ts (5-18)
+command context の作成前に resolveAuth を実行。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/src/commands/middleware.ts
+sha256=ba7262d0d36ad54f4d78156c185314cc3f3ebbb0c464e4f9a0ec4911559e1aa6
+[2026-10-04T12:45:55+00:00] packages/cli/src/lib/resolve-auth.ts (21-81)
+通常ホストでは Superset API key または OAuth。なければ Not logged in。sandbox は Superset cloud 用で start は sandbox:false。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/src/lib/resolve-auth.ts
+sha256=216836ea7a205cc783c512338b617d71cd2fbe609368cedd4543ab4bd6945fa8
+[2026-10-04T12:45:55+00:00] packages/cli/src/commands/start/command.ts (20-43, 64-73)
+start は認証後に組織を API から取得し、host を起動。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/src/commands/start/command.ts
+sha256=c34d4155ac3fa9748008e208661d8d4ef5d9d53ae7294e6e2b827ea4557bafee
+[2026-10-04T12:45:55+00:00] packages/host-service/src/serve.ts (53-75, 141-146)
+host 起動後に daemon/bootstrap/provision を実行。通常ホストは 127.0.0.1 に bind。今回はここに到達せず。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/host-service/src/serve.ts
+sha256=b2b8cffac5d2b79f67d12155aa8777b7d26a798104c35a5b57a92407ecb6ca7a
+[2026-10-04T12:45:55+00:00] packages/cli/src/lib/host/spawn.ts (147-172)
+指定 port を PORT と HOST_SERVICE_PORT に渡す。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/src/lib/host/spawn.ts
+sha256=8107504d688093ddd97d10ce80c821369d9be205b86e354a130f3c85bd94af60
+[2026-10-04T12:45:55+00:00] packages/shared/src/builtin-terminal-agents.ts (59-97)
+Claude/Codex は terminal agents として cli command を定義。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/shared/src/builtin-terminal-agents.ts
+sha256=a0c96c3360f458ca1405d406bfcde25065af4ea5da8e5d96d312785b71bc836b
+[2026-10-04T12:45:55+00:00] packages/host-service/src/trpc/router/agents/agents.ts (62-103, 488-515, 612-651)
+引数と prompt を shell command に構成して terminal session の initialCommand に渡す。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/host-service/src/trpc/router/agents/agents.ts
+sha256=df1586d085bb297efebc21f67356d6557ff914c4d672b7c52769aace3e422188
+[2026-10-04T12:45:55+00:00] packages/pty-daemon/src/Pty/Pty.ts (4, 378-412)
+node-pty を読み込み、nodePty.spawn(meta.shell, meta.argv, ...) で PTY の shell を起動。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/pty-daemon/src/Pty/Pty.ts
+sha256=7f1faec8e6891767841692fc502fb46558e8e1e2795936dd7ce2cf8a7c11ddac
+[2026-10-04T12:45:55+00:00] packages/agent-setup/src/agent-wrappers-claude-codex-opencode.ts (287-324)
+Claude wrapper は実 CLI を exec。Codex wrapper も既存実行ファイルを使用。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/agent-setup/src/agent-wrappers-claude-codex-opencode.ts
+sha256=e016e2809373b9e7a75ce0ee5008acf517b6e73bbc706586ce292c65dcaca50b
+[2026-10-04T12:45:55+00:00] packages/chat-runtime/src/harness/claude/createClaudeAdapter/createClaudeAdapter.ts (1-15)
+chat の経路は @anthropic-ai/claude-agent-sdk の query を読み込む。今回使用せず。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/chat-runtime/src/harness/claude/createClaudeAdapter/createClaudeAdapter.ts
+sha256=ea7c44356cb3f68cf9887e0880c449dca4d8459e38a492dad841d3289eff5a48
+[2026-10-04T12:45:55+00:00] packages/chat-runtime/src/harness/claude/claudeAdapter/claudeAdapter.ts (164-186)
+chat adapter は SDK query を実行。今回使用せず。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/chat-runtime/src/harness/claude/claudeAdapter/claudeAdapter.ts
+sha256=72f4444f35e8a3ac567a87b9f0a452cc244ddf22b762fd29967491123b2cb3c2
+[2026-10-04T12:45:55+00:00] packages/cli/src/commands/agents/create/command.ts (30-38, 103-131)
+--from-terminal により端末 context から prompt を作り agents.run に渡す。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/src/commands/agents/create/command.ts
+sha256=357030234d77dd22242ae13d4737f3d17bb8ad119e9dec89bacd84ccd1ccaf47
+[2026-10-04T12:45:55+00:00] apps/docs/content/docs/orchestration.mdx (11-39)
+製品の組み込み orchestrate skill と CLI の create/read/send による引き継ぎを説明。追加 skill/MCP は入れていない。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/apps/docs/content/docs/orchestration.mdx
+sha256=212940ffcd2b12f272dca9d4b6a99f2468bc4eb04a3388197b2a3676905857e4
+[2026-10-04T12:45:55+00:00] packages/host-service/src/app.ts (350-363, 413-465)
+端末等の WebSocket と /trpc/* を登録。standalone でのブラウザ用 IDE URL は確認できず。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/host-service/src/app.ts
+sha256=f6d5977b472b5813cf92d242997695b94a2f599059893bfea0be56368f9b6d4d
+[2026-10-04T12:45:55+00:00] packages/host-service/src/runtime/agent-provisioning.ts (28-51)
+headless host は起動時に agent hooks/wrappers を準備する。今回は認証 middleware で終了したため未実行。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/host-service/src/runtime/agent-provisioning.ts
+sha256=3ba55c67fc2423f0b4ea107c12a6a1a39d35d5f92b2090ee34cfe48a2402042c
+[2026-10-04T12:45:55+00:00] packages/cli/scripts/build-dist.ts (46-58, 393-397)
+配布物は host用 Node と native modules、host wrapper を含む。
+https://github.com/superset-sh/superset/blob/e15ae8cfacfdb08f5706a8a018672dc327b62d19/packages/cli/scripts/build-dist.ts
+sha256=db33134e96864cb59a09bf507313ad0dfea50fea2cb0055d9eec904daf4679fa
+[2026-10-04T12:45:55+00:00] 公開文書確認 URL: https://docs.superset.sh/install ; https://docs.superset.sh/cli/getting-started ; https://docs.superset.sh/cli/host-server ; https://docs.superset.sh/cli/env-vars ; https://docs.superset.sh/cli/cli-reference ; https://docs.superset.sh/remote-access ; https://docs.superset.sh/orchestration 。Web は更新され得るためソースの固定版も照合。

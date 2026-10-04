@@ -1,0 +1,18 @@
+[2026-10-04T12:41:27+00:00] $ ss -ltnp 'sport = :5122'
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+exit=0
+
+[2026-10-04T12:41:27+00:00] $ curl -sS --max-time 5 -o /dev/null -w '%{http_code}
+' http://127.0.0.1:5122/
+curl: (7) Failed to connect to 127.0.0.1 port 5122 after 0 ms: Couldn't connect to server
+000
+
+exit=7
+
+[2026-10-04T12:41:27+00:00] $ curl -sS --max-time 5 -o /dev/null -w '%{http_code}
+' http://127.0.0.1:5122/trpc/health.check
+curl: (7) Failed to connect to 127.0.0.1 port 5122 after 0 ms: Couldn't connect to server
+000
+
+exit=7
