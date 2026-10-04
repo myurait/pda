@@ -149,7 +149,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - 棄却 H#: 括弧の条件に反すると明記した記述を引用できる。
 - 部品: app ではなく、v0.4 で部品として再考する。
 
-件数は、選別 (4 条件の記述あり) 6 本、選別 (記述なし) 8 本、棄却 137 本、部品 4 本。herdr と collie は組で 1 本と数える。
+件数は、選別 (4 条件の記述あり) 6 本、選別 (記述なし) 7 本、棄却 138 本、部品 4 本。herdr と collie は組で 1 本と数える。
 
 ### 6.1 選別 (4 条件の記述あり、6 本)
 
@@ -164,11 +164,11 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 | [cezar](https://github.com/open-mercato/cezar) | 253 / MIT | "No API key needed"。VPS に常駐。途中の文・ツール呼び出し・費用を生で。YAML で段ごとに runner |
 | [luvus](https://github.com/RizRiyz/luvus) | 922 / Apache | TUI が主。Luvus Web と遠隔の機械。端末 |
 
-### 6.2 選別 (記述なし、8 本)
+### 6.2 選別 (記述なし、7 本)
 
 括弧の条件は、資料に満たすと読める記述が無かったもの。セットアップして S1 で確かめる。2026-09-28 に、55 本のうち 15 本をソースの確認で落とし、2026-10-01 に H9〜H11 で 31 本を落とし、オーナーの判断で 1 本を落とした (6.3)。残りはすべて、Claude Code をそのまま動かす経路を持つ (findings.md の 6 節)。
 
-- 記述なし H1 (2 本): [herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)、[ruflo](https://github.com/ruvnet/ruflo)。
+- 記述なし H1 (1 本): [herdr](https://github.com/herdrdev/herdr) と [collie](https://github.com/AltanS/collie)。
 - 記述なし H5 (2 本): [jean](https://github.com/coollabsio/jean)、[codexia](https://github.com/milisp/codexia)。
 - 記述なし H1、H5 (1 本): [Ghostex](https://github.com/maddada/Ghostex)。
 - 記述なし H5、H6 (1 本): [Pane](https://github.com/greenfield-inc/Pane)。
@@ -189,6 +189,7 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
   - H10: agetor (81)、ateam (13)、codey (15)、taskuary (132)、oto-dock (187)、5dive (63)、claude-command-center (175)。
   - H11: openrig と agent-of-empires (tmux が必須)、mulmoterminal (tmux があれば自動で使う)、ai-devkit と dev-3.0 (既定の実行が tmux)、ai-maestro と omnigent (tmux を使わない方法は Agent SDK だけ)、omg.dev (Claude の今の経路は Agent SDK で、Claude Code をそのまま動かす経路は廃止予定で tmux を使う)。根拠のファイルと行は findings.md の 7 節。
 - オーナーの判断 2026-10-01: OpenMausBot (見たところの機能が PDA 向けではない)。
+- 評価による棄却 2026-10-04 (選別の試用): ruflo (R13。エージェントの出力を終わるまで溜めてまとめて返す。評価記録 `docs/reports/v0.3-ruflo-evaluation.md`)。
 - H3 (3 か月にコミットもリリースも無い、または保守終了の告知): ClawTeam、automaker、agx (ライセンスも無い)、takopi、shire、sandbox-agent、acp-ui、harnss、golutra、humanlayer (deprecated の告知)、Vibe Kanban (会社の解散)、Terragon (終了)。
 
 ### 6.4 部品
