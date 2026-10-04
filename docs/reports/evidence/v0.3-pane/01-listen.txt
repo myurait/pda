@@ -1,0 +1,12 @@
+UTC 2026-10-04T10:03:18.916419+00:00
+$ ss -ltnp ( sport = :5116 )
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      511        127.0.0.1:5116      0.0.0.0:*    users:(("pane",pid=284125,fd=68))
+
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5116/app/
+200
+
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5116/health
+200
+
+Initial probe 25ms after start returned curl (7), HTTP 000; no restart. Ready probe at ~15s returned HTTP 200.

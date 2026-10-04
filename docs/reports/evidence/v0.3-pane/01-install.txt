@@ -1,0 +1,97 @@
+Run date: 2026-10-04 JST
+Product: https://github.com/greenfield-inc/Pane
+Pinned release: v2.4.157 (published 2026-10-04T05:00:01Z)
+Pinned source commit: ec2a558468481301d73d9d671b4a3a203834147d
+License: AGPL-3.0
+
+Commands and observed results:
+$ git switch -c v0.3/setup-pane main
+Switched to a new branch; initial repository clean.
+$ git clone --depth 1 --branch v2.4.157 https://github.com/greenfield-inc/Pane.git /home/user/v03/pane/source
+Success. No source modifications.
+$ curl -fSL https://github.com/greenfield-inc/Pane/releases/download/v2.4.157/Pane-2.4.157-linux-x86_64.AppImage -o /home/user/v03/pane/Pane-2.4.157-linux-x86_64.AppImage
+Downloaded 133 MiB; SHA256 matched release SHA256SUMS.txt:
+7567772ff8a99f4c21d35de9f5b329c2ddbf50e8510e7affd377e652c35e3b8e
+$ chmod +x Pane-2.4.157-linux-x86_64.AppImage
+$ ./Pane-2.4.157-linux-x86_64.AppImage --appimage-extract
+Success; installed executable /home/user/v03/pane/squashfs-root/pane
+$ ldd squashfs-root/pane
+No missing libraries. No sudo, apt, FUSE mount, or product source edits used.
+$ env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin npm install --prefix /home/user/v03/pane/cli runpane@2.4.157
+added 1 package
+
+Before setup, created product-only data/config.json with agentContext.managedAgentsMd=false, homeSkill=false, registerMcp=false, defaultsVersion=2, cleanupPending=false; analytics.enabled=false. No CLI configuration file manually edited.
+$ env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/home/user/v03/pane/cli/node_modules/.bin:/usr/local/bin:/usr/bin:/bin PANE_DIR=/home/user/v03/pane/data /home/user/v03/pane/squashfs-root/pane --ozone-platform=headless --disable-gpu --remote-setup --label "PDA pane trial" --listen-port 5116 --prefer-tunnel ssh --no-install-service --no-tailscale-serve
+[Polyfill] ReadableStream already available, skipping polyfill
+[Database] Running timestamp normalization migration...
+[Database] Timestamp normalization migration completed successfully
+[Database] Added is_favorite column to sessions table
+[Database] Added favorite_pinned_at column to sessions table
+[Database] Added auto_commit column to sessions table
+[Database] Added skip_continue_next column to sessions table
+[Database] Added pr_renamed column to sessions table
+[Database] Added closed_panel_types column to sessions table
+[Database] Added folder_id column to sessions table
+[Database] Added parent_folder_id column to folders table for nested folders support
+[Database] Created ui_state table
+[Database] Created app_opens table
+[Database] Added tool_type column to sessions table
+[Database] Created user_preferences table
+[Database] Added worktree_folder column to projects table
+[Database] Added lastUsedModel column to projects table
+[Database] Added base_commit column to sessions table
+[Database] Added base_branch column to sessions table
+[Database] Added is_hidden column to sessions table
+[Database] Added commit_mode column to projects table
+[Database] Added commit_structured_prompt_template column to projects table
+[Database] Added commit_checkpoint_prefix column to projects table
+[Database] Added commit_mode column to sessions table
+[Database] Added commit_mode_settings column to sessions table
+[Database] Migrating auto_commit boolean to commit_mode...
+[Database] Completed auto_commit migration
+[Database] Created tool_panels table
+[Database] Added active_panel_id column to sessions table
+[Database] Added panel_layout column to sessions table
+[Database] Running Claude panels migration 004...
+[Database] Added panel_id column to session_outputs
+[Database] Added panel_id column to conversation_messages
+[Database] Added panel_id column to prompt_markers
+[Database] Added panel_id column to execution_diffs
+[Database] Created claude_panel_settings table
+[Database] Found 0 sessions with Claude data to migrate
+[Database] Completed Claude panels migration 004
+[Database] Running diff panels migration 005: Ensure all sessions have diff panels
+[Database] Completed diff panels migration 005
+[Database] Running migration 006: Unified panel settings storage
+[Database] Added settings column to tool_panels table
+[Database] Dropped claude_panel_settings table
+[Database] Completed unified panel settings migration 006
+[Database] Checking for old-style folder/session ordering that needs migration...
+[Database] No projects needed ordering migration (already using unified system)
+[PanelManager] Loading panels requiring restart cleanup...
+Pane remote daemon setup
+Data directory: /home/user/v03/pane/data
+Config: /home/user/v03/pane/data/config.json
+Channel: stable
+Service: manual - Service installation disabled; use the manual daemon command.
+Config written: yes
+
+Connection code:
+pane-remote://[REDACTED]
+
+Connection/tunnel command:
+ssh -N -L 5116:127.0.0.1:5116 user@agent-node
+
+Connection note: Run this SSH tunnel command on the client machine before connecting. SSH tunnel mode is intended for advanced local forwarding, not zero-config cross-device setup.
+
+Fallback tunnel options:
+tailscale serve --bg --tls-terminated-tcp=443 5116
+
+Manual daemon command:
+ELECTRON_OZONE_PLATFORM_HINT=headless PANE_DIR='/home/user/v03/pane/data' '/home/user/v03/pane/squashfs-root/pane' --ozone-platform=headless --disable-gpu --daemon-headless --pane-dir '/home/user/v03/pane/data'
+
+Paste the full pane-remote:// code into Settings > Remote Pane in desktop Pane, or into https://runpane.com/app/.
+
+$ systemctl --user daemon-reload
+$ systemctl --user start v03-pane.service
+Success on first start; listener ready after startup. Unit not enabled; linger was already enabled. No Tailscale configuration changed.

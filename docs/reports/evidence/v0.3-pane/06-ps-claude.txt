@@ -1,0 +1,13 @@
+2026-10-04T10:04:58.983+00:00
+$ ps -eo pid,ppid,etime,args --forest
+Filtered to v03-pane.service and descendants.
+    PID    PPID     ELAPSED COMMAND
+ 284125    1274       02:38  \_ /home/user/v03/pane/squashfs-root/pane --ozone-platform=headless --disable-gpu --daemon-headless --pane-dir /home/user/v03/pane/data
+ 284130  284125       02:38      \_ /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+ 284165  284130       02:37      |   \_ /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+ 284191  284165       02:37      |       \_ /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+ 284131  284125       02:38      \_ /home/user/v03/pane/squashfs-root/pane --type=zygote
+ 284135  284131       02:38      |   \_ /home/user/v03/pane/squashfs-root/pane --type=zygote
+ 284173  284125       02:37      \_ /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --enable-crash-reporter=8d72ccfd-b2ee-443f-9262-2f44c25fdc85,no_channel --user-data-dir=/home/user/v03/agent-home/.config/Pane --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,10645686419213375909,8139757697294745710,262144 --enable-features=PdfUseShowSaveFilePicker --disable-features=DropInputEventsWhilePaintHolding,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,1847921712241429304,3030732589920542432,4 --trace-process-track-uuid=3190708989122997041
+ 284505  284125       01:18      \_ /bin/bash --rcfile /home/user/v03/pane/data/shell/bash/rcfile -i
+ 284674  284505       00:22          \_ claude --dangerously-skip-permissions --session-id 96396dbc-45f7-4440-9d54-f918db9b02d5

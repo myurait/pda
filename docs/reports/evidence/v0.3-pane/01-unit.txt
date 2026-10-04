@@ -1,0 +1,48 @@
+UTC 2026-10-04T10:03:18.907971+00:00
+$ systemctl --user status v03-pane.service --no-pager
+● v03-pane.service - PDA v0.3 Pane trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-pane.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 19:02:20 JST; 58s ago
+   Main PID: 284125 (pane)
+      Tasks: 19 (limit: 15004)
+     Memory: 101.8M (peak: 112.4M)
+        CPU: 550ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-pane.service
+             ├─284130 /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+             ├─284131 /home/user/v03/pane/squashfs-root/pane --type=zygote
+             ├─284135 /home/user/v03/pane/squashfs-root/pane --type=zygote
+             ├─284165 /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+             ├─284173 /proc/self/exe --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --enable-crash-reporter=8d72ccfd-b2ee-443f-9262-2f44c25fdc85,no_channel --user-data-dir=/home/user/v03/agent-home/.config/Pane --shared-files=v8_context_snapshot_data:100 --field-trial-handle=3,i,10645686419213375909,8139757697294745710,262144 --enable-features=PdfUseShowSaveFilePicker --disable-features=DropInputEventsWhilePaintHolding,LocalNetworkAccessChecks,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=7,i,1847921712241429304,3030732589920542432,4 --trace-process-track-uuid=3190708989122997041
+             └─284191 /home/user/v03/pane/squashfs-root/pane --type=zygote --no-zygote-sandbox
+             ‣ 284125 /home/user/v03/pane/squashfs-root/pane --ozone-platform=headless --disable-gpu --daemon-headless --pane-dir /home/user/v03/pane/data
+
+Oct 04 19:02:21 agent-node pane[284125]: [PanelManager] Updated panel __pane_chat_terminal__
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Initializing task queue...
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Platform: linux, Session concurrency: 1
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Using SimpleQueue for local in-process queue
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Setting up processors...
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Task queue initialized
+Oct 04 19:02:21 agent-node pane[284125]: [2026-10-04T10:02:21.187Z] INFO: [Pane daemon] Starting local daemon server on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [2026-10-04T10:02:21.187Z] INFO: [Pane daemon] Local daemon server listening on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [Pane daemon] Headless host ready on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [Usage] Updated 368 model prices from OpenRouter
+
+Unit file:
+[Unit]
+Description=PDA v0.3 Pane trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/pane/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/pane/cli/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+Environment=PANE_DIR=/home/user/v03/pane/data
+ExecStart=/home/user/v03/pane/squashfs-root/pane --ozone-platform=headless --disable-gpu --daemon-headless --pane-dir /home/user/v03/pane/data
+KillMode=control-group
+TimeoutStopSec=20
+Restart=no
+
+[Install]
+WantedBy=default.target

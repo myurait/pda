@@ -1,0 +1,69 @@
+2026-10-04T10:15:04.525356+00:00
+
+Cleanup after systemctl --user stop v03-pane.service.
+
+Metadata only before deletion: -rw------- 1 user user 72319 Oct  4 19:01 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108095269
+
+Deleted trial-created backup: /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108095269
+
+Metadata only before deletion: -rw------- 1 user user 74229 Oct  4 19:04 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108276944
+
+Deleted trial-created backup: /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108276944
+
+Metadata only before deletion: -rw------- 1 user user 74348 Oct  4 19:06 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108372789
+
+Deleted trial-created backup: /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108372789
+
+Metadata only before deletion: -rw------- 1 user user 74403 Oct  4 19:09 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108560231
+
+Deleted trial-created backup: /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108560231
+
+Metadata only before deletion: -rw------- 1 user user 74404 Oct  4 19:11 /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108695245
+
+Deleted trial-created backup: /home/user/pda/secrets/claude/backups/.claude.json.backup.1791108695245
+
+Removed trial Electron profile (Local State, Crashpad), created during run: /home/user/v03/agent-home/.config/Pane
+
+Protected credential bodies (.credentials.json, auth.json, .claude.json), settings.json, config.toml: not read, copied, or manually edited/deleted. Trust choices were written by the CLIs.
+
+No new auth.json/.credentials.json/.claude.json outside designated existing credential directories found in product data/shared HOME metadata scan. Pane remote pairing hashes remain in product data/config.json; no raw pairing code saved.
+
+Product homeSkill=false/registerMcp=false/managedAgentsMd=false set before startup. No Pane MCP, global skill, hook, or Cursor config created. Product-bundled skills remain within /home/user/v03/pane/data and are not on the shared HOME search path.
+
+Actual CLI MCP list output (after trial; no removal was needed):
+$ env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin claude mcp list
+Checking MCP server health…
+claude.ai Claude Docs: https://api.anthropic.com/v1/pages/mcp - ✔ Connected
+$ env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin codex mcp list
+No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.
+
+$ systemctl --user status v03-pane.service --no-pager
+○ v03-pane.service - PDA v0.3 Pane trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-pane.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Platform: linux, Session concurrency: 1
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Using SimpleQueue for local in-process queue
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Setting up processors...
+Oct 04 19:02:21 agent-node pane[284125]: [TaskQueue] Task queue initialized
+Oct 04 19:02:21 agent-node pane[284125]: [2026-10-04T10:02:21.187Z] INFO: [Pane daemon] Starting local daemon server on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [2026-10-04T10:02:21.187Z] INFO: [Pane daemon] Local daemon server listening on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [Pane daemon] Headless host ready on unix:/tmp/pane-daemon-1000-31197e401ef377a5/daemon.sock
+Oct 04 19:02:21 agent-node pane[284125]: [Usage] Updated 368 model prices from OpenRouter
+Oct 04 19:13:40 agent-node systemd[1274]: Stopping v03-pane.service - PDA v0.3 Pane trial...
+Oct 04 19:13:41 agent-node systemd[1274]: Stopped v03-pane.service - PDA v0.3 Pane trial.
+exit=3
+
+$ ss -ltnp ( sport = :5116 )
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+exit=0
+
+$ tmux -L pane-trial list-sessions
+no server running on /tmp/tmux-1000/pane-trial
+exit=1
+
+$ loginctl show-user user -p Linger
+Linger=yes
+exit=0
+
+Trust preparation tmux sessions exited with Ctrl-C twice; dedicated tmux server no longer exists. All API recorder processes terminated; no Pane or trial browser process remains. Product installation, source, CLI tools, user unit, data, and scratch retained. No docker compose used.

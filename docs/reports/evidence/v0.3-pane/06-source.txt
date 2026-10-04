@@ -1,0 +1,268 @@
+Pinned source: https://github.com/greenfield-inc/Pane/tree/ec2a558468481301d73d9d671b4a3a203834147d
+No product code modifications.
+
+shared/constants/agentLaunchPresets.ts
+18: export const AGENT_LAUNCH_PRESETS: readonly AgentLaunchPreset[] = [
+19:   {
+20:     id: 'claude',
+21:     title: 'Claude Code',
+22:     command: 'claude --dangerously-skip-permissions',
+23:     iconKey: 'claude',
+24:     hotkeyId: 'add-tool-terminal-claude',
+25:     hotkey: 'mod+alt+3',
+26:   },
+27:   {
+28:     id: 'codex',
+29:     title: 'Codex',
+30:     command: 'codex --yolo',
+31:     iconKey: 'codex',
+32:     hotkeyId: 'add-tool-terminal-codex',
+33:     hotkey: 'mod+alt+4',
+34:   },
+
+main/src/services/terminalPanelManager.ts
+1196:     // Build spawn env once so legacy and ptyHost paths receive identical values.
+1197:     const spawnCols = initialDimensions?.cols || 80;
+1198:     const spawnRows = initialDimensions?.rows || 30;
+1199:
+1200:     // The ptyHost RPC DTO requires `Record<string, string>`, so both the legacy
+1201:     // `pty.spawn` path and the ptyHost path get the same undefined-free shape.
+1202:     const inheritedEnv = interactiveTerminalEnv();
+1203:     // A Pane launched from an orchestrator must not inherit the parent's role.
+1204:     delete inheritedEnv.PANE_ORCHESTRATION_SESSION_ID;
+1205:     const baseSpawnEnv = {
+1206:       ...inheritedEnv,
+1207:       ...getGitAttributionEnv(getRuntimeConfigManager().getConfig()),
+1208:       PATH: enhancedPath,
+1209:       TERM: 'xterm-256color',
+1210:       COLORTERM: 'truecolor',
+1211:       LANG: process.env.LANG || 'en_US.UTF-8',
+1212:       WORKTREE_PATH: cwd,
+1213:       PANE_SESSION_ID: panel.sessionId,
+1214:       PANE_PANEL_ID: panel.id,
+1215:       PANE_PORT: String(panePort),
+1216:       PANE_WORKSPACE_PATH: cwd,
+1217:       ...wslEnvVars,
+1218:     } satisfies Record<string, string>;
+1219:     const roleEnv: Record<string, string> = panelCustomState.orchestrationSessionId
+1220:       ? { ...baseSpawnEnv, PANE_ORCHESTRATION_SESSION_ID: panelCustomState.orchestrationSessionId, GIT_CEILING_DIRECTORIES: sessionRuntimePath(sessionGitCeiling(), isWSL ? { runtime: 'wsl', wslDistribution: wslContext?.distribution } : undefined) }
+1221:       : baseSpawnEnv;
+1222:     // Pane's own runpane goes first on PATH (see runpaneShim.ts). WSL shells
+1223:     // cannot run the Windows Electron binary, so they keep their own PATH.
+1224:     const launch = isWSL ? { args: shellArgs, env: roleEnv } : withRunpaneOnPath({ name: shellType, args: shellArgs }, roleEnv);
+1225:     shellArgs = launch.args;
+1226:     const spawnEnv = launch.env;
+
+main/src/services/terminalPanelManager.ts
+1265:       ptyHostId = spawned.ptyId;
+1266:     } else {
+1267:       // Flag-off path: legacy direct pty.spawn. Unchanged behavior.
+1268:       ptyProcess = pty.spawn(shellPath, shellArgs, {
+1269:         name: 'xterm-256color',
+1270:         cols: spawnCols,
+1271:         rows: spawnRows,
+1272:         cwd: spawnCwd,
+1273:         env: spawnEnv,
+1274:       });
+1275:     }
+1276:
+1277:     // Another initialization can finish while the ptyHost spawn is awaited.
+1278:     if (this.terminals.has(panel.id)) {
+
+main/src/services/terminalPanelManager.ts
+1366:       if (this.terminals.get(panel.id) !== terminalProcess || terminalProcess.destroying) return;
+1367:
+1368:       // Detect the interactive prompt before injecting the command.
+1369:       // Previous approaches (fixed 500ms delay, then fire-on-any-data + 300ms) failed
+1370:       // because shell init output (MINGW banner, .bashrc) fires before the prompt is ready.
+1371:       // We check only the LAST line of the latest data chunk for a prompt pattern,
+1372:       // so banner lines ending with % or > don't trigger a false positive.
+1373:       const panelId = panel.id;
+1374:       const injectCommand = () => {
+1375:         if (this.terminals.get(panelId) !== terminalProcess || terminalProcess.destroying) return;
+1376:         this.writeToTerminal(panelId, commandToRun! + '\r');
+1377:
+
+main/src/services/terminalPanelManager.ts
+1640:
+1641:   /** Whether the program in the panel has turned on bracketed paste. */
+1642:   isBracketedPasteEnabled(panelId: string): boolean {
+1643:     return this.terminals.get(panelId)?.bracketedPasteMode === true;
+1644:   }
+1645:
+1646:   writeToTerminal(panelId: string, data: string): void {
+1647:     const terminal = this.terminals.get(panelId);
+1648:     if (!terminal) {
+1649:       console.warn(`[TerminalPanelManager] Terminal ${panelId} not found`);
+1650:       return;
+1651:     }
+1652:
+1653:     if (terminal.destroying) return;
+1654:     try {
+1655:       terminal.pty.write(data);
+1656:     } catch (err) {
+1657:       // A write failure alone does not prove process death; onExit owns cleanup.
+
+main/src/services/configManager.ts
+90:           ultrathink: false
+91:         },
+92:         showAdvanced: false
+93:       },
+94:       analytics: defaultAnalyticsConfig(),
+95:       agentContext: {
+96:         managedAgentsMd: false,
+97:         homeSkill: true,
+98:         defaultsVersion: AGENT_CONTEXT_DEFAULTS_VERSION,
+99:         registerMcp: true,
+100:         cleanupPending: false,
+101:       },
+102:       remoteDaemon: createDefaultRemoteDaemonConfig(),
+103:       keyboardShortcutsEnabled: true,
+104:       commandPaletteShortcutEnabled: true,
+
+main/src/daemon/server.ts
+250:       client.socket.destroy();
+251:     }
+252:   }
+253:
+254:   private async handleRequest(clientId: string, frame: PaneDaemonRequestFrame): Promise<void> {
+255:     const response = frame.channel === 'daemon:events'
+256:       ? this.buildEventFilterResponse(clientId, frame)
+257:       : await this.buildResponseFrame(frame);
+258:     const client = this.clients.get(clientId);
+259:
+260:     if (!client || client.socket.destroyed) {
+261:       return;
+262:     }
+263:
+264:     this.writeFrame(clientId, encodePaneDaemonFrame(response));
+265:   }
+266:
+267:   private buildEventFilterResponse(
+268:     clientId: string,
+269:     frame: PaneDaemonRequestFrame,
+270:   ): PaneDaemonSuccessResponseFrame | PaneDaemonErrorResponseFrame {
+271:     const client = this.clients.get(clientId);
+272:     if (!client) {
+273:       return daemonError(frame.id, 'Pane daemon client disconnected', 'ERR_DAEMON_REQUEST_FAILED');
+274:     }
+275:
+276:     const request = decodeOptionalBoundary(frame.args[0], daemonEventFilterRequestSchema);
+277:     if (!request) {
+278:       return daemonError(frame.id, 'daemon:events include must be null or an array of channel prefixes', 'ERR_DAEMON_REQUEST_FAILED');
+279:     }
+280:
+281:     const { include } = request;
+282:     client.eventFilter = include === null ? null : [...include];
+283:     return {
+284:       type: 'response',
+285:       id: frame.id,
+286:       ok: true,
+287:       result: {
+288:         ok: true,
+289:         include: client.eventFilter,
+290:         muted: Array.isArray(client.eventFilter) && client.eventFilter.length === 0,
+
+main/src/daemon/pwaStaticAssets.ts
+18: }
+19:
+20: const REMOTE_PWA_PREFIX = '/app';
+21:
+22: const CONTENT_TYPES: ContentTypeByExtension = {
+23:   '.css': 'text/css; charset=utf-8',
+24:   '.html': 'text/html; charset=utf-8',
+25:   '.ico': 'image/x-icon',
+26:   '.js': 'text/javascript; charset=utf-8',
+27:   '.json': 'application/json; charset=utf-8',
+28:   '.map': 'application/json; charset=utf-8',
+29:   '.png': 'image/png',
+30:   '.svg': 'image/svg+xml; charset=utf-8',
+31:   '.webmanifest': 'application/manifest+json; charset=utf-8',
+32:   '.woff': 'font/woff',
+33:   '.woff2': 'font/woff2',
+34: };
+35:
+36: export function isRemotePwaPath(pathname: string): boolean {
+37:   return pathname === REMOTE_PWA_PREFIX || pathname.startsWith(`${REMOTE_PWA_PREFIX}/`);
+38: }
+39:
+40: export async function getRemotePwaAssetResponse(
+41:   pathname: string,
+42:   options: RemotePwaAssetOptions = {},
+43: ): Promise<RemotePwaAssetResponse> {
+44:   if (!isRemotePwaPath(pathname)) {
+45:     return { handled: false };
+46:   }
+47:
+48:   if (pathname === REMOTE_PWA_PREFIX) {
+49:     return {
+50:       handled: true,
+51:       statusCode: 308,
+52:       headers: {
+53:         Location: `${REMOTE_PWA_PREFIX}/`,
+54:       },
+55:       body: '',
+56:     };
+57:   }
+58:
+
+docs/RUNPANE_CLI_CONTRACT.md
+176: `runpane panes create` connects to the running local Pane daemon, resolves the requested saved base repository, creates user-visible Pane sessions backed by Pane-managed worktrees/branches, opens terminal-backed tool tabs, and optionally sends initial input to the started tool. Built-in agent panes and `--source agent` default to background/no-focus unless `--focus` is passed. New Panes are pinned into the UI's favorite/pin set by default, except when the CLI runs inside a Session orchestrator (`PANE_ORCHESTRATION_SESSION_ID`), where child worktrees default to unpinned. Explicit `--pinned` / `--no-pinned` override creation defaults. First Session association clears an existing pin; manual pins applied afterward are preserved. Panes created interactively in the Pane UI are unaffected. Inside a Session orchestrator (`PANE_ORCHESTRATION_SESSION_ID` set), new Panes are associated with that Session automatically; `--no-associate` opts out. A failed association is reported on the item and never undoes the Pane.
+177:
+178: For `panes create --wait-ready`, `initialInput.delivery` says where the prompt went: `taken` or `queued` (from the agent's transcript, its screen, or `argv` for a launch-argument prompt), `in-composer`, or `unknown`. `initialInput.verifiedSubmitted` is true exactly when it is `taken` or `queued`. Routing input does not by itself verify submission.
+179:
+180: `runpane panes archive` refreshes the configured upstream, reports exact unpushed commit evidence, and refuses unsafe archive operations unless `--force` is used. A branch whose upstream is gone counts as pushed when a merged GitHub pull request has HEAD as its head (`safetyCheck.mergedViaPr`). Add `--dry-run` to inspect the same evidence without archiving. `--remove-worktree` applies the same check and removal to an adopted worktree; local branches are always kept. Successful archives report `worktreeCleanup: completed` once the worktree is gone from its path and from git; `trashDeletion: pending` means its files are still being deleted in the background. `runpane panes archive --session <id|name> --merged` archives every Session Pane that is clean and pushed or merged, and reports a reason for each skipped Pane.
+181:
+182: `runpane panes rename` trims and updates a Pane's display name without changing its worktree, branch, panels, or focus, and returns the updated pane summary.
+183:
+184: `runpane panes focus` raises the Pane window and selects a Pane (and optionally one of its panels) exactly like clicking it in the UI. Because it steals the user's window focus, run it only on an explicit user request to open, focus, show, or switch to a Pane; never focus a Pane proactively, the same doctrine that keeps `panes create` background/no-focus for `--source agent`.
+185:
+186: `runpane panels open` opens a URL or a file from the Pane worktree as a tab in an existing Pane (default: the calling panel's Pane from `PANE_SESSION_ID`), in split view beside the agent unless `--tab` is passed. HTML files render in a browser tab and other files open in an editor tab; an existing tab showing the same target is reused. It activates the tab inside the Pane but never raises or focuses the Pane window.
+187:
+188: `runpane panels list` lists tool panels inside one Pane session.
+189:
+190: `runpane panels output` reads bounded recent terminal output from one panel and strips common terminal control noise for agent use.
+191:
+192: `runpane panels input` sends exact input bytes to one terminal panel. Prefer `--input-file` for newlines, Ctrl-C, quotes, or shell-sensitive text.
+193:
+194: `runpane panes create --prompt` is an alias for `--initial-input`; request JSON and daemon payloads should use the canonical `initialInput` field.
+195:
+196: `runpane panes create --branch <name>` creates the Pane's worktree on exactly that new branch, slashes included (for example `agents/w5a`). The name is checked with `git check-ref-format --branch`, creation fails if the branch already exists, and Pane never renames it to make it unique. `--worktree-name` still names the directory and defaults to `--name`. `--base` is an alias for `--base-branch`, and `--prompt-file` for `--initial-input-file`. `panes create --base <ref> --branch <name> --prompt-file <file>` replaces `git worktree add` plus `panes adopt`.
+197:
+198: `runpane panes adopt --launch` accepts `--prompt`, `--prompt-file`, `--wait-ready`, and `--ready-timeout-ms`, and reports `readiness`, `initialInput`, and `nextCommand` like `panes create`. A prompt without `--launch` is an error rather than being dropped.
+
+docs/SELF_HOSTED_REMOTE_DAEMON.md
+88: pane --ozone-platform=headless --disable-gpu --remote-setup --label "VM"
+89: ```
+90:
+91: These must be command-line arguments: Electron picks its Ozone platform before
+92: the app starts, so the environment variable `ELECTRON_OZONE_PLATFORM_HINT` no
+93: longer works (removed in Electron 38, ignored from 39 on).
+94:
+95: The wrappers are lightweight installers and configurators. They currently
+96: download the packaged Pane runtime because the daemon is not distributed as a
+97: separate binary. AppImage installs therefore require FUSE; on Debian-based
+98: hosts, `--format deb` avoids the AppImage/FUSE requirement.
+99:
+100: If Pane is already installed on the host, this is the most direct command:
+101:
+102: ```bash
+103: pane --remote-setup --label "VM" --prefer-tunnel tailscale
+104: ```
+105:
+106: The setup command:
+107:
+108: - detects Linux, macOS, or Windows host behavior
+109: - writes remote daemon config into one `PANE_DIR` (default `~/.pane_remote`)
+110: - enables the loopback listener on `127.0.0.1:42137`
+111: - creates a paired client record with a hashed token on the host
+112: - emits the raw token only inside the one-time `pane-remote://...` import code
+
+$ rg -n "claude-agent-sdk|claude-agent-acp|@anthropic-ai" package.json main/package.json pnpm-lock.yaml
+pnpm-lock.yaml:20:      '@anthropic-ai/sdk':
+pnpm-lock.yaml:274:      '@anthropic-ai/sdk':
+pnpm-lock.yaml:566:  '@anthropic-ai/sdk@0.60.0':
+pnpm-lock.yaml:9706:  '@anthropic-ai/sdk@0.60.0': {}
+main/package.json:23:    "@anthropic-ai/sdk": "^0.60.0",
+package.json:104:    "@anthropic-ai/sdk": "^0.60.0",
+The dependency @anthropic-ai/sdk exists; the observed terminal preset route spawns a shell and the unmodified claude executable. No Agent SDK or ACP adapter import was found in these manifests.
