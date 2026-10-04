@@ -201,6 +201,16 @@ R1、R2、R4、R7、R13 は必須で、満たさないものは 3 本に入れ�
 - Claude を動かす形は、5.3 の H7 で判定した。選別に残した製品はすべて、Claude Code をそのまま動かす経路を持つ。Agent SDK か ACP の経路も持つ製品 (happier、Orca、OpenClaw、superset、codexia) は、そのままの経路で試し、どの経路が使われたかを評価記録に書く。
 - ミニ PC のヘッドレス環境で、個人契約のログイン (複製した認証ファイル) がそれぞれの製品でそのまま通るか。選別で確かめる。
 
+### 6.6 選別の試用の結果 (2026-10-04)
+
+14 本の試用の結果と、3 本の提案は `docs/reports/v0.3-shortlist.md` にある。各製品の評価は `docs/reports/v0.3-<製品>-evaluation.md`。
+
+- 必須の条件を試用で通り、残る不備の無いもの: Orca、OpenClaw、luvus、cezar、multica、jean、herdr と collie、claw-orchestrator。
+- 残る不備があるもの: happier、Pane、Ghostex、codexia。
+- 評価による棄却: ruflo (6.3)。
+- オーナーの判断を待つもの: superset (superset のクラウドのアカウントへのログインが要る)。
+- 提案する 3 本: OpenClaw、Orca、jean。3 本に入れなかった製品は保留とする。
+
 ## 7. 成果物
 
 - 棄却台帳: 本文書 6 節を更新し続ける。
