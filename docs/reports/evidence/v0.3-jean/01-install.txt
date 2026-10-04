@@ -1,0 +1,45 @@
+実施日: 2026-10-04 JST
+製品: coollabsio/jean v1.0.7 (release published 2026-09-29T16:10:17Z)
+ソース commit: 8ce1712bbe310db61161110a6de813d882ea4e83
+導入先: /home/user/v03/jean
+作業ブランチ: git switch -c v0.3/setup-jean main
+
+実行:
+git clone --depth 1 --branch v1.0.7 https://github.com/coollabsio/jean.git /home/user/v03/jean/source
+curl -fsSL -o /home/user/v03/jean/jean-server-linux-amd64-1.0.7.tar.gz https://github.com/coollabsio/jean/releases/download/v1.0.7/jean-server-linux-amd64-1.0.7.tar.gz
+curl -fsSL -o /home/user/v03/jean/jean-server-linux-amd64-1.0.7.tar.gz.sha256 https://github.com/coollabsio/jean/releases/download/v1.0.7/jean-server-linux-amd64-1.0.7.tar.gz.sha256
+sha256sum -c jean-server-linux-amd64-1.0.7.tar.gz.sha256
+結果: チェックサムファイルの名前に artifacts/ が付いていたため No such file or directory。ファイル内容の先頭ハッシュと取得済みアーカイブを Python hashlib.sha256 で比較し直した (再確認1回)。
+SHA256: 4d3519dec1c89dbc475a03a2bc55a4b5b190a70c7052bbe7df147c3b44d88514
+比較結果: matches=True
+アーカイブの内容: jean-server-linux-amd64 (単一バイナリ)
+tar -xzf /home/user/v03/jean/jean-server-linux-amd64-1.0.7.tar.gz -C /home/user/v03/jean/bin
+jean-server-linux-amd64 --help -> Jean 1.0.7
+systemctl --user daemon-reload
+systemctl --user start v03-jean.service
+起動成功。01-unit.txt、01-listen.txt、01-api-setup.txt 参照。
+
+事前の scratch 作成:
+git init -b main /home/user/v03/work/jean/scratch
+README.md: # scratch の1行
+hello.py: print("hello") の1行
+初回 commit: Author identity unknown / fatal: unable to auto-detect email address
+対応: PDAリポジトリの直近コミットの著者名・メールを scratch のローカル git config に設定。
+再試行1回: git commit -m '試用の初期状態を作る' 成功、58c920a。
+
+信頼の準備:
+tmux -L v03-jean の trust-claude、trust-codex セッションを scratch で起動。
+両方とも env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin を指定。
+Claude: Down、Enter で Yes, I trust this folder。Codex: Enter で Trust and continue。
+各CLIの入力画面に到達後、Ctrl-Cを2回送り終了。設定ファイルの手編集なし。
+版: Claude Code 2.1.274、codex-cli 0.156.1。製品同梱の別CLIなし。
+
+設定: Jean WebSocket patch_preferences で claude_cli_source=path、codex_cli_source=path。
+既存ログイン: Jean API check_claude_cli_auth、check_codex_cli_auth とも authenticated=true。
+Web: localhost に限定し、公式 --no-token を使用。APIキー入力・Webログインなし。
+root作業: 未実施。Jean API は bubblewrap 未導入の警告を返した。試用は権限確認を省く yolo モードで進める。
+
+T4 初回起動時の追加設定:
+Codex app-server の Unix socket 親ディレクトリ拒否を受け、stat で /home/user/v03/jean/data が user:user 0775 と確認。
+chmod 700 /home/user/v03/jean/data
+再試行1回で Codex のタスクが完了。コマンドとエラーは 04-codex-stream.txt。

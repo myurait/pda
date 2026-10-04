@@ -1,0 +1,18 @@
+Local URL: http://127.0.0.1:5115/
+Listen: 127.0.0.1:5115
+Web auth: --no-token (localhost bind)
+GET /: HTTP 200 (01-listen.txt)
+GET /healthz: {"ok":true}
+GET /readyz: {"http":true,"ok":true,"websocket_broadcaster":true}
+GET /api/auth: {"appVersion":"1.0.7","ok":true,"token_required":false,"webBuildId":"1.0.7-8ce1712bbe31-2026-09-29T16:11:39.439Z"}
+Browser root path: /
+WebSocket endpoint used for trials: ws://127.0.0.1:5115/ws
+Invoke frame: {"type":"invoke","id":"...","command":"...","args":{...}}
+Event frame: {"type":"event","event":"chat:chunk","payload":{...},"seq":...}
+
+人が実行する手順 (この走行では公開しない):
+systemctl --user start v03-jean.service
+/home/user/.local/bin/tailscale-pda serve --bg --https=19115 http://127.0.0.1:5115
+Tailscale Serve が返す HTTPS URL の / を開く。製品側のログイン操作・トークン入力なし。
+アクセス可能範囲は既存の Tailscale 設定による。
+開発 PC からの SSH 転送試験とスマホからの到達試験は設計側で実施するため未実施。

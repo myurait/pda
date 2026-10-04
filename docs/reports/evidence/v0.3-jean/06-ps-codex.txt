@@ -1,0 +1,26 @@
+2026-10-04T09:43:52.716598+00:00
+Command: ps -eo pid,ppid,etime,args --forest (only v03-jean.service cgroup; secret values redacted)
+    PID    PPID     ELAPSED COMMAND
+ 278072    1274       04:39  \_ /home/user/v03/jean/bin/jean-server-linux-amd64 --host 127.0.0.1 --port 5115 --no-token
+ 279430  278072       00:02  |   \_ /home/user/.local/bin/claude --print --input-format stream-json --output-format stream-json --verbose --tools default --model sonnet --no-session-persistence --max-turns 1
+ 279450    1274       00:02  \_ /home/user/.local/bin/codex app-server --listen unix:///home/user/v03/jean/data/codex-app-server.sock
+Selected child environment metadata:
+278072 jean-server-lin {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin"}
+279430 claude {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin"}
+279450 codex {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin"}
+2026-10-04T09:43:54.692237+00:00
+Command: ps -eo pid,ppid,etime,args --forest (only v03-jean.service cgroup; secret values redacted)
+    PID    PPID     ELAPSED COMMAND
+ 278072    1274       04:41  \_ /home/user/v03/jean/bin/jean-server-linux-amd64 --host 127.0.0.1 --port 5115 --no-token
+ 279450    1274       00:04  \_ /home/user/.local/bin/codex app-server --listen unix:///home/user/v03/jean/data/codex-app-server.sock
+Selected child environment metadata:
+278072 jean-server-lin {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin"}
+279450 codex {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin"}
+2026-10-04T09:43:55.218498+00:00
+Command: ps -eo pid,ppid,etime,args --forest (only v03-jean.service cgroup; secret values redacted)
+    PID    PPID     ELAPSED COMMAND
+ 278072    1274       04:41  \_ /home/user/v03/jean/bin/jean-server-linux-amd64 --host 127.0.0.1 --port 5115 --no-token
+ 279450    1274       00:04  \_ /home/user/.local/bin/codex app-server --listen unix:///home/user/v03/jean/data/codex-app-server.sock
+Selected child environment metadata:
+278072 jean-server-lin {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin"}
+279450 codex {"HOME": "/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR": "/home/user/pda/secrets/claude", "CODEX_HOME": "<unset>", "PATH": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin:/snap/bin"}

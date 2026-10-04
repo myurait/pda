@@ -1,0 +1,75 @@
+2026-10-04T09:52:26.228788+00:00
+PIDs in unit before stop: 278072, 279450, 279633, 280214, 280215, 280276, 280839
+$ systemctl --user stop v03-jean.service
+exit=0
+$ systemctl --user show v03-jean.service -p ActiveState -p SubState -p MainPID -p Result
+MainPID=0
+Result=success
+ActiveState=inactive
+SubState=dead
+exit=0
+$ ss -ltnp ( sport = :5115 )
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+exit=0
+$ ps -p 280214,279633,280276,280215,280839,278072,279450 -o pid,ppid,stat,comm
+    PID    PPID STAT COMMAND
+exit=1
+$ /home/user/.local/bin/codex mcp remove jean
+Removed global MCP server 'jean'.
+exit=0
+$ /home/user/.local/bin/codex mcp list
+No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.
+exit=0
+$ /home/user/.local/bin/claude mcp list
+Checking MCP server health…
+
+claude.ai Claude Docs: https://api.anthropic.com/v1/pages/mcp - ✔ Connected
+exit=0
+$ ls -l /home/user/v03/agent-home/.codex/config.toml.bak.1791107153
+-rw------- 1 user user 887 Oct  4 18:45 /home/user/v03/agent-home/.codex/config.toml.bak.1791107153
+exit=0
+Removed product-generated backup (metadata only, contents not read): /home/user/v03/agent-home/.codex/config.toml.bak.1791107153; exists=False
+$ ls -ld /home/user/v03/agent-home/.cache/jean
+drwxrwxr-x 3 user user 4096 Oct  4 18:42 /home/user/v03/agent-home/.cache/jean
+exit=0
+Removed newly created Jean cache: /home/user/v03/agent-home/.cache/jean; exists=False
+$ tmux -L v03-jean list-sessions
+no server running on /tmp/tmux-1000/v03-jean
+exit=1
+$ systemctl --user list-units --all v03-*.service --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+exit=0
+$ ss -ltnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      4096         0.0.0.0:5080       0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:44105      0.0.0.0:*    users:(("tailscaled",pid=2474188,fd=15))
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*
+LISTEN 0      128        127.0.0.1:22037      0.0.0.0:*
+LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*
+LISTEN 0      4096            [::]:5080          [::]:*
+LISTEN 0      4096            [::]:22            [::]:*
+exit=0
+Protected auth bodies (.credentials.json, auth.json, .claude.json), settings.json, config.toml not read/copied/manually edited or deleted. MCP entry removed only through codex mcp remove. Installed product and its data retained. No Docker Compose down or other product/service changes.
+
+Metadata checks after cleanup (no file contents read):
+lrwxrwxrwx 1 user user 29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user 28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+Product credential-named files (excluding source clone):
+none
+Agent HOME depth-2 metadata difference versus before trial:
+{"added": [], "removed": []}
+Product source git status --porcelain:
+(clean)

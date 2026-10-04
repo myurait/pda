@@ -1,0 +1,12 @@
+2026-10-04T09:41:00.053Z SEND {"id":"1","command":"list_projects","args":{}}
+2026-10-04T09:41:00.055Z RECV {"type":"response","id":"1","data":[{"added_at":1791106820,"default_branch":"main","has_base_session":false,"id":"6bfe0673-b2cb-4a20-8279-06bacafa33d8","is_folder":false,"name":"scratch","order":0,"path":"/home/user/v03/work/jean/scratch","worktree_count":0}]}
+2026-10-04T09:41:00.055Z SEND {"id":"2","command":"list_worktrees","args":{"projectId":"6bfe0673-b2cb-4a20-8279-06bacafa33d8"}}
+2026-10-04T09:41:00.055Z RECV {"type":"response","id":"2","data":[]}
+2026-10-04T09:41:00.055Z SEND {"id":"3","command":"check_claude_cli_installed","args":{}}
+2026-10-04T09:41:00.068Z RECV {"type":"response","id":"3","data":{"installed":true,"path":"/home/user/.local/bin/claude","supports_auth_command":true,"version":"2.1.274"}}
+2026-10-04T09:41:00.068Z SEND {"id":"4","command":"check_codex_cli_installed","args":{}}
+2026-10-04T09:41:00.080Z RECV {"type":"response","id":"4","data":{"installed":true,"path":"/home/user/.local/bin/codex","sandbox_message":"Codex sandbox requires bubblewrap. Install it with: sudo apt install bubblewrap","sandbox_ready":false,"version":"0.156.1"}}
+2026-10-04T09:41:00.080Z SEND {"id":"5","command":"check_claude_cli_auth","args":{}}
+2026-10-04T09:41:00.238Z RECV {"type":"response","id":"5","data":{"authenticated":true,"error":null}}
+2026-10-04T09:41:00.238Z SEND {"id":"6","command":"check_codex_cli_auth","args":{}}
+2026-10-04T09:41:00.272Z RECV {"type":"response","id":"6","data":{"authenticated":true,"error":null}}

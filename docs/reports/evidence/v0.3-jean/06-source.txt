@@ -1,0 +1,284 @@
+Source tag v1.0.7, commit 8ce1712bbe310db61161110a6de813d882ea4e83
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/claude_cli/config.rs
+113:                 if let Ok(prefs) = serde_json::from_str::<crate::AppPreferences>(&contents) {
+114:                     prefs.claude_cli_source == "path"
+115:                 } else {
+116:                     false
+117:                 }
+118:             } else {
+119:                 false
+120:             }
+121:         }
+122:         Err(_) => false,
+123:     };
+124:
+125:     if prefer_path {
+126:         if let Some(path) = find_system_binary(app) {
+127:             return path;
+128:         }
+129:         log::warn!(
+130:             "claude_cli_source is 'path' but could not find claude in PATH, falling back to Jean-managed binary"
+131:         );
+132:         return jean_managed_path(app);
+133:     }
+134:
+135:     if jean_managed_installed(app) {
+136:         return jean_managed_path(app);
+137:     }
+138:
+139:     if let Some(path) = find_system_binary(app) {
+140:         log::info!(
+141:             "Jean-managed Claude CLI not installed; using system PATH binary at {}",
+142:             path.display()
+143:         );
+144:         return path;
+145:     }
+146:
+147:     jean_managed_path(app)
+148: }
+149:
+150: /// Ensure the CLI directory exists, creating it if necessary
+151: pub fn ensure_cli_dir(app: &AppHandle) -> Result<PathBuf, String> {
+152:     let cli_dir = get_cli_dir(app)?;
+153:     std::fs::create_dir_all(&cli_dir)
+154:         .map_err(|e| format!("Failed to create CLI directory: {e}"))?;
+155:     Ok(cli_dir)
+156: }
+157:
+158: #[cfg(test)]
+159: mod tests {
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/chat/claude.rs
+675:
+676:     // Core args
+677:     args.push("--print".to_string());
+678:     args.push("--output-format".to_string());
+679:     args.push("stream-json".to_string());
+680:     args.push("--input-format".to_string());
+681:     args.push("stream-json".to_string());
+682:     args.push("--verbose".to_string());
+683:     args.push("--tools".to_string());
+684:     args.push("default".to_string());
+685:     // Stream partial messages so long-running tools (Monitor, etc.) can push events
+686:     // to the UI without waiting for message boundaries.
+687:     args.push("--include-partial-messages".to_string());
+688:
+689:     // Add app data directories
+1397: ) -> Result<(u32, ClaudeResponse), String> {
+1398:     use super::detached::spawn_detached_claude;
+1399:     use crate::claude_cli::resolve_cli_binary;
+1400:
+1401:     log::trace!("Executing Claude CLI (detached) for session: {session_id}");
+1402:     log::trace!("Input file: {input_file:?}");
+1403:     log::trace!("Output file: {output_file:?}");
+1404:     log::trace!("Working directory: {working_dir:?}");
+1405:
+1406:     // Get CLI path
+1407:     let cli_path = resolve_cli_binary(app);
+1408:
+1409:     if !crate::platform::resolved_cli_exists(&cli_path) {
+1460:
+1461:     // Spawn detached process
+1462:     let pid = spawn_detached_claude(
+1463:         &cli_path,
+1464:         &args,
+1465:         input_file,
+1466:         output_file,
+1467:         working_dir,
+1468:         &env_refs,
+1469:     )
+1470:     .map_err(|e| {
+1471:         let error_msg = format!("Failed to start Claude CLI: {e}");
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/chat/detached.rs
+309:         )
+310:     };
+311:
+312:     log::trace!("Spawning detached Claude CLI");
+313:     log::trace!("Shell command: {shell_cmd}");
+314:     log::trace!("Working directory: {working_dir:?}");
+315:
+316:     // Verify working directory exists before spawn (otherwise sh returns
+317:     // a cryptic "No such file or directory" from current_dir).
+318:     if !working_dir.exists() {
+319:         return Err(format!(
+320:             "Working directory does not exist: {}. The worktree may still be initializing.",
+321:             working_dir.display()
+322:         ));
+323:     }
+324:
+325:     // Spawn the shell command
+326:     let mut child = silent_command("sh")
+327:         .arg("-c")
+328:         .arg(&shell_cmd)
+329:         .current_dir(working_dir)
+330:         .stdin(Stdio::null())
+331:         .stdout(Stdio::piped())
+332:         .stderr(Stdio::piped())
+333:         .spawn()
+334:         .map_err(|e| format!("Failed to spawn shell: {e}"))?;
+335:
+336:     // Read the PID from stdout (the `echo $!` part)
+337:     let stdout = child
+338:         .stdout
+339:         .take()
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/chat/codex_server.rs
+1: //! Codex app-server manager
+2: //!
+3: //! Manages a `codex app-server` process that communicates via JSON-RPC 2.0.
+4: //!
+5: //! On Unix the server is spawned **detached** (nohup + own process group) and
+6: //! listens on a Unix domain socket (`--listen unix://<path>`, WebSocket
+7: //! framing). Jean connects as a WebSocket client. Because the server is not a
+8: //! child of Jean and holds no pipes to it, in-flight turns survive Jean
+9: //! quitting; on restart Jean reconnects to the live server and re-subscribes
+10: //! to threads via `thread/resume`.
+11: //!
+12: //! On Windows (and with `JEAN_CODEX_STDIO=1` on Unix) the legacy transport is
+13: //! used: a piped child process speaking newline-delimited JSON over stdio,
+14: //! killed when Jean exits.
+15:
+439: /// Prefers the app data dir; falls back to the system temp dir when the
+440: /// resulting path would exceed the `sun_path` limit (104 bytes on macOS).
+441: /// Paths are canonicalized because codex rejects symlinked socket parents
+442: /// (e.g. `/tmp` on macOS).
+443: #[cfg(unix)]
+444: fn server_socket_path(app: &AppHandle) -> Result<PathBuf, String> {
+445:     const SOCKET_NAME: &str = "codex-app-server.sock";
+446:     // Leave headroom below the 104-byte macOS sun_path limit.
+447:     const MAX_LEN: usize = 100;
+448:
+449:     let app_data = app
+450:         .path()
+451:         .app_data_dir()
+452:         .map_err(|e| format!("Failed to resolve app data dir: {e}"))?;
+453:     let app_data = app_data.canonicalize().unwrap_or(app_data);
+454:     let candidate = app_data.join(SOCKET_NAME);
+455:     if candidate.as_os_str().len() <= MAX_LEN {
+456:         return Ok(candidate);
+457:     }
+868:     active_sessions: Option<ActiveSessions>,
+869: ) -> Result<(), String> {
+870:     // 1. Adopt a live detached server from a previous Jean process (or a
+871:     //    previous connection of this process).
+872:     match try_adopt_existing_server(active_sessions.clone()) {
+873:         AdoptAttempt::Adopted(server) => {
+874:             **guard = Some(server);
+875:             SERVER_GENERATION.fetch_add(1, Ordering::SeqCst);
+876:             return Ok(());
+877:         }
+878:         AdoptAttempt::LiveUnreachable => {
+879:             return Err(
+880:                 "Failed to reconnect to live Codex app-server while the process is still running"
+881:                     .to_string(),
+882:             );
+883:         }
+884:         AdoptAttempt::Missing => {}
+885:     }
+886:
+887:     // 2. Spawn a fresh detached server.
+888:     let socket_path = server_socket_path(app)?;
+889:     let log_path = server_log_path(app)?;
+890:     let _ = std::fs::remove_file(&socket_path);
+891:
+892:     let app_data = app
+893:         .path()
+894:         .app_data_dir()
+895:         .map_err(|e| format!("Failed to resolve app data dir: {e}"))?;
+896:
+897:     log::info!(
+898:         "Starting detached codex app-server: {} app-server --listen unix://{}",
+899:         cli_path.display(),
+900:         socket_path.display()
+901:     );
+902:
+903:     let args = vec![
+904:         "app-server".to_string(),
+905:         "--listen".to_string(),
+906:         format!("unix://{}", socket_path.display()),
+907:     ];
+908:     let pid = super::detached::spawn_detached_process(cli_path, &args, &log_path, &app_data)?;
+909:
+910:     write_pid_file(&ServerPidRecord {
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/chat/codex.rs
+803:         }
+804:         "yolo" => {
+805:             params["approvalPolicy"] = serde_json::json!("never");
+806:             params["sandbox"] = serde_json::json!("danger-full-access");
+807:         }
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/jean_mcp_core.rs
+270: fn tool_registry_session() -> Value {
+271:     json!([
+272:         {"name":"list_sessions","description":"List chat sessions in a worktree without loading full message history. Use before creating a session to avoid duplicates.","inputSchema":{"type":"object","properties":{"worktreeId":{"type":"string"},"includeArchived":{"type":"boolean","default":false}},"required":["worktreeId"],"additionalProperties":false}},
+273:         {"name":"create_session","description":"Get a chat session for a prompt in an existing non-archived worktree. Reuses an empty chat session when one is available; otherwise creates a new session. Returns the session id needed for send_chat_message. Fails if the worktree is archived — call unarchive_worktree first.","inputSchema":{"type":"object","properties":{"worktreeId":{"type":"string"},"name":{"type":"string"},"backend":{"type":"string","enum":["claude","codex","cursor","opencode","pi","commandcode","grok","kimi","antigravity"]}},"required":["worktreeId"],"additionalProperties":false}},
+274:         {"name":"send_chat_message","description":"Send a message to an existing non-archived session. Fire-and-forget: returns immediately as the session begins processing; poll get_session_status with the returned sessionId for completion or failure. Omitted settings inherit the session selections. Supplied settings override one turn only.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"},"message":{"type":"string"},"model":{"type":"string"},"backend":{"type":"string","enum":["claude","codex","cursor","opencode","pi","commandcode","grok","kimi","antigravity"]},"customProfileName":{"type":"string","description":"Optional one-turn provider/profile override."},"effortLevel":{"type":"string","enum":["off","adaptive","minimal","low","medium","high","xhigh","max","ultracode"]},"thinkingLevel":{"type":"string","enum":["off","adaptive","think","megathink","ultrathink"]},"executionMode":{"type":"string","enum":["plan","build","yolo"]}},"required":["sessionId","message"],"additionalProperties":false}},
+275:         {"name":"archive_session","description":"Archive a chat session (hide it from the active session list). Prefer this over delete when history may still be useful. Cannot run send_chat_message on an archived session until unarchive_session is called.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"}},"required":["sessionId"],"additionalProperties":false}},
+276:         {"name":"unarchive_session","description":"Restore an archived chat session so it can run again. Also unarchives the parent worktree when it is archived. Call this before send_chat_message if a previous attempt failed because the session was archived.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"}},"required":["sessionId"],"additionalProperties":false}},
+277:         {"name":"move_session","description":"Move a Jean session to another active worktree while preserving its session id, complete message/run history, attachments, settings, and backend resume context. An idle session moves immediately. A running session is scheduled to move automatically after its current turn finishes; do not cancel the run or retry the move.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"},"targetWorktreeId":{"type":"string"}},"required":["sessionId","targetWorktreeId"],"additionalProperties":false}},
+278:         {"name":"get_session_status","description":"Get whether a Jean session is idle/running/resumable/cancelled/error plus latest run metadata. Use after send_chat_message to poll fire-and-forget work.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"}},"required":["sessionId"],"additionalProperties":false}},
+279:         {"name":"cancel_session_run","description":"Cancel the currently running request for a session. Returns whether Jean found an active process/turn/flag to cancel.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"}},"required":["sessionId"],"additionalProperties":false}},
+280:         {"name":"read_session_messages","description":"Read recent messages from a session (most recent first). Use limit to cap returned messages.","inputSchema":{"type":"object","properties":{"sessionId":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":200,"default":50}},"required":["sessionId"],"additionalProperties":false}},
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/jean-core/src/jean_mcp_config.rs
+261: pub async fn install_jean_mcp_config_impl(
+262:     app: AppHandle,
+263:     backends: Option<Vec<String>>,
+264:     mode: Option<String>,
+265: ) -> Result<Vec<JeanMcpInstallResult>, String> {
+266:     let mode = JeanMcpInstallMode::from_option(mode)?;
+267:     let entry = build_current_entry(app, mode).await?;
+268:     let backends = backends.unwrap_or_else(|| {
+269:         vec![
+270:             "claude".to_string(),
+271:             "codex".to_string(),
+272:             "opencode".to_string(),
+273:             "cursor".to_string(),
+274:             "grok".to_string(),
+275:             "kimi".to_string(),
+276:             "antigravity".to_string(),
+277:         ]
+278:     });
+279:
+280:     let mut results = Vec::with_capacity(backends.len());
+281:     for backend in backends {
+282:         let result = match backend.as_str() {
+283:             "claude" => install_claude(&entry),
+284:             "codex" => install_codex(&entry),
+394: fn install_codex(entry: &JeanMcpEntry) -> Result<(PathBuf, Option<PathBuf>), String> {
+395:     let home = dirs::home_dir().ok_or_else(|| "Home directory unavailable".to_string())?;
+396:     install_toml_mcp_server(
+397:         home.join(".codex").join("config.toml"),
+398:         entry,
+399:         "Codex",
+400:         false,
+401:     )
+402: }
+403:
+
+https://github.com/coollabsio/jean/blob/8ce1712bbe310db61161110a6de813d882ea4e83/src/components/preferences/panes/JeanMcpSection.tsx
+162:     if (!serverRunning) {
+163:       setTemporaryInstallState('error', 'Jean MCP socket is not running')
+164:       return
+165:     }
+166:     if (installableBackends.length === 0) {
+167:       setTemporaryInstallState(
+168:         'error',
+169:         'Install a supported CLI first (Claude, Codex, Cursor, Grok, Kimi, Antigravity, or OpenCode)'
+170:       )
+171:       return
+172:     }
+173:
+174:     setTemporaryInstallState('installing')
+175:     try {
+176:       const results = await invoke<JeanMcpInstallResult[]>(
+177:         'install_jean_mcp_config',
+178:         {
+179:           backends: installableBackends,
+180:           mode: 'current',
+181:         }
+182:       )
+183:       const successes = results.filter(r => r.status === 'installed')
