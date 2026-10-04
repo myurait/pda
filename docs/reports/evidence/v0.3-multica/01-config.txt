@@ -1,0 +1,46 @@
+/home/user/v03/multica/trial/compose.override.yml
+services:
+  backend:
+    ports: !reset []
+    environment:
+      HOME: /home/user/v03/agent-home
+    restart: "no"
+  frontend:
+    ports: !reset []
+    environment:
+      HOME: /home/user/v03/agent-home
+    restart: "no"
+  postgres:
+    restart: "no"
+  gateway:
+    image: nginx:1.28-alpine
+    ports:
+      - "127.0.0.1:5101:5101"
+    volumes:
+      - /home/user/v03/multica/trial/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: "no"
+
+/home/user/v03/multica/trial/nginx.conf
+events {}
+http {
+  map $http_upgrade $connection_upgrade { default upgrade; '' close; }
+  server {
+    listen 5101;
+    location ~ ^/(api|auth|ws|health|readyz|healthz)(/|$) {
+      proxy_pass http://backend:8080;
+      proxy_http_version 1.1;
+      proxy_set_header Host $http_host;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+      proxy_read_timeout 3600s;
+      proxy_buffering off;
+    }
+    location / {
+      proxy_pass http://frontend:3000;
+      proxy_set_header Host $http_host;
+    }
+  }
+}

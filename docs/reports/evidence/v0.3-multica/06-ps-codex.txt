@@ -1,0 +1,24 @@
+2026-10-04T09:13:32.291+00:00 T4; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:32:56  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       03:19 26952  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 267074  265474       00:01 168504      \_ /home/user/.local/bin/codex app-server --listen stdio://
+2026-10-04T09:13:32.291+00:00 [{"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}, {"pid": 267074, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "CODEX_HOME=/home/user/v03/work/multica/runtime/pda-multica-db5fbdd71c49/pda-3-41317903e6a8/codex-home", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}]
+2026-10-04T09:13:57.254387+00:00 ps -eo pid,ppid,etime,args --forest (product subtree only)
+    PID    PPID     ELAPSED COMMAND
+   1274       1 77-09:33:21 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       03:44  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 267074  265474       00:25      \_ /home/user/.local/bin/codex app-server --listen stdio://
+ 267302  267074       00:17          \_ /home/user/.codex/packages/standalone/releases/0.156.1-x86_64-unknown-linux-musl/bin/codex-code-mode-host
+2026-10-04T09:15:05.189+00:00 T5; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:34:29  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       04:52 27356  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 267923  265474       00:01 166040      \_ /home/user/.local/bin/codex app-server --listen stdio://
+2026-10-04T09:15:05.189+00:00 [{"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}, {"pid": 267923, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "CODEX_HOME=/home/user/v03/work/multica/runtime/pda-multica-db5fbdd71c49/pda-4-62ec0fe00c35/codex-home", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}]
+2026-10-04T09:15:32.279+00:00 T9-codex-to-claude; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:34:56  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       05:19 25184  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 268282  265474       00:01 164536      \_ /home/user/.local/bin/codex app-server --listen stdio://
+2026-10-04T09:15:32.280+00:00 [{"pid": 268282, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "CODEX_HOME=/home/user/v03/work/multica/runtime/pda-multica-db5fbdd71c49/pda-5-fc629967562d/codex-home", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}, {"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}]

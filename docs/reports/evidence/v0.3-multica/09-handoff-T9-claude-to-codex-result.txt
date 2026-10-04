@@ -1,0 +1,19 @@
+2026-10-04T09:18:31.767+00:00 diff --git a/README.md b/README.md
+index af0f694..f976803 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` で `hello, 太郎` と挨拶します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..d78ac60 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,6 @@
+-print("hello")
++def greet(name: str) -> None:
++    print(f"hello, {name}")
++
++
++if __name__ == "__main__":
++    print("hello")

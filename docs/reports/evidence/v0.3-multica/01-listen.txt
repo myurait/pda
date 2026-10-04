@@ -1,0 +1,9 @@
+LISTEN 0      4096       127.0.0.1:5101       0.0.0.0:*
+curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5101/
+200
+GET /readyz
+{"status":"ok","checks":{"db":"ok","migrations":"ok"}}
+
+Daemon health listener (default additional loopback port):
+LISTEN 0      4096       127.0.0.1:19514      0.0.0.0:*    users:(("multica",pid=265474,fd=5))
+LISTEN 0      4096       127.0.0.1:5101       0.0.0.0:*

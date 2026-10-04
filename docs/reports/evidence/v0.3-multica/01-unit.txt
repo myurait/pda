@@ -1,0 +1,48 @@
+2026-10-04T09:22:18.551413+00:00 Final unit after relocating trial state; restart verification
+● v03-multica.service - PDA v0.3 Multica trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-multica.service; enabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 18:21:57 JST; 20s ago
+    Process: 272311 ExecStartPre=/usr/bin/ln -s /home/user/v03/multica/state /home/user/v03/agent-home/.multica (code=exited, status=0/SUCCESS)
+    Process: 272312 ExecStartPre=/usr/bin/sg docker -c /usr/bin/docker compose --project-name v03-multica --env-file trial/server.env -f docker-compose.selfhost.yml -f trial/compose.override.yml up -d --wait (code=exited, status=0/SUCCESS)
+   Main PID: 272820 (multica)
+      Tasks: 13 (limit: 15004)
+     Memory: 7.2M (peak: 23.1M)
+        CPU: 209ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-multica.service
+             └─272820 /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-gateway-1 Waiting
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-postgres-1 Waiting
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-backend-1 Waiting
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-frontend-1 Waiting
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-frontend-1 Healthy
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-postgres-1 Healthy
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-backend-1 Healthy
+Oct 04 18:21:57 agent-node sg[272336]:  Container v03-multica-gateway-1 Healthy
+Oct 04 18:21:57 agent-node sg[272312]: user 'user' (login 'user' on ???) returned to group 'user'
+Oct 04 18:21:57 agent-node systemd[1274]: Started v03-multica.service - PDA v0.3 Multica trial.
+
+UNIT CONTENT
+[Unit]
+Description=PDA v0.3 Multica trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/multica
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin
+UnsetEnvironment=CODEX_HOME
+Environment=MULTICA_CLAUDE_PATH=/home/user/.local/bin/claude
+Environment=MULTICA_CODEX_PATH=/home/user/.local/bin/codex
+ExecStartPre=/usr/bin/ln -s /home/user/v03/multica/state /home/user/v03/agent-home/.multica
+ExecStartPre=/usr/bin/sg docker -c "/usr/bin/docker compose --project-name v03-multica --env-file trial/server.env -f docker-compose.selfhost.yml -f trial/compose.override.yml up -d --wait"
+ExecStart=/home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ExecStop=/usr/bin/sg docker -c "/usr/bin/docker compose --project-name v03-multica --env-file trial/server.env -f docker-compose.selfhost.yml -f trial/compose.override.yml stop"
+ExecStopPost=/usr/bin/rm -f /home/user/v03/agent-home/.multica
+TimeoutStartSec=600
+TimeoutStopSec=60
+
+[Install]
+WantedBy=default.target

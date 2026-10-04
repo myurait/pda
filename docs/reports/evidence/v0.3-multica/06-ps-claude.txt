@@ -1,0 +1,33 @@
+2026-10-04T09:12:08.087+00:00 T2; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:31:32  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       01:55 24732  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 266282  265474       00:01 267388      \_ /home/user/.local/bin/claude -p --output-format stream-json --input-format stream-json --verbose --permission-mode bypassPermissions --disallowedTools AskUserQuestion
+2026-10-04T09:12:08.087+00:00 [{"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}, {"pid": 266282, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}]
+2026-10-04T09:12:54.848262+00:00 ps -eo pid,ppid,etime,args --forest (product subtree only)
+    PID    PPID     ELAPSED COMMAND
+   1274       1 77-09:32:19 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       02:41  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+2026-10-04T09:13:16.600+00:00 T3; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:32:41  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       03:03 27272  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 266854  265474       00:01 265244      \_ /home/user/.local/bin/claude -p --output-format stream-json --input-format stream-json --verbose --permission-mode bypassPermissions --disallowedTools AskUserQuestion
+2026-10-04T09:13:16.600+00:00 [{"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}, {"pid": 266854, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}]
+2026-10-04T09:17:20.236+00:00 T9-claude-to-codex; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:36:44  7456 /usr/lib/systemd/systemd --user --deserialize=8
+ 265474    1274       07:07 27768  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 269545  265474       00:01 266820      \_ /home/user/.local/bin/claude -p --output-format stream-json --input-format stream-json --verbose --permission-mode bypassPermissions --disallowedTools AskUserQuestion
+2026-10-04T09:17:20.236+00:00 [{"pid": 269545, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}, {"pid": 265474, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}]
+2026-10-04T09:30:52.163+00:00 T2; ps -eo pid,ppid,etime,rss,args --forest; filtered to product daemon, descendants and parent
+    PID    PPID     ELAPSED   RSS COMMAND
+   1274       1 77-09:50:16  7452 /usr/lib/systemd/systemd --user --deserialize=8
+ 274634    1274       00:50 24680  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 275068  274634       00:01 267720      \_ /home/user/.local/bin/claude -p --output-format stream-json --input-format stream-json --verbose --permission-mode bypassPermissions --disallowedTools AskUserQuestion
+2026-10-04T09:30:52.178+00:00 T2; ps -eo pid,ppid,etime,args --forest; product subtree and parent
+    PID    PPID     ELAPSED COMMAND
+   1274       1 77-09:50:16 /usr/lib/systemd/systemd --user --deserialize=8
+ 274634    1274       00:50  \_ /home/user/v03/multica/bin/multica daemon start --foreground --no-auto-update --no-auto-reload --max-concurrent-tasks 1
+ 275068  274634       00:01      \_ /home/user/.local/bin/claude -p --output-format stream-json --input-format stream-json --verbose --permission-mode bypassPermissions --disallowedTools AskUserQuestion
+2026-10-04T09:30:52.178+00:00 [{"pid": 274634, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "PATH=/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude"]}, {"pid": 275068, "environment_allowlist": ["HOME=/home/user/v03/agent-home", "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude", "PATH=/home/user/v03/multica/bin:/home/user/.local/bin:/home/user/v03/multica/bin:/usr/local/bin:/usr/bin:/bin"]}]

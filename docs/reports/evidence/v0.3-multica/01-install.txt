@@ -1,0 +1,140 @@
+実施日: 2026-10-04 JST。以下は実行コマンドと出力の要点。秘密の値は含めない。
+
+事前確認
+  systemctl --user list-units 'v03-*.service' --all --no-pager
+    既存の v03-cccc / cezar / happier / luvus は inactive。詳細は 00-services-before.txt。
+  ss -ltnp
+    5101 は空き。既存の 22 / 5080 / 44105 / 22037 は変更しなかった。
+  node --version: v24.18.0
+  npm --version: 11.16.0
+  docker compose version: Docker Compose version v5.3.1
+  docker info --format '{{.ServerVersion}}': 29.6.2
+
+報告用ブランチ
+  git switch -c v0.3/setup-multica main
+    main の起点: 828d1a45160692ddd52eb0b8dc9bc3b70cfdab8c
+    origin: /home/user/pda.git
+
+製品の固定版
+  curl -fsSL https://api.github.com/repos/multica-ai/multica/releases/latest
+    tag_name: v0.6.1, published_at: 2026-10-01T10:29:32Z
+  git clone --depth 1 --branch v0.6.1 https://github.com/multica-ai/multica.git /home/user/v03/multica
+    HEAD: 2ea01ae4ef55de4310b99af192d2dbd367832883
+  curl -fsSL https://github.com/multica-ai/multica/releases/download/v0.6.1/multica_linux_amd64.tar.gz -o /home/user/v03/multica/trial/multica_linux_amd64.tar.gz
+  curl -fsSL https://github.com/multica-ai/multica/releases/download/v0.6.1/checksums.txt -o /home/user/v03/multica/trial/checksums.txt
+  sha256sum /home/user/v03/multica/trial/multica_linux_amd64.tar.gz
+    53ee75577a9194532c7d11b9ea65d2851374f3f674bbcb70266c9acee50e8bfc
+    release の checksums.txt の該当値と一致。
+  tar -xzf /home/user/v03/multica/trial/multica_linux_amd64.tar.gz -C /home/user/v03/multica/bin
+  /home/user/v03/multica/bin/multica --version
+    multica 0.6.1 (commit: 2ea01ae4e, built: 2026-10-01T10:25:57Z)
+    go: go1.26.8, os/arch: linux/amd64
+
+構成
+  trial/server.env を mode 0600 で新規作成。JWT_SECRET / POSTGRES_PASSWORD /
+  MULTICA_VCS_SECRET_KEY は Python secrets.token_hex で生成し、値を出力しなかった。
+  非秘密の設定:
+    MULTICA_IMAGE_TAG=v0.6.1
+    FRONTEND_ORIGIN=http://127.0.0.1:5101
+    MULTICA_APP_URL=http://127.0.0.1:5101
+    MULTICA_DAEMON_SERVER_URL=http://127.0.0.1:5101
+    DO_NOT_TRACK=1
+  公式 docker-compose.selfhost.yml に trial/compose.override.yml を重ねた。
+  backend / frontend のホスト向け ports を !reset [] で外し、nginx gateway だけを
+  127.0.0.1:5101:5101 へ公開。/api /auth /ws /health /readyz /healthz を backend:8080、
+  他のパスを frontend:3000 に転送。WebSocket upgrade と proxy_buffering off を設定。
+  backend / frontend の HOME も /home/user/v03/agent-home とした。
+  コンテナの restart は no。起動・停止は user unit が管理。
+  compose のプロジェクト名は v03-multica。イメージの digest は 01-images.txt。
+  製品のソースは変更せず、設定ファイルだけを追加した。
+
+user unit の起動
+  systemctl --user daemon-reload
+  systemctl --user enable v03-multica.service
+  systemctl --user start v03-multica.service
+    初回: permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+    詳細: 01-start-attempt1.txt
+  原因確認:
+    id は docker (gid 988) を含むが、user manager PID 1274 の Groups は
+    4 24 27 30 46 101 1000 で、988 を含まなかった。
+    sg docker -c 'docker info --format "{{.ServerVersion}}"' は 29.6.2 を返した。
+  unit の compose 操作を /usr/bin/sg docker -c "..." で起動するよう設定した。
+  systemctl --user daemon-reload
+  systemctl --user start v03-multica.service
+    2 回目: 成功。4 コンテナ起動、GET /readyz は db / migrations とも ok。
+  最初は compose 用 oneshot unit で認証と workspace を準備し、以後は Type=simple、
+  ExecStartPre で compose up -d --wait、ExecStart で multica daemon start --foreground。
+  ExecStop は compose stop。down は使っていない。最終 unit 全文は 01-unit.txt。
+  常駐デーモンが既存 CLI 2 本を検出した。製品が別版の CLI を入れる操作はなかった。
+
+使い捨てリポジトリ
+  mkdir -p /home/user/v03/work/multica/scratch
+  git init -b main
+  README.md は '# scratch'、hello.py は 'print("hello")' をそれぞれ 1 行で作成。
+  git add README.md hello.py
+  git commit -m '試用の初期状態を作る'
+    初回: Author identity unknown / fatal: unable to auto-detect email address
+  git -c user.name='PDA trial' -c user.email='pda-trial@localhost' commit -m '試用の初期状態を作る'
+    2 回目: 8f8afc8、2 files changed, 2 insertions。
+  各試用の前に tracked の README.md / hello.py だけを git restore --source=HEAD で戻した。
+  製品エージェントにはコードをコミットしない指示を付け、git diff HEAD を採取。
+
+信頼確認
+  専用 tmux socket: v03-multica。sessions: trust-claude / trust-codex。
+  両方を scratch で以下の環境で起動した:
+    env -u CODEX_HOME HOME=/home/user/v03/agent-home \
+      CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude \
+      PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin claude
+    同じ環境で codex も起動。
+  Claude: 「Yes, I trust this folder」を選択、起動後 /exit。
+  Codex: 「Trust and continue」を選択、起動後 /exit。
+  00-trust-claude.txt: 2.1.274、Sonnet 5、Claude Pro。
+  00-trust-codex.txt: 0.156.1、GPT-6-Astra。更新案内は表示されたが更新しなかった。
+  信頼の設定ファイルを手で書き換えていない。
+
+ローカル製品アカウント・試用用オブジェクト
+  POST /auth/send-code と /auth/verify-code を利用。
+  メール送信サービス未設定のため試用 backend のログから確認コードをメモリ内で取得。
+  アカウント: pda-multica-trial@example.invalid。実際のメール送信はしていない。
+  POST /api/workspaces: PDA Multica Trial (slug pda-multica-trial)。
+  POST /api/tokens: 製品自身のデーモン認証用 PAT。AI プロバイダーの API キーではない。
+  multica login --server-url http://127.0.0.1:5101 --token=
+    PAT は stdin に渡した。argv / 証拠には入れなかった。
+  multica config set app_url http://127.0.0.1:5101
+  multica config set workspace_id 24526bd6-2617-4cff-9acd-db5fbdd71c49
+  multica config set workspaces_root /home/user/v03/work/multica/runtime
+  multica workspace watch <workspace-id> は help を表示した。このサブコマンドはなく、
+  ログイン時に見つかった workspace をデーモンが自動で登録した。
+  POST /api/projects: local_directory resource、execution_mode=in_place、scratch を指定。
+  POST /api/agents: Trial claude / Trial codex、検出された runtime をそれぞれ指定。
+  model は空欄のまま。custom_args / MCP / 外付け skill は追加していない。
+  詳細は 01-objects.txt。T2〜T5 と T9 は POST /api/issues で投入した。
+  WebSocket /ws?workspace_id=... を認証し、各 task scope を subscribe。
+  停止は POST /api/tasks/<id>/cancel。
+  試用 harness は /home/user/v03/multica/trial/*.py に置き、受信時刻を UTC で保存。
+
+採取用ツール (製品には組み込まない)
+  uv venv /home/user/v03/multica/trial/venv
+  uv pip install --python /home/user/v03/multica/trial/venv/bin/python requests websocket-client
+    requests 2.34.2 / websocket-client 1.9.2。
+  npm install --prefix /home/user/v03/multica/trial playwright
+  Chromium を headless で起動。ログインページと認証後の PDA-6 を撮影。
+  ログイン後に /onboarding が表示されたので「I've done this before」で既存 workspace へ進んだ。
+
+終了処理
+  8 回の task attempt は 6 completed / 2 cancelled、再試行なし。
+  systemctl --user stop v03-multica.service
+  共用 HOME の .multica を /home/user/v03/multica/state へ rename した。
+  unit に起動時の symlink 作成と停止時の symlink 削除を追加し、再起動して
+  /readyz=ok、同じ daemon ID と workspace、実行中 task 0 を確認して再度停止。
+  元の state はコピーしていない。製品自身のログインは state/config.json に残した。
+  試用でできた Codex 認証 symlink 4 本と Claude backup 5 個を、内容を読まず削除。
+  tmux -L v03-multica kill-server
+  git -C /home/user/v03/multica diff --exit-code: 0。
+  詳細と最終停止状態は 10-cleanup.txt。
+
+最終照合での補採取 (2026-10-04T09:30〜09:31 UTC)
+  初回 T2 の実行中の ps は RSS 付き形式だった。指定の RSS なし形式は終了後だったため、同じ依頼を 1 回追加実行して、実行中に指定形式も採取した。
+  追加 issue 作成の初回は HTTP 409 active_duplicate_issue。allow_duplicate=true を指定した 2 回目で PDA-7 を作成でき、run は初回で completed。
+  全試用は合計 9 task attempts (7 completed / 2 cancelled)。追加記録は 11-t6-supplement.txt、02-claude-*.txt、06-ps-claude.txt、07-resources.txt。
+  補採取後に再度 systemctl --user stop を実行し、追加の Claude backup 1 個も内容を読まず削除。詳細は 10-cleanup.txt 最終段。

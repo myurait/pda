@@ -1,0 +1,11 @@
+2026-10-04T09:17:21.439831+00:00
+$ docker ps --filter label=com.docker.compose.project=v03-multica --format {{.Names}}	{{.Image}}	{{.Status}}	{{.Ports}}
+v03-multica-gateway-1	nginx:1.28-alpine	Up 7 minutes	80/tcp, 127.0.0.1:5101->5101/tcp
+v03-multica-frontend-1	ghcr.io/multica-ai/multica-web:v0.6.1	Up 7 minutes	3000/tcp
+v03-multica-backend-1	ghcr.io/multica-ai/multica-backend:v0.6.1	Up 7 minutes	8080/tcp
+v03-multica-postgres-1	pgvector/pgvector:pg17	Up 7 minutes (healthy)	5432/tcp
+$ docker image inspect ghcr.io/multica-ai/multica-backend:v0.6.1 ghcr.io/multica-ai/multica-web:v0.6.1 pgvector/pgvector:pg17 nginx:1.28-alpine --format {{.RepoTags}} {{.RepoDigests}}
+[ghcr.io/multica-ai/multica-backend:v0.6.1] [ghcr.io/multica-ai/multica-backend@sha256:824d42a4a4436efad96a2d15354a5512786c895672ac48fa05f9b2be4d8fbd5c]
+[ghcr.io/multica-ai/multica-web:v0.6.1] [ghcr.io/multica-ai/multica-web@sha256:cc8260b0371661896dce52f968c8822d8275e0b275a43484347e5a59efffbb7c]
+[pgvector/pgvector:pg17] [pgvector/pgvector@sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d]
+[nginx:1.28-alpine] [nginx@sha256:a8b39bd9cf0f83869a2162827a0caf6137ddf759d50a171451b335cecc87d236]
