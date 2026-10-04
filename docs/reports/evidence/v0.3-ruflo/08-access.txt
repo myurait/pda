@@ -1,0 +1,15 @@
+T8: 別端末から開くための情報
+待受: 127.0.0.1:5121
+常駐 unit: v03-ruflo.service
+実測: GET /health = 200、GET / = 404。
+HTTP MCP: http://127.0.0.1:5121/rpc
+画面: Web UI の Docker build 失敗のため未提供。予定した http://127.0.0.1:5121/ に画面はない。
+画面のログイン: 未到達、未確認。
+ローカルHTTPの /health は認証なしで応答。これをWeb画面のログイン確認とは数えない。
+T3/T5の stopAll はプロセス内の公開JavaScript APIであり、このHTTP RPCや遠隔画面からの停止を確認したものではない。
+開発PCからのSSH転送試験は指示どおり実施しない。
+
+人が実行するTailscale Serve手順（この走行では実行していない）:
+systemctl --user start v03-ruflo.service
+/home/user/.local/bin/tailscale-pda serve --bg --https=19121 http://127.0.0.1:5121
+現在のunitで公開されるのはHTTP MCPであり、チャット画面ではない。ホスト名は tailscale-pda status で確認し、https://<ホスト名>:19121/health で同じヘルス経路に到達する構成。

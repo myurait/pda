@@ -1,0 +1,35 @@
+走行開始: 2026-10-04 JST。事実とコマンドの要点。
+
+1. git switch -c v0.3/setup-ruflo main
+基点 0c64cb8。開始時のワークツリー変更なし。
+2. git clone --depth 1 https://github.com/ruvnet/ruflo.git /home/user/v03/ruflo/source
+HEAD caf5078be6627c6496fa2497a63b72e80a0bcf14、2026-10-03T22:56:40-07:00。
+3. npm install --prefix /home/user/v03/ruflo/runtime --no-audit --no-fund --save-exact ruflo@3.51.1 @claude-flow/codex@3.0.3
+初回失敗: No matching version found for @claude-flow/codex@3.0.3.
+調査: npm view @claude-flow/codex version は3.0.2。@claude-flow/cli@3.51.1 は3.0.3をbundleDependenciesに含める。
+4. npm install --prefix /home/user/v03/ruflo/runtime --no-audit --no-fund --save-exact ruflo@3.51.1
+再試行1回で成功。added 614 packages in 2m。npm 11.16.0は依存のinstall scriptsを保留した（01-npm-install.txt）。
+5. /home/user/v03/ruflo/run-env /home/user/v03/ruflo/runtime/node_modules/.bin/ruflo --version
+ruflo v3.51.1
+同梱された @claude-flow/codex は3.0.3（ベンダーのCodex実行器ではなくRufloの連携パッケージ）。Claude Code/Codex本体は既存CLIの2.1.274/0.156.1を使用。
+6. docker build -t v03-ruflo-ruvocal:caf5078 --build-arg INCLUDE_DB=true /home/user/v03/ruflo/source/ruflo/src/ruvocal
+初回失敗: COPY .env /app/.env の .env がcheckoutに無い。
+公開READMEのローカル導入説明にも cp .env .env.local があるが、checkoutに .env は無かった。
+秘密値を含まない、コメント1行のみの .env をビルド用設定として作成して同じコマンドを1回再試行。
+再試行失敗: Error: OPENAI_BASE_URL not set（SvelteKit postbuild analyse）。空の .env にこの必須設定を用意しなかった走行側の設定不足。これを製品のコード不具合とは判定しない。
+Dockerビルドは計2回で打ち切り、イメージ/コンテナなし。ソースコードへの変更なし。ビルド中のaptはDockerfile内のみ。ホストのsudo/aptは実行しない。
+7. Web UIが作れなかったため、公式CLIのHTTP MCPをsystemd user unitで常駐。
+systemctl --user daemon-reload
+systemctl --user start v03-ruflo.service
+起動コマンド: ruflo mcp start --transport http --host 127.0.0.1 --port 5121
+active (running)、/health=200、/=404。画面の導入成功とは数えない。
+8. scratch 内の .agents/config.toml で製品のswarm.automationを有効化し、同時worker 1、worktree_isolation=false、timeout 120秒に設定。
+scratch/node_modules と source/node_modules を /home/user/v03/ruflo/runtime/node_modules に symlink。
+公開APIの ./dual-mode exportを呼ぶ観測クライアントを /home/user/v03/ruflo/api-client.mjs に配置。実装の差し替え・monkey patchなし。T2再試行以降はイベントと最終返値を観測した。
+9. T2の製品内部の npx ruflo@latest は /home/user/v03/agent-home/.npm/_npx/2ed56890c96f58f7 に追加取得した。メタデータを確認し ruflo/@claude-flow/cli=3.51.1、同梱 @claude-flow/codex=3.0.3で一致。
+
+導入コマンドの詳細ログ: 01-npm-install.txt、01-docker-build.txt、01-docker-build-retry.txt。
+
+実行器本体パッケージの有無（runtime と製品が作った npx cache の node_modules の package metadata を検索）:
+[]
+空配列のため同梱本体パッケージは見つからなかった。

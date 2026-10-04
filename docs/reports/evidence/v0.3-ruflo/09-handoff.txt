@@ -1,0 +1,117 @@
+T9 製品の公開 ./dual-mode API で runCollaboration、dependsOn、sharedNamespace を使った。
+各方向2回（初回＋原因確認後の再試行1回）。追加skill/MCPなし。
+stopAllやrunCollaborationの新実装は作成せず、製品の既存公開メソッドを呼んだ。
+途中の本文イベント worker:output は全4回で0件。worker:started と completed/failed は出た。
+Codex→Claude再試行のhandoff本文: 84文字、元の指定文との完全一致=True。APIキーやログイン複製は使用しない。
+
+09-codex-to-claude
+製品success=False / duration=225478ms
+{
+  "id": "sender",
+  "platform": "codex",
+  "role": "delegator",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:18:24.753Z",
+  "output": "Ruflo の `memory store` で依頼文をそのまま保存しました。\n\n- namespace: `09-codex-to-claude`\n- key: `handoff-09-codex-to-claude`\n- 結果記録: `sender-result`\n\nREADME.md と hello.py は変更していません。\n",
+  "completedAt": "2026-10-04T12:20:04.448Z"
+}
+{
+  "id": "receiver",
+  "platform": "claude",
+  "role": "coder",
+  "status": "failed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:20:05.379Z",
+  "error": "Worker receiver timed out after 120000ms",
+  "completedAt": "2026-10-04T12:22:05.387Z"
+}
+shared memory keys: sender-result, handoff-09-codex-to-claude, task-context
+2026-10-04T21:22:06.728+09:00
+git diff -- README.md hello.py
+(差分なし)
+
+09-codex-to-claude-retry
+製品success=True / duration=105733ms
+{
+  "id": "sender",
+  "platform": "codex",
+  "role": "delegator",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:25:42.526Z",
+  "output": "製品の `memory store` で保存しました。\n\n- namespace: `09-codex-to-claude-retry`\n- key: `handoff-09-codex-to-claude-retry`\n\n読み戻し、最後の「何をしているかを短く書きながら進めてください。」を含む依頼全文との完全一致を確認しました。`sender-result` にも結果を保存済みです。\n\nREADME.md と hello.py は変更していません。\n",
+  "completedAt": "2026-10-04T12:27:07.515Z"
+}
+{
+  "id": "receiver",
+  "platform": "claude",
+  "role": "coder",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:27:08.371Z",
+  "output": "`npx ruflo@latest memory retrieve` の実行承認が得られませんでした。このコマンドを実行してよいか確認させてください。承認いただければ再実行し、保存されている引き継ぎ依頼を取得して scratch 内で作業します。承認が得られない場合は、ファイルを変更せずに終了します。\n",
+  "completedAt": "2026-10-04T12:27:23.771Z"
+}
+shared memory keys: sender-result, handoff-09-codex-to-claude-retry, task-context
+2026-10-04T21:27:25.057+09:00
+git diff -- README.md hello.py
+(差分なし)
+
+09-claude-to-codex
+製品success=True / duration=126139ms
+{
+  "id": "sender",
+  "platform": "claude",
+  "role": "delegator",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:23:09.780Z",
+  "output": "`npx ruflo@latest memory store` コマンドの実行許可が得られず、依頼文を共有メモリに保存できていません。ツール実行の承認をお願いできますか？承認後に再試行します。\n",
+  "completedAt": "2026-10-04T12:23:23.245Z"
+}
+{
+  "id": "receiver",
+  "platform": "codex",
+  "role": "coder",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:23:24.269Z",
+  "output": "指定の検索・取得コマンドは、npm レジストリの名前解決エラー（`EAI_AGAIN`）で失敗しました。キャッシュもなく、依頼の有無は確認できませんでした。\n\nファイルは変更していません。`receiver-result` の保存も同じエラーで失敗しました。ネットワーク復旧後の再実行が必要です。\n",
+  "completedAt": "2026-10-04T12:25:11.014Z"
+}
+shared memory keys: task-context
+2026-10-04T21:25:12.399+09:00
+git diff -- README.md hello.py
+(差分なし)
+
+09-claude-to-codex-retry
+製品success=True / duration=51219ms
+{
+  "id": "sender",
+  "platform": "claude",
+  "role": "delegator",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:27:28.416Z",
+  "output": "承認が必要なコマンドとして止まっています。このコマンドの実行を承認していただけますか?(`npx ruflo@latest memory store --key \"handoff-09-claude-to-codex-retry\" --value \"...\" --namespace 09-claude-to-codex-retry`)\n",
+  "completedAt": "2026-10-04T12:27:45.948Z"
+}
+{
+  "id": "receiver",
+  "platform": "codex",
+  "role": "coder",
+  "status": "completed",
+  "memoryKeys": [],
+  "startedAt": "2026-10-04T12:27:46.806Z",
+  "output": "指定の検索・取得コマンドを実行しましたが、npm の `ENOTCACHED` エラーで失敗しました。引き継ぎ依頼の有無は確認できていません。\n\n`receiver-result` の保存も同じエラーで失敗しました。ファイルは変更していません。\n",
+  "completedAt": "2026-10-04T12:28:15.102Z"
+}
+shared memory keys: task-context
+2026-10-04T21:28:16.389+09:00
+git diff -- README.md hello.py
+(差分なし)
+
+結果: 両方向とも受け渡した先で指定の編集完了を確認できなかった。途中本文も製品APIには出なかった。
+製品のsuccess:trueは、共有メモリ保存・読出し・編集の成功を意味しなかった。
+補助記録: 09-handoff-diagnosis.txt、09-handoff-forward-memory.txt、09-handoff-forward-retry-memory.txt、各request JSON。

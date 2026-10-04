@@ -1,0 +1,14 @@
+2026-10-04T21:12:35.539017+09:00
+$ ss -ltnp sport = :5121
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      511        127.0.0.1:5121      0.0.0.0:*    users:(("MainThread",pid=340475,fd=21))
+
+$ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5121/
+404
+
+$ curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:5121/health
+200
+
+$ curl -sS http://127.0.0.1:5121/health
+{"status":"ok","timestamp":"2026-10-04T12:12:35.558Z","connections":0}
+Web UI のビルドは2回とも失敗。/ は Web 画面ではなく 404。

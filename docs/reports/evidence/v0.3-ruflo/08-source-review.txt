@@ -1,0 +1,362 @@
+確認した upstream commit: caf5078be6627c6496fa2497a63b72e80a0bcf14
+URL base: https://github.com/ruvnet/ruflo/blob/caf5078be6627c6496fa2497a63b72e80a0bcf14/
+
+v3/@claude-flow/codex/src/dual-mode/orchestrator.ts
+206:     const command = config.platform === 'claude' ? this.config.claudeCommand : this.config.codexCommand;
+207:
+208:     // Build the prompt with memory integration
+209:     const enhancedPrompt = this.buildCollaborativePrompt(config);
+210:
+211:     // Each platform has its own non-interactive entry point and flag set:
+212:     //   Claude Code:  claude -p <prompt> --output-format text [--max-turns N] [--model M]
+213:     //   OpenAI Codex: codex exec --sandbox workspace-write --skip-git-repo-check [-m M] <prompt>
+214:     // (`codex exec` runs autonomously; PROMPT is a positional arg and must come last.)
+215:     let args: string[];
+216:     if (config.platform === 'claude') {
+217:       args = ['-p', enhancedPrompt, '--output-format', 'text'];
+218:       if (config.maxTurns) {
+219:         args.push('--max-turns', String(config.maxTurns));
+220:       }
+221:       if (config.model) {
+222:         args.push('--model', config.model);
+223:       }
+224:     } else {
+225:       args = ['exec', '--sandbox',
+226:         config.readOnly ? 'read-only' : 'workspace-write',
+227:         '--skip-git-repo-check',
+228:       ];
+229:       if (config.model) {
+230:         args.push('-m', config.model);
+231:       }
+232:       args.push(enhancedPrompt);
+233:     }
+234:
+235:     return new Promise((resolve, reject) => {
+236:       let output = '';
+237:       let errorOutput = '';
+238:
+239:       const proc = spawn(command, args, {
+240:         cwd: config.worktreePath ? path.resolve(config.worktreePath) : projectPath,
+241:         env: this.workerEnvironment(config),
+242:         stdio: ['pipe', 'pipe', 'pipe'],
+243:       });
+244:
+245:       // #2947: both platforms receive their prompt positionally/via flag
+246:       // (never over stdin), but the pipe is left open. `claude -p` ignores
+247:       // an open stdin, so this was invisible in practice — `codex exec`
+248:       // instead blocks in resolve_root_prompt waiting for stdin EOF that
+249:       // never comes, hanging every real Codex worker until the orchestrator's
+250:       // own timeout kills it.
+251:       proc.stdin?.end();
+252:
+253:       this.processes.set(config.id, proc);
+254:
+255:       proc.stdout?.on('data', (data) => {
+256:         if (output.length < maxOutputBytes) output += data.toString().slice(0, maxOutputBytes - output.length);
+257:       });
+258:
+259:       proc.stderr?.on('data', (data) => {
+260:         if (errorOutput.length < maxOutputBytes) errorOutput += data.toString().slice(0, maxOutputBytes - errorOutput.length);
+261:       });
+262:
+263:       const timer = setTimeout(() => {
+264:         proc.kill('SIGTERM');
+265:         reject(new Error(`Worker ${config.id} timed out after ${timeout}ms`));
+266:       }, timeout);
+267:
+268:       proc.on('close', (code) => {
+269:         clearTimeout(timer);
+270:         this.processes.delete(config.id);
+271:
+272:         if (code === 0) {
+273:           resolve(output || errorOutput);
+274:         } else {
+275:           reject(new Error(`Worker ${config.id} exited with code ${code}: ${errorOutput}`));
+276:         }
+277:       });
+278:
+279:       proc.on('error', (err) => {
+280:         clearTimeout(timer);
+281:         this.processes.delete(config.id);
+291:     const { sharedNamespace, projectPath } = this.config;
+292:
+293:     return `You are a ${config.role.toUpperCase()} agent in a collaborative dual-mode swarm.
+294: Platform: ${config.platform === 'claude' ? 'Claude Code' : 'OpenAI Codex'}
+295: Working Directory: ${config.worktreePath ? path.resolve(config.worktreePath) : projectPath}
+296: Shared Memory Namespace: ${sharedNamespace}
+297:
+298: COLLABORATION PROTOCOL:
+299: 1. Search shared memory for context: npx ruflo@latest memory search --query "<relevant terms>" --namespace ${sharedNamespace}
+300: 2. Complete your assigned task
+301: 3. Store your results: npx ruflo@latest memory store --key "${config.id}-result" --value "<your summary>" --namespace ${sharedNamespace}
+302:
+303: YOUR TASK:
+304: ${config.prompt}
+305:
+306: Remember: Other agents depend on your results in shared memory. Be concise and store actionable outputs.`;
+307:   }
+308:
+331:
+332:   /**
+333:    * Run a swarm of collaborative workers
+334:    */
+335:   async runCollaboration(workers: WorkerConfig[], taskContext: string): Promise<CollaborationResult> {
+336:     const startTime = Date.now();
+337:     const errors: string[] = [];
+338:
+339:     // Initialize shared memory
+340:     await this.initializeSharedMemory(taskContext);
+341:
+342:     // Group workers by dependency level
+343:     const levels = this.buildDependencyLevels(workers);
+344:
+345:     // Execute each level with a hard concurrency cap.
+346:     let cancelled = false;
+347:     collaboration: for (const level of levels) {
+348:       for (const batch of this.partitionLevel(level)) {
+349:         await Promise.all(batch.map(async (worker) => {
+350:           const failedDependency = worker.dependsOn?.find((id) => this.workers.get(id)?.status !== 'completed');
+351:           if (failedDependency) {
+352:             this.workers.set(worker.id, {
+353:               id: worker.id,
+354:               platform: worker.platform,
+355:               role: worker.role,
+356:               status: 'skipped',
+357:               error: `dependency failed: ${failedDependency}`,
+358:             });
+359:             errors.push(`${worker.id}: dependency failed: ${failedDependency}`);
+360:             return;
+361:           }
+362:           await this.spawnWorker(worker).catch(err => {
+363:             errors.push(`${worker.id}: ${err.message}`);
+364:           });
+365:           const result = this.workers.get(worker.id);
+366:           if (result?.status === 'failed') errors.push(`${worker.id}: ${result.error}`);
+367:         }));
+368:         if (this.config.dependencyFailure === 'cancel'
+369:           && batch.some((worker) => this.workers.get(worker.id)?.status === 'failed')) {
+370:           cancelled = true;
+371:           break collaboration;
+372:         }
+373:       }
+374:     }
+375:     if (cancelled) {
+376:       for (const worker of workers) {
+377:         if (this.workers.has(worker.id)) continue;
+378:         this.workers.set(worker.id, {
+379:           id: worker.id,
+380:           platform: worker.platform,
+381:           role: worker.role,
+382:           status: 'skipped',
+383:           error: 'collaboration cancelled after worker failure',
+384:         });
+385:       }
+386:     }
+387:
+388:     // Collect shared memory results
+389:     const sharedMemory = await this.collectSharedMemory();
+390:
+665:    */
+666:   stopAll(): void {
+667:     for (const [id, proc] of this.processes) {
+668:       proc.kill('SIGTERM');
+669:       this.emit('worker:stopped', { id });
+670:     }
+671:     this.processes.clear();
+672:   }
+
+v3/@claude-flow/codex/src/dual-mode/cli.ts
+89:
+90:       orchestrator.on('worker:started', ({ id, role, platform }) => {
+91:         const icon = platform === 'claude' ? '🔵' : '🟢';
+92:         console.log(chalk.blue(`${icon} [${platform}] ${role} (${id}) started`));
+93:       });
+94:
+95:       orchestrator.on('worker:completed', ({ id }) => {
+96:         console.log(chalk.green(`✓ Worker ${id} completed`));
+97:       });
+98:
+99:       orchestrator.on('worker:failed', ({ id, error }) => {
+100:         console.log(chalk.red(`✗ Worker ${id} failed: ${error}`));
+101:       });
+102:
+103:       let workers: WorkerConfig[];
+104:       let taskContext: string;
+105:
+106:       const workerSpecs: string[] = (options.worker as string[] | undefined) ?? [];
+327:   console.log(chalk.bold('Worker Summary:'));
+328:   for (const worker of result.workers) {
+329:     const status = worker.status === 'completed' ? chalk.green('✓') :
+330:                    worker.status === 'failed' ? chalk.red('✗') :
+331:                    chalk.yellow('○');
+332:     const duration = worker.startedAt && worker.completedAt
+333:       ? `${((worker.completedAt.getTime() - worker.startedAt.getTime()) / 1000).toFixed(1)}s`
+334:       : '-';
+335:     const icon = worker.platform === 'claude' ? '🔵' : '🟢';
+336:
+337:     console.log(`  ${status} ${icon} ${worker.id} (${worker.role}): ${duration}`);
+338:   }
+339:
+340:   if (result.errors.length > 0) {
+341:     console.log();
+342:     console.log(chalk.red.bold('Errors:'));
+343:     for (const error of result.errors) {
+344:       console.log(chalk.red(`  • ${error}`));
+345:     }
+346:   }
+347:
+348:   console.log();
+349:   console.log(chalk.gray('View shared memory: npx ruflo@latest memory list --namespace collaboration'));
+350: }
+
+v3/@claude-flow/cli/src/services/headless-worker-executor.ts
+1389:       // #2661 root-fix — structured usage telemetry. `--output-format json`
+1390:       // wraps the response in an envelope carrying `result` (the actual
+1391:       // text — what `output` must still contain, unchanged for every
+1392:       // existing downstream parser) alongside `usage`/cost/duration
+1393:       // metadata. Parsing is lenient (parseClaudePrintJsonEnvelope below)
+1394:       // and ALWAYS falls back to the raw text on any mismatch — a schema
+1395:       // surprise from an older/newer `claude` CLI must degrade to exactly
+1396:       // today's behavior (no usage captured), never break analysis output.
+1397:       const child = spawn('claude', ['--print', '--output-format', 'json'], {
+1398:         cwd: this.projectRoot,
+1399:         env,
+1400:         stdio: ['pipe', 'pipe', 'pipe'],
+1401:         windowsHide: true, // Prevent phantom console windows on Windows
+1402:         detached: process.platform !== 'win32',
+1403:       });
+1404:       try {
+1405:         child.stdin?.end(prompt);
+1406:       } catch {
+1407:         // stdin already closed (e.g. spawn failed) — `error` handler below
+
+ruflo/src/ruvocal/mcp-bridge/index.js
+95:   // --- Claude Code ---
+96:   "claude-code": {
+97:     enabled: process.env.MCP_GROUP_CLAUDE_CODE === "true",
+98:     description: "Anthropic Claude Code — file editing, bash execution, code analysis (requires ANTHROPIC_API_KEY)",
+99:     source: "claude",
+100:   },
+101:
+102:   // --- Gemini MCP ---
+103:   gemini: {
+104:     enabled: process.env.MCP_GROUP_GEMINI === "true",
+105:     description: "Google Gemini conversation context, multimodal capabilities (requires GOOGLE_API_KEY)",
+106:     source: "gemini-mcp",
+107:   },
+108:
+109:   // --- OpenAI Codex ---
+110:   codex: {
+111:     enabled: process.env.MCP_GROUP_CODEX === "true",
+112:     description: "OpenAI Codex coding agent — code generation and execution (requires OPENAI_API_KEY)",
+113:     source: "codex",
+114:   },
+259: const BACKEND_DEFS = [
+260:   { name: "ruvector",       command: "npx", args: ["-y", "ruvector", "mcp", "start"],   groups: ["intelligence"] },
+261:   { name: "ruflo",          command: "npx", args: ["-y", "ruflo", "mcp", "start"],      groups: ["agents", "memory", "devtools", "security", "browser", "neural"] },
+262:   { name: "agentic-flow",   command: "npx", args: ["-y", "agentic-flow@alpha", "mcp", "start"], groups: ["agentic-flow"] },
+263:   { name: "claude",         command: "claude", args: ["mcp", "serve"],                  groups: ["claude-code"] },
+264:   { name: "gemini-mcp",     command: "npx", args: ["-y", "gemini-mcp-server"],          groups: ["gemini"] },
+265:   { name: "codex",          command: "npx", args: ["-y", "@openai/codex", "mcp-server"], groups: ["codex"] },
+266: ];
+1241: const PROVIDER_ROUTES = {
+1242:   openai: { baseURL: "https://api.openai.com/v1/chat/completions", getKey: () => process.env.OPENAI_API_KEY },
+1243:   gemini: { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", getKey: () => process.env.GOOGLE_API_KEY },
+1244:   openrouter: { baseURL: "https://openrouter.ai/api/v1/chat/completions", getKey: () => process.env.OPENROUTER_API_KEY },
+1245: };
+1246:
+1814:
+1815: app.post("/chat/completions", async (req, res) => {
+1816:   const model = req.body?.model;
+1817:   const providerName = resolveProvider(model);
+1818:   const provider = PROVIDER_ROUTES[providerName];
+1819:   const apiKey = provider.getKey();
+1820:
+1821:   if (!apiKey) return res.status(401).json({ error: { message: `No API key for provider: ${providerName}` } });
+1822:
+1903:
+1904: const KNOWN_MODELS = [
+1905:   "gemini-2.5-pro", "gemini-2.5-flash",
+1906:   "gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini",
+1907:   "o3-mini", "o1-mini",
+1908: ];
+1909:
+1910: app.get("/models", (_, res) => {
+1911:   res.json({ object: "list", data: KNOWN_MODELS.map(id => ({
+1912:     id,
+1913:     object: "model",
+1914:     owned_by: "system",
+1915:     providers: [{ supports_tools: true }],
+1916:   })) });
+1917: });
+
+ruflo/src/ruvocal/src/lib/server/models.ts
+297: const buildModels = async (): Promise<ProcessedModel[]> => {
+298: 	if (!openaiBaseUrl) {
+299: 		logger.error(
+300: 			"OPENAI_BASE_URL is required. Set it to an OpenAI-compatible base (e.g., https://router.huggingface.co/v1)."
+301: 		);
+302: 		throw new Error("OPENAI_BASE_URL not set");
+303: 	}
+304:
+305: 	try {
+306: 		const baseURL = openaiBaseUrl;
+307: 		logger.info({ baseURL }, "[models] Using OpenAI-compatible base URL");
+308:
+309: 		// Canonical auth token is OPENAI_API_KEY; keep HF_TOKEN as legacy alias
+310: 		const authToken = config.OPENAI_API_KEY || config.HF_TOKEN;
+311:
+312: 		// Use auth token from the start if available to avoid rate limiting issues
+313: 		// Some APIs rate-limit unauthenticated requests more aggressively
+314: 		const response = await fetch(`${baseURL}/models`, {
+315: 			headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+316: 		});
+317: 		logger.info({ status: response.status }, "[models] First fetch status");
+
+ruflo/src/ruvocal/README.md
+31:
+32: ```bash
+33: git clone https://github.com/ruvnet/ruflo
+34: cd ruflo/ruflo/src/ruvocal
+35: cp .env .env.local        # then edit .env.local — see below
+36: npm install
+37: npm run dev               # → http://localhost:5173
+38: ```
+39:
+40: Minimum `.env.local` to use OpenRouter (matches the hosted setup):
+41:
+42: ```env
+43: OPENAI_BASE_URL=https://openrouter.ai/api/v1
+44: OPENAI_API_KEY=sk-or-v1-...
+45:
+46: # Curated RuFlo model list (optional — defaults to /models from the base URL)
+47: TASK_MODEL=qwen/qwen3.6-max-preview
+48: PUBLIC_APP_NAME=RuFlo
+49: PUBLIC_APP_DESCRIPTION="Intelligent workflow automation assistant powered by Claude/Gemini/Qwen and MCP tools."
+50: ```
+51:
+52: Any OpenAI-compatible endpoint works (vLLM, Ollama, LM Studio, llama.cpp, Together, Groq, self-hosted, …):
+53:
+54: | Provider | `OPENAI_BASE_URL` | Key |
+55: | --- | --- | --- |
+56: | OpenRouter | `https://openrouter.ai/api/v1` | `sk-or-v1-...` |
+57: | Hugging Face router | `https://router.huggingface.co/v1` | `hf_xxx` |
+58: | llama.cpp server | `http://127.0.0.1:8080/v1` | any string |
+59: | Ollama (OAI bridge) | `http://127.0.0.1:11434/v1` | `ollama` |
+60: | Poe | `https://api.poe.com/v1` | `pk_...` |
+61:
+62: ### Docker (with embedded MongoDB)
+63:
+64: ```bash
+65: docker build -t ruvocal --build-arg INCLUDE_DB=true .
+66: docker run -p 3000:3000 \
+67:   -e OPENAI_BASE_URL=https://openrouter.ai/api/v1 \
+68:   -e OPENAI_API_KEY=sk-or-v1-... \
+69:   -v ruvocal-data:/data \
+70:   ruvocal
+71: ```
+72:
+73: ### Google Cloud Run (production-style)
+74:
+75: `cloudbuild.yaml` does a multi-stage build with `INCLUDE_DB=true`, pushes to Artifact Registry, and deploys to Cloud Run. Hosted demo at `flo.ruv.io` runs from this exact pipeline. See [`cloudbuild.yaml`](./cloudbuild.yaml) and the deploy notes in [ADR-033](../../docs/adr/ADR-033-RUVOCAL-WASM-MCP-INTEGRATION.md).
+76:

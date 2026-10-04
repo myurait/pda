@@ -1,0 +1,45 @@
+製品の公開API DualModeOrchestrator.stopAll() による停止。
+T2 と同じ依頼を再送し、worker:started の3秒後に停止。本文の途中出力は製品APIから出ず、本文表示後という条件は満たせない。
+停止要求 2026-10-04T12:14:38.907Z / 子プロセスclose後のイベント 2026-10-04T12:14:39.445Z / 所要 0.538 秒。
+[2026-10-04T21:14:32.374+09:00] COMMAND ["/home/user/v03/ruflo/run-env", "node", "/home/user/v03/ruflo/api-client.mjs", "/home/user/v03/ruflo/03-claude-stop.json"]
+[2026-10-04T21:14:34.993+09:00] {"event":"memory:initialized","time":"2026-10-04T12:14:34.992Z","data":{"namespace":"03-claude-stop","taskContext":"hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。"}}
+[2026-10-04T21:14:35.903+09:00] {"event":"worker:started","time":"2026-10-04T12:14:35.903Z","data":{"id":"coder","role":"coder","platform":"claude"}}
+[2026-10-04T21:14:38.907+09:00] {"event":"stopAll:called","time":"2026-10-04T12:14:38.907Z"}
+[2026-10-04T21:14:38.907+09:00] {"event":"worker:stopped","time":"2026-10-04T12:14:38.907Z","data":{"id":"coder"}}
+[2026-10-04T21:14:39.445+09:00] {"event":"worker:failed","time":"2026-10-04T12:14:39.445Z","data":{"id":"coder","error":"Worker coder exited with code 143: "}}
+[2026-10-04T21:14:40.791+09:00] {"event":"collaboration:result","time":"2026-10-04T12:14:40.791Z","result":{"success":false,"workers":[{"id":"coder","platform":"claude","role":"coder","status":"failed","memoryKeys":[],"startedAt":"2026-10-04T12:14:35.903Z","error":"Worker coder exited with code 143: ","completedAt":"2026-10-04T12:14:39.445Z"}],"sharedMemory":[{"id":"entry_1791116074753_","key":"task-context","namespace":"03-claude-stop","size":84,"accessCount":0,"createdAt":1791116074753,"updatedAt":1791116074753,"hasEmbedding":true,"provenanceType":"unknown"}],"totalDuration":8341,"errors":["coder: Worker coder exited with code 143: "]}}
+[2026-10-04T21:14:40.797+09:00] EXIT=0 elapsed_seconds=8.423
+
+プロセス観測（対象の試用CLIと子孫のみ、ps -eo pid,ppid,etime,args --forest）:
+2026-10-04T21:14:32.388+09:00
+ 341900  341896       00:00          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+2026-10-04T21:14:33.404+09:00
+ 341900  341896       00:01          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 341909  341900       00:00          |   \_ npm exec ruflo@latest memory init
+ 341921  341909       00:00          |       \_ sh -c "ruflo" memory init
+ 341922  341921       00:00          |           \_ node /home/user/v03/agent-home/.npm/_npx/2ed56890c96f58f7/node_modules/.bin/ruflo memory init
+2026-10-04T21:14:34.419+09:00
+ 341900  341896       00:02      |   \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 341932  341900       00:00      |   |   \_ npm exec ruflo@latest memory store --key task-context --value hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。 --namespace 03-claude-stop
+ 341959  341932       00:00      |   |       \_ sh -c "ruflo" memory store --key task-context --value 'hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。' --namespace 03-claude-stop
+ 341960  341959       00:00      |   |           \_ node /home/user/v03/agent-home/.npm/_npx/2ed56890c96f58f7/node_modules/.bin/ruflo memory store --key task-context --value hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。 --namespace 03-claude-stop
+2026-10-04T21:14:35.509+09:00
+ 341900  341896       00:03          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342018  341900       00:00          |   \_ npm exec ruflo@latest policy evaluate {"identity":{"id":"agent:coder","type":"agent","roles":["coder"]},"action":{"type":"swarm.worker.spawn","resource":"/home/user/v03/work/ruflo/scratch","tool":"claude","concurrency":1,"network":false,"destructive":false},"context":{"metadata":{"childCapabilityEnvelope":{"actions":["*"],"resources":["*"],"tools":["*"],"maxConcurrency":1,"network":false,"destructive":false,"delegationDepth":0,"expiresAt":1791116194994}}}}
+2026-10-04T21:14:36.669+09:00
+ 341900  341896       00:04          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342075  341900       00:00          |   \_ claude -p You are a CODER agent in a collaborative dual-mode swarm. Platform: Claude Code Working Directory: /home/user/v03/work/ruflo/scratch Shared Memory Namespace: 03-claude-stop  COLLABORATION PROTOCOL: 1. Search shared memory for context: npx ruflo@latest memory search --query "<relevant terms>" --namespace 03-claude-stop 2. Complete your assigned task 3. Store your results: npx ruflo@latest memory store --key "coder-result" --value "<your summary>" --namespace 03-claude-stop  YOUR TASK: hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。  Remember: Other agents depend on your results in shared memory. Be concise and store actionable outputs. --output-format text
+2026-10-04T21:14:37.687+09:00
+ 341900  341896       00:05          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342075  341900       00:01          |   \_ claude -p You are a CODER agent in a collaborative dual-mode swarm. Platform: Claude Code Working Directory: /home/user/v03/work/ruflo/scratch Shared Memory Namespace: 03-claude-stop  COLLABORATION PROTOCOL: 1. Search shared memory for context: npx ruflo@latest memory search --query "<relevant terms>" --namespace 03-claude-stop 2. Complete your assigned task 3. Store your results: npx ruflo@latest memory store --key "coder-result" --value "<your summary>" --namespace 03-claude-stop  YOUR TASK: hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。  Remember: Other agents depend on your results in shared memory. Be concise and store actionable outputs. --output-format text
+2026-10-04T21:14:38.705+09:00
+ 341900  341896       00:06          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342075  341900       00:02          |   \_ claude -p You are a CODER agent in a collaborative dual-mode swarm. Platform: Claude Code Working Directory: /home/user/v03/work/ruflo/scratch Shared Memory Namespace: 03-claude-stop  COLLABORATION PROTOCOL: 1. Search shared memory for context: npx ruflo@latest memory search --query "<relevant terms>" --namespace 03-claude-stop 2. Complete your assigned task 3. Store your results: npx ruflo@latest memory store --key "coder-result" --value "<your summary>" --namespace 03-claude-stop  YOUR TASK: hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。  Remember: Other agents depend on your results in shared memory. Be concise and store actionable outputs. --output-format text
+2026-10-04T21:14:39.709+09:00
+ 341900  341896       00:07          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342121  341900       00:00          |   \_ npm exec ruflo@latest memory list --namespace 03-claude-stop --format json
+2026-10-04T21:14:40.725+09:00
+ 341900  341896       00:08          \_ node /home/user/v03/ruflo/api-client.mjs /home/user/v03/ruflo/03-claude-stop.json
+ 342121  341900       00:01          |   \_ npm exec ruflo@latest memory list --namespace 03-claude-stop --format json
+ 342134  342121       00:00          |       \_ sh -c "ruflo" memory list --namespace 03-claude-stop --format json
+ 342135  342134       00:00          |           \_ node /home/user/v03/agent-home/.npm/_npx/2ed56890c96f58f7/node_modules/.bin/ruflo memory list --namespace 03-claude-stop --format json

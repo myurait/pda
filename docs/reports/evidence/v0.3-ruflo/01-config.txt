@@ -1,0 +1,31 @@
+Scratch の設定（ユーザーの認証設定は編集せず）
+[swarm.automation]
+enabled = true
+max_concurrent = 1
+max_writers = 1
+worktree_isolation = false
+agent_timeout_seconds = 120
+max_output_bytes = 1048576
+dependency_failure = "cancel"
+
+試用用APIクライアント。製品の公開 export ./dual-mode を呼び出し、イベントと返値を出力する。製品ソースは変更しない。T9再試行のtimeoutはrequest JSONの180000msを使用。
+import { DualModeOrchestrator } from './runtime/node_modules/@claude-flow/cli/node_modules/@claude-flow/codex/dist/dual-mode/index.js';
+import { readFileSync } from 'node:fs';
+const cfg = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+const orchestrator = new DualModeOrchestrator({projectPath:'/home/user/v03/work/ruflo/scratch',maxConcurrent:1,maxWriters:1,worktreeIsolation:false,timeout:cfg.timeoutMs ?? 120000,maxOutputBytes:1048576,policyPreflight:true,sharedNamespace:cfg.namespace});
+for (const event of ['memory:initialized','worker:started','worker:completed','worker:failed','worker:stopped','worker:output']) {
+  orchestrator.on(event, data => console.log(JSON.stringify({event,time:new Date().toISOString(),data})));
+}
+let stopping=false;
+if(cfg.stopAfterStartedMs!==undefined){
+  orchestrator.on('worker:started',()=>{
+    if(stopping)return;
+    stopping=true;
+    setTimeout(()=>{
+      console.log(JSON.stringify({event:'stopAll:called',time:new Date().toISOString()}));
+      orchestrator.stopAll();
+    },cfg.stopAfterStartedMs);
+  });
+}
+const result = await orchestrator.runCollaboration(cfg.workers,cfg.taskContext);
+console.log(JSON.stringify({event:'collaboration:result',time:new Date().toISOString(),result}));

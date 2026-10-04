@@ -1,0 +1,69 @@
+証拠採取用の呼出し・時刻付与・ps観測スクリプト。製品コードではない。T2〜T9初回の観測上限は240秒、T9再試行は500秒。上限到達による強制停止は発生しなかった。
+from pathlib import Path
+import subprocess, sys, time, datetime, json, select, os, signal, re
+root=Path('/home/user/v03/ruflo')
+evidence=Path('/home/user/pda-v03a/docs/reports/evidence/v0.3-ruflo')
+cwd='/home/user/v03/work/ruflo/scratch'
+case=sys.argv[1]
+platform=sys.argv[2]
+cli=root/'runtime/node_modules/@claude-flow/cli/node_modules/@claude-flow/codex/dist/cli.js'
+prompt='hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。'
+args=[str(root/'run-env'),'node',str(cli),'dual','run','--worker',f'{platform}:coder:{prompt}','--task',prompt,'--namespace',case,'--max-concurrent','1','--timeout','120000']
+if len(sys.argv)>3 and sys.argv[3]=='api':
+    args=[str(root/'run-env'),'node',str(root/'api-client.mjs'),str(root/f'{case}.json')]
+elif len(sys.argv)>3:
+    args=[str(root/'run-env'),'node',str(cli),'dual','run','--config',sys.argv[3],'--namespace',case,'--max-concurrent','1','--timeout','120000']
+if case.startswith('09-') and case.endswith('-retry'):
+    args=[args[0],'env','npm_config_offline=true']+args[1:]
+stamp=lambda:datetime.datetime.now().astimezone().isoformat(timespec='milliseconds')
+log=(evidence/f'{case}-stream.txt').open('w')
+def emit(s):
+    line=f'[{stamp()}] {s}\n';log.write(line);log.flush();print(line,end='',flush=True)
+emit('COMMAND '+json.dumps(args,ensure_ascii=False))
+p=subprocess.Popen(args,cwd=cwd,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+(root/f'{case}.pid').write_text(str(p.pid))
+start=time.monotonic();lastps=0;lastres=0;buffer=b'';seen=set()
+while True:
+    now=time.monotonic()
+    if now-lastps>=1:
+        lastps=now
+        raw=subprocess.run(['ps','-eo','pid,ppid,etime,args','--forest'],capture_output=True,text=True).stdout
+        rows=[]
+        for line in raw.splitlines()[1:]:
+            vals=line.split(None,3)
+            if len(vals)==4 and vals[0].isdigit() and vals[1].isdigit():rows.append((int(vals[0]),int(vals[1]),line))
+        descendants={p.pid}
+        for _ in range(10):
+            descendants.update(pid for pid,ppid,_ in rows if ppid in descendants)
+        relevant=[line for pid,_,line in rows if pid in descendants]
+        if relevant:
+            with (root/'logs'/f'{case}-processes.txt').open('a') as f:f.write(stamp()+'\n'+'\n'.join(relevant)+'\n')
+        agentpids={pid for pid,_,line in rows if pid in descendants and re.search(r'(?: /home/[^ ]*/(?:claude|codex)(?: |$)|(?:\\_| ) claude(?: |$)|(?:\\_| ) codex(?: |$))',line)}
+        if agentpids-seen:
+            seen|=agentpids
+            target=evidence/f'06-ps-{platform}.txt'
+            if case.startswith(('02-','04-')):
+                with target.open('a') as f:f.write(f'[{stamp()}] ps -eo pid,ppid,etime,args --forest (試用CLIと子孫のみ)\n'+'\n'.join(line for line in relevant if 'node /home/user/v03/ruflo/api-client.mjs' in line or '\\_ claude -p ' in line or '\\_ codex exec ' in line or '/dist/cli.js dual run' in line)+'\n')
+        if case.startswith('02-') and now-lastres>=5 and relevant:
+            lastres=now
+            rss=subprocess.run(['ps','-o','pid,ppid,rss,etime,args','-p',','.join(map(str,descendants))],capture_output=True,text=True).stdout
+            with (evidence/'07-resources.txt').open('a') as f:f.write(f'[{stamp()}] RSS KiB\n{rss}\n')
+    ready,_,_=select.select([p.stdout],[],[],0.25)
+    if ready:
+        chunk=os.read(p.stdout.fileno(),65536)
+        if chunk:
+            buffer+=chunk
+            while b'\n' in buffer:
+                line,buffer=buffer.split(b'\n',1);emit(line.decode(errors='replace'))
+        elif p.poll() is not None:break
+    if now-start>500:
+        emit('観測上限500秒。製品の実行完了を確認できず、試用プロセス群を清掃する。')
+        os.killpg(p.pid,signal.SIGTERM);time.sleep(1)
+        if p.poll() is None:os.killpg(p.pid,signal.SIGKILL)
+        break
+if buffer:emit(buffer.decode(errors='replace'))
+emit(f'EXIT={p.wait()} elapsed_seconds={time.monotonic()-start:.3f}')
+log.close()
+diff=subprocess.run(['git','diff','--','README.md','hello.py'],cwd=cwd,capture_output=True,text=True).stdout
+(evidence/f'{case}-result.txt').write_text(stamp()+'\ngit diff -- README.md hello.py\n'+(diff or '(差分なし)\n'))
+(root/'logs'/f'{case}-summary.json').write_text(json.dumps({'returncode':p.returncode,'seconds':time.monotonic()-start,'seen_agent_pids':sorted(seen)}))

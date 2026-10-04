@@ -1,0 +1,104 @@
+2026-10-04T21:28:39.396589+09:00
+$ systemctl --user stop v03-ruflo.service
+
+exit=0
+
+$ systemctl --user status v03-ruflo.service --no-pager
+○ v03-ruflo.service - PDA v0.3 Ruflo MCP HTTP trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-ruflo.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 04 21:11:25 agent-node run-env[340475]: | Port       | 5121       |
+Oct 04 21:11:25 agent-node run-env[340475]: | Tools      | 27 enabled |
+Oct 04 21:11:25 agent-node run-env[340475]: | Status     | Running    |
+Oct 04 21:11:25 agent-node run-env[340475]: +------------+------------+
+Oct 04 21:11:25 agent-node run-env[340475]: [OK] MCP Server started
+Oct 04 21:11:25 agent-node run-env[340475]:   Health: http://127.0.0.1:5121/health
+Oct 04 21:11:25 agent-node run-env[340475]:   RPC: http://127.0.0.1:5121/rpc
+Oct 04 21:11:25 agent-node run-env[340475]: Press Ctrl+C to stop the server
+Oct 04 21:28:39 agent-node systemd[1274]: Stopping v03-ruflo.service - PDA v0.3 Ruflo MCP HTTP trial...
+Oct 04 21:28:39 agent-node systemd[1274]: Stopped v03-ruflo.service - PDA v0.3 Ruflo MCP HTTP trial.
+
+exit=3
+
+$ systemctl --user is-active v03-ruflo.service
+inactive
+
+exit=3
+
+$ ss -ltnp sport = :5121
+State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+
+exit=0
+
+$ docker ps -a --filter label=com.docker.compose.project=v03-ruflo --format {{.Names}} {{.Status}}
+
+exit=0
+
+$ tmux list-sessions -F #{session_name}
+no server running on /tmp/tmux-1000/default
+
+exit=1
+
+$ /home/user/v03/ruflo/run-env /home/user/.local/bin/claude mcp list
+Checking MCP server health…
+
+claude.ai Claude Docs: https://api.anthropic.com/v1/pages/mcp - ✔ Connected
+
+exit=0
+
+$ /home/user/v03/ruflo/run-env /home/user/.local/bin/codex mcp list
+No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.
+
+exit=0
+
+設定ファイルは内容を読まず、開始前後のstatのみ比較。
+/home/user/v03/agent-home/.claude/settings.json: baseline=True, unchanged_size_mtime=True
+/home/user/v03/agent-home/.codex/config.toml: baseline=True, unchanged_size_mtime=True
+この走行開始後に生成されたClaudeのbackupをメタデータで特定して削除。認証本体と設定本体は対象外。
+削除前 ls -l相当: -rw------- 1000:1000 81896 2026-10-04T21:12:21.113017+09:00 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791115941113
+削除確認 exists=False: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791115941113
+削除前 ls -l相当: -rw------- 1000:1000 81029 2026-10-04T21:13:49.300383+09:00 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116029301
+削除確認 exists=False: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116029301
+削除前 ls -l相当: -rw------- 1000:1000 81029 2026-10-04T21:20:05.893502+09:00 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116405894
+削除確認 exists=False: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116405894
+削除前 ls -l相当: -rw------- 1000:1000 81029 2026-10-04T21:23:10.413635+09:00 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116590414
+削除確認 exists=False: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116590414
+削除前 ls -l相当: -rw------- 1000:1000 81029 2026-10-04T21:27:08.894895+09:00 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116828895
+削除確認 exists=False: /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791116828895
+削除前メタデータ: -rw-rw-r-- 114 /home/user/v03/agent-home/.claude-flow/update-state.json
+この走行で新規作成された .claude-flow/update-state.json と空ディレクトリを削除。exists=False
+保持: ~/v03/ruflo の導入物・設定・ログ、scratch、npmの取得キャッシュ。compose down は実行しない。試用Dockerコンテナは作成されなかった。
+$ git -C /home/user/v03/ruflo/source diff --exit-code
+
+exit=0
+
+$ systemctl --user list-units --state=active --no-pager v03-*.service
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+
+exit=0
+
+$ docker ps --format {{.Names}} {{.Status}} {{.Ports}}
+pda-otel-collector-1 Up 11 days 4317-4318/tcp, 55679/tcp
+pda-openobserve-1 Up 11 days 0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+
+exit=0
+
+試用cwdのClaude/Codex/Node/npm残存: [[347361, 1, "MainThread", "/home/user/v03/work/ruflo/scratch"]]
+
+作業場所の逸脱と回収: T9共有メモリの最終読み戻しコマンド1回で作業ディレクトリ指定を落とし、報告リポジトリ直下に製品が ruvector.db を作成した。エージェントの作業場所は常にscratch。開始時に無かった未追跡ファイルであることと生成時刻を確認し、内容を読まず削除。
+削除前: -rw-rw-r-- 1589248 2026-10-04T21:28:39.333725+09:00 /home/user/pda-v03a/ruvector.db
+削除確認 exists=False
+
+残存PID347361は試用中に起動された製品daemon（PPID=1、daemon start --foreground --quiet --workspace /home/user/v03/work/ruflo/scratch）。
+scratch を cwd とし /home/user/v03/ruflo/run-env /home/user/v03/ruflo/runtime/node_modules/.bin/ruflo daemon stop を実行。出力は Worker daemon stopped。
+2026-10-04T21:30:36.745738+09:00
+    PID    PPID   RSS COMMAND
+ps exit=1
+daemon stopが再生成した .claude-flow/update-state.json を削除。
+
+最終生存確認 2026-10-04T21:31:39.468293+09:00
+試用cwdのClaude/Codex/Node/npm残存: []
+共有HOMEの追加 .claude-flow 存在: False

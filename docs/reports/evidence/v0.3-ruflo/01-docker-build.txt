@@ -1,0 +1,25 @@
+#17 [base  7/15] RUN apt-get update
+#17 CACHED
+
+#18 [base 10/15] COPY --chown=1000 .env /app/.env
+#18 ERROR: failed to calculate checksum of ref gevwr56jvo8iixt6twrssnz7w::jj550vxlsxlefrmxc6u0gf1s1: "/.env": not found
+
+#19 [mongo 1/1] FROM docker.io/library/mongo:7@sha256:1f995ad6fdb93244a1addab1b58f934a0bc2f5643c38e02f5e9d7f0c7d227a7b
+#19 resolve docker.io/library/mongo:7@sha256:1f995ad6fdb93244a1addab1b58f934a0bc2f5643c38e02f5e9d7f0c7d227a7b 0.1s done
+#19 CANCELED
+
+#20 [builder 1/6] FROM docker.io/library/node:24@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4
+#20 resolve docker.io/library/node:24@sha256:64af3819f9275802414d7cdc38c27e9d82bd564dec4d4da87d008255d36c63b4 0.1s done
+#20 CANCELED
+------
+ > [base 10/15] COPY --chown=1000 .env /app/.env:
+------
+Dockerfile:32
+--------------------
+  30 |
+  31 |
+  32 | >>> COPY --chown=1000 .env /app/.env
+  33 |     # Remove empty placeholder values that block .env.local overrides via dotenv-cli -c
+  34 |     RUN sed -i 's/^MODELS=$/# MODELS=/' /app/.env && \
+--------------------
+ERROR: failed to build: failed to solve: failed to compute cache key: failed to calculate checksum of ref gevwr56jvo8iixt6twrssnz7w::jj550vxlsxlefrmxc6u0gf1s1: "/.env": not found

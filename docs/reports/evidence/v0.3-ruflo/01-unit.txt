@@ -1,0 +1,45 @@
+2026-10-04T21:12:35.528732+09:00
+$ systemctl --user status v03-ruflo.service --no-pager
+● v03-ruflo.service - PDA v0.3 Ruflo MCP HTTP trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-ruflo.service; disabled; preset: enabled)
+     Active: active (running) since Sun 2026-10-04 21:11:25 JST; 1min 10s ago
+   Main PID: 340475 (MainThread)
+      Tasks: 11 (limit: 15004)
+     Memory: 56.8M (peak: 57.5M)
+        CPU: 433ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-ruflo.service
+             └─340475 node /home/user/v03/ruflo/runtime/node_modules/.bin/ruflo mcp start --transport http --host 127.0.0.1 --port 5121
+
+Oct 04 21:11:25 agent-node run-env[340475]: | Transport  | http       |
+Oct 04 21:11:25 agent-node run-env[340475]: | Host       | 127.0.0.1  |
+Oct 04 21:11:25 agent-node run-env[340475]: | Port       | 5121       |
+Oct 04 21:11:25 agent-node run-env[340475]: | Tools      | 27 enabled |
+Oct 04 21:11:25 agent-node run-env[340475]: | Status     | Running    |
+Oct 04 21:11:25 agent-node run-env[340475]: +------------+------------+
+Oct 04 21:11:25 agent-node run-env[340475]: [OK] MCP Server started
+Oct 04 21:11:25 agent-node run-env[340475]:   Health: http://127.0.0.1:5121/health
+Oct 04 21:11:25 agent-node run-env[340475]:   RPC: http://127.0.0.1:5121/rpc
+Oct 04 21:11:25 agent-node run-env[340475]: Press Ctrl+C to stop the server
+
+Unit file:
+[Unit]
+Description=PDA v0.3 Ruflo MCP HTTP trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/ruflo/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/home/user/v03/ruflo/runtime/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/user/v03/ruflo/run-env /home/user/v03/ruflo/runtime/node_modules/.bin/ruflo mcp start --transport http --host 127.0.0.1 --port 5121
+Restart=no
+TimeoutStartSec=90
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+
+ExecStart environment wrapper:
+#!/bin/sh
+exec env -i HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/home/user/v03/ruflo/runtime/node_modules/.bin:/usr/local/bin:/usr/bin:/bin TERM=xterm-256color LANG=C.UTF-8 npm_config_yes=true env -u CODEX_HOME "$@"

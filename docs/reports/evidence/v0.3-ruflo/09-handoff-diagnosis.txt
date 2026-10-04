@@ -1,0 +1,6 @@
+T9初回の原因確認:
+Codex sender の完了返答は保存したと述べたが、memory retrieve の実測では末尾「何をしているかを短く書きながら進めてください。」が欠落した61文字だった。
+Claude receiver の最後のプロセス観測はClaude本体のみ。120秒経過で製品timeoutが発火した。モデル内部の待ち理由は製品APIに公開されず特定できなかった。
+再試行では保存対象の末尾も含めて確認するようsenderに指示し、製品のtimeout設定を180秒、ClaudeのmaxTurnsを4にする。別の認証やAPIキーは使用しない。
+逆方向の初回senderは memory store の実行許可が得られず保存できないと返答。RufloのWorkerConfigとsettingsコマンドを確認し、Claude自身にはpermission-mode等があるが、この起動経路に渡す設定は見当たらなかった。
+両方向の再試行では製品を呼ぶ環境に npm_config_offline=true を追加し、既に取得済みの同版パッケージを使用する。T4で報告されたnpxの通信待ちを避ける設定。Claudeは製品が用意するmaxTurns=4、timeoutは180000ms。追加のpermission指定はしない。

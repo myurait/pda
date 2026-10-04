@@ -1,0 +1,49 @@
+#33 7.598 (!) /app/src/lib/server/models.ts is dynamically imported by /app/src/lib/server/api/utils/resolveModel.ts, /app/src/lib/server/router/endpoint.ts, /app/src/lib/server/textGeneration/mcp/routerResolution.ts, /app/src/routes/api/v2/debug/config/+server.ts, /app/src/routes/api/v2/models/+server.ts but also statically imported by /app/src/lib/server/generateFromDefaultEndpoint.ts, /app/src/lib/types/Settings.ts, /app/src/routes/api/models/+server.ts, /app/src/routes/api/v2/conversations/[id]/+server.ts, /app/src/routes/api/v2/models/refresh/+server.ts, /app/src/routes/api/v2/user/settings/+server.ts, /app/src/routes/conversation/+server.ts, /app/src/routes/conversation/[id]/+server.ts, /app/src/routes/conversation/[id]/message/[messageId]/prompt/+server.ts, /app/src/routes/models/[...model]/thumbnail.png/+server.ts, dynamic import will not move module into another chunk.
+#33 7.598
+#33 8.636 {"level":"error","time":1791115784343,"pid":21,"hostname":"buildkitsandbox","message":"OPENAI_BASE_URL is required. Set it to an OpenAI-compatible base (e.g., https://router.huggingface.co/v1)."}
+#33 8.637
+#33 8.637 node:internal/event_target:1128
+#33 8.637   process.nextTick(() => { throw err; });
+#33 8.637                            ^
+#33 8.638 Error: OPENAI_BASE_URL not set
+#33 8.638     at buildModels (file:///app/.svelte-kit/output/server/chunks/models.js:1251:11)
+#33 8.638     at rebuildModels (file:///app/.svelte-kit/output/server/chunks/models.js:1402:27)
+#33 8.638     at file:///app/.svelte-kit/output/server/chunks/models.js:1405:7
+#33 8.638     at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+#33 8.638     at async node:internal/modules/esm/loader:647:26
+#33 8.638     at async analyse (file:///app/node_modules/@sveltejs/kit/src/core/postbuild/analyse.js:109:62)
+#33 8.637   process.nextTick(() => { throw err; });
+#33 8.637                            ^
+#33 8.638 Error: OPENAI_BASE_URL not set
+#33 8.638     at buildModels (file:///app/.svelte-kit/output/server/chunks/models.js:1251:11)
+#33 8.638     at rebuildModels (file:///app/.svelte-kit/output/server/chunks/models.js:1402:27)
+#33 8.638     at file:///app/.svelte-kit/output/server/chunks/models.js:1405:7
+#33 8.638     at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+#33 8.638     at async node:internal/modules/esm/loader:647:26
+#33 8.638     at async analyse (file:///app/node_modules/@sveltejs/kit/src/core/postbuild/analyse.js:109:62)
+#33 8.638     at async MessagePort.<anonymous> (file:///app/node_modules/@sveltejs/kit/src/utils/fork.js:23:16)
+#33 8.638
+#33 8.638 Node.js v24.21.0
+#33 8.827 npm notice
+#33 8.827 npm notice New major version of npm available! 11.19.0 -> 12.2.0
+------
+ > [builder 6/6] RUN git config --global --add safe.directory /app &&     npm run build:
+8.638     at async node:internal/modules/esm/loader:647:26
+8.638     at async analyse (file:///app/node_modules/@sveltejs/kit/src/core/postbuild/analyse.js:109:62)
+8.638     at async MessagePort.<anonymous> (file:///app/node_modules/@sveltejs/kit/src/utils/fork.js:23:16)
+8.638
+8.638 Node.js v24.21.0
+8.827 npm notice
+8.827 npm notice New major version of npm available! 11.19.0 -> 12.2.0
+8.827 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+8.827 npm notice To update run: npm install -g npm@12.2.0
+8.827 npm notice
+------
+Dockerfile:58
+--------------------
+  57 |
+  58 | >>> RUN git config --global --add safe.directory /app && \
+  59 | >>>     npm run build
+  60 |
+--------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c git config --global --add safe.directory /app &&     npm run build" did not complete successfully: exit code: 1
