@@ -1,0 +1,245 @@
+更新前: OpenClaw 2026.9.7 (c074824)
+公式 npm dist-tag latest: 2026.9.8; beta: 2026.10.1-beta.1 (使用しない)
+公式手順: https://docs.openclaw.ai/install/updating
+最新 release: https://github.com/openclaw/openclaw/releases/tag/v2026.9.8
+既存 prefix を維持し、独自 unit は systemctl --user で操作する。
+
+$ env -u CODEX_HOME -u OPENAI_API_KEY -u CODEX_API_KEY -u ANTHROPIC_API_KEY -u CLAUDE_CODE_OAUTH_TOKEN HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin npm install -g --prefix /home/user/v03/openclaw openclaw@2026.9.8 --allow-scripts=openclaw
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+
+changed 353 packages in 23s
+
+112 packages are looking for funding
+  run `npm fund` for details
+npm warn allow-scripts 4 packages have install scripts not yet covered by allowScripts:
+npm warn allow-scripts   @google/genai@2.23.0 (preinstall: echo 'preinstall: no-op')
+npm warn allow-scripts   esbuild@0.28.2 (postinstall: node install.js)
+npm warn allow-scripts   koffi@3.3.1 (install: node ./cnoke.cjs -P . -D src/koffi --prebuild --release)
+npm warn allow-scripts   protobufjs@7.6.6 (postinstall: node scripts/postinstall)
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+
+[install exit=0]
+$ oc --version
+OpenClaw 2026.9.8 (fc23bc8)
+$ oc config validate
+Config valid: /home/user/v03/openclaw/openclaw.json
+$ oc doctor --non-interactive --no-workspace-suggestions
+[exit=0; 以下は出力の要点]
+- Refreshed stale configured plugin "codex" from @openclaw/codex@2026.9.8.
+- Plugin "codex" data/settings upgrade is unfinished: The installed plugin has not confirmed that its saved data and settings are ready for this version. If Doctor cannot finish the upgrade, report this warning to the plugin maintainer. Your existing data and settings have been kept. Run "openclaw doctor --fix" to retry the upgrade.
+- Doctor changes preview: agents.defaults.models / agents.entries.claude.model の legacy runtime refs を canonical provider refs に移行し、claude-cli runtime を選ぶ。
+- Custom Codex app-server command bypasses OpenClaw's managed exact-version binary.
+- No default agent / command owner. Gateway loopback。OAuth dir not present; skipping create.
+- Legacy session bindings: 3. Run openclaw doctor --fix.
+- service management skipped: non-default state dir or config path
+- Health check failed: GatewayTransportError: Gateway not reachable at ws://127.0.0.1:5114 (ECONNREFUSED). (試用前の停止中)
+- memory search: no API key. API キーは追加しない。
+
+$ oc doctor --fix --non-interactive --no-workspace-suggestions
+┌  OpenClaw doctor
+[config] warnings: plugins.entries.codex: Plugin "codex" settings cannot be checked until its data/settings upgrade finishes. Your existing settings have been kept. Run "openclaw update status" for repair details.
+│
+◇  Doctor warnings ───────────────────────────────────────────────────────╮
+│                                                                         │
+│  - Plugin "codex" data/settings upgrade is unfinished: The installed    │
+│    plugin has not confirmed that its saved data and settings are ready  │
+│    for this version. If Doctor cannot finish the upgrade, report this   │
+│    warning to the plugin maintainer. Your existing data and settings    │
+│    have been kept. Run "openclaw doctor --fix" to retry the upgrade.    │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor warnings ──────────────────────────────────────────────────────╮
+│                                                                        │
+│  - Custom Codex app-server command bypasses OpenClaw's managed         │
+│    exact-version binary.-                                              │
+│    plugins.entries.codex.config.appServer.command: Doctor did not      │
+│    execute, inspect, or rewrite this command.- Remove the override to  │
+│    use managed Codex startup, or verify the custom binary matches the  │
+│    Codex version bundled with this OpenClaw release.                   │
+│                                                                        │
+├────────────────────────────────────────────────────────────────────────╯
+│
+◇  Agent ownership ───────────────────────────────────────────────────────╮
+│                                                                         │
+│  No default agent is designated. Set a configured agent with "openclaw  │
+│  config set agents.defaults.systemAgent.agentId <id>".                  │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor changes ─────────────────────────────────────────────────────────╮
+│                                                                          │
+│  Moved agents.defaults.models legacy runtime keys to canonical provider  │
+│  keys.                                                                   │
+│  Moved agents.entries.claude.model legacy runtime primary refs to        │
+│  canonical provider refs and selected claude-cli runtime.                │
+│  Selected claude-cli runtime for agents.entries.claude.models entries.   │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor changes ─────────────────────────────────────────────────────╮
+│                                                                      │
+│  openai/gpt-6-astra model configured, enabled automatically.         │
+│  anthropic/claude-sonnet-5 model configured, enabled automatically.  │
+│                                                                      │
+├──────────────────────────────────────────────────────────────────────╯
+Updated config: /home/user/v03/openclaw/openclaw.json
+  Backup: /home/user/v03/openclaw/openclaw.json.bak
+[warning] core/doctor/node-hosting-preconditions gateway.bind - Gateway is only bound to loopback. Set gateway.publicOrigin to your public HTTPS origin, configure plugins.entries.device-pair.config.publicUrl, enable tailscale serve, or set gateway.bind=lan.
+  fix: If an edge proxy fronts node onboarding, allow /j/* and /__openclaw__/worker without edge identity auth, and preserve WebSocket upgrade on /__openclaw__/worker. Both routes enforce their own credentials.
+│
+◇  Command owner ──────────────────────────────────────────────────────────╮
+│                                                                          │
+│  No command owner is configured.                                         │
+│  A command owner is your trusted human operator account, allowed to      │
+│  update OpenClaw with /update, restart the Gateway, change               │
+│  configuration, and approve commands. Chat allowlists do not grant this  │
+│  authority.                                                              │
+│  Run openclaw channels add and complete a channel's setup to choose      │
+│  your operator account, including servers and groups without DM          │
+│  pairing.                                                                │
+│  CLI pairing approval records the first command owner. Control UI        │
+│  pairing approval has a separate owner checkbox.                         │
+│  Fix: set commands.ownerAllowFrom to your channel user id, for example   │
+│  openclaw config set commands.ownerAllowFrom '["telegram:123456789"]'    │
+│  Restart the gateway after changing this if it is already running.       │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────╯
+[state/agent-db] agent database integrity gate
+[state/agent-db] agent database integrity gate
+[state-migrations] Deferred state migration completed for plugin "codex".
+│
+◇  Session titles ────────────────────────────────────────────────────────╮
+│                                                                         │
+│  - Repaired 6 of 6 missing session title(s) without changing activity.  │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+│
+◇  Plugin registry ───────────────────────────────────────────╮
+│                                                             │
+│  Plugin registry refreshed: 42/65 enabled plugins indexed.  │
+│                                                             │
+├─────────────────────────────────────────────────────────────╯
+│
+◇  Legacy plugin captures ────────────────────────────────╮
+│                                                         │
+│  Removed 2 unreferenced native plugin capture root(s).  │
+│                                                         │
+├─────────────────────────────────────────────────────────╯
+│
+◇  State integrity ────────────────────────────────────────────────────────╮
+│                                                                          │
+│  - OAuth dir not present (/home/user/v03/openclaw/state/credentials).    │
+│    Skipping create because no WhatsApp/pairing channel config is         │
+│    active.                                                               │
+│  - Found stale Anthropic session routing state in 1 session outside the  │
+│    current configured model/runtime route.                               │
+│    This can keep later message-channel runs pinned to an old             │
+│    runtime/provider after defaults move elsewhere.                       │
+│    Examples: agent:claude:subagent:3b784ec0-c1f6-4a30-a6c1-913417e42414  │
+│    (auto model override)                                                 │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor changes ─────────────────────────────────────────────────╮
+│                                                                  │
+│  - Cleared stale Anthropic session routing state for 1 session.  │
+│                                                                  │
+├──────────────────────────────────────────────────────────────────╯
+│
+◇  Backups ─────────────────────────────────────────────────────────────╮
+│                                                                       │
+│  No successful backup is recorded.                                    │
+│  Create one now with openclaw backup create.                          │
+│  Schedule versioned backups with openclaw backup enable --repository  │
+│  <dir>.                                                               │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────╯
+│
+◇  Doctor changes ────────────────────────────────────────────────────────╮
+│                                                                         │
+│  Repaired legacy bindings or retired model routes in 3 sessions across  │
+│  1 store while preserving auth-profile pins.                            │
+│                                                                         │
+├─────────────────────────────────────────────────────────────────────────╯
+│
+◇  Host desktop ────────────────────────────────────────────────────╮
+│                                                                   │
+│  disabled; enable the Desktop lab with desktop.host.enabled=true  │
+│                                                                   │
+├───────────────────────────────────────────────────────────────────╯
+│
+◇  GitHub projects ────────────────────────────────────────────────────────╮
+│                                                                          │
+│  Prefer gateway.controlUi.github.token for Gateway-owned GitHub project  │
+│  access, or set GH_TOKEN/GITHUB_TOKEN in the shared Gateway process      │
+│  environment. Without either, search is public-only.                     │
+│                                                                          │
+├──────────────────────────────────────────────────────────────────────────╯
+│
+◇  Gateway ─────────────────────────────────────────────╮
+│                                                       │
+│  Gateway health will be checked after Doctor repair.  │
+│                                                       │
+├───────────────────────────────────────────────────────╯
+│
+◇  Memory search ────────────────────────────────────────────────────────╮
+│                                                                        │
+│  Agent "claude": Memory search provider is set to "openai" but no API  │
+│  key was found.                                                        │
+│  Semantic recall will not work without a valid API key.                │
+│                                                                        │
+│                                                                        │
+│  Fix (pick one):                                                       │
+│  - Set OPENAI_API_KEY in your environment                              │
+│  - Configure credentials: openclaw configure --section model           │
+│  - To disable: openclaw config set memory.search.enabled false         │
+│                                                                        │
+│  Verify: openclaw memory status --deep                                 │
+│                                                                        │
+├────────────────────────────────────────────────────────────────────────╯
+│
+◇  Memory search ───────────────────────────────────────────────────────╮
+│                                                                       │
+│  Agent "codex": Memory search provider is set to "openai" but no API  │
+│  key was found.                                                       │
+│  Semantic recall will not work without a valid API key.               │
+│                                                                       │
+│                                                                       │
+│  Fix (pick one):                                                      │
+│  - Set OPENAI_API_KEY in your environment                             │
+│  - Configure credentials: openclaw configure --section model          │
+│  - To disable: openclaw config set memory.search.enabled false        │
+│                                                                       │
+│  Verify: openclaw memory status --deep                                │
+│                                                                       │
+├───────────────────────────────────────────────────────────────────────╯
+│
+└  Doctor complete.
+
+
+[doctor --fix exit=0]
+
+$ /home/user/v03/openclaw/oc --version
+OpenClaw 2026.9.8 (fc23bc8)
+[exit=0]
+
+$ /home/user/v03/openclaw/oc config validate
+Config valid: /home/user/v03/openclaw/openclaw.json
+[exit=0]
+
+$ systemctl --user start v03-openclaw.service
+[exit=0]
+
+Package metadata /home/user/v03/openclaw/lib/node_modules/openclaw/package.json
+{"name": "openclaw", "version": "2026.9.8", "dependencies": {"@agentclientprotocol/sdk": "1.4.0", "@anthropic-ai/sdk": "0.127.0", "@babel/generator": "8.0.6", "@babel/parser": "8.0.6", "@babel/traverse": "8.0.6", "@clack/core": "1.5.1", "@clack/prompts": "1.8.1", "@earendil-works/pi-tui": "0.86.1", "@google/genai": "2.23.0", "@grammyjs/transformer-throttler": "1.2.1", "@homebridge/ciao": "1.3.12", "@lydell/node-pty": "1.2.0-beta.15", "@mistralai/mistralai": "2.7.0", "@modelcontextprotocol/sdk": "1.30.0", "@mozilla/readability": "0.6.0", "@openclaw/ai": "2026.9.8", "@openclaw/fs-safe": "0.21.1", "@openclaw/proxyline": "0.3.12", "@silvia-odwyer/photon-node": "0.3.4", "@trycua/cua-driver": "0.28.2", "acorn": "8.18.0", "chalk": "6.0.0", "chokidar": "5.0.0", "chrome-devtools-mcp": "1.9.0", "clawpdf": "0.3.2", "commander": "15.0.0", "croner": "10.0.1", "diff": "9.0.0", "dotenv": "18.0.1", "entities": "8.1.0", "esbuild": "0.28.2", "execa": "10.0.1", "express": "5.2.1", "file-type": "22.1.1", "grammy": "1.46.0", "highlight.js": "11.12.0", "hosted-git-info": "10.1.1", "iconv-lite": "0.7.3", "ignore": "7.0.9", "import-meta-resolve": "4.2.0", "jiti": "2.7.0", "json5": "2.2.3", "jszip": "3.10.2", "koffi": "3.3.1", "kysely": "0.29.6", "linkedom": "0.18.13", "minimatch": "10.2.6", "node-edge-tts": "1.2.10", "npm": "11.20.0", "openai": "7.20.0", "p-limit": "7.3.3", "p-map": "7.0.8", "partial-json": "0.1.7", "playwright-core": "1.63.0", "qrcode": "1.5.4", "rastermill": "0.3.3", "semver": "7.8.5", "tar": "7.5.22", "tslog": "5.2.0", "typebox": "1.3.34", "undici": "8.10.2", "web-push": "3.6.7", "web-tree-sitter": "0.27.0", "ws": "8.21.3", "yaml": "2.9.1", "zod": "4.6.5"}}
+
+Package metadata /home/user/v03/openclaw/lib/node_modules/openclaw/dist/extensions/anthropic/package.json
+{"name": "@openclaw/anthropic-provider", "version": "2026.9.8", "dependencies": null}
+
+Package metadata /home/user/v03/openclaw/state/npm/projects/openclaw-codex-8902d781d4__openclaw-generation__g-8b0d230c729a2812/node_modules/@openclaw/codex/package.json
+{"name": "@openclaw/codex", "version": "2026.9.8", "dependencies": {"@openai/codex": "0.158.0", "@openclaw/fs-safe": "0.21.1", "semver": "7.8.5", "smol-toml": "1.8.0", "typebox": "1.3.34", "ws": "8.21.3", "zod": "4.6.5"}}
+
+Installed native CLI dependency metadata: /home/user/v03/openclaw/state/npm/projects/openclaw-codex-8902d781d4__openclaw-generation__g-8b0d230c729a2812/node_modules/@openai/codex/package.json
+{"name": "@openai/codex", "version": "0.158.0"}

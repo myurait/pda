@@ -1,0 +1,48 @@
+採取 UTC: 2026-10-07T22:03:16.474953+00:00
+$ systemctl --user status v03-openclaw.service --no-pager --full
+● v03-openclaw.service - PDA v0.3 OpenClaw trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-08 07:03:01 JST; 14s ago
+   Main PID: 384489 (openclaw-gatewa)
+      Tasks: 35 (limit: 15004)
+     Memory: 1007.0M (peak: 1007.1M)
+        CPU: 21.521s
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-openclaw.service
+             ├─384489 openclaw-gateway
+             ├─384633 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+             ├─384641 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+             └─384792 claude auth status --json
+
+Oct 08 07:03:10 agent-node openclaw[384489]: 2026-10-08T07:03:10.593+09:00 [session-sqlite] reclamation worker retired reason=exclusive-handoff kind=canonical-validation ageMs=557 opsServed=2
+Oct 08 07:03:11 agent-node openclaw[384489]: 2026-10-08T07:03:11.126+09:00 [session-sqlite] reclamation worker retired reason=exclusive-handoff kind=canonical-validation ageMs=558 opsServed=2
+Oct 08 07:03:11 agent-node openclaw[384489]: 2026-10-08T07:03:11.312+09:00 [gateway] starting HTTP server...
+Oct 08 07:03:11 agent-node openclaw[384489]: 2026-10-08T07:03:11.421+09:00 [health-monitor] started (interval: 300s, startup-grace: 60s, channel-connect-grace: 120s)
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.294+09:00 [gateway] agent model: openai/gpt-6-astra (thinking=medium, fast=off)
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.294+09:00 [gateway] http server listening (15 plugins: anthropic, browser, canvas, codex, cua-computer, device-pair, file-transfer, geolocation, github, linux-node, memory-core, ollama, openai, talk-voice, xai; 7.6s)
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.295+09:00 [gateway] log file: /tmp/openclaw/openclaw-2026-10-08.log
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.295+09:00 [gateway] native runtime: {"pid":384489,"platform":"linux","arch":"x64","node":"24.18.0","v8":"13.6.233.17-node.50","uv":"1.52.1","openssl":"3.5.7","sqlite":"3.53.1"}
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.295+09:00 [gateway] worker startup state: {"workerCount":6,"workerLifecycle":[{"script":"other","started":1,"retired":[{"reason":"exit","count":1}]},{"script":"sqlite-store.worker.js","started":1,"retired":[]},{"script":"openclaw-state-lease-heartbeat.worker.js","started":1,"retired":[]},{"script":"openclaw-state-read.worker.js","started":2,"retired":[]},{"script":"session-accessor.sqlite-archive.worker.js","started":2,"retired":[{"reason":"closed","count":2}]},{"script":"session-transcript.worker.js","started":2,"retired":[]}],"compute":{"limit":11,"active":0,"waitingPools":0,"pendingTasks":0,"pendingBytes":0}}
+Oct 08 07:03:16 agent-node openclaw[384489]: 2026-10-08T07:03:16.359+09:00 [gateway] starting channels and sidecars...
+[exit=0]
+$ systemctl --user cat v03-openclaw.service
+# /home/user/.config/systemd/user/v03-openclaw.service
+[Unit]
+Description=PDA v0.3 OpenClaw trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/work/openclaw/scratch
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=OPENCLAW_STATE_DIR=/home/user/v03/openclaw/state
+Environment=OPENCLAW_CONFIG_PATH=/home/user/v03/openclaw/openclaw.json
+ExecStart=/home/user/v03/openclaw/bin/openclaw gateway run --port 5114 --bind loopback
+Restart=no
+TimeoutStopSec=30
+KillMode=control-group
+
+[Install]
+WantedBy=default.target
+[exit=0]

@@ -1,0 +1,25 @@
+
+ATTEMPT 1 2026-10-07T22:04:16.567Z
+$ git -C /home/user/v03/work/openclaw/scratch diff -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..10e04c2 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python -c "from hello import greet; print(greet('World'))"`
+diff --git a/hello.py b/hello.py
+index 11b15b1..8e72c00 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    return f"Hello, {name}!"
++
++
+ print("hello")
+
+検証側の確認: command -v python
+[exit=1]
+CLI 内の確認コマンドは python3（stream 証拠参照）。README の python は変更せず記録した。

@@ -1,0 +1,46 @@
+2026-10-07T22:07:22.852335+00:00
+$ systemctl --user stop v03-openclaw.service
+[exit=0]
+
+$ systemctl --user status v03-openclaw.service --no-pager --full
+○ v03-openclaw.service - PDA v0.3 OpenClaw trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)
+     Active: inactive (dead)
+
+Oct 08 07:07:22 agent-node openclaw[384489]: 2026-10-08T07:07:22.869+09:00 [admission] closed: stop (SIGTERM)
+Oct 08 07:07:22 agent-node openclaw[384489]: 2026-10-08T07:07:22.869+09:00 [gateway] received SIGTERM; shutting down
+Oct 08 07:07:22 agent-node openclaw[384489]: 2026-10-08T07:07:22.902+09:00 [gateway] shutdown budget at shutdown: drain=14965ms shutdown=24965ms reserve=10000ms exitMargin=5000ms; source=systemd user v03-openclaw.service TimeoutStopUSec=30000ms
+Oct 08 07:07:22 agent-node openclaw[384489]: 2026-10-08T07:07:22.904+09:00 [gateway] active-work drain settled; beginning server close
+Oct 08 07:07:22 agent-node openclaw[384489]: 2026-10-08T07:07:22.928+09:00 [gmail-watcher] gmail watcher stopped
+Oct 08 07:07:23 agent-node openclaw[384489]: 2026-10-08T07:07:23.061+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=240755 opsServed=3
+Oct 08 07:07:23 agent-node openclaw[384489]: 2026-10-08T07:07:23.062+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=124782 opsServed=1
+Oct 08 07:07:23 agent-node openclaw[384489]: 2026-10-08T07:07:23.146+09:00 [shutdown] completed cleanly in 239ms
+Oct 08 07:07:23 agent-node systemd[1274]: Stopped v03-openclaw.service - PDA v0.3 OpenClaw trial.
+Oct 08 07:07:23 agent-node systemd[1274]: v03-openclaw.service: Consumed 1min 13.552s CPU time, 2.1G memory peak, 0B memory swap peak.
+[exit=3]
+
+$ systemctl --user show v03-openclaw.service -p ActiveState -p SubState -p MainPID -p Result
+MainPID=0
+Result=success
+ActiveState=inactive
+SubState=dead
+[exit=0]
+
+$ tmux -L v03-openclaw-recheck list-sessions
+no server running on /tmp/tmux-1000/v03-openclaw-recheck
+[exit=1]
+
+$ docker ps --format {{.Names}} {{.Status}} {{.Ports}}
+pda-otel-collector-1 Up 2 weeks 4317-4318/tcp, 55679/tcp
+pda-openobserve-1 Up 2 weeks 0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+[exit=0]
+
+$ ss -ltnp (5114番のみ)
+(no listener)
+PID 384489 exists=False
+PID 384633 exists=False
+PID 384641 exists=False
+PID 385075 exists=False
+PID 385238 exists=False
+PID 385382 exists=False
+PID 385787 exists=False

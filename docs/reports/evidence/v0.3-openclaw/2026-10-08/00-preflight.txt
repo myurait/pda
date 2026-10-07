@@ -1,0 +1,75 @@
+$ date -Is
+2026-10-08T07:00:24+09:00
+[exit=0]
+
+$ git rev-parse HEAD
+3e388ec2f67525a6389845063130ef2aa3f29963
+[exit=0]
+
+$ systemctl --user list-units --all v03-*.service --no-pager
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+[exit=0]
+
+$ systemctl --user is-active v03-openclaw.service
+inactive
+[exit=3]
+
+$ /home/user/.local/bin/claude --version
+2.1.293 (Claude Code)
+[exit=0]
+
+$ /home/user/.local/bin/codex --version
+codex-cli 0.161.0
+[exit=0]
+
+$ /home/user/v03/openclaw/oc --version
+OpenClaw 2026.9.7 (c074824)
+[exit=0]
+
+$ node --version
+v24.18.0
+[exit=0]
+
+$ npm --version
+11.16.0
+[exit=0]
+
+$ npm view openclaw dist-tags --json
+{
+  "extended-stable": "2026.8.35",
+  "latest": "2026.9.8",
+  "beta": "2026.10.1-beta.1"
+}
+[exit=0]
+
+$ git -C /home/user/v03/work/openclaw/scratch status --short
+ M README.md
+ M hello.py
+?? __pycache__/
+[exit=0]
+
+$ git -C /home/user/v03/work/openclaw/scratch rev-list --max-parents=0 HEAD
+c2c680a68fa41598b377d449dadeadb898a6944c
+[exit=0]
+
+$ ls -ld /home/user/v03/agent-home/.claude /home/user/v03/agent-home/.codex
+lrwxrwxrwx 1 user user 29 Sep 28 20:14 /home/user/v03/agent-home/.claude -> /home/user/pda/secrets/claude
+lrwxrwxrwx 1 user user 28 Sep 28 20:14 /home/user/v03/agent-home/.codex -> /home/user/pda/secrets/codex
+[exit=0]
+
+$ docker ps --format {{.Names}} {{.Status}} {{.Ports}}
+pda-otel-collector-1 Up 2 weeks 4317-4318/tcp, 55679/tcp
+pda-openobserve-1 Up 2 weeks 0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+[exit=0]

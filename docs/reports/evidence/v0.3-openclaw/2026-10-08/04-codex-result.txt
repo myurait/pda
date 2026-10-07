@@ -1,0 +1,20 @@
+
+ATTEMPT 1 2026-10-07T22:05:50.913Z
+$ git -C /home/user/v03/work/openclaw/scratch diff -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..b045910 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'`（既存の `hello` に続いて `Hello, 太郎!` を表示します）。
+diff --git a/hello.py b/hello.py
+index 11b15b1..0794c69 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
++def greet(name):
++    print(f"Hello, {name}!")
++
++
+ print("hello")

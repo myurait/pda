@@ -1,0 +1,15 @@
+2026-10-07T22:03:16.505588+00:00
+$ ss -ltnp (5114 番のみ)
+LISTEN 0      511        127.0.0.1:5114       0.0.0.0:*    users:(("openclaw-gatewa",pid=384489,fd=78))
+LISTEN 0      511            [::1]:5114          [::]:*    users:(("openclaw-gatewa",pid=384489,fd=86))
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5114/
+200
+[exit=0]
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5114/readyz
+503
+[exit=0]
+
+起動処理完了後 UTC: 2026-10-07T22:03:44.557472+00:00
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5114/readyz
+200
+[exit=0]

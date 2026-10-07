@@ -1,0 +1,168 @@
+OpenClaw 2026.9.8 (fc23bc8) インストール済みの未改変コードを確認
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/cli-backend-Di-C7dFk.mjs
+116: 			}
+117: 		},
+118: 		subscriptionAuthDispatch: true,
+119: 		config: {
+120: 			command: "claude",
+121: 			args: [...CLAUDE_CLI_DEFAULT_ARGS],
+122: 			resumeArgs: [
+123: 				...CLAUDE_CLI_DEFAULT_ARGS,
+124: 				"--resume",
+125: 				"{sessionId}"
+126: 			],
+127: 			forkArg: "--fork-session",
+128: 			resumeAtArg: "--resume-session-at",
+129: 			output: "jsonl",
+130: 			liveSession: "claude-stdio",
+131: 			input: "stdin",
+132: 			modelArg: "--model",
+150: 		autoSelectAuthProfile: false,
+151: 		prepareExecution: (context) => {
+152: 			const prepare = () => {
+153: 				const credentialContext = context;
+154: 				const authInput = resolveClaudeCliAuthInput(credentialContext.authCredential);
+155: 				const isolatedCompletion = credentialContext.isolatedCompletionPrompt !== void 0;
+156: 				const cliExecution = !isolatedCompletion && context.executionMode === "agent" ? { async *execute(executionContext) {
+157: 					const { executeClaudeCli } = await import("./extensions/anthropic/cli.runtime.js");
+158: 					executionContext.assertCurrent?.();
+159: 					yield* executeClaudeCli(executionContext, authInput?.secretInput);
+160: 				} } : void 0;
+161: 				return {
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/cli-process-tHzwN0QT.mjs
+11: import { spawn } from "node:child_process";
+12: //#region extensions/anthropic/cli-process.ts
+13: const STDERR_CAPTURE_CHARS = 8192;
+14: const STDERR_DRAIN_GRACE_MS = 200;
+15: function spawnClaudeCliProcess(options, secretInput, observeStderr) {
+16: 	try {
+17: 		var _usingCtx$1 = _usingCtx();
+18: 		const stdio = [
+19: 			"pipe",
+20: 			"pipe",
+21: 			"pipe"
+22: 		];
+23: 		const secretDelivery = _usingCtx$1.u(prepareSecretInputStdio(stdio, secretInput));
+24: 		const child = spawn(options.command, options.args, {
+25: 			argv0: options.argv0,
+26: 			cwd: options.cwd,
+27: 			detached: process.platform !== "win32",
+28: 			env: options.env,
+29: 			signal: options.signal,
+30: 			stdio,
+31: 			windowsHide: true
+32: 		});
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/claude-cli-project-dir-CHOJm9KM.mjs
+5: //#region src/agents/command/claude-cli-project-dir.ts
+6: /**
+7: * Resolves Claude CLI project storage directories for OpenClaw workspaces.
+8: */
+9: const CLAUDE_PROJECTS_DIRNAME = path.join(".claude", "projects");
+10: const MAX_SANITIZED_PROJECT_LENGTH = 200;
+29: /** Resolves Claude CLI's per-workspace project directory. */
+30: function resolveClaudeCliProjectDirForWorkspace(params) {
+31: 	const homeDir = normalizeOptionalString(params.homeDir) || process.env.HOME || os.homedir();
+32: 	const canonicalWorkspaceDir = canonicalizeWorkspaceDir(params.workspaceDir);
+33: 	return path.join(homeDir, CLAUDE_PROJECTS_DIRNAME, sanitizeClaudeCliProjectKey(canonicalWorkspaceDir));
+34: }
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/attempt-execution.runtime-fpzJbrUc.mjs
+387: 			const prepareCliSessionBinding = async () => {
+388: 				const hasManagedClaudeLiveSession = Boolean(isClaudeCliProvider(cliExecutionProvider) && cliSessionBinding?.sessionId && hasCliLiveSession({
+389: 					backendId: cliExecutionProvider,
+390: 					agentAccountId: params.runContext.accountId,
+391: 					agentId: params.sessionAgentId,
+392: 					authProfileId: cliSessionBinding.authProfileId,
+393: 					sessionId: params.sessionId,
+394: 					sessionKey: params.sessionKey
+395: 				}));
+396: 				if (!isClaudeCliProvider(cliExecutionProvider) || !cliSessionBinding?.sessionId || hasManagedClaudeLiveSession || await claudeCliSessionTranscriptHasContent({
+397: 					sessionId: cliSessionBinding.sessionId,
+398: 					workspaceDir: cliProcessCwd
+399: 				})) return;
+400: 				log.warn(`cli session reset: provider=${sanitizeForLog(cliExecutionProvider)} reason=transcript-missing sessionKey=${params.sessionKey ?? params.sessionId}`);
+401: 				if (mutableCliSessionStore) params.sessionEntry = await clearCliSessionInStore({
+402: 					provider: cliExecutionProvider,
+403: 					...mutableCliSessionStore
+404: 				}) ?? params.sessionEntry;
+405: 			};
+406: 			const mediaTaskIdsBefore = getGeneratedMediaTaskIdsForSessionKey(params.sessionKey, params.sessionAgentId);
+407: 			const hasNewMediaTask = () => hasNewGeneratedMediaTaskForSessionKey(params.sessionKey, mediaTaskIdsBefore, params.sessionAgentId);
+
+cli-backend と cli-process の上記経路では node:child_process.spawn を呼ぶ。Agent SDK / ACP adapter の import はない。
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/extensions/anthropic/cli.runtime.js
+4: import "../../string-coerce-runtime-B1b8UNzb.mjs";
+5: import { t as hasClaudeRawToolInvocation } from "../../cli-output-Df35BmhW.mjs";
+6: import { t as prepareClaudeCliTransportArgs } from "../../cli-runtime-args-UumcGmHy.mjs";
+7: import { t as createClaudeCliTransport } from "../../cli-transport-CgOJLNk7.mjs";
+8: import { t as createClaudeCliUserInputAuthorizer } from "../../cli-user-input-BwBkXAs1.mjs";
+224: 		context.abortSignal?.throwIfAborted();
+225: 		capability?.activate(session.handle);
+226: 		if (!session.transport) {
+227: 			const { args, excludeDynamicSections } = prepareClaudeCliTransportArgs(context);
+228: 			session.transport = createClaudeCliTransport({
+229: 				context,
+230: 				args,
+231: 				secretInput,
+232: 				currentContext: () => session.currentTurn?.context,
+233: 				initialize: {
+234: 					appendSystemPrompt: context.systemPrompt,
+235: 					excludeDynamicSections,
+236: 					hooks: {
+237: 						UserPromptSubmit: [{ hookCallbackIds: ["UserPromptSubmit"] }],
+238: 						PreToolUse: [{ hookCallbackIds: ["PreToolUse"] }]
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/cli-transport-CgOJLNk7.mjs
+1: import { c as isRecord } from "./record-coerce-TIsquoVR.mjs";
+2: import { r as signalProcessTree } from "./kill-tree-BDAzGPyP.mjs";
+3: import "./string-coerce-runtime-B1b8UNzb.mjs";
+4: import "./process-runtime-DjF1i1Gt.mjs";
+5: import { a as createDeferred } from "./extension-shared-BW58_FN4.mjs";
+6: import { t as createClaudeCliProcessOwner } from "./cli-process-tHzwN0QT.mjs";
+7: import { randomUUID } from "node:crypto";
+8: //#region extensions/anthropic/cli-transport.ts
+9: const MAX_LINE_CHARS = 8388608;
+10: const CLOSE_GRACE_MS = 500;
+11: const KILL_GRACE_MS = 1e3;
+12: /** One Claude Code subprocess and its bidirectional stream-json control channel. */
+13: function createClaudeCliTransport(params) {
+14: 	const owner = createClaudeCliProcessOwner(params.currentContext, params.secretInput);
+15: 	let child;
+16: 	try {
+17: 		const env = { ...params.context.env };
+18: 		delete env.NODE_OPTIONS;
+19: 		delete env.DEBUG;
+20: 		child = owner.spawn({
+21: 			...params.context,
+22: 			args: params.args,
+23: 			env
+24: 		});
+25: 	} catch (error) {
+26: 		owner[Symbol.dispose]();
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/cli-runtime-args-UumcGmHy.mjs
+64: 	let approvedTools = [...new Set(allowedTools)];
+65: 	if (context.toolAvailability) {
+66: 		tools = [...context.toolAvailability.native];
+67: 		approvedTools = context.toolAvailability.openClaw.map((name) => `mcp__openclaw__${name}`).filter((name) => allowedTools.includes(name) || allowedTools.includes("mcp__openclaw__*"));
+68: 	}
+69: 	args.push("--print", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages", "--replay-user-messages", "--permission-prompt-tool", "stdio", "--permission-mode", "default", "--setting-sources", settingSources, "--model", context.modelId);
+70: 	if (tools) args.push("--tools", tools.join(","));
+71: 	if (approvedTools.length) args.push("--allowedTools", approvedTools.join(","));
+72: 	if (context.sessionId) args.push(context.useResume ? "--resume" : "--session-id", context.sessionId);
+73: 	return {
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/cli-transport-CgOJLNk7.mjs
+191: 		async initialize() {
+192: 			await send({
+193: 				type: "control_request",
+194: 				request_id: initializeId,
+195: 				request: {
+196: 					subtype: "initialize",
+197: 					...params.initialize
+198: 				}
+199: 			});

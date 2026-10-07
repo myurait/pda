@@ -1,0 +1,69 @@
+2026-10-07T22:13:39.385346+00:00
+PASS 以前の報告本文はバイト単位で一致 — 7e864efa3c3281aa3c62dd9b11206018acaddd122e9fd36131b4213147f69848
+PASS 第8節のみを末尾に追記
+PASS 報告の7項目は共通指示どおりの順序
+PASS T7/T8/T9 の試用節を追加していない
+PASS ブランチ名
+PASS main 起点
+PASS 要求された証拠ファイルが存在し空でない
+PASS T7/T8/T9 の採取ファイルなし
+PASS 02-claude-stream.txt JSONL と依頼回数
+PASS 02-claude-stream.txt 指定の依頼文
+PASS 02-claude-stream.txt 初期コミットへリセット済み
+PASS 02-claude-stream.txt 途中出力→終了の順序
+PASS 02-claude-stream.txt 終了状態
+PASS 02-claude-stream.txt 採取エラーなし
+PASS 02-claude-stream.txt active run なし
+PASS 03-claude-stop.txt JSONL と依頼回数
+PASS 03-claude-stop.txt 指定の依頼文
+PASS 03-claude-stop.txt 初期コミットへリセット済み
+PASS 03-claude-stop.txt 途中出力→終了の順序
+PASS 03-claude-stop.txt 終了状態
+PASS 03-claude-stop.txt 採取エラーなし
+PASS 03-claude-stop.txt active run なし
+PASS 03-claude-stop.txt 停止API成功
+PASS 03-claude-stop.txt killed
+PASS 03-claude-stop.txt 中断所要時間記録 — 0.012315774999999576 s
+PASS 04-codex-stream.txt JSONL と依頼回数
+PASS 04-codex-stream.txt 指定の依頼文
+PASS 04-codex-stream.txt 初期コミットへリセット済み
+PASS 04-codex-stream.txt 途中出力→終了の順序
+PASS 04-codex-stream.txt 終了状態
+PASS 04-codex-stream.txt 採取エラーなし
+PASS 04-codex-stream.txt active run なし
+PASS 05-codex-stop.txt JSONL と依頼回数
+PASS 05-codex-stop.txt 指定の依頼文
+PASS 05-codex-stop.txt 初期コミットへリセット済み
+PASS 05-codex-stop.txt 途中出力→終了の順序
+PASS 05-codex-stop.txt 終了状態
+PASS 05-codex-stop.txt 採取エラーなし
+PASS 05-codex-stop.txt active run なし
+PASS 05-codex-stop.txt 停止API成功
+PASS 05-codex-stop.txt killed
+PASS 05-codex-stop.txt 中断所要時間記録 — 0.0034596300000002884 s
+PASS 03-claude-stop.txt 同じセッションを再利用
+PASS 05-codex-stop.txt 同じセッションを再利用
+PASS claude の両ファイルの差分
+PASS claude T6 の PID/PPID/引数
+PASS codex の両ファイルの差分
+PASS codex T6 の PID/PPID/引数
+PASS T1 HTTP 200 と loopback 待受
+PASS 追加ログ確認の採取時点
+PASS Gateway の今回の全 journal に記録欠落の文言なし
+PASS 現在 unit 停止
+PASS 現在 5114 待受なし
+PASS 既知の子 PID が全て消滅
+PASS scratch clean
+PASS 今回の backup を削除済み
+PASS 試用用 tmux セッションなし
+PASS MCP 一覧一致
+PASS 追記した報告のローカル証拠リンク
+PASS リポジトリ変更は報告と今回の証拠のみ
+PASS git diff --check
+PASS 秘密値の候補（JSONフィールド・既知形式）なし — []
+保護対象ファイルの内容との照合はしない。秘密ファイルを開かず、証拠内の形式・フィールドを検査した。
+実機試用 T1〜T6、追加ログ採取、停止・清掃を完了。コミットと push の成否はこの検証の後に git の出力と remote ref で別途確認する。
+PASS git diff --cached --check — 00-preflight.txt の末尾の空行を1行除去して再確認。コマンド出力の内容は変更していない。
+コミット初回: exit=128, Author identity unknown / fatal: unable to auto-detect email address。
+原因: この作業ディレクトリの Git 作者情報が未設定。前回の同製品報告 587b04e の作者 Codex <codex@localhost> を確認した。
+再試行: git -c user.name=Codex -c user.email=codex@localhost commit。global/local 設定ファイルは編集せずコマンド単位で指定。
