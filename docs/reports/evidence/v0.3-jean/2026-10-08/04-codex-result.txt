@@ -1,0 +1,31 @@
+2026-10-07T22:37:21.818Z attempt 1
+$ git diff
+diff --git a/README.md b/README.md
+index af0f694..0f8aa8f 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,3 @@
+ # scratch
++
++使い方: `python3 -c 'from hello import greet; greet("Taro")'`
+diff --git a/hello.py b/hello.py
+index 11b15b1..f73ec22 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,5 @@
+ print("hello")
++
++
++def greet(name):
++    print(f"Hello, {name}!")
+
+$ git status --short
+ M README.md
+ M hello.py
+
+2026-10-07T22:37:53.614845+00:00
+$ python3 -B -c 'from hello import greet; result = greet("Jean"); print("return:", repr(result))'
+hello
+Hello, Jean!
+return: None
+exit=0

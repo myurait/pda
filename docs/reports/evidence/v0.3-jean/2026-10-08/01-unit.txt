@@ -1,0 +1,38 @@
+2026-10-07T22:35:14.572Z
+$ systemctl --user status v03-jean.service --no-pager --full
+● v03-jean.service - PDA v0.3 Jean trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-jean.service; disabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-08 07:35:14 JST; 301ms ago
+   Main PID: 397257 (jean-server-lin)
+      Tasks: 15 (limit: 15004)
+     Memory: 4.3M (peak: 69.3M)
+        CPU: 252ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-jean.service
+             └─397257 /home/user/v03/jean/bin/jean-server-linux-amd64 --host 127.0.0.1 --port 5115 --no-token
+
+Oct 08 07:35:14 agent-node systemd[1274]: Started v03-jean.service - PDA v0.3 Jean trial.
+Oct 08 07:35:14 agent-node jean-server-linux-amd64[397257]: Jean server listening on http://127.0.0.1:5115
+
+$ systemctl --user cat v03-jean.service
+# /home/user/.config/systemd/user/v03-jean.service
+[Unit]
+Description=PDA v0.3 Jean trial
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/jean
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=JEAN_DATA_DIR=/home/user/v03/jean/data
+Environment=JEAN_SERVER_SERVICE=v03-jean.service
+UnsetEnvironment=CODEX_HOME
+ExecStart=/home/user/v03/jean/bin/jean-server-linux-amd64 --host 127.0.0.1 --port 5115 --no-token
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

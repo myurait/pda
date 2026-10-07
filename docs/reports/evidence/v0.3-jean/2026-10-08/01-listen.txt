@@ -1,0 +1,13 @@
+2026-10-07T22:35:14.610Z
+$ ss -ltnp
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+LISTEN 0      128        127.0.0.1:5115       0.0.0.0:*    users:(("jean-server-lin",pid=397257,fd=10))
+$ curl -sS -o /dev/null -w %{http_code}\n http://127.0.0.1:5115/
+200
+
+$ curl -fsS http://127.0.0.1:5115/healthz
+{"ok":true}
+$ curl -fsS http://127.0.0.1:5115/readyz
+{"http":true,"ok":true,"websocket_broadcaster":true}
+$ curl -fsS http://127.0.0.1:5115/api/auth
+{"appVersion":"1.0.9","ok":true,"token_required":false,"webBuildId":"1.0.9-46bb4a5d6c12-2026-10-07T09:07:38.812Z"}

@@ -1,0 +1,140 @@
+2026-10-07T22:34:13.917804+00:00
+$ git status --short --branch
+## v0.3/recheck-jean
+?? docs/reports/evidence/v0.3-jean/2026-10-08/
+exit=0
+$ git rev-parse HEAD
+bc41de7ae9a4caa88ce1b221e97f676c1ff2b50a
+exit=0
+$ systemctl --user list-unit-files v03-*.service --no-pager
+UNIT FILE                     STATE    PRESET
+v03-cccc.service              enabled  enabled
+v03-cezar.service             enabled  enabled
+v03-claw-orchestrator.service disabled enabled
+v03-codexia.service           disabled enabled
+v03-ghostex.service           disabled enabled
+v03-happier.service           enabled  enabled
+v03-herdr-collie.service      disabled enabled
+v03-jean.service              disabled enabled
+v03-luvus.service             enabled  enabled
+v03-multica.service           enabled  enabled
+v03-openclaw.service          disabled enabled
+v03-orca.service              disabled enabled
+v03-pane.service              disabled enabled
+v03-ruflo.service             disabled enabled
+v03-superset.service          disabled enabled
+
+15 unit files listed.
+exit=0
+$ /home/user/.local/bin/claude --version
+2.1.293 (Claude Code)
+exit=0
+$ /home/user/.local/bin/codex --version
+codex-cli 0.161.0
+exit=0
+$ /home/user/v03/jean/bin/jean-server-linux-amd64 --version
+Jean 1.0.7
+exit=0
+$ git -C /home/user/v03/work/jean/scratch status --short
+ M README.md
+ M hello.py
+?? .ai/
+?? __pycache__/
+exit=0
+$ git -C /home/user/v03/work/jean/scratch rev-list --max-parents=0 HEAD
+58c920a5874f03585dc2b2dbbbd260bf110573c7
+exit=0
+$ systemctl --user show v03-cccc.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-cccc.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-cezar.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-cezar.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-claw-orchestrator.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-claw-orchestrator.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-codexia.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-codexia.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-ghostex.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-ghostex.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-happier.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-happier.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-herdr-collie.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-herdr-collie.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-jean.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-jean.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-luvus.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-luvus.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-multica.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-multica.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-openclaw.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-openclaw.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-orca.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-orca.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-pane.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-pane.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-ruflo.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-ruflo.service
+ActiveState=inactive
+SubState=dead
+exit=0
+$ systemctl --user show v03-superset.service -p Id,ActiveState,SubState,MainPID
+MainPID=0
+Id=v03-superset.service
+ActiveState=inactive
+SubState=dead
+exit=0
+Existing repository reused. Prior report records both CLI trust prompts accepted through tmux. No trust config hand edits.
+Metadata baseline stored outside report; authentication file contents were not read.
+2026-10-07T22:34:42.011Z MCP_BASELINE {"command":"codex mcp list","output":"No MCP servers configured yet. Try `codex mcp add my-tool -- my-command`.\n"}
+2026-10-07T22:34:43.842Z MCP_BASELINE {"command":"claude mcp list","output":"Checking MCP server health…\n\nclaude.ai Claude Docs: https://api.anthropic.com/v1/pages/mcp - ✔ Connected\n"}

@@ -1,0 +1,59 @@
+2026-10-07T22:34:15.698028+00:00
+Official update: rerun installer, user install, pinned release.
+Sources: https://github.com/coollabsio/jean/blob/v1.0.9/README.md
+https://github.com/coollabsio/jean/blob/v1.0.9/docs/headless-server.md
+https://github.com/coollabsio/jean/blob/v1.0.9/scripts/install-jean-server.sh
+{
+  "tag_name": "v1.0.9",
+  "published_at": "2026-10-07T09:06:26Z",
+  "prerelease": false,
+  "html_url": "https://github.com/coollabsio/jean/releases/tag/v1.0.9"
+}
+$ /home/user/v03/jean/bin/jean-server-linux-amd64 --version
+Jean 1.0.7
+exit=0
+$ bash /home/user/v03/jean/source/scripts/install-jean-server.sh --user-install --version v1.0.9 --install-path /home/user/v03/jean/bin/jean-server-linux-amd64 --env-file /home/user/v03/jean/run/recheck-2026-10-08/installer.env --data-dir /home/user/v03/jean/data --host 127.0.0.1 --port 5115 --no-token --no-service --no-start --no-enable -y
+==> Downloading jean-server-linux-amd64-1.0.9.tar.gz (v1.0.9)
+==> Verifying SHA-256
+==> Extracting binary
+==> Installing binary to /home/user/v03/jean/bin/jean-server-linux-amd64
+==> Writing env file /home/user/v03/jean/run/recheck-2026-10-08/installer.env
+==> Skipping service registration (--no-service)
+
+==> jean-server installed
+  binary : /home/user/v03/jean/bin/jean-server-linux-amd64
+  env    : /home/user/v03/jean/run/recheck-2026-10-08/installer.env
+  bind   : 127.0.0.1:5115
+  token  : (disabled)
+
+Open Web Access:
+  http://127.0.0.1:5115/
+
+Useful commands:
+  systemctl --user status jean-server
+  systemctl --user restart jean-server
+  journalctl --user -u jean-server -f
+  /home/user/v03/jean/bin/jean-server-linux-amd64 --version
+exit=0
+$ /home/user/v03/jean/bin/jean-server-linux-amd64 --version
+Jean 1.0.9
+exit=0
+$ sha256sum /home/user/v03/jean/bin/jean-server-linux-amd64
+904176dcc4c802c310e377f0f580955cb33bf0ca62389f7c179ec389ad8ff130  /home/user/v03/jean/bin/jean-server-linux-amd64
+exit=0
+$ git -C /home/user/v03/jean/source rev-parse HEAD
+46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80
+exit=0
+2026-10-07T22:35:14.226810+00:00
+$ git restore --source=58c920a5874f03585dc2b2dbbbd260bf110573c7 --staged --worktree -- README.md hello.py
+Removed previous disposable-trial residue: /home/user/v03/work/jean/scratch/.ai
+Removed previous disposable-trial residue: /home/user/v03/work/jean/scratch/__pycache__
+$ systemctl --user start v03-jean.service
+exit=0
+
+2026-10-07T22:41:30.447041+00:00 release archive inventory (separate read-only inspection; installer was not rerun)
+URL: https://github.com/coollabsio/jean/releases/download/v1.0.9/jean-server-linux-amd64-1.0.9.tar.gz
+SHA256 actual=06ea7459495a6ffc43f8e92f929d723784679ed3c68951b476df6f0f6ab8f630
+SHA256 published=06ea7459495a6ffc43f8e92f929d723784679ed3c68951b476df6f0f6ab8f630
+Members:
+jean-server-linux-amd64

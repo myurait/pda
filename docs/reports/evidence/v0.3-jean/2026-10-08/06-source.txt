@@ -1,0 +1,210 @@
+2026-10-07T22:36:49.327612+00:00
+Fixed source commit: 46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80
+git status --short:
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/claude_cli/config.rs
+104: ///
+105: /// If `claude_cli_source` is `"path"`, look up `claude` in system PATH.
+106: /// If `"jean"` (default) and the Jean-managed binary exists, use it.
+107: /// Otherwise fall back to a system PATH install when present so Homebrew
+108: /// (and similar) CLIs work without an explicit source switch.
+109: pub fn resolve_cli_binary(app: &AppHandle) -> PathBuf {
+110:     let prefer_path = match crate::get_preferences_path(app) {
+111:         Ok(prefs_path) => {
+112:             if let Ok(contents) = std::fs::read_to_string(&prefs_path) {
+113:                 if let Ok(prefs) = serde_json::from_str::<crate::AppPreferences>(&contents) {
+114:                     prefs.claude_cli_source == "path"
+115:                 } else {
+116:                     false
+117:                 }
+118:             } else {
+119:                 false
+120:             }
+121:         }
+122:         Err(_) => false,
+123:     };
+124:
+125:     if prefer_path {
+126:         if let Some(path) = find_system_binary(app) {
+127:             return path;
+128:         }
+129:         log::warn!(
+130:             "claude_cli_source is 'path' but could not find claude in PATH, falling back to Jean-managed binary"
+131:         );
+132:         return jean_managed_path(app);
+133:     }
+134:
+135:     if jean_managed_installed(app) {
+136:         return jean_managed_path(app);
+137:     }
+138:
+139:     if let Some(path) = find_system_binary(app) {
+140:         log::info!(
+141:             "Jean-managed Claude CLI not installed; using system PATH binary at {}",
+142:             path.display()
+143:         );
+144:         return path;
+145:     }
+146:
+147:     jean_managed_path(app)
+148: }
+149:
+150: /// Ensure the CLI directory exists, creating it if necessary
+151: pub fn ensure_cli_dir(app: &AppHandle) -> Result<PathBuf, String> {
+152:     let cli_dir = get_cli_dir(app)?;
+153:     std::fs::create_dir_all(&cli_dir)
+154:         .map_err(|e| format!("Failed to create CLI directory: {e}"))?;
+155:     Ok(cli_dir)
+156: }
+157:
+158: #[cfg(test)]
+159: mod tests {
+160:     use super::*;
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/chat/claude.rs
+689:     // Core args
+690:     args.push("--print".to_string());
+691:     args.push("--output-format".to_string());
+692:     args.push("stream-json".to_string());
+693:     args.push("--input-format".to_string());
+694:     args.push("stream-json".to_string());
+695:     args.push("--verbose".to_string());
+696:     args.push("--tools".to_string());
+697:     args.push("default".to_string());
+698:     // Stream partial messages so long-running tools (Monitor, etc.) can push events
+699:     // to the UI without waiting for message boundaries.
+700:     args.push("--include-partial-messages".to_string());
+701:
+767:     };
+768:
+769:     // Permission mode
+770:     let perm_mode = claude_permission_mode(execution_mode);
+771:     args.push("--permission-mode".to_string());
+772:     args.push(perm_mode.to_string());
+773:     if claude_needs_root_sandbox_env(execution_mode, is_running_as_root()) {
+774:         env_vars.push(("IS_SANDBOX".to_string(), "1".to_string()));
+1516:     use super::detached::spawn_detached_claude;
+1517:     use crate::claude_cli::resolve_cli_binary;
+1518:
+1519:     log::trace!("Executing Claude CLI (detached) for session: {session_id}");
+1520:     log::trace!("Input file: {input_file:?}");
+1521:     log::trace!("Output file: {output_file:?}");
+1522:     log::trace!("Working directory: {working_dir:?}");
+1523:
+1524:     // Get CLI path
+1525:     let cli_path = resolve_cli_binary(app);
+1526:
+1575:     let env_refs: Vec<(&str, &str)> = env_vars
+1576:         .iter()
+1577:         .map(|(k, v)| (k.as_str(), v.as_str()))
+1578:         .collect();
+1579:
+1580:     // Spawn detached process
+1581:     let pid = spawn_detached_claude(
+1582:         &cli_path,
+1583:         &args,
+1584:         input_file,
+1585:         output_file,
+1586:         working_dir,
+1587:         &env_refs,
+1588:     )
+1589:     .map_err(|e| {
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/chat/detached.rs
+309:         )
+310:     };
+311:
+312:     log::trace!("Spawning detached Claude CLI");
+313:     log::trace!("Shell command: {shell_cmd}");
+314:     log::trace!("Working directory: {working_dir:?}");
+315:
+316:     // Verify working directory exists before spawn (otherwise sh returns
+317:     // a cryptic "No such file or directory" from current_dir).
+318:     if !working_dir.exists() {
+319:         return Err(format!(
+320:             "Working directory does not exist: {}. The worktree may still be initializing.",
+321:             working_dir.display()
+322:         ));
+323:     }
+324:
+325:     // Spawn the shell command
+326:     let mut child = silent_command("sh")
+327:         .arg("-c")
+328:         .arg(&shell_cmd)
+329:         .current_dir(working_dir)
+330:         .stdin(Stdio::null())
+331:         .stdout(Stdio::piped())
+332:         .stderr(Stdio::piped())
+333:         .spawn()
+334:         .map_err(|e| format!("Failed to spawn shell: {e}"))?;
+335:
+336:     // Read the PID from stdout (the `echo $!` part)
+337:     let stdout = child
+338:         .stdout
+339:         .take()
+340:         .ok_or("Failed to capture shell stdout")?;
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/chat/codex_server.rs
+887:     // 2. Spawn a fresh detached server.
+888:     let socket_path = server_socket_path(app)?;
+889:     let log_path = server_log_path(app)?;
+890:     let _ = std::fs::remove_file(&socket_path);
+891:
+892:     let app_data = app
+893:         .path()
+894:         .app_data_dir()
+895:         .map_err(|e| format!("Failed to resolve app data dir: {e}"))?;
+896:
+897:     log::info!(
+898:         "Starting detached codex app-server: {} app-server --listen unix://{}",
+899:         cli_path.display(),
+900:         socket_path.display()
+901:     );
+902:
+903:     let args = vec![
+904:         "app-server".to_string(),
+905:         "--listen".to_string(),
+906:         format!("unix://{}", socket_path.display()),
+907:     ];
+908:     let pid = super::detached::spawn_detached_process(cli_path, &args, &log_path, &app_data)?;
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/chat/codex.rs
+824:         }
+825:         "yolo" => {
+826:             params["approvalPolicy"] = serde_json::json!("never");
+827:             params["sandbox"] = serde_json::json!("danger-full-access");
+828:         }
+
+https://github.com/coollabsio/jean/blob/46bb4a5d6c123893ad3e86dfb9dc5da1dbb7ae80/jean-core/src/chat/naming.rs
+408:
+409:     let mut cmd = crate::platform::cli_command(&cli_path.to_string_lossy(), None);
+410:     crate::chat::claude::apply_custom_profile_settings(
+411:         &mut cmd,
+412:         request.custom_profile_name.as_deref(),
+413:     );
+414:     crate::chat::claude::apply_custom_profile_env(&mut cmd, request.custom_profile_name.as_deref());
+415:     cmd.args([
+416:         "--print",
+417:         "--input-format",
+418:         "stream-json",
+419:         "--output-format",
+420:         "stream-json",
+421:         "--verbose",
+422:         "--tools",
+423:         "default",
+424:         "--model",
+425:         model_alias,
+426:         "--no-session-persistence",
+427:     ]);
+428:
+429:     if has_attachments {
+430:         // Enable Read tool for attachment messages
+474:         cmd.arg("--max-turns").arg("3");
+475:     } else {
+476:         cmd.arg("--max-turns").arg("1");
+477:     }
+478:
+479:     cmd.stdin(Stdio::piped())
+480:         .stdout(Stdio::piped())
+481:         .stderr(Stdio::piped());
+These excerpts show PATH CLI resolution, direct stream-json command construction and detached sh spawning for Claude, and direct Codex app-server invocation. No Agent SDK or ACP adapter is on this execution path.
