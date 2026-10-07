@@ -488,3 +488,16 @@ H12 (ライセンスが改変か再配布を禁じる) を、残る 15 本のリ
 - greenfield-inc/Pane: AGPL-3.0 に、7 条 (b) の追加条項として Dcouple Inc の表示を残す義務を足したもの (LICENSE)。改変と再配布は許される。
 - milind-soni/OpenMausBot: `enterprise/` だけが独自のライセンスで、再配布と、ライセンスキーなしの本番の利用を禁じる (enterprise/LICENSE の 2〜3 条)。それ以外は Apache License 2.0 で、`enterprise/` を消すとオープンソース版として動く (同 4 条)。`enterprise/` の機能は whitelabel、sso、admin、budgets、billing (enterprise/FEATURES)。
 - そのほか: stablyai/orca、happier-dev/happier、open-mercato/cezar、AltanS/collie、maddada/Ghostex、milisp/codexia、ruvnet/ruflo、Enderfga/claw-orchestrator は MIT。openclaw/openclaw は MIT の本文に第三者の表示への案内を 1 行足したもの (LICENSE)。RizRiyz/luvus、coollabsio/jean、herdrdev/herdr は Apache License 2.0。
+
+## 9. Jev の組み込み口 (2026-10-08)
+
+TypeSafe の Jev を、製品の仕組みとして呼べるかを、各製品の 2026-10-08 時点の既定のブランチで確かめた。TypeSafe が出している口は、HTTP の API、Python と JavaScript の SDK、エージェント用の skill (`claude plugin install typesafe@typesafe-ai`、`npx skills add typesafe-ai/skills --skill typesafe-ai`) で、MCP サーバは無い ([Agent skill](https://docs.typesafe.ai/agent-skill.md))。
+
+- openclaw/openclaw (最新 v2026.9.8): 公式の plugin `@openclaw/typesafe` がある (`extensions/typesafe/`、npm の latest は 2026.9.8)。"The official external `typesafe` plugin connects OpenClaw's optional decision model role to TypeSafe AI's hosted Jev models" (docs/plugins/typesafe.md)。`decisionModel` の役割に `typesafe/jev-latest` を選ぶと、エージェントに `decision_evaluate` の道具が付き、plugin は `api.runtime.decisions.evaluate` で呼べる (docs/concepts/decision-models.md)。plugin の hook (`before_tool_call` など) は道具の呼び出しを止め、書き換え、承認待ちにできる (docs/plugins/hooks.md)。手元で動かす System One のサーバ (Kev) にも向けられる。追加は 2026-09-19〜2026-10-04 の変更。
+- stablyai/orca (最新 v1.4.222): 組み込みは無い。リポジトリの `orca.yaml` の setup の script でエージェントの起動を待たせられる (`setupAgentStartupPolicy: 'wait-for-setup'`)。Orca の plugin は通信の権限をまだ持たない ("net:fetch hosts ... arrive in later phases"、src/shared/plugins/plugin-capabilities.ts)。
+- multica-ai/multica (最新 v0.6.1): 組み込みは無い。plugin の hook が、作業の完了などの出来事で外部の HTTP の口を呼ぶ (server/pkg/plugincontract/manifest.go)。結果で止める欄は無い。skill と MCP はエージェントごとに割り当てられる。
+- Enderfga/claw-orchestrator (最新 v7.9.0): 組み込みは無い。実行の受け入れ条件の `command` が、終了コードで完了を止める ("A run that declares one cannot reach completed unless every required check passes"、skills/references/verification.md)。
+- open-mercato/cezar (最新 v0.14.0): 組み込みは無い。ワークフローの段の `command` が、終了コードでやり直しへ戻す (`onFail.retryOn`、packages/contract/src/workflows.ts)。
+- RizRiyz/luvus (最新 v0.14.3): 組み込みは無い。作業の `--gate <cmd>` の終了コードで、完了か確認待ちかが決まる。
+- coollabsio/jean (最新 v1.0.9)、herdrdev/herdr と AltanS/collie、happier-dev/happier、greenfield-inc/Pane、maddada/Ghostex、milisp/codexia、superset-sh/superset: 組み込みは無い。製品の hook や webhook は知らせるだけで、結果で止める口は見つからなかった。
+- どの製品も、手を加えていない Claude Code を起こすので、Claude Code 自身の hook に置いた Jev の判定はそのまま動く。OpenClaw は `--setting-sources user` で起こすので、利用者の設定の hook は効き、リポジトリの `.claude/settings.json` の hook は効かない。
