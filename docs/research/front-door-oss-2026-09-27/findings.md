@@ -501,3 +501,25 @@ TypeSafe の Jev を、製品の仕組みとして呼べるかを、各製品の
 - RizRiyz/luvus (最新 v0.14.3): 組み込みは無い。作業の `--gate <cmd>` の終了コードで、完了か確認待ちかが決まる。
 - coollabsio/jean (最新 v1.0.9)、herdrdev/herdr と AltanS/collie、happier-dev/happier、greenfield-inc/Pane、maddada/Ghostex、milisp/codexia、superset-sh/superset: 組み込みは無い。製品の hook や webhook は知らせるだけで、結果で止める口は見つからなかった。
 - どの製品も、手を加えていない Claude Code を起こすので、Claude Code 自身の hook に置いた Jev の判定はそのまま動く。OpenClaw は `--setting-sources user` で起こすので、利用者の設定の hook は効き、リポジトリの `.claude/settings.json` の hook は効かない。
+
+## 10. Claude Code と Codex の変化と、提案の 3 本の追従 (2026-10-08)
+
+2026-09-28 から 2026-10-08 に、Claude Code は 2.1.274 から 2.1.293 に、Codex は 0.156.1 から 0.161.0 に上がった。他社の製品が Claude Code と Codex をそのまま起こして使うことに関わる変化は次のとおり。
+
+- Claude Code ([CHANGELOG](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md))
+  - 2.1.287: "Added Claude Mods: plugins may now modify deeper behavior"。従来の settings.json の hook も同じ仕組みの上で動く。
+  - 2.1.284: "Changed interactive terminal and VS Code sessions to start in auto mode when no permission mode is configured, on every plan and provider"。2.1.285 で `claude -p` にも広がった (第三者の提供元か、telemetry を切ったとき)。
+  - 2.1.281: `--setting-sources` が、背後で起こすセッションにも引き継がれるようになった。
+  - 2.1.292: 手元の MCP サーバとの既定のプロトコル版が 2026-07-28 になった。
+  - 2.1.280、2.1.284、2.1.293: Opus 5.5、Sonnet 5.5、Haiku 5.5 が既定のモデルになった。
+- Codex ([releases](https://github.com/openai/codex/releases))
+  - 0.158.0: 起動画面の文言が変わり、それを目印に起動を待つ製品が止まった (Orca の v1.4.217 の説明)。
+  - 0.159.0: "Removed automatic follow-up prompt suggestions and the `tui.prompt_suggestions` setting."
+  - 0.161.0: 認証が `auth.json` ではなく OS の keyring に置かれる場合がある。app-server の誤りの種類が増えても受け付けるようになった。
+- OpenAI は 2026-09-29 に、ChatGPT の契約の枠を他社の app から使える「Sign in with ChatGPT」を広げると発表した。
+
+提案の 3 本 (OpenClaw、Orca、jean) は、どれも 2026-10-07 に最後のコミットがあり、新しいモデルに追従している。開いている不具合のうち、PDA に関わるもの:
+
+- stablyai/orca [#25007](https://github.com/stablyai/orca/issues/25007) (2026-10-03): "Codex 0.160.0 workers fail agent_readiness (tui-idle timeout) while the Codex composer is ready"。
+- openclaw/openclaw [#166130](https://github.com/openclaw/openclaw/issues/166130) (2026-10-06): "claude-cli: transcript probe ignores CLAUDE_CONFIG_DIR, so a Gateway with a separate Claude config dir treats every session as transcript-missing"。ミニ PC は `CLAUDE_CONFIG_DIR` で設定の場所を渡している。
+- openclaw/openclaw [#163240](https://github.com/openclaw/openclaw/issues/163240) (2026-10-02): `before_tool_call` が、Claude CLI の subagent の呼び出しと親の呼び出しを見分けられない。
