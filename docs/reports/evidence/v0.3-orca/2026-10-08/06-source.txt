@@ -1,0 +1,219 @@
+
+[2026-10-07T22:23:03.382+00:00]
+Source tag v1.4.222; 4bb6f2072b07c1f0664b809551f77754700570e4
+
+[2026-10-07T22:23:03.383+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts#L35
+35:     name: 'terminal.create',
+36:     params: TerminalCreateParams,
+37:     handler: async (params, { runtime, pairedDeviceId, clientId, clientKind }) => {
+38:       // A focused terminal create predates paired-client navigation. Keep the
+39:       // authority boundary here so a remote caller cannot activate the host
+40:       // renderer. This legacy RPC remains a background create for paired viewers;
+41:       // caller-local selection belongs to the session-tab RPC flow.
+42:       const pairedViewer = clientKind !== undefined
+43:       const focus = pairedViewer ? false : params.focus === true
+44:       const activate = pairedViewer ? false : params.activate === true
+45:       const presentation =
+46:         pairedViewer && params.presentation === 'focused' ? 'background' : params.presentation
+47:       return {
+48:         terminal: await runtime.dedupeTerminalCreate(
+49:           pairedDeviceId ?? clientId ?? 'local',
+50:           params.worktree,
+51:           params.clientMutationId,
+52:           params.reconcileExisting === true,
+53:           (canonicalWorktreeSelector, preAllocatedHandle) =>
+54:             runtime.createTerminal(canonicalWorktreeSelector, {
+55:               command: params.command,
+56:               ...(params.shell ? { shellOverride: params.shell } : {}),
+57:               startupCommandDelivery: params.startupCommandDelivery,
+58:               env: params.env,
+59:               envToDelete: params.envToDelete,
+60:               ...(params.launchConfig ? { launchConfig: params.launchConfig } : {}),
+61:               ...(params.resumeProviderSession
+62:                 ? { resumeProviderSession: params.resumeProviderSession }
+63:                 : {}),
+64:               ...(params.launchToken ? { launchToken: params.launchToken } : {}),
+65:               ...(params.launchAgent ? { launchAgent: params.launchAgent } : {}),
+66:               ...(params.terminalKittyKeyboardProtocol === true
+67:                 ? { terminalKittyKeyboardProtocol: true }
+68:                 : {}),
+69:               ...(params.terminalColorQueryReplies
+70:                 ? { terminalColorQueryReplies: params.terminalColorQueryReplies }
+71:                 : {}),
+72:               title: params.title,
+73:               focus,
+74:               rendererBacked: params.rendererBacked === true,
+
+[2026-10-07T22:23:03.383+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/runtime/orca-runtime-create-terminal.ts#L122
+122:         let result: Awaited<ReturnType<NonNullable<dependencies.RuntimePtyController['spawn']>>>
+123:         try {
+124:           const { launchAgent } = launchOpts
+125:           launchOpts.onPtySpawnDispatched?.({ launchConfig: effectiveLaunchConfig, launchAgent })
+126:           result = await this.ptyController.spawn({
+127:             cols: 120,
+128:             rows: 40,
+129:             cwd,
+130:             command: sequencedStartupCommand
+131:               ? launchOpts.command
+132:               : (agentTeamsPlan?.command ?? launchOpts.command),
+133:             launchAgent: launchOpts.launchAgent,
+134:             commandDelivery: 'provider',
+135:             startupCommandDelivery: launchOpts.startupCommandDelivery,
+136:             env,
+137:             envToDelete: dependencies.mergeTerminalEnvDeletionKeys(
+138:               launchOpts.envToDelete,
+139:               agentTeamsPlan?.envToDelete
+140:             ),
+141:             resumeProviderSession: launchOpts.resumeProviderSession,
+
+[2026-10-07T22:23:03.383+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/shared/tui-agent-permissions.ts#L1
+1: import { TUI_AGENT_CONFIG } from './tui-agent-config'
+2: import type { TuiAgent } from './tui-agent'
+3:
+4: export type AgentPermissionMode = 'yolo' | 'manual' | 'mixed'
+5:
+6: export const YOLO_TUI_AGENT_ARGS: Partial<Record<TuiAgent, string>> = {
+7:   claude: '--dangerously-skip-permissions',
+8:   codebuddy: '--dangerously-skip-permissions',
+9:   'claude-agent-teams': '--dangerously-skip-permissions',
+10:   openclaude: '--dangerously-skip-permissions',
+11:   codex: '--dangerously-bypass-approvals-and-sandbox',
+12:   qoder: '--dangerously-skip-permissions',
+13:   'qoder-cn': '--dangerously-skip-permissions',
+14:   gemini: '--yolo',
+15:   antigravity: '--dangerously-skip-permissions',
+16:   aider: '--yes-always',
+17:   amp: '--dangerously-allow-all',
+18:   kiro: '--trust-all-tools',
+
+[2026-10-07T22:23:03.383+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/shared/structured-native-chat-launch-route.ts#L63
+63: }
+64:
+65: /** The user's default for a new agent tab: native chat rather than the raw TUI. */
+66: export function agentTabsDefaultToNativeChat(
+67:   settings: Partial<NativeChatDefaultSettings> | null | undefined
+68: ): boolean {
+69:   return (
+70:     settings?.experimentalNativeChat === true && settings?.openAgentTabsInChatByDefault === true
+71:   )
+72: }
+73:
+74: /** ...and specifically a structured native chat session rather than a terminal rendered as chat. */
+75: export function prefersStructuredNativeChatByDefault(
+76:   settings: Partial<NativeChatDefaultSettings> | null | undefined
+77: ): boolean {
+78:   return (
+79:     agentTabsDefaultToNativeChat(settings) && settings?.experimentalStructuredNativeChat === true
+80:   )
+81: }
+
+[2026-10-07T22:23:03.383+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/claude/claude-stream-json-connection.ts#L34
+34:  * so a session pays the import once per process rather than once per connection.
+35:  */
+36: let claudeAgentSdk: Promise<typeof ClaudeAgentSdk> | null = null
+37:
+38: function loadClaudeAgentSdk(): Promise<typeof ClaudeAgentSdk> {
+39:   claudeAgentSdk ??= import('@anthropic-ai/claude-agent-sdk')
+40:   return claudeAgentSdk
+41: }
+
+[2026-10-07T22:23:03.384+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/claude/claude-stream-json-connection.ts#L115
+115: export async function openClaudeStreamJsonConnection(
+116:   launch: ClaudeStreamJsonLaunch,
+117:   handlers: ClaudeStreamJsonConnectionHandlers = {},
+118:   spawnImpl: typeof spawnProcess = spawnProcess,
+119:   queryImpl?: typeof ClaudeAgentSdk.query
+120: ): Promise<ClaudeStreamJsonConnection> {
+121:   const { query } = await loadClaudeAgentSdk()
+122:   const spawner = createClaudeCodeProcessSpawn(spawnImpl)
+123:   const inbox = createClaudeUserMessageQueue()
+124:   const session = (queryImpl ?? query)({
+125:     prompt: inbox.messages,
+
+[2026-10-07T22:23:03.384+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/shared/default-global-settings.ts#L134
+134:     terminalUrlMiddleClickBehavior: 'open',
+135:     openAgentTabsInChatByDefault: false,
+136:     experimentalNativeChat: false,
+137:     experimentalStructuredNativeChat: false,
+138:     nativeChatResumeWorkOnRestart: false,
+139:     nativeChatQueueFollowUps: true,
+
+[2026-10-07T22:23:03.384+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/codex/codex-real-home-hook-install.ts#L95
+95: /** The settings' answer, read when an approval settles after its caller has gone. */
+96: export function setRealHomeCodexHooksEnabledReader(read: () => boolean): void {
+97:   readCodexHooksEnabled = read
+98: }
+99:
+100: /**
+101:  * Routing gate consumed by CodexRuntimeHomeService. Never usable while an
+102:  * approval runs, whatever the verdict says. Both a failed install and a failed
+103:  * opt-out cleanup use the managed lane so no half-mutated hook state can
+104:  * diverge from PTY, rate-limit, or commit-message routing.
+105:  */
+106: export function isRealHomeCodexHookLaneUsable(): boolean {
+107:   return approval === null && verdict !== 'unavailable' && verdict !== 'approving'
+108: }
+109:
+110: /**
+111:  * Installs and trusts the Orca status hook in the real home when hooks are on,
+112:  * and writes nothing when they are off. Add-only: it never removes an Orca
+113:  * entry, and only `convert-older-forms` rewrites one. Idempotent; a home that
+114:  * already holds the frozen entry costs one read, and a valid grant ledger skips
+115:  * the RPC session. Never waits on a session: Codex's approval runs in the
+116:  * background. Never throws: any failure logs and leaves the managed lane.
+117:  */
+118: export async function ensureRealHomeCodexHookState(
+119:   intent: RealHomeCodexHookIntent
+120: ): Promise<RealHomeCodexHookVerdict> {
+121:   try {
+122:     // Why one lane-held step: finding no approval running and starting one are
+
+[2026-10-07T22:23:03.384+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/codex-accounts/runtime-home-service-home-routing.ts#L134
+134:   // Managed accounts run in their own homes; custom CODEX_HOMEs stay on the
+135:   // mirror until cleanup can be tracked across old homes.
+136:   isHostSystemDefaultRealHomeSelected(launchEnv?: NodeJS.ProcessEnv): boolean {
+137:     return (
+138:       normalizeCodexRuntimeSelection(this.store.getSettings()).host === null &&
+139:       !hasCustomCodexHomeOverrideForLaunch(launchEnv)
+140:     )
+141:   }
+142:
+143:   isHostSystemDefaultRealHome(launchEnv?: NodeJS.ProcessEnv): boolean {
+144:     return this.isHostSystemDefaultRealHomeSelected(launchEnv) && this.realHomeLaneGate()
+145:   }
+146:
+147:   // Why: launch prep evaluates the real-home lane AFTER clearing an unusable
+148:   // managed selection; read-only siblings need that same verdict with the
+149:   // selection ignored rather than cleared.
+150:   protected wouldSystemDefaultRouteToRealHome(launchEnv?: NodeJS.ProcessEnv): boolean {
+151:     return !hasCustomCodexHomeOverrideForLaunch(launchEnv) && this.realHomeLaneGate()
+
+[2026-10-07T22:23:03.384+00:00]
+Official source https://github.com/stablyai/orca/blob/v1.4.222/src/main/codex-accounts/runtime-home-service-home-routing.ts#L298
+298:       this.clearSelfContainedManagedSelection(selfContainedAccount)
+299:     }
+300:     if (this.isHostSystemDefaultRealHome()) {
+301:       this.copyMirrorLoginIntoEmptySystemHome()
+302:       if (hasRecordedLegacySharedCodexPane()) {
+303:         this.syncLegacySharedSystemDefaultAuthForRetainedPanes()
+304:       }
+305:       // Why: null lets the fetcher fall back to the main process's inherited
+306:       // CODEX_HOME before ~/.codex. Nested Orca launches can inherit the
+307:       // managed home, restarting the background OAuth conflict (#5370), so
+308:       // pin this non-interactive lane to the native home explicitly.
+309:       return { kind: 'ready', codexHomePath: getSystemCodexHomePath() }
+310:     }
+311:     this.syncForCurrentSelection()
+312:     syncSystemCodexResourcesIntoManagedHome()
+313:     syncSystemConfigIntoManagedCodexHome()
+314:     return { kind: 'ready', codexHomePath: this.getRuntimeHomePath() }
+315:   }

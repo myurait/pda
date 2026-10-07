@@ -1,0 +1,170 @@
+
+[2026-10-07T22:24:29.488+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide terminal close --terminal term_6652f298-8161-48ae-a607-8d9913895d1b --json
+exit=0
+{
+  "id": "4490a0c8-b8eb-42fa-9d20-f9828cd7a190",
+  "ok": true,
+  "result": {
+    "close": {
+      "handle": "term_6652f298-8161-48ae-a607-8d9913895d1b",
+      "tabId": "18625593-302b-4993-98a6-f79b15e77de3",
+      "ptyKilled": true
+    }
+  },
+  "_meta": {
+    "runtimeId": "2490b2f4-b00d-4246-a516-c82692d98ba7"
+  }
+}
+
+
+[2026-10-07T22:24:29.612+00:00]
+$ /home/user/v03/orca/squashfs-root/resources/bin/orca-ide terminal list --json
+exit=0
+{
+  "id": "71786632-2a25-4e06-8634-7442150d766d",
+  "ok": true,
+  "result": {
+    "terminals": [],
+    "hostScope": {
+      "hostIds": [
+        "local"
+      ],
+      "omittedHostIds": []
+    },
+    "topologyRevisions": {},
+    "totalCount": 0,
+    "truncated": false
+  },
+  "_meta": {
+    "runtimeId": "2490b2f4-b00d-4246-a516-c82692d98ba7"
+  }
+}
+
+
+[2026-10-07T22:25:18.252+00:00]
+$ systemctl --user stop v03-orca.service
+exit=0
+
+
+[2026-10-07T22:25:18.261+00:00]
+$ systemctl --user stop orca-daemon-12042cd4-4fc1-4cc4-a80f-4d6f84ec6fff.scope
+exit=0
+
+
+[2026-10-07T22:25:18.265+00:00]
+$ systemctl --user is-active v03-orca.service
+exit=3
+inactive
+
+
+[2026-10-07T22:25:18.268+00:00]
+$ systemctl --user list-units 'v03-*.service' --all --no-pager
+exit=0
+  UNIT                LOAD   ACTIVE   SUB  DESCRIPTION
+  v03-cccc.service    loaded inactive dead PDA v0.3 CCCC trial
+  v03-cezar.service   loaded inactive dead PDA v0.3 cezar trial
+  v03-happier.service loaded inactive dead PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service   loaded inactive dead PDA v0.3 Luvus trial
+  v03-multica.service loaded inactive dead PDA v0.3 Multica trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+5 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+
+[2026-10-07T22:25:18.271+00:00]
+$ systemctl --user list-units 'orca-daemon-*.scope' --all --no-pager
+exit=0
+  UNIT LOAD ACTIVE SUB DESCRIPTION
+
+0 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+
+[2026-10-07T22:25:18.282+00:00]
+ss -ltnp: no listener on 5113. No tmux or zellij sessions were created in this recheck.
+
+[2026-10-07T22:25:18.304+00:00]
+Existing monitoring containers (read only):
+pda-otel-collector-1	Up 2 weeks	4317-4318/tcp, 55679/tcp
+pda-openobserve-1	Up 2 weeks	0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+
+[2026-10-07T22:26:09.356+00:00]
+-rw------- 1 user user 69632 Oct  8 07:18 /home/user/v03/agent-home/.config/orca/profiles/local-default/profile-state.db.backup.1791411489875-e7bb0fc3-be41-450b-abe9-c7ce5a7be6d9.db
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.406+00:00]
+-rw-rw-r-- 1 user user 45616 Oct  8 07:24 /home/user/v03/agent-home/.claude/settings.json.bak
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.413+00:00]
+-rw------- 1 user user 88783 Oct  8 07:20 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411618761
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.416+00:00]
+-rw------- 1 user user 88652 Oct  8 07:18 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411531161
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.419+00:00]
+-rw------- 1 user user 88780 Oct  8 07:23 /home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411819012
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.438+00:00]
+-rw------- 1 user user 2943 Oct  8 07:24 /home/user/v03/agent-home/.codex/config.toml.bak
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.440+00:00]
+-rw-rw-r-- 1 user user 6486 Oct  8 07:24 /home/user/v03/agent-home/.codex/hooks.json.bak
+Removing new trial backup (metadata only).
+
+[2026-10-07T22:26:09.458+00:00]
+-rw------- 1 user user 3878 Oct  8 07:18 /home/user/v03/agent-home/.config/orca/codex-runtime-home/home/auth.json
+Removing Orca-created authentication copy; original authentication directories untouched.
+
+[2026-10-07T22:26:09.461+00:00]
+-rw------- 1 user user 3937 Oct  8 07:18 /home/user/v03/agent-home/.config/orca/codex-runtime-home/system-default-auth.json
+Removing Orca-created authentication copy; original authentication directories untouched.
+
+[2026-10-07T22:26:09.464+00:00]
+-rw------- 1 user user 3966 Oct  8 07:18 /home/user/v03/agent-home/.config/orca/codex-runtime-home/shared-runtime-auth-provenance.json
+Removing Orca-created authentication copy; original authentication directories untouched.
+
+[2026-10-07T22:26:09.467+00:00]
+$ git restore --source=fa4fad815334bf6abe4f840c72165271dfc425df -- README.md hello.py
+exit=0
+
+
+[2026-10-07T22:26:09.469+00:00]
+$ git diff --exit-code fa4fad815334bf6abe4f840c72165271dfc425df -- README.md hello.py
+exit=0
+
+
+[2026-10-07T22:26:09.470+00:00]
+Removed paths:
+/home/user/v03/agent-home/.config/orca/profiles/local-default/profile-state.db.backup.1791411489875-e7bb0fc3-be41-450b-abe9-c7ce5a7be6d9.db
+/home/user/v03/agent-home/.claude/settings.json.bak
+/home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411618761
+/home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411531161
+/home/user/v03/agent-home/.claude/backups/.claude.json.backup.1791411819012
+/home/user/v03/agent-home/.codex/config.toml.bak
+/home/user/v03/agent-home/.codex/hooks.json.bak
+/home/user/v03/agent-home/.config/orca/codex-runtime-home/home/auth.json
+/home/user/v03/agent-home/.config/orca/codex-runtime-home/system-default-auth.json
+/home/user/v03/agent-home/.config/orca/codex-runtime-home/shared-runtime-auth-provenance.json
+/home/user/v03/work/orca/scratch/__pycache__
+
+[2026-10-07T22:26:09.472+00:00]
+$ git status --short
+exit=0
+
+
+[2026-10-07T22:26:09.479+00:00]
+Remaining Orca executable or scratch agent processes:
+[]
+
+[2026-10-07T22:26:09.678+00:00]
+After stop and cleanup, offline hooks status: enabled=false; all managedHooksPresent=false. Authentication copies absent. Protected originals (.credentials.json, auth.json, .claude.json), settings.json and config.toml were not opened or manually changed by the observer. New .codex/hooks.json is left as emitted by hooks off, with no managed hooks reported.

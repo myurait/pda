@@ -1,0 +1,42 @@
+
+[2026-10-07T22:18:22.652+00:00]
+$ curl -sS -o /dev/null -w '%{http_code}
+' http://127.0.0.1:5113/
+exit=0
+200
+
+
+[2026-10-07T22:18:22.659+00:00]
+$ curl -sS -o /dev/null -w '%{http_code}
+' http://127.0.0.1:5113/web-index.html
+exit=0
+200
+
+
+[2026-10-07T22:18:22.672+00:00]
+ss -ltnp (5113 only):
+LISTEN 0      511          0.0.0.0:5113       0.0.0.0:*    users:(("orca-ide",pid=388799,fd=89))
+
+[2026-10-07T22:18:22.688+00:00]
+journalctl _PID=388799 -o cat: ready fields only; URLs omitted before recording.
+{
+  "type": "orca_server_ready",
+  "schemaVersion": 1,
+  "boundEndpoint": "ws://0.0.0.0:5113",
+  "advertisedEndpoint": "ws://100.69.167.33:5113",
+  "managedWslCliReconciliation": "settled",
+  "pairing": {
+    "available": true,
+    "scope": "runtime",
+    "reason": null,
+    "keys_present": [
+      "available",
+      "deviceId",
+      "endpoint",
+      "qr",
+      "scope",
+      "url",
+      "webClientUrl"
+    ]
+  }
+}
