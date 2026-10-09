@@ -523,3 +523,26 @@ TypeSafe の Jev を、製品の仕組みとして呼べるかを、各製品の
 - stablyai/orca [#25007](https://github.com/stablyai/orca/issues/25007) (2026-10-03): "Codex 0.160.0 workers fail agent_readiness (tui-idle timeout) while the Codex composer is ready"。
 - openclaw/openclaw [#166130](https://github.com/openclaw/openclaw/issues/166130) (2026-10-06): "claude-cli: transcript probe ignores CLAUDE_CONFIG_DIR, so a Gateway with a separate Claude config dir treats every session as transcript-missing"。ミニ PC は `CLAUDE_CONFIG_DIR` で設定の場所を渡している。
 - openclaw/openclaw [#163240](https://github.com/openclaw/openclaw/issues/163240) (2026-10-02): `before_tool_call` が、Claude CLI の subagent の呼び出しと親の呼び出しを見分けられない。
+
+## 11. 日付と星の数の条件の当て直し (2026-10-09)
+
+H3、H8、H9、H10 は日付と星の数で決まるので、2026-10-09 の GitHub の値 (星、Latest のリリース、既定のブランチの最終コミット) で当て直した。
+
+- 条件を通るようになったもの (7 本): ChesterRa/cccc (Latest 2026-10-06)、kdlbs/kandev (10-04)、paperclipai/paperclip (10-06)、NousResearch/hermes-agent (10-08)、aaif-goose/goose (10-08)、egoist/waku (10-02)、rivet-dev/agents (H3 で落とした rivet-dev/sandbox-agent が名前を変えたもの。最終コミット 10-08)。
+- golutra は Latest が 2026-09-28 19:52 (日本時間) だが、既定のブランチの最終コミットが 2026-05-12 で H8 に当たる。
+- ほかは 2026-10-01 と同じ条件に当たる。
+
+通るようになった 7 本に、オーナーの 2026-10-09 の 2 つの見方 (フロントドアがチャット、プロジェクトをまたいで頼める) と必須の条件を当てた。
+
+- ChesterRa/cccc: 残る。
+  - 入口は Web の画面のグループチャットで、`@all`、`@peers`、`@foreman` か個別の宛先を付けて送る ("Input: Message composer with @mention support"、[web-ui.md](https://github.com/ChesterRa/cccc/blob/main/docs/guide/web-ui.md))。各エージェントの端末を並べる Terminals の画面が別にある。
+  - 1 つのグループに複数のプロジェクトのフォルダを付けられる ("Can bind multiple Scopes (project directories)"、[architecture.md](https://github.com/ChesterRa/cccc/blob/main/docs/reference/architecture.md))。
+  - tmux を使わない (`portable-pty`)。Claude Code は、cccc が持つ Agent View のセッションに `claude attach` でつなぐ形で、そのまま動かす ([runtimes.md](https://github.com/ChesterRa/cccc/blob/main/docs/guide/runtimes.md))。Codex は app-server。
+  - スマホのブラウザで使える ("Works in mobile browsers"、web-ui.md)。別の端末から開くには Admin Access Token を作る。
+  - 2026-10-01 の試用で T1〜T5 と T9 が通った ([評価](../../reports/v0.3-cccc-evaluation.md))。途中の出力は端末と ledger の経路で届いた。チャットに出るのは、エージェントが送った文。
+- NousResearch/hermes-agent: 外れる (R1)。依頼を受けるのは Hermes 自身のエージェントで、Claude Code と Codex は道具として `claude -p` と `codex exec` で起こす (skills/autonomous-ai-agents/claude-code/SKILL.md、同 codex/SKILL.md)。Hermes 自身を Claude の定額で動かせるのは、Max に追加の利用枠を買った場合だけ ("Claude Pro subscribers cannot use this path"、docs/integrations/providers.md)。
+- egoist/waku: 外れる。セッションは 1 つのプロジェクトに属する (crates/waku-protocol/src/model.rs の `pub project_id: Uuid`)。Claude Code と Codex の間で仕事を渡す機能の記述が無い (R2)。
+- aaif-goose/goose: 外れる。セッションは 1 つの作業フォルダに属する。スマホからの接続は廃止された ("Mobile access via secure tunneling is no longer available in current goose Desktop builds."、documentation/docs/experimental/remote-access/mobile-access.md)。Claude の推奨の経路は ACP の adapter で、Claude Code をそのまま起こす経路は非推奨。
+- kdlbs/kandev: 外れる。入口はタスクのボード。タスクの中のチャットは ACP の adapter (Agent SDK) の経路で、Claude Code をそのまま起こす経路 (CLI Passthrough) は端末を映す ("it does not provide Kandev's structured chat messages and tool-call presentation"、docs/public/sessions-and-review.md)。
+- paperclipai/paperclip: 外れる。入口はエージェントに割り当てるチケットで、チケットは 1 つのプロジェクトに属する ("Every issue in Paperclip lives under a project.")。エージェントとのチャットは試験的な機能で、既定で切ってある。
+- rivet-dev/agents: 外れる。README の説明は、エージェントを動かす基盤 (エージェントを常駐のプロセスとして動かす、サンドボックスの中のエージェントを HTTP で操作する) で、人が仕事を頼む画面の記述が無い。
