@@ -605,3 +605,66 @@ cccc v0.4.42 は Claude Code 2.1.293 と Codex 0.161.0 で、T1〜T4 と T9 が�
 - CLI の振る舞いの変化: cccc は 3 件に当たった。回避の 1 件が報告から 4.7 日で届き、2 件は報告から 2〜3 日で未修正。OpenClaw は 5 件に当たった。2 件は報告から 1〜2 日で修正し (1 件は未リリース)、3 件は報告から 9〜18 日開いたまま (うち 1 件は PDA が使わない経路)。
 - 届け方: cccc はリリースの間隔が 7〜11 日で、マージから利用者に届くまで 8 日かかった例があり、製品の更新の経路は 10-10 時点で 4 日前のリリースを指していない。CI で確かめている版は 5 週間前のまま。OpenClaw はリリースの間隔が 3〜7 日。
 - 5 日の線: どちらも超えるものがある。OpenClaw は個別の不具合 (#157647 の 16 日、#162768 と GPT-6.1 Sol の 9 日) で超え、cccc は修正の届け方 (リリースの間隔と更新の経路) で超える。
+
+## 13. cccc の考え方と、cccc に沿った使い方 (2026-10-10)
+
+cccc 自身の文書 (v0.4.42) と、cccc がエージェントに渡す約束ごとの文 (`resources/cccc-help.md`、`crates/cccc-core/src/system_prompt.rs`、`crates/cccc-core/src/peer_insight.rs`) から、cccc が前提にする使い方をまとめた。
+
+### 13.1 考え方
+
+- cccc は自分を「複数のエージェントの協調の土台 (collaboration kernel)」と呼ぶ ([positioning.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/reference/positioning.md))。エージェントそのものではなく、複数のエージェントを 1 つのチームとして続けて動かすための、記録と連絡の仕組みである。
+- 単位はグループ (working group)。人とエージェントがいるグループチャットで、やり取りはすべて追記だけの記録 (ledger) に残る。グループには作業するフォルダ (scope) を複数付けられ、そのうち 1 つが「今の作業先」になる。
+- エージェントの役は 2 つ。最初に有効にしたエージェントが foreman (取りまとめ役で、自分も作業する)、ほかは peer (独立した専門家で、foreman に異を唱えてよい) ([architecture.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/reference/architecture.md))。
+- cccc がエージェントに渡す文の要点:
+  - 「Terminal output is not delivered.」端末に出したものは誰にも届かない。人や他のエージェントに伝えるには、cccc の道具でメッセージを送る。
+  - foreman には「Do not become the group's only thinking center.」peer の報告は「evidence to inspect, not closure by itself」で、受け入れるかを foreman が判断する。独立した仕事は task にして peer に割り当て、並行に進める。
+  - peer には「Act as a thinking colleague.」決まる前に議論を起こし、証拠と残るリスクを添えて報告する。
+  - 送り方は 4 つ。待たせてよいものは mail (割り込まない)、すぐ要るものは send、返事が要るものは request_reply、担当・完了の基準・証拠を残す仕事は tracked send (task になる)。
+- cccc の FAQ は、チャットアプリに住む個人アシスタントの製品と自分を分けている。「CCCC is built for delivery-grade collaboration on real work: tracked tasks with owners and outcomes, explicit delivery/read/reply semantics, multi-agent groups bound to a repository scope」([faq.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/guide/faq.md))。
+
+### 13.2 人が使う操作
+
+- 宛先: `@foreman` は計画・振り分け・まとめを頼む先で、宛先を省いたときの既定。`@<名前>` は個別の仕事、`@peers` は foreman 以外の全員、`@all` は全員への知らせ ([web-ui.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/guide/web-ui.md))。
+- 送り方: Send、Send + Reply、Mail の 3 つ (画面での選び方は確かめていない)。担当と完了の基準が要る仕事は task-backed delegation で頼み、チャットに task の札が付く。CLI では `cccc tracked-send "..." --to @foreman --title "..." --outcome "..."`。
+- 見る場所: Messages (人とエージェントの連絡)、Terminals (各エージェントの端末。1 画面に 4 人、スマホは 1 人ずつ)、Runtime Dock (各エージェントの輪で、作業中・待ち・停止と、直近の短い進み具合)、Project Context (取りまとめの要約、task の Planned・Active・Done の板、各エージェントの最新の報告)。
+- 止める: グループの状態の釦で、Pause message delivery (配るのを止める。作業中のものは続く)、Stop Group (全員を止める)。個別のエージェントは各自の More から止める・起こし直す。
+- 決まった時刻の知らせ: Settings の Automation で、決まった間隔の催促や、黙っているエージェントの確かめを置ける。
+- スマホ: ブラウザで同じ画面を使う。Telegram などの IM をつなぐと、bot に書いた文は foreman に届き、`/status`、`/pause`、`/resume` が使え、エージェントの返事が順に更新される ([telegram.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/guide/im-bridge/telegram.md))。IM をつなぐには bot のトークンが要る。
+- エージェントへの指示の上書き: Settings の Guidance で、グループの全員、foreman だけ、peer だけ、特定のエージェントだけに向けた約束ごとを足せる ([best-practices.md](https://github.com/ChesterRa/cccc/blob/v0.4.42/docs/guide/best-practices.md))。
+
+### 13.3 cccc に沿った操作の筋書き
+
+プレビューのグループ (Codex が foreman、Claude が peer、作業先は scratch2) で試せる形にした。「確かめた」は 2026-10-10 の再確認で起きたことがあるもの、「未確認」は文書による。
+
+- 筋書き 1: foreman に任せて分担させる
+  - 人: Messages の送信欄に `@foreman 〇〇を作りたい。Claude に実装させ、自分で検収して、結果を私に報告して` と送る。
+  - foreman: 計画を返し、task を作って Claude に送る。Claude の報告を確かめ、受け入れるかを判断して人に報告する (cccc の文の取り決め。未確認)。
+  - 見える場所: Messages に foreman の計画、foreman から Claude への依頼、Claude の報告、foreman から人への報告。Project Context の task の板が Planned から Done に動く (未確認)。Dock で誰が作業中か。作業の中身は Terminals。
+  - 確かめたこと: エージェントの間の依頼と報告の往復 (再確認の T9)。
+- 筋書き 2: 結果を必ず返させる
+  - 人: 個別のエージェントに直接頼むときは Send + Reply で送るか、task-backed delegation で完了の基準を付ける。
+  - 理由: cccc は端末の出力を誰にも届けないので、普通に Send しただけではエージェントがチャットに何も返さないことがある。再確認の T2 で、Claude は作業を終えたがチャットには何も送らなかった。
+- 筋書き 3: 途中で向きを変える、止める
+  - 人: foreman の計画のメッセージに Reply で `方針を変える: 〇〇` と送る。急ぐときはグループの釦で Pause message delivery、すぐ止めるなら Stop Group。
+  - 見える場所: Dock の輪が止まる。Project Context の各エージェントの報告で、どこまで進んだか。
+  - 確かめたこと: Stop Group で Claude が 0.8 秒、Codex が 2.8 秒で止まった表示 (再確認の T3、T5)。
+- 筋書き 4: 離れている間に進めさせる
+  - 人: 出がけに `@foreman` へ完了の基準付きで頼み (tracked send)、Automation に「1 時間ごとに進み具合を報告」の催促を置く。スマホのブラウザで Messages と Dock を見て、必要なら送信欄から追加の指示を送る。
+  - 見える場所: foreman からの定期の報告。黙っているエージェントを foreman に知らせる設定もある (既定では切ってある。未確認)。
+- 筋書き 5: 複数のプロジェクトを 1 つのグループで扱う
+  - 人: グループに 2 つ目のフォルダ (scope) を付け、今の作業先を切り替える。エージェントには、付いている作業先の一覧と今の作業先が渡る (`system_prompt.rs`)。
+  - 未確認: 1 つの依頼で 2 つの作業先にまたがる仕事をさせたとき、エージェントがどう動くか。
+
+### 13.4 PDA の要件との対応
+
+- R1 (フロントドアがチャット、Claude Code と Codex を切り替える): 入口はグループチャットで、ふだん話しかける相手は foreman。どちらを foreman にするかで、入口に立つエージェントが決まる (最初に有効にしたエージェント)。
+- R2 (間で仕事を渡し、渡した先が見える): cccc の中心の機能。宛先と task で渡し、渡した先の作業は Terminals、結果は報告で見える。
+- R4 (常駐、PC とスマホ): ブラウザか IM。
+- R5 (見渡し): Dock の輪と短い進み具合、Project Context の task の板と各エージェントの報告。
+- R7 (止める): Stop Group、Pause、エージェントごとの停止。
+- R13 (途中の出力): Terminals に生の出力、Dock に直近の一行。チャットに出るのは、エージェントが送った報告だけ。
+- R14 (途中の介入): 追加の指示は Reply か宛先付きの送信。権限の確認は既定で省き、答えるなら各エージェントの端末の画面で答える。やり直しは各エージェントの起こし直しか、新しいセッション。
+- 食い違うところ:
+  - チャットは「エージェントの作業の様子」ではなく「人とエージェントの連絡」を映す。作業の様子は Terminals か報告で見る。
+  - 入口のエージェントは、個人の秘書ではなく、チームの取りまとめ役として振る舞うよう指示されている。
+  - グループは作業するフォルダに結びつく。プロジェクトをまたぐ仕事は、作業先を複数付けるか、グループを分けて cccc の Connect でつなぐ形になる。
