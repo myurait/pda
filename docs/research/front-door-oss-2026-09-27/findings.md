@@ -556,7 +556,7 @@ H9 の意図 (計画の 8 節、2026-10-10) に沿って、2026-09-15 から 202
 出所は Claude Code の [CHANGELOG](https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md) と npm の公開時刻、Codex の [releases](https://github.com/openai/codex/releases)、Anthropic のモデルの発表、OpenAI の発表の報道。
 
 - 2026-09-22: Claude Opus 5.5 (Claude Code 2.1.280 で既定の Opus)。GPT-6 Sol と Luna (Codex 0.156.1 が 09-23、0.157.0 が 09-25)。
-- 2026-09-28: Claude Sonnet 5.5 と Claude Code 2.1.284 (対話のセッションが、権限の設定が無ければ auto mode で始まる)。Codex 0.158.0 (Orca の起動待ちが止まった起動画面の変更)。
+- 2026-09-28: Claude Sonnet 5.5 と Claude Code 2.1.284 (対話のセッションが、権限の設定が無ければ auto mode で始まる)。
 - 2026-09-29: GPT-6.1 Sol (Codex 0.159.1 で既定)。Codex 0.159.0 (app-server が履歴を途中から返せる)。
 - 2026-09-30: Claude Code 2.1.286 (信頼していない作業場所で `--bg` を断る。cccc の [#128](https://github.com/ChesterRa/cccc/issues/128) の記述)。
 - 2026-10-07: Claude Haiku 5.5 (Claude Code 2.1.293)。Codex 0.161.0 (認証を OS の keyring に置く場合がある)。
@@ -577,7 +577,7 @@ H9 の意図 (計画の 8 節、2026-10-10) に沿って、2026-09-15 から 202
 - GPT-6.1 Sol (09-29): cccc は当たらない。OpenClaw の主の系列は 2026.9.9 (10-08) で Codex の一覧に足した (9 日)。2026.9.8 では同梱の Codex 0.158.0 で 400 になった ([#164095](https://github.com/openclaw/openclaw/issues/164095))。長期保守の系列 (extended-stable) は 2026.8.35 (10-02) で対応 (3 日)。モデルの一覧を問い合わせるときの Codex の版が固定の値である件 ([#162768](https://github.com/openclaw/openclaw/issues/162768)) は開いたまま。
 - Haiku 5.5 (10-07): cccc は当たらない。OpenClaw は 2026.9.9 (10-08) で対応 (1 日)。
 
-CLI の振る舞いの変化:
+CLI の振る舞いの変化 (本文が Claude Code か Codex の版か振る舞いに原因を結びつけている不具合。cccc は期間内の issue と PR をすべて、OpenClaw は期間内で関わりの深い 25 件を見た。日数は、上流の変化の日が分からないものは報告からの日数で、上流からはそれ以上になる):
 
 - 対話のセッションの auto mode の既定 (2.1.284、09-28): どちらも当たらない。cccc は Claude に `--dangerously-skip-permissions` を渡し、OpenClaw は `--permission-mode default` を明示する。
 - 信頼していない作業場所で `--bg` を断る (2.1.286、09-30): cccc は当たる。v0.4.41 (09-25) で信頼の確認を端末に出す対応が先に入っていた (#128 の記述)。
@@ -586,6 +586,9 @@ CLI の振る舞いの変化:
 - Codex 0.159.1 の app-server が再開のときに 20 MB の要約を返し、cccc が受け取れない ([#134](https://github.com/ChesterRa/cccc/pull/134)、10-08): cccc は当たる。修正の PR は未マージ。
 - Claude Code 2.1.281 を入れているのに `claude_code_version_too_old` で断られる ([#157541](https://github.com/openclaw/openclaw/issues/157541)、09-24 報告): OpenClaw は当たる。09-26 に閉じた (2 日)。
 - Claude Code 2.1.292 が再開のときに追加の system prompt を無視する ([#167799](https://github.com/openclaw/openclaw/issues/167799)、10-09 報告): OpenClaw は当たる。修正は 10-09 にマージ、未リリース。
+- Claude Code 2.1.281 が前景の Bash を背景に回すと、返事がチャットに届かず、180 秒で打ち切られる ([#157647](https://github.com/openclaw/openclaw/issues/157647)、09-24 報告): OpenClaw は当たる。10-10 時点で開いたまま (報告から 16 日)。
+- Codex のモデルの一覧を問い合わせるときの版が 0.158.0 に固定で、新しい Codex を使っても GPT-6.1 Sol が出ない ([#162768](https://github.com/openclaw/openclaw/issues/162768)、10-01 報告): OpenClaw は当たる。開いたまま (9 日)。
+- OpenClaw 自身の実行器 (ChatGPT のログインで OpenClaw が自分のループを回す経路) で GPT-6 Sol を断る ([#155937](https://github.com/openclaw/openclaw/issues/155937)、09-22 報告): OpenClaw は当たる。開いたまま (18 日)。PDA が使う、Codex の app-server を動かす経路ではない。
 
 ### 12.4 届け方と、確かめている版
 
@@ -599,5 +602,6 @@ cccc v0.4.42 は Claude Code 2.1.293 と Codex 0.161.0 で、T1〜T4 と T9 が�
 ### 12.6 まとめ
 
 - 新しいモデルには、cccc は製品の対応が要らず、CLI を上げた日から使える。OpenClaw は 1〜2 日で対応し、GPT-6.1 Sol だけ主の系列で 9 日かかった。
-- CLI の振る舞いの変化には、cccc のほうが広く当たる (Claude Code の背景のセッションは毎版のように変わる)。上流が原因の不具合 3 件のうち、10-10 までに利用者へ届いたのは回避の 1 件 (4.7 日) だけで、2 件は未修正。修正がマージから利用者に届くまで 8 日かかった例があり、製品の更新の経路は 10-10 時点で 4 日前のリリースを指していない。OpenClaw は当たった 2 件を 2 日で閉じ、1 日で修正した (未リリース)。
-- 5 日の線では、OpenClaw は GPT-6.1 Sol の 1 件 (主の系列) で超え、cccc は未修正の 2 件と、修正の届き方で超える。
+- CLI の振る舞いの変化: cccc は 3 件に当たった。回避の 1 件が報告から 4.7 日で届き、2 件は報告から 2〜3 日で未修正。OpenClaw は 5 件に当たった。2 件は報告から 1〜2 日で修正し (1 件は未リリース)、3 件は報告から 9〜18 日開いたまま (うち 1 件は PDA が使わない経路)。
+- 届け方: cccc はリリースの間隔が 7〜11 日で、マージから利用者に届くまで 8 日かかった例があり、製品の更新の経路は 10-10 時点で 4 日前のリリースを指していない。CI で確かめている版は 5 週間前のまま。OpenClaw はリリースの間隔が 3〜7 日。
+- 5 日の線: どちらも超えるものがある。OpenClaw は個別の不具合 (#157647 の 16 日、#162768 と GPT-6.1 Sol の 9 日) で超え、cccc は修正の届け方 (リリースの間隔と更新の経路) で超える。
