@@ -1,0 +1,40 @@
+$ systemctl --user daemon-reload; systemctl --user start v03-cccc.service
+● v03-cccc.service - PDA v0.3 CCCC trial
+     Loaded: loaded (/home/user/.config/systemd/user/v03-cccc.service; enabled; preset: enabled)
+     Active: active (running) since Sat 2026-10-10 10:32:03 JST; 258ms ago
+   Main PID: 472921 (cccc)
+      Tasks: 20 (limit: 15004)
+     Memory: 9.1M (peak: 9.8M)
+        CPU: 29ms
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-cccc.service
+             ├─472921 /home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+             ├─472936 /bin/sh -c "trap '' INT HUP\ncat >/dev/null\nread -r written groups < \"\$1\" || exit 0\n[ -n \"\$groups\" ] || exit 0\ntolerance=\$3\nage=\$(( \$(date +%s) - written ))\n[ \"\$age\" -ge 0 ] && [ \"\$age\" -le \"\$2\" ] || exit 0\nowned_groups() {\n  ps -A -o pid=,pgid=,etime= | awk -v groups=\"\$groups\" -v observed=\"\$written\" -v now=\"\$(date +%s)\" -v tolerance=\"\$tolerance\" '\n    BEGIN {\n      count = split(groups, records, \" \")\n      for (i = 1; i <= count; i++) {\n        if (split(records[i], pair, \":\") == 2 && pair[1] ~ /^[0-9]+\$/ && pair[1] > 1 && pair[2] ~ /^[0-9]+\$/)\n          born[pair[1]] = pair[2]\n      }\n    }\n    NF == 3 && \$1 ~ /^[0-9]+\$/ && \$2 in born && \$3 ~ /^[0-9:-]+\$/ {\n      days = 0; clock = \$3\n      if (split(clock, day, \"-\") == 2) { days = day[1]; clock = day[2] }\n      count = split(clock, parts, \":\"); elapsed = 0\n      for (i = 1; i <= count; i++) elapsed = elapsed * 60 + parts[i]\n      started = now - days * 86400 - elapsed\n      if (\$1 == \$2) {\n        leader[\$2] = 1\n        delta = started - born[\$2]\n        matching[\$2] = delta >= -tolerance && delta <= tolerance\n      }\n      if (started >= born[\$2] - tolerance && started <= observed - tolerance) member[\$2] = 1\n    }\n    END { for (group in born) if (leader[group] ? matching[group] : member[group]) print group }\n  '\n}\nfor group in \$(owned_groups); do kill -s TERM -- \"-\$group\" 2>/dev/null; done\nsleep 2\nfor group in \$(owned_groups); do kill -s KILL -- \"-\$group\" 2>/dev/null; done\nexit 0\n" cccc-watchdog /home/user/v03/cccc/state/daemon/owned-process-groups.472921-1791595923047565622.watchdog 30 3
+             └─472938 cat
+
+Oct 10 10:32:03 agent-node systemd[1274]: Started v03-cccc.service - PDA v0.3 CCCC trial.
+Oct 10 10:32:03 agent-node cccc[472921]: [cccc] Daemon: started by this process (stops when this process exits)
+Oct 10 10:32:03 agent-node cccc[472921]: [cccc] Implementation: rust
+Oct 10 10:32:03 agent-node cccc[472921]: [cccc] Starting web server...
+Oct 10 10:32:03 agent-node cccc[472921]: [cccc]   Local:   http://127.0.0.1:5109
+
+$ systemctl --user cat v03-cccc.service
+# /home/user/.config/systemd/user/v03-cccc.service
+[Unit]
+Description=PDA v0.3 CCCC trial
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user/v03/cccc
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=CCCC_HOME=/home/user/v03/cccc/state
+Environment=PATH=/home/user/.local/bin:/home/user/v03/cccc/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/user/v03/cccc/bin/cccc --host 127.0.0.1 --port 5109
+KillSignal=SIGINT
+KillMode=control-group
+TimeoutStopSec=30
+Restart=no
+
+[Install]
+WantedBy=default.target

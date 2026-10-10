@@ -1,0 +1,85 @@
+2026-10-10T01:33:42.342+00:00 {"T2_api_event_counts": [{"channel": "ledger", "packet_type": "ready", "event": null, "kind_or_type": null, "count": 1}, {"channel": "headless", "packet_type": "ready", "event": null, "kind_or_type": null, "count": 1}, {"channel": null, "packet_type": "heartbeat", "event": null, "kind_or_type": null, "count": 2}, {"channel": "ledger", "packet_type": "event", "event": "ledger", "kind_or_type": "actor.start", "count": 1}, {"channel": "ledger", "packet_type": "event", "event": "ledger", "kind_or_type": "chat.message", "count": 1}, {"channel": "ledger", "packet_type": "event", "event": "ledger", "kind_or_type": "runtime.delivery", "count": 2}, {"channel": "ledger", "packet_type": "event", "event": "ledger", "kind_or_type": "actor.activity", "count": 2}]}
+2026-10-10T01:38:50.994+00:00 T2: subscribed to ledger and headless before submitting the user task, replay=false, and native terminal viewer since=current tail cursor. The model wrote readable progress/tool activity/final text into terminal frames. ledger contained one user chat.message and no Claude chat.message. headless subscription was ready but received no task text/activity deltas. Therefore this run did not surface the native explanation/tool calls as Messages; it did surface them in Terminals. API observation, not a screenshot assertion.
+2026-10-10T01:38:50.994+00:00 crates/cccc-daemon/src/ops/local_headless/output.rs
+4: pub(super) fn handle_message(session: &Session, message: Value) {
+5:     if message.get("id").is_some() {
+6:         if message.get("method").and_then(Value::as_str).is_some() {
+7:             respond_unsupported_server_request(session, &message);
+8:         }
+9:         return;
+10:     }
+11:     if session.managed.structured_only() {
+12:         project_structured_event(session, &message);
+13:     }
+14:     handle_announced_message(session, message);
+15: }
+16:
+17: // Reuse the existing headless journal and frontend projection. Store only the
+2026-10-10T01:38:50.994+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/launch.rs
+338:     pub(crate) fn tui_ready(&self) -> bool {
+339:         !self.structured_only()
+340:     }
+341:
+342:     pub(crate) fn structured_only(&self) -> bool {
+343:         self.runtime.supports_acp_mode()
+344:     }
+2026-10-10T01:38:50.994+00:00 crates/cccc-contracts/src/actor.rs
+90:     pub const fn supports_acp_mode(self) -> bool {
+91:         matches!(
+92:             self,
+93:             Self::Antigravity | Self::Copilot | Self::Devin | Self::Cursor
+94:         )
+95:     }
+96:
+97:     #[must_use]
+2026-10-10T01:38:50.994+00:00 web/src/hooks/useSSE.ts
+690:
+691:       if (
+692:         eventType === "headless.activity.started" ||
+693:         eventType === "headless.activity.updated" ||
+694:         eventType === "headless.activity.completed"
+695:       ) {
+696:         const activityId = typeof data.activity_id === "string" ? data.activity_id.trim() : "";
+697:         const summary = typeof data.summary === "string" ? data.summary.trim() : "";
+698:         if (!activityId || !summary) return;
+699:         const activityTs = typeof ev.ts === "string" ? ev.ts : new Date().toISOString();
+700:         const activity: StreamingActivity = {
+701:           id: activityId,
+702:           kind: typeof data.kind === "string" ? data.kind.trim() : "thinking",
+703:           status: eventType.replace("headless.activity.", ""),
+704:           summary,
+705:           detail: typeof data.detail === "string" ? data.detail.trim() : undefined,
+706:           ts: activityTs,
+707:           raw_item_type:
+708:             typeof data.raw_item_type === "string" ? data.raw_item_type.trim() : undefined,
+709:           tool_name: typeof data.tool_name === "string" ? data.tool_name.trim() : undefined,
+710:           server_name: typeof data.server_name === "string" ? data.server_name.trim() : undefined,
+711:           command: typeof data.command === "string" ? data.command.trim() : undefined,
+712:           cwd: typeof data.cwd === "string" ? data.cwd.trim() : undefined,
+713:           file_paths: Array.isArray(data.file_paths)
+714:             ? data.file_paths.map((item) => String(item || "").trim()).filter((item) => item)
+715:             : undefined,
+716:           query: typeof data.query === "string" ? data.query.trim() : undefined,
+717:         };
+718:         queueHeadlessActivity(activity);
+719:         return;
+720:       }
+721:
+722:       if (
+723:         eventType === "headless.message.started" ||
+724:         eventType === "headless.message.delta" ||
+725:         eventType === "headless.message.completed"
+726:       ) {
+727:         if (!streamId) return;
+728:         const delta = typeof data.delta === "string" ? data.delta : "";
+729:         const explicitTextRaw = typeof data.text === "string" ? data.text : null;
+730:         const explicitText =
+731:           explicitTextRaw === "" && eventType === "headless.message.started"
+732:             ? null
+733:             : explicitTextRaw;
+734:         const phase = typeof data.phase === "string" ? data.phase.trim().toLowerCase() : "";
+735:         const transientStream = !!phase && phase !== "final_answer";
+736:         const shouldBindToPendingPlaceholder = !!pendingEventId;
+737:         if (pendingEventId && shouldBindToPendingPlaceholder) {
+738:           promoteStreamingEventToStream(actorId, pendingEventId, streamId, groupId);
+2026-10-10T01:38:50.995+00:00 Source interpretation: projecting managed messages to structured headless events is gated on structured_only/supports_acp_mode; the supported set does not include Claude or Codex. The frontend has handlers for headless text/activity if such events exist, but their existence must not be inferred for these two native-terminal Actors.

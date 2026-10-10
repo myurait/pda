@@ -1,0 +1,411 @@
+2026-10-10T01:34:27.053+00:00 {"official_source_commit": "1e67dc8700515acbb2cc6a56c2e546b850f3c559", "tag": "v0.4.42"}
+2026-10-10T01:34:27.054+00:00 docs/guide/runtimes.md
+145: The Linux CI runs the real Codex/Claude empty-session probes and both Kilo probes
+146: against pinned CLI versions. To repeat the Kilo checks locally after building
+147: the current `cccc` binary:
+148:
+149: ```bash
+150: CCCC_LAUNCHER_PATH="$PWD/target/debug/cccc" \
+151: CCCC_KILO_MANAGED_LIVE=1 CCCC_KILO_MODEL_SYNC_LIVE=1 \
+152:   cargo test -p cccc-pair-daemon --lib --locked live_kilo -- --test-threads=1
+153: ```
+154:
+155: Codex 0.153.2 Esc was also checked through CCCC against a local test model. The
+156: interrupted turn published `turn_aborted`; an already queued follow-up could then
+157: start a new turn. This is not evidence that CCCC swallowed Esc, so the keyboard
+158: and cancellation paths were not changed. Do not discard queued user messages
+2026-10-10T01:34:27.054+00:00 docs/guide/runtimes.md
+231: through the native TUI so Codex applies its own queue/steer policy. Stop/start
+232: resumes the same validated thread, while `actor new-session` deliberately
+233: creates a new one. Voice Analyst uses this same Codex host/remote-TUI substrate,
+234: with a global user MCP identity and its own warm lifecycle instead of Actor
+235: identity and Group lifecycle.
+236:
+237: A new Codex thread is made durable through native metadata operations before
+238: the TUI attaches; an ID or planned rollout path alone is not a resumable history.
+239: Starting or restarting an idle Actor does not submit a bootstrap prompt or run
+240: the model. An empty thread can be stopped and resumed without first sending a
+241: message.
+242:
+243: Direct Claude Code Actors require Claude Code 2.1.259 or newer. Before first use,
+244: accept Claude's bypass-mode disclaimer interactively with
+245: `claude --dangerously-skip-permissions` under the same Claude configuration.
+246: Use the Claude executable selected by the Actor or Analyst's Runtime Profile and
+247: the effective `CLAUDE_CONFIG_DIR` shown in the launch error. A confirmation under
+248: another profile's configuration does not satisfy this prerequisite. After accepting
+249: the disclaimer, exit the interactive session and start the Actor or Analyst again.
+250: If it has not been accepted, the managed launch returns Claude's actionable
+251: error before opening an Actor terminal; CCCC does not write workspace trust or
+252: disclaimer acceptance into the user's global configuration.
+253:
+254: CCCC owns one
+255: Agent View background session, launches `claude attach` against that exact
+256: session, and derives turn ownership, tool results, completion, cancellation,
+257: and provider errors from Claude's append-only transcript. Actor deliveries go
+258: through the attached native terminal. Runtime Profile settings and private environment are merged
+259: into a stable, owner-scoped, permission-protected CCCC settings file because
+260: Agent View does not retain arbitrary launch environment in its job record and
+261: keeps that settings path in the session's respawn metadata. An ordinary stop
+262: retains the file so start can either re-adopt the matching live idle job or cold
+263: resume the same provider session from a validated version-2 receipt. The
+264: complete effective launch identity is
+265: fenced because an exact cold resume cannot reapply changed model, settings, or
+266: provider environment. CCCC-owned background, attach, session, MCP, autonomy,
+267: and resume flags cannot be supplied by the user. Wrappers, renamed binaries,
+268: prompt tails, print mode, and user-owned session topology fail explicitly;
+2026-10-10T01:34:27.055+00:00 docs/guide/runtimes.md
+516: | Existing actor does not pick up setup changes | Restart the actor after setup or profile changes. |
+517: | ChatGPT Web Model cannot call CCCC | Confirm the public HTTPS MCP URL, ChatGPT connector setup, and bound conversation. |
+518:
+519: Before the Rust daemon creates a Runtime session, it establishes the Runtime's CCCC MCP path. Codex, Claude Code, OpenCode, and Kilo receive an Actor-scoped server inside their managed session. Grok shares one native user-level entry between its managed session and terminal, with identity inherited from the launching process. Other automatically configured runtimes are checked against the active public CCCC executable: missing entries are installed, safely replaceable stale user/global entries are replaced, and the result is verified before the Actor process starts. A failed check, repair, or verification prevents launch, including daemon restart recovery. A stale entry from a more specific project or non-user scope fails with an actionable error instead of being silently overwritten. Native Cursor TUI retains its prompt-assisted startup setup contract; the prompt checks the registered executable and arguments as well as tool availability, because a legacy MCP can expose the same bootstrap name. Indirect custom provider commands remain responsible for their own MCP configuration. `cccc setup` for Claude, OpenCode, and Kilo reports session ownership. For Grok it prepares and verifies the same native registration used during Actor and Voice Analyst startup.
+520:
+521: This preflight runs before the provider discovers its tools. It therefore repairs Python-to-Rust executable path changes without requiring a second restart. Sessions that were already running when an external MCP configuration changed still need to be restarted because provider tool catalogs are session-scoped.
+522:
+2026-10-10T01:34:27.055+00:00 .github/workflows/ci.yml
+227:       - name: Set up Node for offline native-runtime smoke tests
+228:         uses: actions/setup-node@v7
+229:         with:
+230:           node-version: "24.19.0"
+231:       - name: Install verified native CLI versions
+232:         run: npm install --global @openai/codex@0.153.2 @anthropic-ai/claude-code@2.1.261 @kilocode/cli@7.5.14
+233:       - name: Verify native sessions without external model access
+234:         timeout-minutes: 5
+235:         env:
+236:           CCCC_LAUNCHER_PATH: ${{ github.workspace }}/target/debug/cccc
+237:           CCCC_CODEX_EMPTY_LIVE: "1"
+238:           CCCC_CLAUDE_EMPTY_LIVE: "1"
+239:           CCCC_KILO_MANAGED_LIVE: "1"
+240:           CCCC_KILO_MODEL_SYNC_LIVE: "1"
+241:         run: |
+242:           cargo build --package cccc --bin cccc --locked
+243:           cargo test --package cccc-pair-daemon --lib --locked -- --list > offline-native-tests.txt
+244:           python3 scripts/check_offline_native_tests.py offline-native-tests.txt
+245:           cargo test --package cccc-pair-daemon --lib --locked \
+246:             live_codex_empty_actor_and_analyst_resume_with_native_terminal -- --test-threads=1
+247:           cargo test --package cccc-pair-daemon --lib --locked \
+2026-10-10T01:34:27.055+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/claude/command.rs
+11: pub(super) const MIN_VERSION: Version = (2, 1, 259);
+12: const VERSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+2026-10-10T01:34:27.055+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/claude/command.rs
+119:     let mut command = process_command(executable, &["--version".into()], environment)?;
+120:     command
+121:         .current_dir(cwd)
+122:         .env_clear()
+123:         .envs(environment)
+124:         .kill_on_drop(true);
+125:     let output = tokio::time::timeout(VERSION_TIMEOUT, command.output())
+126:         .await
+127:         .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "Claude version probe timed out"))??;
+128:     if !output.status.success() {
+129:         return invalid("Claude Code version could not be verified for an Agent View session");
+130:     }
+131:     let version = parse_version(&String::from_utf8_lossy(&output.stdout))
+132:         .or_else(|| parse_version(&String::from_utf8_lossy(&output.stderr)))
+133:         .ok_or_else(|| {
+134:             io::Error::new(
+135:                 io::ErrorKind::Unsupported,
+136:                 "Claude Code returned an unrecognized version for an Agent View session",
+137:             )
+138:         })?;
+139:     if version < MIN_VERSION {
+140:         return invalid(format!(
+141:             "Claude Code {}.{}.{} cannot host the verified managed session; upgrade to 2.1.259 or newer",
+142:             version.0, version.1, version.2
+143:         ));
+144:     }
+145:     Ok(version)
+146: }
+147:
+2026-10-10T01:34:27.056+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/claude.rs
+127:         },
+128:         &generation[..generation.len().min(8)]
+129:     );
+130:     let mut arguments = Vec::new();
+131:     if let Some(session_id) = requested_session_id {
+132:         // Agent View resumes the exact durable session only when no launch
+133:         // configuration is repeated. Any additional flag intentionally forks.
+134:         arguments.extend(["--bg".into(), "--resume".into(), session_id.into()]);
+135:     } else {
+136:         arguments.extend(prepared.arguments.iter().cloned());
+137:         arguments.extend(["--name".into(), name, "--bg".into()]);
+138:     }
+139:     let mut command = command::process_command(
+140:         &prepared.executable,
+141:         &arguments,
+142:         &prepared.launch_environment,
+143:     )?;
+144:     command
+145:         .current_dir(cwd)
+146:         .env_clear()
+147:         .envs(&prepared.launch_environment)
+148:         .kill_on_drop(true);
+149:     let output = tokio::time::timeout(LAUNCH_TIMEOUT, command.output())
+150:         .await
+2026-10-10T01:34:27.056+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/claude.rs
+342:     Ok(LaunchedClaude {
+343:         protocol,
+344:         session_id: job.session_id,
+345:         resumed,
+346:         tui_command: vec![prepared.executable, "attach".into(), job.short],
+347:         environment: prepared.launch_environment,
+348:         // Agent View persists the original --settings path in its respawn
+2026-10-10T01:34:27.056+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/claude.rs
+598: fn validate_worker_version(job: &Job) -> io::Result<()> {
+599:     // Agent View upgrades its supervisor independently of surviving workers,
+600:     // and can migrate idle sessions to a new worker without changing identity.
+601:     // Validate support, not equality with the launcher or a previous worker.
+602:     if job.cli_version >= command::MIN_VERSION {
+603:         return Ok(());
+604:     }
+605:     Err(io::Error::new(
+606:         io::ErrorKind::Unsupported,
+607:         format!(
+608:             "Claude Agent View worker version {}.{}.{} is unsupported; the managed session requires {}.{}.{} or newer",
+609:             job.cli_version.0,
+610:             job.cli_version.1,
+611:             job.cli_version.2,
+612:             command::MIN_VERSION.0,
+613:             command::MIN_VERSION.1,
+614:             command::MIN_VERSION.2,
+615:         ),
+616:     ))
+2026-10-10T01:34:27.056+00:00 crates/cccc-cli/src/commands/setup.rs
+215:     if matches!(runtime, "claude" | "opencode" | "kilo") {
+216:         return Ok(json!({
+217:             "runtime":runtime,
+218:             "mode":"managed_session",
+219:             "status":"ready",
+220:             "managed":true,
+221:             "mcp":"injected_per_session"
+222:         }));
+223:     }
+224:     if runtime == "kimi" {
+225:         let mut environment = std::env::vars().collect::<std::collections::BTreeMap<_, _>>();
+2026-10-10T01:34:27.056+00:00 crates/cccc-cli/src/commands/setup.rs
+238:         && already_exists(&output)
+239:         && let Some(remove) = remove_command(runtime)
+240:     {
+241:         let removed = run_command(&remove, &cwd, home)?;
+242:         if !removed.status.success() {
+243:             bail!(
+244:                 "failed to replace existing CCCC MCP entry: {}",
+245:                 failure_detail(&removed)
+246:             );
+247:         }
+248:         output = run_command(&command, &cwd, home)?;
+249:     }
+2026-10-10T01:34:27.056+00:00 web/src/hooks/useSSE.ts
+690:
+691:       if (
+692:         eventType === "headless.activity.started" ||
+693:         eventType === "headless.activity.updated" ||
+694:         eventType === "headless.activity.completed"
+695:       ) {
+696:         const activityId = typeof data.activity_id === "string" ? data.activity_id.trim() : "";
+697:         const summary = typeof data.summary === "string" ? data.summary.trim() : "";
+698:         if (!activityId || !summary) return;
+699:         const activityTs = typeof ev.ts === "string" ? ev.ts : new Date().toISOString();
+700:         const activity: StreamingActivity = {
+701:           id: activityId,
+702:           kind: typeof data.kind === "string" ? data.kind.trim() : "thinking",
+703:           status: eventType.replace("headless.activity.", ""),
+704:           summary,
+705:           detail: typeof data.detail === "string" ? data.detail.trim() : undefined,
+706:           ts: activityTs,
+707:           raw_item_type:
+708:             typeof data.raw_item_type === "string" ? data.raw_item_type.trim() : undefined,
+709:           tool_name: typeof data.tool_name === "string" ? data.tool_name.trim() : undefined,
+710:           server_name: typeof data.server_name === "string" ? data.server_name.trim() : undefined,
+711:           command: typeof data.command === "string" ? data.command.trim() : undefined,
+712:           cwd: typeof data.cwd === "string" ? data.cwd.trim() : undefined,
+713:           file_paths: Array.isArray(data.file_paths)
+714:             ? data.file_paths.map((item) => String(item || "").trim()).filter((item) => item)
+715:             : undefined,
+716:           query: typeof data.query === "string" ? data.query.trim() : undefined,
+717:         };
+718:         queueHeadlessActivity(activity);
+719:         return;
+720:       }
+721:
+722:       if (
+723:         eventType === "headless.message.started" ||
+724:         eventType === "headless.message.delta" ||
+725:         eventType === "headless.message.completed"
+726:       ) {
+727:         if (!streamId) return;
+728:         const delta = typeof data.delta === "string" ? data.delta : "";
+729:         const explicitTextRaw = typeof data.text === "string" ? data.text : null;
+730:         const explicitText =
+731:           explicitTextRaw === "" && eventType === "headless.message.started"
+732:             ? null
+733:             : explicitTextRaw;
+734:         const phase = typeof data.phase === "string" ? data.phase.trim().toLowerCase() : "";
+735:         const transientStream = !!phase && phase !== "final_answer";
+736:         const shouldBindToPendingPlaceholder = !!pendingEventId;
+737:         if (pendingEventId && shouldBindToPendingPlaceholder) {
+738:           promoteStreamingEventToStream(actorId, pendingEventId, streamId, groupId);
+2026-10-10T01:34:27.056+00:00 web/src/services/api/webAccess.ts
+210: export async function fetchAccessTokens() {
+211:   return apiJson<{ access_tokens: AccessTokenEntry[] }>("/api/v1/access-tokens");
+212: }
+213:
+214: export async function createAccessToken(
+215:   userId: string,
+216:   isAdmin: boolean,
+217:   allowedGroups: string[],
+218:   customToken?: string,
+219:   bootstrapToken?: string,
+220: ) {
+221:   clearWebAccessSessionReadRequest();
+222:   const body: Record<string, unknown> = {
+223:     user_id: userId,
+224:     is_admin: isAdmin,
+225:     allowed_groups: allowedGroups,
+226:   };
+227:   if (customToken?.trim()) body.custom_token = [REDACTED]
+228:   if (bootstrapToken?.trim()) body.bootstrap_token = [REDACTED]
+229:   return apiJson<{ access_token: [REDACTED] }>("/api/v1/access-tokens", {
+230:     method: "POST",
+231:     body: JSON.stringify(body),
+232:   });
+233: }
+2026-10-10T01:38:28.039+00:00 crates/cccc-daemon/src/ops/runtime_mcp/mod.rs
+32:     }
+33:     // These adapters own MCP setup later in the launch pipeline. Grok shares
+34:     // its native registry with the TUI; the others inject a session entry.
+35:     if matches!(
+36:         runtime,
+37:         ActorRuntime::Claude
+38:             | ActorRuntime::Codex
+39:             | ActorRuntime::Grok
+40:             | ActorRuntime::Opencode
+41:             | ActorRuntime::Kilo
+42:     ) {
+43:         return Ok(());
+44:     }
+2026-10-10T01:38:28.039+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/launch_command.rs
+13: pub(super) fn prepare(
+14:     configured: &[String],
+15:     environment: &BTreeMap<String, String>,
+16: ) -> io::Result<PreparedLaunch> {
+17:     let default_command = ["codex".to_owned()];
+18:     let configured = if configured.is_empty() {
+19:         &default_command[..]
+20:     } else {
+21:         configured
+22:     };
+23:     let executable = resolve_runtime_executable(&configured[0], environment)?;
+24:     let (arguments, has_web_search) = codex_global_arguments(&configured[1..])?;
+25:     let model = model_from_arguments(&arguments);
+26:     // Operators manage updates. Keep the startup menu from consuming delivered
+27:     // messages as upgrade choices; explicit arguments can override this default.
+28:     let mut remote_tui_prefix = vec![
+29:         executable.to_string_lossy().into_owned(),
+30:         "-c".into(),
+31:         "check_for_update_on_startup=false".into(),
+32:     ];
+33:     remote_tui_prefix.extend(arguments);
+34:     if !has_web_search {
+35:         remote_tui_prefix.extend(["-c".into(), "web_search=\"live\"".into()]);
+36:     }
+37:     // Remote resume clients cannot override permissions owned by app-server.
+38:     let permission_overrides = [
+39:         "--dangerously-bypass-approvals-and-sandbox".into(),
+40:         "-c".into(),
+41:         "shell_environment_policy.inherit=all".into(),
+42:         "-c".into(),
+43:         "approval_policy=\"never\"".into(),
+44:         "-c".into(),
+45:         "sandbox_mode=\"danger-full-access\"".into(),
+46:     ];
+47:     let mut app_server = remote_tui_prefix.clone();
+48:     app_server.extend(permission_overrides);
+49:     app_server.extend([
+50:         "app-server".into(),
+51:         "--listen".into(),
+52:         "ws://127.0.0.1:0".into(),
+53:     ]);
+54:     Ok(PreparedLaunch {
+55:         app_server,
+56:         remote_tui_prefix,
+57:         model,
+58:     })
+2026-10-10T01:38:28.040+00:00 crates/cccc-daemon/src/ops/local_headless/output.rs
+4: pub(super) fn handle_message(session: &Session, message: Value) {
+5:     if message.get("id").is_some() {
+6:         if message.get("method").and_then(Value::as_str).is_some() {
+7:             respond_unsupported_server_request(session, &message);
+8:         }
+9:         return;
+10:     }
+11:     if session.managed.structured_only() {
+12:         project_structured_event(session, &message);
+13:     }
+14:     handle_announced_message(session, message);
+15: }
+16:
+17: // Reuse the existing headless journal and frontend projection. Store only the
+18: // normalized, selected event fields, never opaque protocol/configuration frames.
+19: fn project_structured_event(session: &Session, message: &Value) {
+20:     let params = &message["params"];
+21:     let turn_id = params["turnId"]
+22:         .as_str()
+23:         .or_else(|| params.pointer("/turn/id").and_then(Value::as_str))
+2026-10-10T01:38:28.040+00:00 crates/cccc-daemon/src/ops/codex_voice_analyst/launch.rs
+338:     pub(crate) fn tui_ready(&self) -> bool {
+339:         !self.structured_only()
+340:     }
+341:
+342:     pub(crate) fn structured_only(&self) -> bool {
+343:         self.runtime.supports_acp_mode()
+344:     }
+2026-10-10T01:38:28.040+00:00 docs/guide/web-ui.md
+68: Use **Messages / Terminals** in the Group header to switch the current Group's work view.
+69: On narrow headers, the view icon switches between these views. Presentation also opens from
+70: the header through the bookmark icon, beside the **Files** folder icon on desktop, with its own update indicator. Tooltips and accessible names identify these controls. View, search and context controls align with the main work area as the side panel resizes. Files and Presentation
+71: share one side column: selecting the other swaps panels; selecting the active one closes it.
+72: Switching views only replaces the history area; the message composer stays in place.
+73: Each Group remembers its view and terminal page in this browser, including after a page reload. Message drafts and
+74: the message reading position survive switching between views.
+75:
+76: The terminal view shows up to four Actors per page, in the Group's existing order. Narrow areas
+77: show one Actor per page. Page arrows appear only when there is more than one page, in the
+78: Group header or the single Actor title bar on mobile. The arrows have 44-pixel targets, with a
+79: visible page count and disabled endpoints. On touchscreens, swipe horizontally on the Actor
+80: title area to page; buttons, vertical gestures and the terminal body keep their own behavior.
+81: Resizing keeps the focused Actor visible,
+82: or preserves the first visible Actor when no terminal has focus. Removing Actors displays a
+83: valid page without discarding the saved preference during loading.
+84: Indicators can point to waiting or stuck Actors on other pages without moving the current page.
+85:
+86: Each visible terminal accepts input directly. Click its content to choose the keyboard target;
+87: the focused pane is outlined, and new output does not take focus. The bottom composer still
+88: sends Group messages, independently of terminal input. Maximize opens the existing Actor controls
+89: using the same terminal instance; close the expanded view to return to the grid. Escape and Tab
+90: remain terminal keys while the terminal has focus. Existing access and single-writer rules apply:
+91: a read-only user cannot type. Opening a view leaves any existing writer in control; use
+92: **Take control** to take over explicitly. An ordinary reconnect does not take control away
+93: from another writer. With no existing writer, the terminal accepts input immediately.
+94: A reconnect that resumes contiguous output keeps the existing screen visible while catching up.
+95:
+96: Switching pages, Groups, or back to Messages keeps recently visited terminals and
+97: their connections in memory, including scrollback and selection. Each workbench
+2026-10-10T01:38:28.040+00:00 docs/guide/web-ui.md
+1065: `CCCC_WEB_CORS_ORIGINS` entry.
+1066:
+1067: ### Shared realtime connection
+1068:
+1069: The Web UI uses one `/api/v1/events/ws` WebSocket per page for global metadata,
+1070: current-Group ledger events, and headless output. Switching Groups replaces the
+1071: subscriptions on the existing socket. Background pages release their subscriptions
+1072: and close the socket when none remain. This avoids occupying the HTTP/1.1 pool
+1073: with three persistent SSE requests per visible page; ordinary API requests remain
+1074: available with several workbench windows open.
+1075:
+1076: Each subscription has an ID. Both sides ignore packets from retired IDs. Reconnects
+1077: resume the ledger from its last delivered event ID and request a headless snapshot
+1078: from the same tail that supplies subsequent deltas. Existing UI catch-up and
+1079: coalescing continue to apply. Global events contain only permitted Group metadata.
+1080: Token [REDACTED] Connect-frame authority are rechecked while connected; each Group
+1081: subscription also validates Group access before opening its producer.
+1082:

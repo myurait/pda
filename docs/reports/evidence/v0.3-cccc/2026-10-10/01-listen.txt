@@ -1,0 +1,4 @@
+$ ss -ltnp (5109 only)
+LISTEN 0      128        127.0.0.1:5109       0.0.0.0:*    users:(("cccc",pid=472921,fd=13))
+$ curl -sS -o /dev/null -w %{http_code} http://127.0.0.1:5109/ui/
+200

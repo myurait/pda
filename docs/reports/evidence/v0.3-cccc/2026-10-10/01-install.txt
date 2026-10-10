@@ -1,0 +1,27 @@
+Initial: cccc 0.4.41; source ff3e863ce0983dc529b92e169ed0f937903980fe
+Official release https://github.com/ChesterRa/cccc/releases/tag/v0.4.42 ; API /releases/latest reports tag=v0.4.42, published_at=2026-10-06T10:04:44Z, prerelease=false, draft=false.
+$ cccc update --check
+Current version: 0.4.41
+Installation: unmanaged / source build (no ownership marker)
+Latest stable version: 0.4.41
+Update status: already current on this channel
+Website installer retrieved from https://chesterra.github.io/cccc/install.sh reports DEFAULT_VERSION=0.4.41 (line 4). Explicit CCCC_VERSION=0.4.42 will select the verified release.
+$ git fetch origin tag v0.4.42; git switch --detach v0.4.42
+1e67dc8700515acbb2cc6a56c2e546b850f3c559
+Downloading CCCC v0.4.42 for x86_64-unknown-linux-gnu...
+
+✅ CCCC v0.4.42 installed successfully!
+
+   📦 Installed to: /home/user/v03/cccc/bin/cccc
+   🔍 Verify:       "/home/user/v03/cccc/bin/cccc" doctor
+
+ℹ️  Add /home/user/v03/cccc/bin to your shell PATH to run cccc directly.
+2026-10-10T01:40:27.425+00:00 $ env -u CODEX_HOME HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude CCCC_HOME=/home/user/v03/cccc/state CCCC_VERSION=0.4.42 CCCC_INSTALL_DIR=/home/user/v03/cccc/bin CCCC_NO_MODIFY_PATH=1 CCCC_ALLOW_REPLACE_EXISTING=1 sh /home/user/v03/cccc/downloads/install-2026-10-10.sh
+Exit 0 on the first install attempt. Official installer performs SHA256SUMS validation before replacing the executable. No runtime CLI was installed by this native package.
+2026-10-10T01:40:27.425+00:00 {"artifact": "/home/user/v03/cccc/downloads/install-2026-10-10.sh", "sha256": "33112f4a2af67c2aec8f270c73ee924443de6fa6fc2404ff9fb854b881ed6fa5"}
+2026-10-10T01:40:27.541+00:00 {"artifact": "/home/user/v03/cccc/bin/cccc", "sha256": "1f3d5a2d9091c65096207d79f95ff09afd537128a5ccbbd5933167360598d806"}
+2026-10-10T01:40:27.541+00:00 {"release_archive": "cccc-v0.4.42-x86_64-unknown-linux-gnu.tar.gz", "github_published_sha256": "3d4cafb1bb4ceea6d2f512748ae6adcbc93a90b9f5ca1cadabef108fb4929be1"}
+2026-10-10T01:40:27.549+00:00 {"command": ["/home/user/v03/cccc/bin/cccc", "--version"], "exit_code": 0, "output": "cccc 0.4.42\n"}
+2026-10-10T01:40:27.558+00:00 {"command": ["/home/user/.local/bin/claude", "--version"], "exit_code": 0, "output": "2.1.293 (Claude Code)\n"}
+2026-10-10T01:40:27.569+00:00 {"command": ["/home/user/.local/bin/codex", "--version"], "exit_code": 0, "output": "codex-cli 0.161.0\n"}
+2026-10-10T01:40:27.574+00:00 {"command": ["systemctl", "--user", "is-enabled", "v03-cccc.service"], "exit_code": 0, "output": "enabled\n"}
