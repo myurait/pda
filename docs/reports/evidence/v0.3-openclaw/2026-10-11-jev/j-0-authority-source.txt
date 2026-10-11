@@ -1,0 +1,129 @@
+Installed code: decision runtime validates caller authority before provider evaluation. Restart resolved the observed failure; exact invalidated authority source not traced.
+
+runtime-DNSM3xFo.mjs
+18: async function evaluateDecisionInRegistry(batch, inputOptions, registry, config, consumerId) {
+19: 	const options = { ...inputOptions };
+20: 	if (!inputOptions || options.agentId !== void 0 && (typeof options.agentId !== "string" || !options.agentId.trim()) || typeof options.purpose !== "string" || !options.purpose || options.purpose.length > 128 || typeof options.rubricVersion !== "string" || !options.rubricVersion || options.rubricVersion.length > 128 || !Number.isFinite(options.timeoutMs) || options.timeoutMs <= 0 || !(options.signal instanceof AbortSignal)) throw new DecisionContractError();
+21: 	options.signal.throwIfAborted();
+22: 	const started = performance.now();
+23: 	const skipped = (outcome) => {
+24: 		logDecisionEvaluation({
+25: 			options,
+26: 			facts: { dispatched: false },
+27: 			started,
+28: 			outcome
+
+runtime-DNSM3xFo.mjs
+61: 	const rootCaller = getPluginRegistryResourceOwner(registry) === getPluginRegistryState()?.activeRegistry;
+62: 	const authority = rootCaller ? void 0 : capturePluginLifecycleAuthority(registry, void 0, { scopedRuntime: true });
+63: 	const lifetime = rootCaller ? void 0 : capturePluginRegistryLifecycleSignal(registry, capturePluginRegistryLifecycleEpoch(registry), { scopedRuntime: true });
+64: 	let capturedOperator;
+65: 	let modelExecution;
+66: 	try {
+67: 		capturedOperator = await captureAmbientGatewayOperatorAuthority({ missingBindingError: () => /* @__PURE__ */ new Error("Decision evaluation requires its current Gateway binding.") });
+68: 		modelExecution = bindOperatorModelExecution(capturedOperator.authority, model);
+69: 		const modelSignal = modelExecution ? AbortSignal.any([options.signal, modelExecution.signal]) : options.signal;
+70: 		const assertCurrent = () => {
+71: 			capturedOperator?.assertInvocationCurrent?.();
+72: 			modelExecution?.assertCurrent();
+73: 			modelSignal.throwIfAborted();
+74: 		};
+75: 		assertCurrent();
+76: 		if (rootCaller) {
+77: 			const result = await entry.host.evaluate(submitted, {
+78: 				...options,
+79: 				signal: modelSignal
+80: 			}, selected.model, config, registry, consumerId);
+81: 			assertCurrent();
+82: 			return result;
+83: 		}
+84: 		if (!authority?.() || !lifetime) throw new Error("Decision consumer authority closed.");
+85: 		const signal = AbortSignal.any([modelSignal, lifetime]);
+86: 		const result = await entry.host.evaluate(submitted, {
+87: 			...options,
+88: 			signal
+89: 		}, selected.model, config, registry, consumerId);
+90: 		signal.throwIfAborted();
+91: 		assertCurrent();
+92: 		if (!authority()) throw new Error("Decision consumer authority closed.");
+93: 		return result;
+94: 	} finally {
+95: 		modelExecution?.release();
+96: 		capturedOperator?.release?.();
+
+operator-invocation-authority-DkToZWZj.mjs
+50: }
+51: /** Acquire the ambient requester; consumers own retention through their distinct work lifetimes. */
+52: async function captureAmbientGatewayOperatorAuthority(params) {
+53: 	const ambientScope = getPluginRuntimeGatewayRequestScope();
+54: 	const scope = ambientScope ? { ...ambientScope } : void 0;
+55: 	const invocation = captureOperatorToolGatewayAuthority();
+56: 	const inheritedOperator = invocation?.authority;
+57: 	const context = scope?.context ?? scope?.resolveGatewayContext?.();
+58: 	const assertInvocationCurrent = inheritedOperator || !scope?.client || !context ? invocation?.assertCurrent : captureGatewayToolCallerAssertion();
+59: 	if (inheritedOperator) {
+60: 		if (params.retainInherited) {
+61: 			assertAdmittedRunOperatorAuthority(inheritedOperator);
+62: 			inheritedOperator.assertCurrent();
+63: 		}
+64: 		return {
+65: 			authority: inheritedOperator,
+66: 			assertInvocationCurrent,
+67: 			release: params.retainInherited ? inheritedOperator.retain?.() : void 0
+68: 		};
+69: 	}
+70: 	if (scope?.client && !context && resolveGatewayOperatorRoleActor(scope.client)?.kind === "operator") throw params.missingBindingError();
+71: 	const capturedOperator = scope?.client && context ? await captureGatewayOperatorRunAuthority({
+72: 		client: scope.client,
+73: 		context,
+74: 		hasCurrentClientAuthority: scope.hasCurrentClientAuthority,
+75: 		invocationAuthority: {
+76: 			assertCurrent: () => scope.signal?.throwIfAborted(),
+77: 			signal: scope.signal
+78: 		}
+79: 	}) : void 0;
+80: 	try {
+81: 		assertInvocationCurrent?.();
+82: 		scope?.signal?.throwIfAborted();
+83: 		if (scope?.hasCurrentClientAuthority?.() === false || scope?.resolveGatewayContext && scope.resolveGatewayContext() !== context) throw new Error("Gateway caller authority is no longer active.");
+84: 		capturedOperator?.authority.assertCurrent();
+85: 		return {
+86: 			...capturedOperator,
+87: 			assertInvocationCurrent
+88: 		};
+89: 	} catch (error) {
+90: 		capturedOperator?.release();
+91: 		throw error;
+92: 	}
+93: }
+94: //#endregion
+95: export { captureOperatorToolGatewayAuthority as n, hasOperatorToolGatewayAuthority as r, captureAmbientGatewayOperatorAuthority as t };
+
+openclaw-tools-BwWTN0hs.mjs
+3514: 		async execute(_id, params, signal) {
+3515: 			const operationSignal = signal ?? new AbortController().signal;
+3516: 			operationSignal.throwIfAborted();
+3517: 			const batch = parseDecisionEvaluateInput(params);
+3518: 			if (!batch) return decisionToolResult({
+3519: 				status: "unavailable",
+3520: 				reason: "unsupported-input"
+3521: 			});
+3522: 			const { evaluateDecision } = await import("./runtime-DLkcbHw4.mjs");
+3523: 			operationSignal.throwIfAborted();
+3524: 			const currentConfig = getRuntimeConfig();
+3525: 			const currentSelection = resolveDecisionModelSetting(currentConfig, agentId);
+3526: 			const currentCapabilities = currentSelection && models.find((model) => model.provider === currentSelection.provider && model.id === currentSelection.model)?.capabilities;
+3527: 			const outcome = await evaluateDecision(batch, {
+3528: 				agentId,
+3529: 				purpose: "decision_evaluate",
+3530: 				rubricVersion: rubricVersion(batch),
+3531: 				timeoutMs: 3e4,
+3532: 				signal: operationSignal
+3533: 			});
+3534: 			operationSignal.throwIfAborted();
+3535: 			return decisionToolResult(outcome, currentCapabilities);
+3536: 		}
+3537: 	};
+3538: }
+3539: //#endregion
+3540: //#region src/agents/tools/embedded-gateway-stub.ts

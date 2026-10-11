@@ -1,0 +1,34 @@
+
+2026-10-11T01:28:11.087269+00:00
+$ ['/home/user/.local/bin/npm', 'view', '@openclaw/typesafe@2026.9.8', 'version', 'openclaw', 'dist.integrity', '--json']
+{
+  "version": "2026.9.8",
+  "openclaw": {
+    "build": {
+      "bundledDist": false,
+      "openclawVersion": "2026.9.8"
+    },
+    "compat": {
+      "pluginApi": ">=2026.9.8"
+    },
+    "install": {
+      "npmSpec": "@openclaw/typesafe",
+      "clawhubSpec": "clawhub:@openclaw/typesafe",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.9.6"
+    },
+    "release": {
+      "publishToNpm": true,
+      "publishToClawHub": true
+    },
+    "extensions": [
+      "./index.ts"
+    ],
+    "runtimeExtensions": [
+      "./dist/index.js"
+    ]
+  },
+  "dist.integrity": "sha512-tvosDXxoz+QuhJOFLlAWwlRHERvfs6nZi4Lvvqz8Yhwioap2J5kRNa2wW9Cha/UgEmdfmWgpPK1NobTTe+I82w=="
+}
+
+exit=0

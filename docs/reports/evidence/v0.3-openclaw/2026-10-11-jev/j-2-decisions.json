@@ -1,0 +1,101 @@
+[
+  {
+    "utc": "2026-10-11T01:34:25.361Z",
+    "sessionKey": "agent:r3-leader:jev-j-2-code-1791682464155",
+    "runId": "475c2ed8-ae3f-40b4-96d7-b9ee1f590fe7",
+    "call": 3,
+    "decisionMs": 975.3527319999994,
+    "outcome": {
+      "status": "ok",
+      "result": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "worker",
+            "confidence": 1,
+            "probabilities": {
+              "worker": 1,
+              "auditor": 0
+            }
+          }
+        },
+        "usage": {
+          "inputTokens": 456,
+          "outputTokens": 32
+        }
+      },
+      "provenance": {
+        "providerId": "typesafe",
+        "rubricVersion": "1",
+        "runtimeGeneration": "914a56fd-c160-4afe-9dd4-b5d5d0301da2"
+      }
+    }
+  },
+  {
+    "utc": "2026-10-11T01:36:03.603Z",
+    "sessionKey": "agent:r3-leader:jev-j-2-text-1791682562740",
+    "runId": "36d61154-aba3-4cfa-8f55-a766e580681c",
+    "call": 4,
+    "decisionMs": 456.67168499997933,
+    "outcome": {
+      "status": "ok",
+      "result": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "auditor",
+            "confidence": 1,
+            "probabilities": {
+              "worker": 0,
+              "auditor": 1
+            }
+          }
+        },
+        "usage": {
+          "inputTokens": 455,
+          "outputTokens": 33
+        }
+      },
+      "provenance": {
+        "providerId": "typesafe",
+        "rubricVersion": "1",
+        "runtimeGeneration": "914a56fd-c160-4afe-9dd4-b5d5d0301da2"
+      }
+    }
+  },
+  {
+    "utc": "2026-10-11T01:37:11.754Z",
+    "sessionKey": "agent:r3-leader:jev-j-2-enforce-1791682631256",
+    "runId": "01925ed5-b475-4c78-8554-af1b38cbb6e0",
+    "call": 5,
+    "decisionMs": 373.37164600001415,
+    "outcome": {
+      "status": "ok",
+      "result": {
+        "model": "jev-1.13.0",
+        "answers": {
+          "route": {
+            "type": "choice",
+            "choice": "auditor",
+            "confidence": 0.84,
+            "probabilities": {
+              "worker": 0.08,
+              "auditor": 0.92
+            }
+          }
+        },
+        "usage": {
+          "inputTokens": 466,
+          "outputTokens": 33
+        }
+      },
+      "provenance": {
+        "providerId": "typesafe",
+        "rubricVersion": "1",
+        "runtimeGeneration": "914a56fd-c160-4afe-9dd4-b5d5d0301da2"
+      }
+    }
+  }
+]

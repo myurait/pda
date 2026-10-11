@@ -1,0 +1,47 @@
+
+2026-10-11T01:31:57.277980+00:00
+$ ['journalctl', '--user', '-u', 'v03-openclaw.service', '--since', '2026-10-11 01:30:00 UTC', '--no-pager', '-o', 'short-iso-precise']
+2026-10-11T10:30:27.437436+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:27.437+09:00 [reload] config change detected; evaluating reload (plugins.entries.typesafe, plugins.installs.typesafe)
+2026-10-11T10:30:28.937390+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:28.937+09:00 [gateway] Plugin replacement applied: typesafe
+2026-10-11T10:30:29.187935+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:29.187+09:00 [ws] ⇄ res ✓ agent.identity.get 190ms conn=966224d3…2ea3 id=70:e13c34ce-…3f0e
+2026-10-11T10:30:29.567462+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:29.567+09:00 [reload] config hot reload applied (plugins.entries.typesafe, plugins.installs.typesafe)
+2026-10-11T10:30:29.588422+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:29.588+09:00 [reload] config source revision 3 accepted (write)
+2026-10-11T10:30:29.819581+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:29.819+09:00 [ws] ⇄ res ✓ plugins.install 79476ms conn=5aa82e17…1e59 id=2:aca6e2f9-d…08ab
+2026-10-11T10:30:29.977327+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:29.977+09:00 [ws] ⇄ res ✓ config.get 152ms conn=966224d3…2ea3 id=74:60554747-…ef10
+2026-10-11T10:30:38.752657+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:38.752+09:00 [agent/embedded] codex app-server is newer than OpenClaw's managed runtime; continuing with normal startup validation detectedVersion=0.161.0 validatedVersion=0.158.0
+2026-10-11T10:30:41.336704+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:41.336+09:00 [state/lease] Waiting for plugin lifecycle lease core:plugin-lifecycle/global held by 18b03a5e-b799-4677-94de-d9f66b3e7a42; current lease expires at 2026-10-11T01:35:39.767Z.
+2026-10-11T10:30:41.514197+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:41.514+09:00 [reload] plugin metadata changed with identical config; applying plugin lifecycle
+2026-10-11T10:30:43.124123+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:43.124+09:00 [gateway] Plugin replacement applied: typesafe
+2026-10-11T10:30:43.567916+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:43.567+09:00 [ws] ⇄ res ✓ models.authStatus 458ms conn=966224d3…2ea3 id=84:40c0483d-…b211
+2026-10-11T10:30:43.568757+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:43.568+09:00 [ws] ⇄ res ✓ models.authStatus 460ms conn=966224d3…2ea3 id=85:2930f992-…b0d6
+2026-10-11T10:30:43.624541+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:43.624+09:00 [reload] config source revision 6 accepted (write)
+2026-10-11T10:30:48.643346+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:48.643+09:00 [fetch-timeout] fetch timeout after 5000ms (elapsed 5002ms) operation=fetchWithSsrFGuard url=https://clawhub.ai/v1/feeds/plugins
+2026-10-11T10:30:48.665229+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:48.665+09:00 [ws] ⇄ res ✓ plugins.setEnabled 8899ms conn=b1d14dd4…eedb id=2:3288dc12-4…1cc5
+2026-10-11T10:30:52.055894+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:52.055+09:00 [reload] config change detected; evaluating reload (plugins.entries.typesafe.config)
+2026-10-11T10:30:53.780505+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:53.780+09:00 [gateway] Plugin replacement applied: typesafe
+2026-10-11T10:30:54.545558+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:54.545+09:00 [reload] config hot reload applied (plugins.entries.typesafe.config)
+2026-10-11T10:30:54.576544+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:54.576+09:00 [reload] config source revision 8 accepted (file)
+2026-10-11T10:30:54.680372+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:54.680+09:00 [ws] ⇄ res ✓ config.get 59ms conn=966224d3…2ea3 id=100:c45404f5…4069
+2026-10-11T10:30:55.111749+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:55.111+09:00 [reload] config change detected; evaluating reload (agents.entries.r3-leader.decisionModel)
+2026-10-11T10:30:55.284605+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:55.284+09:00 [gateway] Plugin replacement applied:
+2026-10-11T10:30:55.746794+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:55.746+09:00 [reload] config hot reload applied (agents.entries.r3-leader.decisionModel)
+2026-10-11T10:30:55.776038+09:00 agent-node openclaw[509062]: 2026-10-11T10:30:55.775+09:00 [reload] config source revision 9 accepted (file)
+2026-10-11T10:31:09.374016+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:09.373+09:00 [gateway] device pairing auto-approved device=bb766ae9a38dd6fd351c6e4c84188de74e0dfaa2a9794a553f5b3b37e3c3598f role=operator
+2026-10-11T10:31:09.378901+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:09.378+09:00 [gateway] device pairing pruned superseded silent pairing device=79bfd74a8fa83c09d39a73e84918f44b97af218f47e357280ee5a803510ffcf0 roles=operator
+2026-10-11T10:31:09.379456+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:09.379+09:00 [gateway] device pairing pruned superseded silent pairing device=705c1f1d1b9e3b47d94b897dc5cd95fe5ff79c0009ad438c6cfcfbf7438f4b04 roles=operator
+2026-10-11T10:31:09.579095+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:09.579+09:00 [ws] ⇄ res ✓ sessions.patch 192ms conn=8dace336…fbc4 id=c7d417b1…119b
+2026-10-11T10:31:13.031355+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:13.031+09:00 [ws] ⇄ res ✓ tools.effective 3451ms conn=8dace336…fbc4 id=e3fa8b09…a5aa
+2026-10-11T10:31:13.683201+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:13.683+09:00 [ws] ⇄ res ✓ sessions.patch 650ms conn=8dace336…fbc4 id=92b664d0…217b
+2026-10-11T10:31:17.112835+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:17.112+09:00 [ws] ⇄ res ✓ tools.effective 3429ms conn=8dace336…fbc4 id=7ca65ecd…85a1
+2026-10-11T10:31:17.819411+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:17.819+09:00 [ws] ⇄ res ✓ sessions.patch 704ms conn=8dace336…fbc4 id=c45ebda8…de9d
+2026-10-11T10:31:20.965493+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:20.965+09:00 [state/database-verify] database integrity verification passed
+2026-10-11T10:31:21.199562+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:21.199+09:00 [ws] ⇄ res ✓ tools.effective 3379ms conn=8dace336…fbc4 id=2f67a340…1e31
+2026-10-11T10:31:21.309477+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:21.309+09:00 [gateway] device pairing auto-approved device=399f433093e6d93184a0eeba049fa5c9340a57d9815621e0513b18bb4f829c2e role=operator
+2026-10-11T10:31:21.978447+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:21.978+09:00 [ws] ⇄ res ✓ sessions.patch 658ms conn=68885ffa…55b9 id=8bb4ea5e…c4a8
+2026-10-11T10:31:22.271418+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:22.271+09:00 [agent/cli-backend] cli session history refused across auth boundary: reason=auth-unknown
+2026-10-11T10:31:22.279780+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:22.279+09:00 [agent/cli-backend] cli exec: provider=claude-cli model=claude-sonnet-5 promptChars=223 trigger=user useResume=false session=none resumeSession=none reuse=none historyPrompt=none
+2026-10-11T10:31:22.285183+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:22.285+09:00 [agent/cli-backend] cli live session start: provider=claude-cli model=claude-sonnet-5 activeSessions=2
+2026-10-11T10:31:32.140136+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:32.140+09:00 [agent/cli-backend] cli turn: provider=claude-cli model=claude-sonnet-5 durationMs=9860 outBytes=380 outHash=10a1542f2629
+2026-10-11T10:31:40.539559+09:00 agent-node openclaw[509062]: 2026-10-11T10:31:40.539+09:00 [ws] ⇄ res ✓ tools.effective 3436ms conn=68885ffa…55b9 id=2da0d560…cdad
+
+exit=0

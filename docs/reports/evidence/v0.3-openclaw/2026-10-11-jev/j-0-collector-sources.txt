@@ -1,0 +1,386 @@
+
+===== client.mjs =====
+import {generateKeyPairSync, createHash, sign, randomUUID} from 'node:crypto';
+export const sleep = ms => new Promise(r=>setTimeout(r,ms));
+export function safe(value) {
+  if (Array.isArray(value)) return value.map(safe);
+  if (value && typeof value==='object') return Object.fromEntries(Object.entries(value).map(([k,v])=>[k, /^(deviceTokens?|access_token|refresh_token|id_token|token|password|secret|apiKey|authorization|signature|nonce|recoveryScope)$/i.test(k)?'[REDACTED]':safe(v)]));
+  if(typeof value==='string') return value.replace(/\bsk-[A-Za-z0-9_-]{15,}/g,'[REDACTED]').replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[REDACTED]').replace(/(Bearer\s+)\S+/gi,'$1[REDACTED]');
+  return value;
+}
+export class Client {
+  constructor(log=()=>{}) {this.log=log;this.pending=new Map();this.handlers=[];}
+  async connect() {
+    const {publicKey,privateKey}=generateKeyPairSync('ed25519');
+    const pub=publicKey.export({type:'spki',format:'der'}).subarray(-32);
+    const deviceId=createHash('sha256').update(pub).digest('hex');
+    this.ws=new WebSocket('ws://127.0.0.1:5114/');
+    const challenge=await new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>reject(new Error('challenge timeout')),15000);
+      this.ws.addEventListener('error',()=>reject(new Error('websocket error')));
+      this.ws.addEventListener('message',ev=>{
+        const m=JSON.parse(ev.data);
+        if(m.event==='connect.challenge'){clearTimeout(timeout);resolve(m.payload);return;}
+        if(m.type==='res') {
+          const p=this.pending.get(m.id);
+          if(p){clearTimeout(p.timer);this.pending.delete(m.id);m.ok?p.resolve(m.payload):p.reject(new Error(JSON.stringify(m.error)));}
+        }
+        this.log('receive',safe(m));
+        for(const h of this.handlers)h(m);
+      });
+    });
+    const scopes=['operator.read','operator.write','operator.admin','operator.approvals','operator.pairing'];
+    const payload=['v3',deviceId,'cli','cli','operator',scopes.join(','),String(challenge.ts),'',challenge.nonce,'linux',''].join('|');
+    const hello=await this.request('connect',{minProtocol:4,maxProtocol:4,client:{id:'cli',version:'v03-recheck-2026-10-08',platform:'linux',mode:'cli'},role:'operator',scopes,caps:['tool-events'],device:{id:deviceId,publicKey:pub.toString('base64url'),signature:sign(null,Buffer.from(payload),privateKey).toString('base64url'),signedAt:challenge.ts,nonce:challenge.nonce}});
+    this.hello=hello;return hello;
+  }
+  request(method,params={}) {
+    const id=randomUUID();this.log('send',safe({type:'req',id,method,params}));
+    return new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(method+' timeout'));},45000);
+      this.pending.set(id,{resolve,reject,timer});this.ws.send(JSON.stringify({type:'req',id,method,params}));
+    });
+  }
+  close(){this.ws.close();}
+}
+if(process.argv[2]==='probe') {
+  const c=new Client((kind,x)=>{if(x.type==='res'&&!x.ok)console.log(kind,JSON.stringify(x));});
+  try {const h=await c.connect();console.log(JSON.stringify({protocol:h.protocol,server:h.server,auth:safe(h.auth),methods:h.features.methods.filter(x=>/^(chat|sessions|agent)/.test(x))},null,2));}finally{c.close();}
+}
+
+
+===== probe.mjs =====
+import {Client,safe,sleep} from './client.mjs';
+import {appendFileSync,writeFileSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+const evidence='/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev/';
+const [mode,label,agentOrMethod,messageOrParams,patchJSON]=process.argv.slice(2);
+const file=evidence+label+'.jsonl';
+function log(type,data){appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),type,data:safe(data)})+'\n');}
+const keys=new Set();let parentKey,terminal=null,lastActivity=Date.now(),lastPoll=0;
+const children=new Set(),ended=new Set();let statuses=[];
+const c=new Client((kind,m)=>{
+ if(m.type==='event'&&!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+ if(m.type==='res'&&m.payload?.type==='hello-ok'){log('connected',{protocol:m.payload.protocol,server:m.payload.server});return;}
+ if(m.type==='res'&&m.payload?.sessions)return;
+ log(kind,m);
+});
+async function addChild(k){
+ if(keys.has(k))return;keys.add(k);children.add(k);lastActivity=Date.now();
+ try{log('child-subscribe',{key:k,result:await c.request('sessions.messages.subscribe',{key:k})});}catch(e){log('child-subscribe-error',{key:k,error:e.message});}
+}
+try{
+ await c.connect();
+ if(mode==='rpc'){
+  const result=await c.request(agentOrMethod,JSON.parse(messageOrParams||'{}'));
+  log('rpc-result',result);writeFileSync(evidence+label+'.json',JSON.stringify(safe(result),null,2)+'\n');console.log(JSON.stringify(safe(result)).slice(0,2000));
+ }else{
+  parentKey=`agent:${agentOrMethod}:jev-${label}-${Date.now()}`;keys.add(parentKey);
+  log('trial-start',{key:parentKey,agent:agentOrMethod,message:messageOrParams});
+  c.handlers.push(m=>{
+   if(m.type!=='event'||!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+   lastActivity=Date.now();const p=m.payload;
+   for(const child of JSON.stringify(p).match(/agent:r3-(?:worker|auditor):subagent:[A-Za-z0-9-]+/g)??[])void addChild(child);
+   if(m.event==='chat'&&['final','error','aborted'].includes(p.state)){
+    if(p.sessionKey===parentKey)terminal=p.state;
+    ended.add(p.sessionKey);log('terminal',{key:p.sessionKey,state:p.state});
+   }
+  });
+  await c.request('sessions.patch',{key:parentKey,verboseLevel:'on',...JSON.parse(patchJSON||'{}')});
+  await c.request('sessions.messages.subscribe',{key:parentKey,includeApprovals:true});
+  await c.request('chat.send',{sessionKey:parentKey,message:messageOrParams,idempotencyKey:randomUUID()});
+  const end=Date.now()+300000;
+  while(Date.now()<end){
+   if(Date.now()-lastPoll>5000){
+    const ss=await c.request('sessions.list',{});lastPoll=Date.now();statuses=(ss.sessions??[]).filter(x=>keys.has(x.key));
+    for(const s of ss.sessions??[])if(s.spawnedBy===parentKey)await addChild(s.key);
+   }
+   const quietMs=children.size?20000:2000;
+   if(terminal&&Date.now()-lastActivity>quietMs&&!statuses.some(x=>x.hasActiveRun))break;
+   await sleep(250);
+  }
+  if(Date.now()>=end){log('timeout',{keys:[...keys],terminal,statuses});for(const k of keys)await c.request('chat.abort',{sessionKey:k});}
+  const summary={key:parentKey,agent:agentOrMethod,terminal,children:[...children],answers:[],statuses};
+  for(const k of keys){
+   const h=await c.request('chat.history',{sessionKey:k,limit:100});log('history-after',{key:k,history:h});
+   const texts=(h.messages??[]).filter(x=>x.role==='assistant').map(x=>typeof x.content==='string'?x.content:(x.content??[]).filter(b=>b.type==='text').map(b=>b.text).join('\n')).filter(Boolean);
+   summary.answers.push({key:k,texts});
+  }
+  try{const r=await c.request('tools.effective',{sessionKey:parentKey});writeFileSync(evidence+label+'-catalog.json',JSON.stringify(safe(r),null,2)+'\n');}catch(e){log('catalog-error',{error:e.message});}
+  writeFileSync(evidence+label+'-summary.json',JSON.stringify(safe(summary),null,2)+'\n');console.log(JSON.stringify(safe({...summary,statuses:summary.statuses.map(x=>({key:x.key,status:x.status,hasActiveRun:x.hasActiveRun}))})));
+ }
+}catch(e){log('error',{error:e.stack});console.error(e.message);process.exitCode=1;}finally{c.close();}
+
+
+===== manage.py =====
+import json,subprocess,pathlib,os,datetime,difflib,re,sys
+ROOT=pathlib.Path('/home/user/v03/openclaw')
+EV=pathlib.Path('/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev')
+ENV=dict(os.environ,HOME='/home/user/v03/agent-home',CLAUDE_CONFIG_DIR='/home/user/pda/secrets/claude',PATH='/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin')
+for k in ['CODEX_HOME','OPENAI_API_KEY','CODEX_API_KEY','ANTHROPIC_API_KEY','CLAUDE_CODE_OAUTH_TOKEN','TYPESAFE_API_KEY']: ENV.pop(k,None)
+def scrub(s):
+ s=re.sub(r'\bsk-[A-Za-z0-9_-]{15,}', '[REDACTED]',s)
+ s=re.sub(r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+','[REDACTED]',s)
+ return re.sub(r'(Bearer\s+)\S+',r'\1[REDACTED]',s,flags=re.I)
+def run(args,file,check=True):
+ p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,env=ENV)
+ out=scrub(p.stdout)
+ with (EV/file).open('a') as f:f.write('\n'+datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n$ '+repr(args)+'\n'+out+'\nexit='+str(p.returncode)+'\n')
+ print(args[:4],p.returncode,out[:1000],flush=True)
+ if check and p.returncode: raise RuntimeError(out)
+ return out
+def oc(args,file,check=True):return run([str(ROOT/'oc')]+args,file,check)
+def snap(name):
+ d=json.loads((ROOT/'openclaw.json').read_text())
+ def clean(v):
+  if isinstance(v,dict):return {k:(x if isinstance(x,dict) and x.get('source')=='store' else '[REDACTED]') if k.lower() in ('apikey','password','token','secret','authorization') else clean(x) for k,x in v.items()}
+  if isinstance(v,list):return [clean(x) for x in v]
+  return v
+ s=json.dumps(clean(d),ensure_ascii=False,indent=2)+'\n';(EV/(name+'.json')).write_text(s)
+ before=(EV/'j-0-config-before.json').read_text()
+ (EV/(name+'.diff')).write_text(''.join(difflib.unified_diff(before.splitlines(True),s.splitlines(True),fromfile='before',tofile=name)))
+ return d
+if __name__=='__main__':
+ if sys.argv[1]=='preflight':
+  for cmd in [[str(ROOT/'oc'),'--version'],['/home/user/.local/bin/claude','--version'],['/home/user/.local/bin/codex','--version'],['systemctl','--user','list-units','v03-*.service','--all','--no-pager'],['systemctl','--user','show','v03-openclaw.service','v03-cccc.service','-p','ActiveState','-p','MainPID','-p','ActiveEnterTimestamp'],['git','-C','/home/user/v03/work/openclaw/scratch','status','--short','--branch']]:run(cmd,'j-0-preflight.txt')
+  for cli in ['claude','codex']:run(['/home/user/.local/bin/'+cli,'mcp','list'],'j-0-mcp-before.txt')
+ if sys.argv[1]=='install':oc(['plugins','install','@openclaw/typesafe'],'j-0-typesafe-install.txt')
+ if sys.argv[1]=='snapshot':snap(sys.argv[2])
+
+
+===== setup.py =====
+from manage import *
+import sys
+if sys.argv[1]=='typesafe':
+ oc(['plugins','enable','typesafe'],'j-0-typesafe-config.txt')
+ oc(['config','set','plugins.entries.typesafe.config.apiKey',json.dumps({'source':'store','provider':'default','id':'TYPESAFE_API_KEY'}),'--strict-json'],'j-0-typesafe-config.txt')
+ oc(['config','set','agents.entries.r3-leader.decisionModel','typesafe/jev-latest'],'j-0-typesafe-config.txt')
+ oc(['config','validate'],'j-0-typesafe-config.txt')
+ snap('j-0-config-typesafe')
+if sys.argv[1]=='router':
+ oc(['config','set','agents.entries.r3-leader.subagents.allowAgents','["r3-worker","r3-auditor"]','--strict-json'],'j-2-plugin-install.txt')
+ oc(['plugins','install','--link',str(ROOT/'jev-router-probe'),'--force'],'j-2-plugin-install.txt')
+ oc(['plugins','enable','jev-router-probe'],'j-2-plugin-install.txt')
+ oc(['config','set','plugins.entries.jev-router-probe.hooks.allowConversationAccess','true','--strict-json'],'j-2-plugin-install.txt')
+ oc(['config','validate'],'j-2-plugin-install.txt')
+ snap('j-2-config-router')
+if sys.argv[1]=='mcp':
+ oc(['mcp','add','jev-mcp-probe','--command','/home/user/.local/bin/node','--arg',str(ROOT/'jev-mcp/server.mjs'),'--cwd',str(ROOT/'jev-mcp'),'--disabled'],'j-3-mcp-setup.txt')
+ snap('j-3-config-mcp')
+
+
+===== cleanup.py =====
+from manage import *
+import sys,shutil
+if sys.argv[1]=='router':
+ oc(['plugins','disable','jev-router-probe'],'j-2-cleanup.txt')
+ oc(['plugins','uninstall','jev-router-probe','--force'],'j-2-cleanup.txt')
+ cfg=json.loads((ROOT/'openclaw.json').read_text())
+ if 'jev-router-probe' in cfg.get('plugins',{}).get('entries',{}):oc(['config','unset','plugins.entries.jev-router-probe'],'j-2-cleanup.txt')
+ oc(['config','set','agents.entries.r3-leader.subagents.allowAgents','["r3-worker"]','--strict-json'],'j-2-cleanup.txt')
+ if (ROOT/'jev-router-probe').exists():shutil.rmtree(ROOT/'jev-router-probe')
+ with (EV/'j-2-cleanup.txt').open('a') as f:f.write('Removed /home/user/v03/openclaw/jev-router-probe. Restored original allowAgents=[r3-worker].\n')
+ snap('j-2-config-cleaned')
+if sys.argv[1]=='mcp':
+ oc(['mcp','unset','jev-mcp-probe'],'j-3-cleanup.txt')
+ cfg=json.loads((ROOT/'openclaw.json').read_text())
+ if cfg.get('mcp')=={'servers':{}}:oc(['config','unset','mcp'],'j-3-cleanup.txt')
+ if (ROOT/'jev-mcp/events.jsonl').exists():shutil.copy2(ROOT/'jev-mcp/events.jsonl',EV/'j-3-server-events.jsonl')
+ if (ROOT/'jev-mcp').exists():shutil.rmtree(ROOT/'jev-mcp')
+ with (EV/'j-3-cleanup.txt').open('a') as f:f.write('Removed /home/user/v03/openclaw/jev-mcp (server.mjs and events.jsonl).\n')
+ snap('j-3-config-cleaned')
+
+
+===== final-api.mjs =====
+import {Client,safe} from './client.mjs';
+import {readFileSync,writeFileSync,appendFileSync} from 'node:fs';
+const c=new Client(),ev='/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev/';
+try{
+ const h=await c.connect();
+ if(process.argv[2]==='clear-mcp'){
+  const key=JSON.parse(readFileSync(ev+'j-3-on-summary.json','utf8')).key;
+  const r=await c.request('sessions.patch',{key,toolOverrides:null});
+  appendFileSync(ev+'j-3-cleanup.txt',JSON.stringify({utc:new Date().toISOString(),operation:'sessions.patch toolOverrides=null',result:safe(r)})+'\n');
+ }else{
+  const ss=await c.request('sessions.list',{}),roles={};
+  for(const [role,label] of [['leader','j-3-off'],['worker','j-3-worker']]){
+   const key=JSON.parse(readFileSync(ev+label+'-summary.json','utf8')).key;
+   roles[role]=await c.request('tools.effective',{sessionKey:key});
+  }
+  const onKey=JSON.parse(readFileSync(ev+'j-3-on-summary.json','utf8')).key;
+  roles.formerOn=await c.request('tools.effective',{sessionKey:onKey});
+  const out={utc:new Date().toISOString(),server:h.server,roles,sessions:ss.sessions.filter(s=>s.key?.includes(':jev-')||s.spawnedBy?.includes(':jev-')).map(s=>({key:s.key,agentId:s.agentId,status:s.status,hasActiveRun:s.hasActiveRun,activeRunIds:s.activeRunIds,toolOverrides:s.toolOverrides??null}))};
+  writeFileSync(ev+'j-3-final-api.json',JSON.stringify(safe(out),null,2)+'\n');
+  console.log(JSON.stringify({server:out.server,activeSessions:out.sessions.filter(x=>x.hasActiveRun),tools:Object.fromEntries(Object.entries(roles).map(([k,v])=>[k,v.groups.flatMap(g=>g.tools).filter(t=>t.id==='decision_evaluate'||t.id.includes('jev_mcp')).map(t=>t.id)]))}));
+ }
+}finally{c.close();}
+
+
+===== restart-cleanup.mjs =====
+import {Client} from './client.mjs';
+import {appendFileSync} from 'node:fs';
+import {spawnSync} from 'node:child_process';
+const c=new Client(),file='/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev/j-3-cleanup.txt';
+try{
+ await c.connect();const ss=await c.request('sessions.list',{});const active=ss.sessions.filter(x=>x.hasActiveRun);
+ appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),allActiveSessionKeys:active.map(x=>x.key),reason:'MCP definition/override/server files removed, but warm Claude still owns server PID 522586; restart OpenClaw to close retained stdio server.'})+'\n');
+ if(active.length)throw new Error('Unfinished runs remain');
+}finally{c.close();}
+const r=spawnSync('systemctl',['--user','restart','v03-openclaw.service'],{encoding:'utf8'});
+appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),command:'systemctl --user restart v03-openclaw.service',exitCode:r.status,stdout:r.stdout,stderr:r.stderr})+'\n');
+if(r.status)process.exitCode=r.status;
+
+
+===== final-cleanup.py =====
+from manage import *
+import shutil
+log=[]
+for p in ROOT.glob('openclaw.json.bak*'):
+ st=p.stat();log.append({'removed':str(p),'size':st.st_size,'mtime':st.st_mtime,'contentsRead':False});p.unlink()
+baseline=set(json.loads((ROOT/'jev-run/baseline-backups.json').read_text()))
+for root in [pathlib.Path('/home/user/v03/agent-home'),pathlib.Path('/home/user/v03/agent-home/.claude'),pathlib.Path('/home/user/v03/agent-home/.codex')]:
+ for p in root.glob('*'):
+  if '.bak' in p.name or '.backup' in p.name:
+   log.append({'retained':str(p),'preExisting':str(p) in baseline,'contentsRead':False})
+scratch=pathlib.Path('/home/user/v03/work/openclaw/scratch');hello=scratch/'hello.py'
+expected='print("hello")\n\n\ndef greet(name: str) -> str:\n    return f"Hello, {name}!"\n'
+assert hello.read_text()==expected,'Scratch changed after trial; do not overwrite'
+(EV/'j-2-hello-after.py.txt').write_bytes(hello.read_bytes())
+shutil.copy2(ROOT/'jev-run/hello.before.py',hello);log.append({'restored':str(hello),'from':str(ROOT/'jev-run/hello.before.py')})
+for p in (scratch/'__pycache__').glob('hello.*.pyc'):
+ if p.stat().st_mtime>=datetime.datetime.fromisoformat((ROOT/'jev-run/start-utc.txt').read_text()).timestamp():p.unlink();log.append({'removed':str(p)})
+try:(scratch/'__pycache__').rmdir();log.append({'removed':str(scratch/'__pycache__')})
+except (FileNotFoundError,OSError):pass
+(EV/'j-0-cleanup-metadata.json').write_text(json.dumps(log,ensure_ascii=False,indent=2)+'\n')
+snap('j-0-config-final')
+for cmd in [[str(ROOT/'oc'),'--version'],[str(ROOT/'oc'),'config','validate'],['systemctl','--user','list-units','v03-*.service','--all','--no-pager'],['systemctl','--user','show','v03-openclaw.service','v03-cccc.service','-p','MainPID','-p','ActiveState','-p','SubState','-p','ActiveEnterTimestamp'],['curl','-sS','-o','/dev/null','-w','%{http_code}\n','http://127.0.0.1:5114/'],['curl','-sS','-o','/dev/null','-w','%{http_code}\n','http://127.0.0.1:5114/readyz'],['git','-C',str(scratch),'status','--short','--branch']]:run(cmd,'j-0-final-service.txt')
+rows=[]
+for p in pathlib.Path('/proc').iterdir():
+ if not p.name.isdigit():continue
+ try:
+  argv=(p/'cmdline').read_bytes().split(b'\0')
+  if b'/home/user/v03/openclaw/jev-mcp/server.mjs' in argv:rows.append(int(p.name))
+ except OSError:pass
+(EV/'j-3-final-processes.json').write_text(json.dumps({'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'probeServerPids':rows,'serverDirectoryExists':(ROOT/'jev-mcp').exists(),'routerDirectoryExists':(ROOT/'jev-router-probe').exists()},indent=2)+'\n')
+assert not rows
+print(json.dumps(log,ensure_ascii=False))
+
+
+===== inventory.mjs =====
+import {Client,safe} from './client.mjs';
+import {writeFileSync} from 'node:fs';
+const c=new Client(),out={utc:new Date().toISOString(),roles:{}};
+try{
+ const hello=await c.connect();out.methods=hello.features.methods.filter(x=>/decision|models|tools/.test(x));
+ for(const role of ['leader','worker','auditor']){
+  const key=`agent:r3-${role}:jev-inventory-${Date.now()}`;
+  await c.request('sessions.patch',{key});
+  const v=await c.request('tools.effective',{sessionKey:key});
+  out.roles[role]={key,result:v};
+  console.log(role,JSON.stringify({keys:Object.keys(v),decisionTools:(v.groups??[]).flatMap(x=>x.tools??[]).filter(x=>x.id==='decision_evaluate'),notices:v.notices}));
+ }
+ out.models=await c.request('models.list',{agentId:'r3-leader'});
+ writeFileSync('/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev/j-0-inventory.json',JSON.stringify(safe(out),null,2)+'\n');
+}finally{c.close();}
+
+
+===== summary.py =====
+import json,datetime,pathlib
+E=pathlib.Path('/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-jev')
+H=pathlib.Path('/home/user/v03/openclaw/jev-run/hook-events.jsonl')
+if H.exists():
+ rows=[json.loads(s) for s in H.read_text().splitlines()]
+ (E/'j-2-hook-events.jsonl').write_text(H.read_text())
+ out=[]
+ for row in rows:
+  if row['hook']=='decision-result':out.append({k:row.get(k) for k in ['utc','sessionKey','runId','call','decisionMs','outcome']})
+ (E/'j-2-decisions.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n')
+ lines=['| UTC | session | hook | cached | choice / target | ms | block |','|---|---|---|---|---|---:|---|']
+ for r in rows:
+  if r['hook'] not in ['before_prompt_build','before_tool_call','decision-result']:continue
+  lines.append('| '+' | '.join(str(x) for x in [r['utc'],r.get('sessionKey',''),r['hook'],r.get('cached',''),r.get('choice',r.get('actual',r.get('outcome',{}).get('result',{}).get('answers',{}).get('route',{}).get('choice',''))),round(r.get('elapsedMs',r.get('decisionMs',0)),3),r.get('block','')])+' |')
+ (E/'j-2-timings.md').write_text('\n'.join(lines)+'\n')
+for label in ['j-0-boolean','j-0-boolean-retry','j-1-spawn','j-2-code','j-2-text','j-2-enforce','j-3-on','j-3-off','j-3-worker']:
+ p=E/(label+'-summary.json')
+ if p.exists():
+  r=json.loads(p.read_text());print(label,[(x['key'],x['texts']) for x in r['answers']])
+
+
+===== verify.py =====
+from pathlib import Path
+import json,subprocess,re,hashlib,datetime,copy
+ROOT=Path('/home/user/v03/openclaw'); REPO=Path('/home/user/pda-v03a'); E=REPO/'docs/reports/evidence/v0.3-openclaw/2026-10-11-jev'
+checks=[]
+def check(name,value):
+ checks.append((name,bool(value)))
+ if not value:raise AssertionError(name)
+def j(name):return json.loads((E/name).read_text())
+def jsonl(name):return [json.loads(s) for s in (E/name).read_text().splitlines()]
+def tools(v):return [t['id'] for g in v['groups'] for t in g['tools']]
+try:
+ report=(REPO/'docs/reports/v0.3-openclaw-codex.md').read_bytes()
+ old=subprocess.check_output(['git','show','591a449:docs/reports/v0.3-openclaw-codex.md'],cwd=REPO)
+ check('Prior sections 1-9 byte-for-byte unchanged',report.startswith(old))
+ tail=report[len(old):].decode();check('Exactly one new section 10',tail.count('## 10. Jev による割り当ての確認 (2026-10-11)')==1)
+ check('Report states block/re-route unobserved',all(t in tail for t in ['ブロックと auditor への渡し直しは発生せず','不一致の `sessions_spawn` のブロックと、その後の渡し直しは未確認']))
+ check('Current requested branch',subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='v0.3/jev-routing-openclaw')
+ check('Original main base is ancestor',subprocess.run(['git','merge-base','--is-ancestor','aac17d4','HEAD'],cwd=REPO).returncode==0)
+ before=j('j-0-config-before.json');final=j('j-0-config-final.json');actual=json.loads((ROOT/'openclaw.json').read_text())
+ check('Final config evidence matches actual',final==actual)
+ check('Store reference exact',final['plugins']['entries']['typesafe']['config']['apiKey']=={'source':'store','provider':'default','id':'TYPESAFE_API_KEY'})
+ check('TypeSafe stays enabled',final['plugins']['entries']['typesafe']['enabled'] is True)
+ check('leader only decisionModel',final['agents']['entries']['r3-leader']['decisionModel']=='typesafe/jev-latest' and not final['agents']['defaults'].get('decisionModel') and all(not final['agents']['entries'][a].get('decisionModel') for a in ['r3-worker','r3-auditor']))
+ restored=copy.deepcopy(final);restored['plugins']['entries'].pop('typesafe');restored['agents']['entries']['r3-leader'].pop('decisionModel')
+ check('Only intended final config changes',restored==before)
+ check('Backup matches before config',json.loads((ROOT/'backup-jev/openclaw.before.json').read_text())==before)
+ check('Three existing agent workspaces remain',all(Path(final['agents']['entries']['r3-'+a]['workspace'],'AGENTS.md').exists() for a in ['leader','worker','auditor']))
+ check('ACP disabled',final['plugins']['entries']['acpx']['enabled'] is False)
+ check('Official plugin pinned host-compatible version',j('j-0-typesafe-package.json')['version']=='2026.9.8')
+ check('Conditional tool visibility',j('j-0-tool-visibility.json')=={'leader':['decision_evaluate'],'worker':[],'auditor':[]})
+ dec=j('j-0-decision-results.json');check('Boolean initial failure and one successful retry',len(dec)==2 and dec[0]['isError'] and dec[1]['isError'] is False and '"probabilityTrue":0.99' in dec[1]['result'][0]['text'])
+ s=j('j-1-spawn-summary.json');parent=s['answers'][0]['texts'];child=s['answers'][1]['texts'][-1]
+ check('Child answer and leader exact quote',child=='[ROLE:worker]\n7です。' and any('> [ROLE:worker]\n> 7です。' in x for x in parent) and s['terminal']=='final')
+ check('J-1 specified error absent',not any('Gateway client authority closed' in json.dumps(r) for r in jsonl('j-1-spawn.jsonl')))
+ h=jsonl('j-2-hook-events.jsonl');dr=[x for x in h if x['hook']=='decision-result'];tc=[x for x in h if x['hook']=='before_tool_call'];pc=[x for x in h if x['hook']=='before_prompt_build']
+ check('Three route decisions and expected choices',[x['outcome']['result']['answers']['route']['choice'] for x in dr]==['worker','auditor','auditor'])
+ check('Every result has probability distribution and timing',all(x['decisionMs']>0 and set(x['outcome']['result']['answers']['route']['probabilities'])=={'worker','auditor'} for x in dr))
+ check('Purpose/rubric/agent binding',all(x.get('purpose')=='pda.route' and x.get('rubricVersion')=='1' and x.get('agentId')=='r3-leader' for x in h if x['hook']=='decision-start'))
+ check('All three actual spawns match Jev; no block branch hit',[x['actual'] for x in tc]==['r3-worker','r3-auditor','r3-auditor'] and all(x['expected']==x['actual'] and x['block'] is False for x in tc))
+ check('Prompt context retained for each session',len(pc)==5 and sum(x['cached'] for x in pc)==2 and all(x['addedContext'] and x['elapsedMs']>=0 for x in pc))
+ check('Hook timeout/failure absent',j('j-2-timeout-check.json')['matchingJournalLines']==[])
+ for label in ['code','text','enforce']:
+  s=j('j-2-'+label+'-summary.json');check('J-2 '+label+' child and leader results retained',s['terminal']=='final' and len(s['children'])==1 and len(s['answers'])==2 and all(x['texts'] for x in s['answers']) and not any(x.get('hasActiveRun') for x in s['statuses']))
+ check('Nine J-2 authority errors preserved',len(j('j-2-authority-errors.json'))==9)
+ check('Generated function independently verified','Independent check: greet("太郎") == "Hello, 太郎!": PASS' in (E/'j-2-code-result.txt').read_text())
+ m=j('j-3-results.json');check('MCP visible in only target session',[len(x['tools']) for x in m]==[1,0,0])
+ check('MCP exactly one successful call',[len(x['calls']) for x in m]==[1,0,0] and m[0]['calls'][0]['isError'] is False and m[0]['calls'][0]['result'][0]['text']=='JEV-MCP-OK')
+ check('MCP config globally disabled and correct node path',j('j-3-config-mcp.json')['mcp']['servers']['jev-mcp-probe']=={'command':'/home/user/.local/bin/node','args':[str(ROOT/'jev-mcp/server.mjs')],'cwd':str(ROOT/'jev-mcp'),'enabled':False})
+ c=j('j-0-call-count.json');check('Counted all attempts within 15',c['conservativeEvaluationAttempts']==c['budgetCounter']==5 and c['budget']==15 and c['successfulJevResponses']==4 and c['authorityFailures']==1 and c['allowHostCommandExecuted'] is False)
+ f=j('j-3-final-api.json');check('Host still 2026.9.8',f['server']['version']=='2026.9.8')
+ check('Trial sessions no active work or MCP override',all(not s.get('hasActiveRun') and not s.get('toolOverrides') for s in f['sessions']))
+ check('MCP gone from live API; decision tool remains',all(not any('jev_mcp' in t for t in tools(r)) for r in f['roles'].values()) and 'decision_evaluate' in tools(f['roles']['leader']) and 'decision_evaluate' not in tools(f['roles']['worker']))
+ check('Probe files and processes removed',j('j-3-final-processes.json')['probeServerPids']==[] and not (ROOT/'jev-mcp').exists() and not (ROOT/'jev-router-probe').exists())
+ check('Config .bak files removed',not list(ROOT.glob('openclaw.json.bak*')))
+ check('Scratch restored; unrelated prompt summary retained',(Path('/home/user/v03/work/openclaw/scratch/hello.py').read_bytes()==(ROOT/'jev-run/hello.before.py').read_bytes()) and Path('/home/user/v03/work/openclaw/scratch/prompt_summary.md').exists())
+ norm=lambda p:'\n'.join(l for l in (E/p).read_text().splitlines() if l.startswith(('claude.ai ','codex ','No MCP','Checking MCP')))
+ check('Shared CLI MCP registrations unchanged',norm('j-0-mcp-before.txt')==norm('j-0-mcp-after.txt'))
+ services={}
+ for name in ['v03-openclaw.service','v03-cccc.service']:
+  ss=subprocess.check_output(['systemctl','--user','show',name,'-p','ActiveState','-p','SubState','-p','MainPID'],text=True)
+  services[name]=ss;check(name+' stays running','ActiveState=active' in ss and 'SubState=running' in ss)
+ check('CCCC unchanged process','MainPID=472921' in services['v03-cccc.service'])
+ for p in E.iterdir():
+  check('Evidence filename prefix '+p.name,re.match(r'^j-[0-3]-',p.name) is not None)
+  if p.suffix=='.json':json.loads(p.read_text())
+  if p.suffix=='.jsonl':jsonl(p.name)
+ check('No suspicious credential values in evidence',not any(re.search(r'\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',p.read_text(errors='replace')) for p in E.iterdir()))
+ links=re.findall(r'\]\((evidence/v0\.3-openclaw/2026-10-11-jev/[^)]+)\)',tail)
+ check('All report evidence links resolve',all((REPO/'docs/reports'/x).exists() for x in links))
+ check('git diff --check',subprocess.run(['git','diff','--check'],cwd=REPO).returncode==0)
+except Exception as e:
+ checks.append(('ERROR '+str(e),False))
+finally:
+ lines=[datetime.datetime.now(datetime.timezone.utc).isoformat(),'Acceptance is faithful execution/recording, including unobserved blocking branch; this is not a claim all product behavior passed.']+[('PASS ' if ok else 'FAIL ')+name for name,ok in checks]
+ (E/'j-0-verification.txt').write_text('\n'.join(lines)+'\n')
+ print('\n'.join(lines))
+ if not all(ok for _,ok in checks):raise SystemExit(1)

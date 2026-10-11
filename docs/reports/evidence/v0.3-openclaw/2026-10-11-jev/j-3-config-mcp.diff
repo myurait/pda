@@ -1,0 +1,47 @@
+--- before
++++ j-3-config-mcp
+@@ -27,6 +27,16 @@
+       },
+       "openai": {
+         "enabled": true
++      },
++      "typesafe": {
++        "enabled": true,
++        "config": {
++          "apiKey": {
++            "source": "store",
++            "provider": "default",
++            "id": "TYPESAFE_API_KEY"
++          }
++        }
+       }
+     }
+   },
+@@ -129,7 +139,8 @@
+           "allowAgents": [
+             "r3-worker"
+           ]
+-        }
++        },
++        "decisionModel": "typesafe/jev-latest"
+       },
+       "r3-worker": {
+         "name": "r3-worker",
+@@ -190,5 +201,17 @@
+     "lastRunVersion": "2026.9.8",
+     "lastRunCommand": "doctor",
+     "lastRunMode": "local"
++  },
++  "mcp": {
++    "servers": {
++      "jev-mcp-probe": {
++        "command": "/home/user/.local/bin/node",
++        "args": [
++          "/home/user/v03/openclaw/jev-mcp/server.mjs"
++        ],
++        "cwd": "/home/user/v03/openclaw/jev-mcp",
++        "enabled": false
++      }
++    }
+   }
+ }

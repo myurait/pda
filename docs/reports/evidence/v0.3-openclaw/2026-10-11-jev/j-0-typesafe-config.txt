@@ -1,0 +1,24 @@
+
+2026-10-11T01:30:48.757158+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'enable', 'typesafe']
+Enabled plugin "typesafe".
+
+exit=0
+
+2026-10-11T01:30:51.738251+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'plugins.entries.typesafe.config.apiKey', '{"source": "store", "provider": "default", "id": "TYPESAFE_API_KEY"}', '--strict-json']
+Updated plugins.entries.typesafe.config.apiKey. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T01:30:54.809693+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'agents.entries.r3-leader.decisionModel', 'typesafe/jev-latest']
+Updated agents.entries.r3-leader.decisionModel. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T01:30:57.145941+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'validate']
+Config valid: /home/user/v03/openclaw/openclaw.json
+
+exit=0

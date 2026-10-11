@@ -1,0 +1,119 @@
+Same error guard locations in installed OpenClaw 2026.9.8 (not a proof of the earlier root cause).
+
+dist/server-plugin-in-process-dispatch-B5twfTO5.mjs
+184: 	const caller = getGatewayToolCallerIdentity();
+185: 	const operatorRunAuthority = caller?.operatorAuthority ?? inheritedOperatorAuthority?.operatorRunAuthority ?? scope?.client?.internal?.operatorRunAuthority;
+186: 	const assertSettleWakeCurrent = method === "agent" ? options?.settleWakeReplay?.assertCurrent : void 0;
+187: 	const isHostOwnedAgentRun = method === "agent" && Boolean(options?.agentRunTracking || assertSettleWakeCurrent);
+188: 	const assertCallerCurrent = captureGatewayToolCallerAssertion();
+189: 	const transfersCreatedInput = method === "sessions.create" && options?.sessionCreation?.via === "spawn" && caller?.operationalRunInstance !== void 0 && assertCallerCurrent !== void 0 && options.agentToolCaller?.agentId === caller.agentId && options.agentToolCaller.sessionKey === caller.sessionKey;
+190: 	const assertInvocationCurrent = () => {
+191: 		assertSettleWakeCurrent?.();
+192: 		if (!isHostOwnedAgentRun || !operatorRunAuthority) {
+193: 			inheritedOperatorAuthority?.signal.throwIfAborted();
+194: 			inheritedOperatorAuthority?.assertCurrent?.();
+195: 		}
+196: 		operatorRunAuthority?.assertCurrent();
+197: 	};
+198: 	assertInvocationCurrent();
+199: 	if (!isHostOwnedAgentRun) assertCallerCurrent?.(method);
+200: 	const scopedOperatorProfile = scope?.client?.authenticatedUserProfile;
+201: 	const scopedRoleActor = scope?.client?.internal?.operatorRoleActor;
+202: 	const scopedActor = resolveGatewayOperatorRoleActor(scope?.client);
+203: 	const matchesOperatorSource = !operatorRunAuthority || scopedActor?.kind === "operator" && scopedActor.profileId === operatorRunAuthority.profileId;
+204: 	const explicitSystemActor = !scope?.client && !inheritedOperatorAuthority ? options?.operatorRoleActor : void 0;
+205: 	const verifiedOperatorAuthority = inheritedOperatorAuthority ?? (scopedOperatorProfile?.profileId ? {
+206: 		authenticatedUserProfile: scopedOperatorProfile,
+207: 		scopes: scope?.client?.connect.scopes ?? []
+208: 	} : void 0);
+209: 	const operatorAuthority = !isHostOwnedAgentRun && (!operatorRunAuthority || verifiedOperatorAuthority?.authenticatedUserProfile?.profileId === operatorRunAuthority.profileId) ? verifiedOperatorAuthority : void 0;
+210: 	const operatorRoleActor = (operatorRunAuthority ? {
+
+dist/server-plugin-in-process-dispatch-B5twfTO5.mjs
+302: 		isWebchatConnect,
+303: 		operatorSourceClient: operatorRunAuthority ? {
+304: 			...client,
+305: 			internal: {
+306: 				...client.internal,
+307: 				operatorRunAuthority
+308: 			}
+309: 		} : inheritedOperatorAuthority ? createSyntheticPluginRuntimeClient({
+310: 			authenticatedUserProfile: inheritedOperatorAuthority.authenticatedUserProfile,
+311: 			operatorRoleActor: inheritedOperatorAuthority.operatorRoleActor,
+312: 			scopes: [...inheritedOperatorAuthority.scopes]
+313: 		}) : scope?.client ?? client,
+314: 		hasCurrentClientAuthority: options?.hasCurrentClientAuthority ?? (operatorRunAuthority && !useScopedClient ? void 0 : scope?.hasCurrentClientAuthority)
+315: 	};
+316: }
+317: /** Authorizes a sessionless agent execution against its captured Gateway and caller. */
+318: async function prepareInProcessAgentExecution(input) {
+319: 	const params = { ...input };
+320: 	const inheritedAuthority = readOperatorToolGatewayAuthority();
+
+dist/server-plugin-in-process-dispatch-B5twfTO5.mjs
+425: }
+426: async function dispatchGatewayMethodInProcessRaw(method, params, options) {
+427: 	return await withInProcessGatewayDispatch(method, params, options, async (resolved) => {
+428: 		const assertExplicitRequestCurrent = () => {
+429: 			throwIfGatewayDispatchAborted(method, options?.signal);
+430: 			if (resolved.hasCurrentClientAuthority?.() === false) throw new Error(`Gateway client authority closed before dispatching ${method}.`);
+431: 			options?.sessionMutationCommitGuard?.();
+432: 		};
+433: 		const assertCreatedInputSourceCurrent = resolved.assertCreatedInputSourceCurrent;
+434: 		return await dispatchGatewayRequestInProcessRaw(method, params, {
+435: 			client: resolved.client,
+436: 			context: resolved.context,
+437: 			expectFinal: options?.expectFinal,
+438: 			isWebchatConnect: resolved.isWebchatConnect,
+439: 			hasCurrentClientAuthority: resolved.hasCurrentClientAuthority,
+440: 			methodRegistry: resolved.context.getGatewayMethodRegistry?.(),
+441: 			onAccepted: options?.onAccepted,
+442: 			onExecution: options?.onExecution,
+443: 			onSignalAbort: options?.onSignalAbort,
+444: 			requestIdPrefix: "plugin-subagent",
+445: 			sessionMutationCommitGuard: () => {
+446: 				resolved.assertContextCurrent();
+447: 				resolved.assertInvocationCurrent();
+448: 				assertExplicitRequestCurrent();
+449: 			},
+450: 			...assertCreatedInputSourceCurrent ? { assertCreatedInputSourceCurrent: () => {
+
+dist/subagent-registry-Dfg59-Q4.mjs
+2295: 	const params = context.options;
+2296: 	const { completeParams, completionReason, entry, mutated, terminalGeneration } = args;
+2297: 	let { sessionSuperseded, suppressSessionEffects } = args;
+2298: 	const isCurrentTerminalCallback = () => {
+2299: 		if (!context.isTerminalCallbackCurrent(completeParams.runId, entry, terminalGeneration)) return false;
+2300: 		args.assertCurrent();
+2301: 		return true;
+2302: 	};
+2303: 	const isCurrentSessionEffectsOwner = () => isCurrentTerminalCallback() && !context.newerGenerationOwnsSession(entry) && !context.shouldSuppressSessionEffects(entry);
+2304: 	const refreshSessionEffectsSuppression = async () => {
+2305: 		if (!context.shouldSuppressSessionEffects(entry)) return false;
+2306: 		suppressSessionEffects = true;
+2307: 		if (entry.execution.suppressSessionEffects !== true) {
+2308: 			const previous = captureSubagentRunMutationSnapshot(entry);
+2309: 			entry.execution = {
+
+dist/subagent-registry-Dfg59-Q4.mjs
+2336: 	if (entry.collect) releaseSwarmRun(entry.schedulerSlotId ?? entry.runId);
+2337: 	await refreshSessionEffectsSuppression();
+2338: 	const terminalOutcome = entry.execution.outcome;
+2339: 	const outcomeStatus = terminalOutcome?.status;
+2340: 	if (!suppressSessionEffects && entry.killReconciliation === void 0 && outcomeStatus && outcomeStatus !== "unknown") {
+2341: 		const signal = {
+2342: 			childSessionKey: entry.childSessionKey,
+2343: 			runId: entry.runId,
+2344: 			requesterSessionKey: entry.requesterSessionKey,
+2345: 			outcomeStatus
+2346: 		};
+2347: 		const terminalEndedAt = entry.execution.endedAt;
+2348: 		const hasCurrentTerminalOutcome = () => entry.killReconciliation === void 0 && entry.execution.status === "terminal" && entry.execution.outcome === terminalOutcome && entry.execution.outcome?.status === outcomeStatus && entry.execution.endedAt === terminalEndedAt && entry.runId === signal.runId && entry.childSessionKey === signal.childSessionKey && entry.requesterSessionKey === signal.requesterSessionKey;
+2349: 		await recordSubagentTerminalState(signal, () => {
+2350: 			if (!isCurrentSessionEffectsOwner() || !hasCurrentTerminalOutcome()) throw new Error("Subagent terminal signal owner changed before commit");
+2351: 		});
+2352: 		if (!isCurrentTerminalCallback()) return;
+2353: 		await refreshSessionEffectsSuppression();
+2354: 		if (context.newerGenerationOwnsSession(entry)) {
+2355: 			await retireSupersededSession(entry);
+2356: 			return;

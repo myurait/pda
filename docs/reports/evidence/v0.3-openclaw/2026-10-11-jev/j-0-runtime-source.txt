@@ -1,0 +1,69 @@
+Direct installed CLI runtime, with acpx disabled.
+
+dist/cli-backend-Di-C7dFk.mjs
+118: 		subscriptionAuthDispatch: true,
+119: 		config: {
+120: 			command: "claude",
+121: 			args: [...CLAUDE_CLI_DEFAULT_ARGS],
+122: 			resumeArgs: [
+123: 				...CLAUDE_CLI_DEFAULT_ARGS,
+124: 				"--resume",
+125: 				"{sessionId}"
+126: 			],
+127: 			forkArg: "--fork-session",
+128: 			resumeAtArg: "--resume-session-at",
+129: 			output: "jsonl",
+130: 			liveSession: "claude-stdio",
+131: 			input: "stdin",
+132: 			modelArg: "--model",
+133: 			modelAliases: CLAUDE_CLI_MODEL_ALIASES,
+134: 			imageArg: "@",
+135: 			imagePathScope: "workspace",
+
+dist/extensions/anthropic/cli.runtime.js
+218: 		taskNotifications: /* @__PURE__ */ new Map()
+219: 	};
+220: 	session.currentTurn = turn;
+221: 	const abort = () => session.handle.close("abort", context.abortSignal?.reason);
+222: 	context.abortSignal?.addEventListener("abort", abort, { once: true });
+223: 	try {
+224: 		context.abortSignal?.throwIfAborted();
+225: 		capability?.activate(session.handle);
+226: 		if (!session.transport) {
+227: 			const { args, excludeDynamicSections } = prepareClaudeCliTransportArgs(context);
+228: 			session.transport = createClaudeCliTransport({
+229: 				context,
+230: 				args,
+231: 				secretInput,
+232: 				currentContext: () => session.currentTurn?.context,
+233: 				initialize: {
+234: 					appendSystemPrompt: context.systemPrompt,
+235: 					excludeDynamicSections,
+236: 					hooks: {
+237: 						UserPromptSubmit: [{ hookCallbackIds: ["UserPromptSubmit"] }],
+238: 						PreToolUse: [{ hookCallbackIds: ["PreToolUse"] }]
+239: 					}
+240: 				},
+
+dist/cli-process-tHzwN0QT.mjs
+11: import { spawn } from "node:child_process";
+12: //#region extensions/anthropic/cli-process.ts
+13: const STDERR_CAPTURE_CHARS = 8192;
+14: const STDERR_DRAIN_GRACE_MS = 200;
+15: function spawnClaudeCliProcess(options, secretInput, observeStderr) {
+16: 	try {
+17: 		var _usingCtx$1 = _usingCtx();
+18: 		const stdio = [
+19: 			"pipe",
+20: 			"pipe",
+21: 			"pipe"
+22: 		];
+23: 		const secretDelivery = _usingCtx$1.u(prepareSecretInputStdio(stdio, secretInput));
+24: 		const child = spawn(options.command, options.args, {
+25: 			argv0: options.argv0,
+26: 			cwd: options.cwd,
+27: 			detached: process.platform !== "win32",
+28: 			env: options.env,
+29: 			signal: options.signal,
+30: 			stdio,
+31: 			windowsHide: true

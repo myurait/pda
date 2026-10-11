@@ -1,0 +1,217 @@
+{
+  "plugins": {
+    "entries": {
+      "codex": {
+        "enabled": true,
+        "config": {
+          "appServer": {
+            "homeScope": "user",
+            "command": "/home/user/.local/bin/codex",
+            "mode": "yolo"
+          },
+          "sessionCatalog": {
+            "enabled": false
+          }
+        }
+      },
+      "anthropic": {
+        "config": {
+          "sessionCatalog": {
+            "enabled": false
+          }
+        },
+        "enabled": true
+      },
+      "acpx": {
+        "enabled": false
+      },
+      "openai": {
+        "enabled": true
+      },
+      "typesafe": {
+        "enabled": true,
+        "config": {
+          "apiKey": {
+            "source": "store",
+            "provider": "default",
+            "id": "TYPESAFE_API_KEY"
+          }
+        }
+      },
+      "jev-router-probe": {
+        "enabled": true,
+        "hooks": {
+          "allowConversationAccess": true
+        }
+      }
+    },
+    "load": {
+      "paths": [
+        "/home/user/v03/openclaw/jev-router-probe"
+      ]
+    }
+  },
+  "meta": {
+    "migrations": {
+      "modelPolicyAllowlist": true,
+      "utilityModelSeparation": true
+    },
+    "lastTouchedVersion": "2026.9.8"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 5114,
+    "auth": {
+      "mode": "none"
+    },
+    "controlUi": {
+      "enabled": true,
+      "sessionObserver": false,
+      "allowedOrigins": [
+        "https://pda-web.tailaff53a.ts.net:19114"
+      ]
+    },
+    "tailscale": {
+      "mode": "off"
+    },
+    "trustedProxies": [
+      "127.0.0.1"
+    ]
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "/home/user/v03/work/openclaw/scratch",
+      "cwd": "/home/user/v03/work/openclaw/scratch",
+      "skipBootstrap": true,
+      "skills": [],
+      "heartbeat": {
+        "every": "0m"
+      },
+      "timeoutSeconds": 300,
+      "utilityModel": "",
+      "models": {
+        "openai/gpt-6-astra": {
+          "agentRuntime": {
+            "id": "codex"
+          }
+        },
+        "anthropic/claude-sonnet-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        }
+      }
+    },
+    "ownership": "explicit",
+    "entries": {
+      "claude": {
+        "name": "Claude Code",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "anthropic/claude-sonnet-5",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "codex"
+          ]
+        },
+        "models": {
+          "anthropic/claude-sonnet-5": {
+            "agentRuntime": {
+              "id": "claude-cli"
+            }
+          }
+        }
+      },
+      "codex": {
+        "name": "Codex",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "openai/gpt-6-astra",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "claude"
+          ]
+        }
+      },
+      "r3-leader": {
+        "name": "r3-leader",
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
+        "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
+        "identity": {
+          "name": "r3-leader"
+        },
+        "model": "anthropic/claude-sonnet-5",
+        "cwd": "/home/user/v03/work/openclaw/scratch/r3-leader",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "r3-worker",
+            "r3-auditor"
+          ]
+        },
+        "decisionModel": "typesafe/jev-latest"
+      },
+      "r3-worker": {
+        "name": "r3-worker",
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
+        "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
+        "identity": {
+          "name": "r3-worker"
+        },
+        "model": "openai/gpt-6-astra",
+        "cwd": "/home/user/v03/work/openclaw/scratch/r3-worker",
+        "verboseDefault": "on"
+      },
+      "r3-auditor": {
+        "name": "r3-auditor",
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+        "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
+        "identity": {
+          "name": "r3-auditor"
+        },
+        "model": "anthropic/claude-sonnet-5",
+        "cwd": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+        "verboseDefault": "on"
+      }
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "exec": {
+      "mode": "full"
+    },
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "claude",
+        "codex",
+        "r3-leader",
+        "r3-worker",
+        "r3-auditor"
+      ]
+    }
+  },
+  "browser": {
+    "enabled": false
+  },
+  "discovery": {
+    "mdns": {
+      "mode": "off"
+    }
+  },
+  "update": {
+    "checkOnStart": false
+  },
+  "cron": {
+    "enabled": false
+  },
+  "wizard": {
+    "lastRunAt": "2026-10-07T22:02:22.906Z",
+    "lastRunVersion": "2026.9.8",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  }
+}

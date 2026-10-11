@@ -1,0 +1,34 @@
+
+2026-10-11T01:33:32.874866+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'agents.entries.r3-leader.subagents.allowAgents', '["r3-worker","r3-auditor"]', '--strict-json']
+Updated agents.entries.r3-leader.subagents.allowAgents. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T01:33:37.822733+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'install', '--link', '/home/user/v03/openclaw/jev-router-probe', '--force']
+WARNING - Installing plugin from local path: /home/user/v03/openclaw/jev-router-probe
+This source is outside ClawHub review and trust metadata. Only continue if you trust the publisher, package contents, and install source.
+Linked plugin path: /home/user/v03/openclaw/jev-router-probe
+Applied in Gateway generation 3.
+
+exit=0
+
+2026-10-11T01:33:52.011701+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'enable', 'jev-router-probe']
+Plugin replacement waited for retained work to finish.
+Enabled plugin "jev-router-probe".
+
+exit=0
+
+2026-10-11T01:33:55.082820+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'plugins.entries.jev-router-probe.hooks.allowConversationAccess', 'true', '--strict-json']
+Updated plugins.entries.jev-router-probe.hooks.allowConversationAccess. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T01:33:57.555156+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'validate']
+Config valid: /home/user/v03/openclaw/openclaw.json
+
+exit=0

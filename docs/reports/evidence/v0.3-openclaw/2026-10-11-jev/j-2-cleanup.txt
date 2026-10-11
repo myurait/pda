@@ -1,0 +1,27 @@
+
+2026-10-11T01:39:25.363532+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'disable', 'jev-router-probe']
+Disabled plugin "jev-router-probe".
+
+exit=0
+
+2026-10-11T01:39:30.674962+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'uninstall', 'jev-router-probe', '--force']
+Plugin: Jev Router Probe (jev-router-probe)
+Will remove: plugin settings, install record, load path
+Uninstalled plugin "jev-router-probe". Removed: plugin settings, install record, load path.
+
+exit=0
+
+2026-10-11T01:39:33.762492+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'plugins.entries.jev-router-probe']
+Removed plugins.entries.jev-router-probe. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T01:39:36.944983+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'agents.entries.r3-leader.subagents.allowAgents', '["r3-worker"]', '--strict-json']
+Updated agents.entries.r3-leader.subagents.allowAgents. Change will apply without restarting the gateway.
+
+exit=0
+Removed /home/user/v03/openclaw/jev-router-probe. Restored original allowAgents=[r3-worker].

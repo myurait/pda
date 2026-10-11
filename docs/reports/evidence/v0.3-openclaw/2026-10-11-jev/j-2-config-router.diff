@@ -1,0 +1,45 @@
+--- before
++++ j-2-config-router
+@@ -27,7 +27,28 @@
+       },
+       "openai": {
+         "enabled": true
++      },
++      "typesafe": {
++        "enabled": true,
++        "config": {
++          "apiKey": {
++            "source": "store",
++            "provider": "default",
++            "id": "TYPESAFE_API_KEY"
++          }
++        }
++      },
++      "jev-router-probe": {
++        "enabled": true,
++        "hooks": {
++          "allowConversationAccess": true
++        }
+       }
++    },
++    "load": {
++      "paths": [
++        "/home/user/v03/openclaw/jev-router-probe"
++      ]
+     }
+   },
+   "meta": {
+@@ -127,9 +148,11 @@
+         "verboseDefault": "on",
+         "subagents": {
+           "allowAgents": [
+-            "r3-worker"
++            "r3-worker",
++            "r3-auditor"
+           ]
+-        }
++        },
++        "decisionModel": "typesafe/jev-latest"
+       },
+       "r3-worker": {
+         "name": "r3-worker",

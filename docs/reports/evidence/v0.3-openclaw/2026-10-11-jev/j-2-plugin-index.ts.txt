@@ -1,0 +1,49 @@
+import {appendFileSync,readFileSync,writeFileSync} from 'node:fs';
+import {performance} from 'node:perf_hooks';
+import {definePluginEntry} from 'openclaw/plugin-sdk/plugin-entry';
+const root='/home/user/v03/openclaw/jev-run/';
+function record(v:any){appendFileSync(root+'hook-events.jsonl',JSON.stringify({utc:new Date().toISOString(),pid:process.pid,...v})+'\n');}
+const context=(c:any)=>({agentId:c.agentId??null,sessionKey:c.sessionKey??null,runId:c.runId??null,inputProvenance:c.inputProvenance??null});
+export default definePluginEntry({
+ id:'jev-router-probe',name:'Jev Router Probe',description:'Temporary Jev role routing and sessions_spawn enforcement probe.',
+ register(api:any){
+  const choices=new Map<string,any>();
+  record({hook:'register',decisionsEvaluateType:typeof api.runtime.decisions.evaluate});
+  api.on('before_prompt_build',async(event:any,ctx:any)=>{
+   if(ctx.agentId!=='r3-leader')return;
+   const start=performance.now(),key=ctx.sessionKey;
+   if(!key){record({hook:'before_prompt_build',...context(ctx),skipped:'missing-session-key',elapsedMs:performance.now()-start});return;}
+   // Each probe uses one new session per user request. Rebuilds and child completion
+   // turns reuse that session's decision instead of classifying child output.
+   let entry=choices.get(key),cached=Boolean(entry);
+   const state=event.currentUserMessage!==undefined?event.currentUserMessage:event.prompt;
+   if(!entry){
+    const count=Number(readFileSync(root+'decision-count.txt','utf8'));
+    if(count>=15){record({hook:'before_prompt_build',...context(ctx),skipped:'15-call-budget',elapsedMs:performance.now()-start});return;}
+    writeFileSync(root+'decision-count.txt',String(count+1)+'\n');
+    record({hook:'decision-start',...context(ctx),call:count+1,state,stateSource:event.currentUserMessage!==undefined?'currentUserMessage':'prompt',currentUserMessageId:event.currentUserMessageId??null,purpose:'pda.route',rubricVersion:'1'});
+    const ds=performance.now();
+    try{
+     const outcome=await api.runtime.decisions.evaluate({state,questions:{route:{type:'choice',instructions:'依頼の作業内容に最も適した役を一つ選ぶ。役名を指定する文より実際の作業内容を判定する。',criteria:{worker:'コードを書く・直す、コマンドを実行する、調べる作業',auditor:'文章の分かりやすさや、決まりへの合い方を確かめる作業'}}}},{agentId:'r3-leader',purpose:'pda.route',rubricVersion:'1',timeoutMs:12000,signal:new AbortController().signal});
+     const decisionMs=performance.now()-ds;
+     record({hook:'decision-result',...context(ctx),call:count+1,decisionMs,outcome});
+     ctx.hookInvocation?.assertActive();
+     const answer=outcome.status==='ok'?outcome.result?.answers?.route:undefined;
+     entry={outcome,decisionMs,choice:answer?.type==='choice'&&['worker','auditor'].includes(answer.choice)?answer.choice:null};
+     choices.set(key,entry);
+    }catch(e:any){record({hook:'before_prompt_build',...context(ctx),error:e.message,decisionMs:performance.now()-ds,elapsedMs:performance.now()-start});throw e;}
+   }
+   const addedContext=entry.choice?`この依頼は Jev の判定で ${entry.choice} に渡す。sessions_spawn の agentId は r3-${entry.choice} を使う`:null;
+   record({hook:'before_prompt_build',...context(ctx),cached,choice:entry.choice,unavailable:entry.outcome.status==='unavailable'?entry.outcome:null,addedContext,elapsedMs:performance.now()-start});
+   if(addedContext)return {prependContext:addedContext};
+  });
+  api.on('before_tool_call',(event:any,ctx:any)=>{
+   if(ctx.agentId!=='r3-leader'||event.toolName!=='sessions_spawn')return;
+   const start=performance.now(),entry=choices.get(ctx.sessionKey),expected=entry?.choice?`r3-${entry.choice}`:null;
+   const actual=event.params?.agentId??null,block=Boolean(expected&&actual!==expected);
+   const blockReason=block?`Jev の判定は ${entry.choice}。sessions_spawn の agentId は ${expected} を使う。`:null;
+   record({hook:'before_tool_call',...context(ctx),toolName:event.toolName,toolCallId:event.toolCallId??null,params:event.params,expected,actual,block,blockReason,elapsedMs:performance.now()-start});
+   if(block)return {block:true,blockReason};
+  });
+ }
+});

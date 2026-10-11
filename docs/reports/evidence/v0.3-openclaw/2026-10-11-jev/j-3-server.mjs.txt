@@ -1,0 +1,9 @@
+import {Server} from '/home/user/v03/openclaw/lib/node_modules/openclaw/node_modules/@modelcontextprotocol/sdk/dist/esm/server/index.js';
+import {StdioServerTransport} from '/home/user/v03/openclaw/lib/node_modules/openclaw/node_modules/@modelcontextprotocol/sdk/dist/esm/server/stdio.js';
+import {ListToolsRequestSchema,CallToolRequestSchema} from '/home/user/v03/openclaw/lib/node_modules/openclaw/node_modules/@modelcontextprotocol/sdk/dist/esm/types.js';
+import {appendFileSync} from 'node:fs';
+const record=(event)=>appendFileSync('/home/user/v03/openclaw/jev-mcp/events.jsonl',JSON.stringify({utc:new Date().toISOString(),pid:process.pid,event})+'\n');
+const s=new Server({name:'jev-mcp-probe',version:'1.0.0'},{capabilities:{tools:{}}});
+s.setRequestHandler(ListToolsRequestSchema,async()=>{record('tools/list');return {tools:[{name:'jev_mcp_echo',description:'R3 検証専用。接続している場合だけ試験マーカーを返す読み取り専用ツール。',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,destructiveHint:false}}]};});
+s.setRequestHandler(CallToolRequestSchema,async r=>{if(r.params.name!=='jev_mcp_echo')throw new Error('Unknown tool');record('tools/call');return {content:[{type:'text',text:'JEV-MCP-OK'}]};});
+await s.connect(new StdioServerTransport());record('connected');

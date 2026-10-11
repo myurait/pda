@@ -1,0 +1,17 @@
+Repository base: aac17d4 (local main). Branch v0.3/jev-routing-openclaw created from main.
+origin/main fetched as 1aea182; no section 9 there. Prior OpenClaw-only report and evidence imported unchanged by cherry-pick 591a449 -> cdc2a68.
+Cherry-pick initially could not commit because no identity was configured; retried once with per-command existing Codex <codex@localhost> identity. Global config unchanged.
+Product version fixed to 2026.9.8. No product source modifications.
+J-1 executed once before TypeSafe setup, independently of J-0. Collector kept WebSocket open through child final, parent continuation, and 20 seconds of quiet.
+Collector sessions.list checks observe run completion; no synthesized child output or completion message is sent to the product.
+J-0 latest plugin install rejected for host API mismatch. npm metadata showed 2026.9.8 compatibility; second install pinned this official package.
+J-0 first decision_evaluate failed with Gateway caller authority is no longer active. Source runtime-DNSM3xFo.mjs captures authority before entry.host.evaluate. Restarted only v03-openclaw.service and retried once.
+No TypeSafe destination-policy error occurred in J-0, so secrets store set was not used.
+Secret value is never read/displayed/copied. Only the authorized SecretRef object is configured. Secret store get is not used.
+Budget counts all requested evaluations, including the failed J-0 authority attempt. Router reserves from 2 before evaluation and refuses >=15.
+Each J-2 request gets a fresh session. Router caches that session decision through prompt rebuilds/child completions. It does not route child completion content again.
+Decision timeout 12000 ms; standard prompt hook timeout 15000 ms; caller supplies AbortSignal per SDK contract. No extra retry in plugin.
+J-2 normal prompts are the instructed Japanese requests; no additional routing instruction is placed in user input.
+J-2 code request adds only the absolute scratch path to remove workspace ambiguity. J-2 text and enforcement are sent once each, without retry. Text result-delivery wait overlaps the enforcement run after 01:37:11 UTC; first authority errors occurred earlier at 01:36:26 UTC.
+J-2 text eventually received its auditor completion at 01:37:27 UTC. Enforcement chose auditor before attempting any worker spawn; the live blocking branch was not exercised. No extra enforcement prompt was sent, preserving the each-once instruction.
+Read-only CLI help lookup mcp remove --help was rejected (unknown command); mcp --help identifies mcp unset as the supported removal command. No removal was attempted with the nonexistent name.

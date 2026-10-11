@@ -1,0 +1,29 @@
+--- before
++++ j-0-config-typesafe
+@@ -27,6 +27,16 @@
+       },
+       "openai": {
+         "enabled": true
++      },
++      "typesafe": {
++        "enabled": true,
++        "config": {
++          "apiKey": {
++            "source": "store",
++            "provider": "default",
++            "id": "TYPESAFE_API_KEY"
++          }
++        }
+       }
+     }
+   },
+@@ -129,7 +139,8 @@
+           "allowAgents": [
+             "r3-worker"
+           ]
+-        }
++        },
++        "decisionModel": "typesafe/jev-latest"
+       },
+       "r3-worker": {
+         "name": "r3-worker",
