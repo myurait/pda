@@ -1,0 +1,21 @@
+2026-10-11T07:12:53.422Z
+$ git diff -- README.md hello.py
+diff --git a/README.md b/README.md
+index af0f694..10fcb8b 100644
+--- a/README.md
++++ b/README.md
+@@ -1 +1,2 @@
+ # scratch
++使い方: `python3 -c 'from hello import greet; greet("太郎")'` で名前付きの挨拶を表示します。
+diff --git a/hello.py b/hello.py
+index 11b15b1..c1db390 100644
+--- a/hello.py
++++ b/hello.py
+@@ -1 +1,6 @@
+-print("hello")
++def greet(name):
++    print(f"Hello, {name}!")
++
++
++if __name__ == "__main__":
++    print("hello")

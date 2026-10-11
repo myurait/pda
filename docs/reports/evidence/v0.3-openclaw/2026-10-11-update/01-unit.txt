@@ -1,0 +1,50 @@
+[
+  {
+    "startedAt": "2026-10-11T06:59:48.855434+00:00",
+    "endedAt": "2026-10-11T06:59:48.864347+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "status",
+      "v03-openclaw.service",
+      "--no-pager"
+    ],
+    "exitCode": 0,
+    "stdout": "● v03-openclaw.service - PDA v0.3 OpenClaw trial\n     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)\n     Active: active (running) since Sun 2026-10-11 15:59:26 JST; 22s ago\n   Main PID: 548594 (openclaw-gatewa)\n      Tasks: 47 (limit: 15004)\n     Memory: 1.3G (peak: 1.3G)\n        CPU: 33.293s\n     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-openclaw.service\n             ├─548594 openclaw-gateway\n             ├─548818 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js\n             ├─548833 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session\n             └─548909 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session\n\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.335+09:00 [gateway] startup outcomes: internal-hooks=skipped (not-configured); internal-startup-hook=skipped (no-handlers-loaded); gateway-start-hooks=scheduled; gmail-watcher=skipped (hooks-disabled); gmail-model=skipped (not-configured)\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.345+09:00 [gateway] ready\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.352+09:00 [gateway] startup phase: ready 4.0ms total=21533.3ms\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.376+09:00 [skill-workshop] scheduled skill collection reviews are disabled because the cron scheduler is disabled; enable cron and restart the gateway\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.377+09:00 [heartbeat] disabled\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.681+09:00 [state/database-verify] database integrity verification passed\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.682+09:00 [state/database-verify] database integrity verification passed\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.682+09:00 [state/database-verify] database integrity verification passed\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.682+09:00 [state/database-verify] database integrity verification passed\nOct 11 15:59:48 agent-node openclaw[548594]: 2026-10-11T15:59:48.683+09:00 [state/database-verify] database integrity verification passed\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T06:59:48.864373+00:00",
+    "endedAt": "2026-10-11T06:59:48.868951+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "cat",
+      "v03-openclaw.service"
+    ],
+    "exitCode": 0,
+    "stdout": "# /home/user/.config/systemd/user/v03-openclaw.service\n[Unit]\nDescription=PDA v0.3 OpenClaw trial\nAfter=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=/home/user/v03/work/openclaw/scratch\nEnvironment=HOME=/home/user/v03/agent-home\nEnvironment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude\nEnvironment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin\nEnvironment=OPENCLAW_STATE_DIR=/home/user/v03/openclaw/state\nEnvironment=OPENCLAW_CONFIG_PATH=/home/user/v03/openclaw/openclaw.json\nExecStart=/home/user/v03/openclaw/bin/openclaw gateway run --port 5114 --bind loopback\nRestart=no\nTimeoutStopSec=30\nKillMode=control-group\n\n[Install]\nWantedBy=default.target\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T06:59:48.868971+00:00",
+    "endedAt": "2026-10-11T06:59:48.874006+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "-p",
+      "ActiveEnterTimestamp"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=548594\nActiveState=active\nSubState=running\nActiveEnterTimestamp=Sun 2026-10-11 15:59:26 JST\n",
+    "stderr": ""
+  }
+]

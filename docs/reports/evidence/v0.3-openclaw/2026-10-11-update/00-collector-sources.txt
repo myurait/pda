@@ -1,0 +1,813 @@
+Collectors used for the 2026-10-11 update. Device identity/token files are intentionally excluded. fetch-release.py was cancelled and its artifact was not used.
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/analyze-trials.py
+from manage import *
+def content(m):
+    c=m.get('content',[])
+    return c if isinstance(c,str) else '\n'.join(b.get('text','') for b in c if b.get('type')=='text')
+results=[]
+for label in ['02-claude','03-claude-stop','04-codex','05-codex-stop']:
+    s=json.loads((EV/(label+'-summary.json')).read_text())
+    file=label+'.txt' if '-stop' in label else label+'-stream.txt'
+    events=[json.loads(line) for line in (EV/file).read_text().splitlines()]
+    tools=[]
+    for row in events:
+        f=row.get('data',{}).get('frame',{}) if isinstance(row.get('data'),dict) else {}
+        p=f.get('payload',{});d=p.get('data',{})
+        if f.get('event')=='agent' and p.get('stream')=='tool': tools.append({'utc':row['utc'],'name':d.get('name'),'phase':d.get('phase'),'isError':d.get('isError')})
+    r={k:s.get(k) for k in ['label','kind','key','startedAt','sentAt','firstOutput','terminal','terminalAt','abortAt','abortResult','abortLatencySeconds','statusAt','closedAt','endedAt','mainPid','failures']}
+    r['status']=[{k:x.get(k) for k in ['key','status','hasActiveRun','activeRunIds']} for x in s.get('status',[])]
+    r['assistantMessages']=[{'timestamp':m.get('timestamp'),'text':content(m)} for m in s.get('history',{}).get('messages',[]) if m.get('role')=='assistant' and content(m)]
+    r['toolEvents']=tools
+    r['intermediateOutputObserved']=bool(s.get('firstOutput') and s.get('terminalAt') and s['firstOutput']<s['terminalAt'])
+    r['idleAfter']=bool(r['status']) and all(x.get('hasActiveRun') is False for x in r['status'])
+    r['stopPassed']=(s.get('terminal')=='aborted' and s.get('abortResult',{}).get('aborted') is True and r['idleAfter']) if '-stop' in label else None
+    results.append(r)
+write('trials-results.json',results)
+print(json.dumps([{k:v for k,v in r.items() if k not in ['assistantMessages','toolEvents']} for r in results],ensure_ascii=False,indent=2))
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/analyze.py
+from manage import *
+
+TARGETS=['Gateway client authority closed','Gateway caller authority is no longer active','Subagent terminal signal owner changed before commit']
+def iso(ms): return datetime.datetime.fromtimestamp(ms/1000,datetime.timezone.utc).isoformat() if isinstance(ms,(int,float)) else ms
+def content(m):
+    c=m.get('content',[])
+    return c if isinstance(c,str) else '\n'.join(b.get('text','') for b in c if b.get('type')=='text')
+def records(name): return [json.loads(x) for x in (EV/name).read_text().splitlines()]
+def analyze(label):
+    s=json.loads((EV/(label+'-summary.json')).read_text()); events=records(label+'.jsonl')
+    answers=[]; tool_errors=[]; calls={}; hist_targets=[]
+    for h in s['histories']:
+        for m in h['history'].get('messages',[]):
+            text=content(m)
+            if m.get('role')=='assistant' and text: answers.append({'key':h['key'],'timestamp':iso(m.get('timestamp')),'text':text})
+            blocks=m.get('content',[])
+            if isinstance(blocks,list):
+                for b in blocks:
+                    if b.get('type') in ['toolcall','tool_use']: calls[b.get('id')]={'name':b.get('name'),'arguments':b.get('arguments',b.get('input'))}
+                for b in blocks:
+                    if b.get('type') in ['tool_result','toolResult'] and (b.get('is_error') or b.get('isError') or any(t in json.dumps(b) for t in TARGETS)):
+                        tool_errors.append({'source':'history','key':h['key'],'timestamp':iso(m.get('timestamp')),'toolCallId':b.get('tool_use_id',b.get('toolCallId')),**calls.get(b.get('tool_use_id',b.get('toolCallId')),{}),'result':b})
+            if any(t in json.dumps(m,ensure_ascii=False) for t in TARGETS): hist_targets.append({'key':h['key'],'timestamp':iso(m.get('timestamp')),'message':m})
+    event_errors=[]
+    for i,r in enumerate(events,1):
+        f=r['data'].get('frame',{}); p=f.get('payload',{}); d=p.get('data',{})
+        if f.get('event')=='agent' and p.get('stream')=='tool' and d.get('phase')=='result' and (d.get('isError') or any(t in json.dumps(d) for t in TARGETS)):
+            event_errors.append({'sourceFile':label+'.jsonl','sourceLine':i,'utc':r['utc'],'eventTs':p.get('ts'),'key':p.get('sessionKey'),'runId':p.get('runId'),**d})
+    source_rows={}
+    for name in [label+'.jsonl',label+'-journal.txt',label+'-gateway-log.jsonl']:
+        if not (EV/name).exists():continue
+        source_rows[name]={t:[{'line':i,'text':line} for i,line in enumerate((EV/name).read_text().splitlines(),1) if t in line] for t in TARGETS}
+    child_answers=[a for a in answers if a['key']!=s['key']]; parents=[a for a in answers if a['key']==s['key']]
+    numeric=[a for a in parents if child_answers and re.search(r'(?<!\d)15(?!\d)',a['text'])]
+    full=[]
+    if child_answers:
+        raw=child_answers[-1]['text']
+        for a in parents:
+            normalized=re.sub(r'^\s*>\s?','',a['text'],flags=re.M)
+            if raw in normalized: full.append(a)
+    target_tool_errors=[e for e in tool_errors if any(t in json.dumps(e,ensure_ascii=False) for t in TARGETS)]
+    rpcs=sorted(set(x.rstrip('.') for x in re.findall(r'Gateway client authority closed before dispatching ([\w.]+)',json.dumps(source_rows,ensure_ascii=False))))
+    result={'label':label,'key':s['key'],'startedAt':s['startedAt'],'sentAt':s.get('sentAt'),'endedAt':s['endedAt'],'connections':s['connections'],'disconnectedAt':s.get('disconnectedAt'),'reconnectedAt':s.get('reconnectedAt'),'disconnectedMs':s.get('disconnectedMs'),'children':s['children'],'answers':answers,'numericAnswerQuoted':bool(numeric),'entireChildMessageQuoted':bool(full),'firstNumericQuoteAt':numeric[0]['timestamp'] if numeric else None,'firstWholeQuoteAt':full[0]['timestamp'] if full else None,'secondsToNumericQuote':(datetime.datetime.fromisoformat(numeric[0]['timestamp'])-datetime.datetime.fromisoformat(s['sentAt'].replace('Z','+00:00'))).total_seconds() if numeric else None,'toolErrorsInHistory':tool_errors,'toolErrorsInEvents':event_errors,'historyMessagesWithTargetErrors':hist_targets,'targetErrorOccurrencesBySource':source_rows,'failedRPCs':rpcs,'stopReason':s.get('stopReason'),'collectorFailures':s['failures']}
+    write(label+'-analysis.json',result)
+    compact={k:result[k] for k in ['label','numericAnswerQuoted','entireChildMessageQuoted','firstNumericQuoteAt','secondsToNumericQuote','failedRPCs','stopReason']}
+    compact['targetCountsInJournal']={t:len(x) for t,x in source_rows.get(label+'-journal.txt',{}).items()}
+    compact['targetCountsInHistoryUniqueToolCalls']={t:len({e['toolCallId'] for e in tool_errors if t in json.dumps(e['result'],ensure_ascii=False)}) for t in TARGETS}
+    compact['targetCountsInEventsUniqueToolCalls']={t:len({e['toolCallId'] for e in event_errors if t in json.dumps(e.get('result'),ensure_ascii=False)}) for t in TARGETS}
+    compact['historyToolErrorCount']=len(tool_errors)
+    compact['mainPid']=s.get('mainPid')
+    for phase in ['Before','After']:
+        compact['modelAvailable'+phase]=[m.get('available') for m in s.get('models'+phase,{}).get('models',[]) if m.get('provider')=='openai' and m.get('id')=='gpt-6-astra']
+    compact['decisionToolCalls']=[r for r in events if r.get('data',{}).get('frame',{}).get('event')=='agent' and r['data']['frame'].get('payload',{}).get('stream')=='tool' and r['data']['frame']['payload'].get('data',{}).get('phase')=='start' and r['data']['frame']['payload']['data'].get('name','').endswith('decision_evaluate')]
+    return compact
+if __name__=='__main__':
+    labels=sys.argv[1:] or ['A1','A2','A3']
+    results=[analyze(label) for label in labels]
+    write('handoff-results.json',results)
+    print(json.dumps(results,ensure_ascii=False,indent=2))
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/cleanup.py
+from manage import *
+baseline=json.loads((EV/'00-baseline.json').read_text())
+removed=[]
+before={x['path'] for x in baseline['backupMetadata']}
+for row in metadata():
+    if row['path'] not in before:
+        p=Path(row['path']); assert p.is_file() and ('.bak' in p.name or '.backup' in p.name)
+        p.unlink(); removed.append(row)
+scratch=Path('/home/user/v03/work/openclaw/scratch')
+initial=execute(['git','-C',str(scratch),'rev-list','--max-parents=0','HEAD'])['stdout'].strip()
+restore=execute(['git','-C',str(scratch),'restore','--source='+initial,'--','README.md','hello.py']); assert restore['exitCode']==0
+prior={x['path'] for x in json.loads((EV/'00-scratch-files-before.json').read_text())}
+for p in scratch.glob('__pycache__/*'):
+    if str(p) not in prior and p.is_file():
+        removed.append({'path':str(p),'size':p.stat().st_size});p.unlink()
+cache=scratch/'__pycache__'
+if cache.exists() and not list(cache.iterdir()): cache.rmdir();removed.append({'path':str(cache)})
+devices('after-trials')
+ours=[k for k,v in aliases().items() if v=='update-persistent']
+assert len(ours)==1, 'expected only this run identity'
+r=record('10-device-removal.txt',[str(ROOT/'oc'),'devices','remove',ours[0],'--json']);assert r['exitCode']==0
+after=devices('after-cleanup')
+remaining=[aliases()[x['deviceId']] for x in after['paired']]
+assert sorted(remaining)==sorted(baseline['initialDeviceAliases']), (remaining,baseline['initialDeviceAliases'])
+for filename in ['persistent-identity.json','persistent-token.json']:
+    p=RUN/filename
+    if p.exists():
+        removed.append({'path':str(p),'mode':oct(p.stat().st_mode)});p.unlink()
+fixed={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in baseline['fixedFiles']}
+assert fixed==baseline['fixedFiles']
+config('final')
+beforecfg=json.loads((EV/'00-config-before.json').read_text());finalcfg=json.loads((EV/'00-config-final.json').read_text())
+invariants={
+ 'agentsUnchanged':beforecfg['agents']==finalcfg['agents'],
+ 'gatewayUnchanged':beforecfg['gateway']==finalcfg['gateway'],
+ 'typesafeReferenceUnchanged':beforecfg['plugins']['entries']['typesafe']==finalcfg['plugins']['entries']['typesafe'],
+ 'toolPolicyUnchanged':beforecfg['tools']==finalcfg['tools'],
+ 'acpxStillDisabled':finalcfg['plugins']['entries']['acpx']['enabled'] is False,
+}
+assert all(invariants.values()),invariants
+write('10-cleanup.json',{'utc':now(),'removedMetadataOnly':removed,'scratchRestore':restore,'scratchStatus':execute(['git','-C',str(scratch),'status','--short']),'scratchDiff':execute(['git','-C',str(scratch),'diff','--','README.md','hello.py']),'backupsRemaining':metadata(),'fixedFiles':fixed,'invariants':invariants,'devicesRemaining':remaining,'preserved':'Existing device registrations, agent workspaces and instructions, existing prompt_summary.md, authentication originals and settings, plugin installation and trial session history. Preparation tmux sessions were exited with /exit; no persistent CLI hooks/MCP/plugin registrations were added.'})
+print(json.dumps({'removed':len(removed),'invariants':invariants,'remainingDevices':remaining},ensure_ascii=False))
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/client.mjs
+import {generateKeyPairSync, createHash, sign, randomUUID} from 'node:crypto';
+import {readFileSync, writeFileSync, existsSync} from 'node:fs';
+
+export const root='/home/user/v03/openclaw/update-2026-10-11/';
+export const evidence='/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-update/';
+export const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const aliases=JSON.parse(readFileSync(root+'device-aliases.json','utf8'));
+const secrets=new Set();
+const scopes=['operator.read','operator.write','operator.admin','operator.approvals','operator.pairing'];
+function register(id,alias){aliases[id]=alias;writeFileSync(root+'device-aliases.json',JSON.stringify(aliases,null,2),{mode:0o600});}
+export function safe(v){
+  if(Array.isArray(v))return v.map(safe);
+  if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,/^(deviceTokens?|tokens?|access_token|refresh_token|id_token|password|secret|apiKey|authorization|signature|nonce|publicKey|privateKey(?:Pem)?|recoveryScope)$/i.test(k)?'[REDACTED]':safe(x)]));
+  if(typeof v==='string'){
+    for(const [id,alias] of Object.entries(aliases))v=v.replaceAll(id,alias);
+    for(const x of secrets)if(x)v=v.replaceAll(x,'[REDACTED]');
+    return v.replace(/\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[REDACTED]').replace(/(Bearer\s+)\S+/gi,'$1[REDACTED]');
+  }
+  return v;
+}
+export function identity(alias,persist){
+  const path=root+'persistent-identity.json';let d;
+  if(persist&&existsSync(path))d=JSON.parse(readFileSync(path,'utf8'));
+  else{
+    const keys=generateKeyPairSync('ed25519');const pub=keys.publicKey.export({type:'spki',format:'der'}).subarray(-32);
+    d={id:createHash('sha256').update(pub).digest('hex'),publicKey:pub.toString('base64url'),privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'}),scopes};
+    if(persist)writeFileSync(path,JSON.stringify(d),{mode:0o600,flag:'wx'});
+  }
+  secrets.add(d.publicKey);secrets.add(d.privateKey);register(d.id,alias);
+  d.alias=alias;d.persist=persist;
+  if(persist&&existsSync(root+'persistent-token.json'))Object.assign(d,JSON.parse(readFileSync(root+'persistent-token.json','utf8')));
+  if(d.token)secrets.add(d.token);
+  return d;
+}
+export class Client{
+  constructor(d,label,log){this.identity=d;this.label=label;this.log=log;this.pending=new Map();this.handlers=[];this.closed=false;}
+  async connect(){
+    const d=this.identity;this.openedAt=new Date().toISOString();this.ws=new WebSocket('ws://127.0.0.1:5114/');
+    this.log('socket-opening',{connection:this.label,deviceAlias:d.alias,openedAt:this.openedAt});
+    const challenge=await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('challenge timeout')),15000);
+      this.ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('websocket error'));});
+      this.ws.addEventListener('close',ev=>{
+        this.closed=true;this.closedAt=new Date().toISOString();this.log('socket-closed',{connection:this.label,connId:this.hello?.server?.connId,deviceAlias:d.alias,closedAt:this.closedAt,code:ev.code,reason:ev.reason,wasClean:ev.wasClean});
+        for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error(p.method+' socket closed'));}this.pending.clear();
+      });
+      this.ws.addEventListener('message',ev=>{
+        const m=JSON.parse(ev.data);
+        if(m.event==='connect.challenge'){clearTimeout(timer);resolve(m.payload);return;}
+        if(m.type==='res'){
+          const p=this.pending.get(m.id);
+          if(p){clearTimeout(p.timer);this.pending.delete(m.id);m.ok?p.resolve(m.payload):p.reject(new Error(p.method+': '+JSON.stringify(m.error)));}
+          if(m.payload?.type==='hello-ok')return;
+          if(m.payload?.sessions)return;
+        }
+        this.log('receive',{connection:this.label,frame:m});for(const h of this.handlers)h(m);
+      });
+    });
+    const grant=d.scopes??scopes;const token=d.token??'';
+    const payload=['v3',d.id,'cli','cli','operator',grant.join(','),String(challenge.ts),token,challenge.nonce,'linux',''].join('|');
+    const params={minProtocol:4,maxProtocol:4,client:{id:'cli',version:'v03-update-2026-10-11',platform:'linux',mode:'cli',displayName:'PDA update check 2026-10-11'},role:'operator',scopes:grant,caps:['tool-events'],device:{id:d.id,publicKey:d.publicKey,signature:sign(null,Buffer.from(payload),d.privateKey).toString('base64url'),signedAt:challenge.ts,nonce:challenge.nonce},...(token?{auth:{token}}:{})};
+    const h=await this.request('connect',params);this.hello=h;this.connectedAt=new Date().toISOString();
+    this.log('connected',{connection:this.label,deviceAlias:d.alias,protocol:h.protocol,server:h.server,scopes:h.auth?.scopes,usedStoredToken:Boolean(token),connectedAt:this.connectedAt,client:params.client});
+    if(h.auth?.deviceToken){
+      secrets.add(h.auth.deviceToken);
+      const newToken=h.auth.deviceToken!==d.token;d.token=h.auth.deviceToken;
+      if(newToken)d.scopes=h.auth.scopes;
+      if(d.persist)writeFileSync(root+'persistent-token.json',JSON.stringify({token:d.token,scopes:d.scopes}),{mode:0o600});
+    }
+    return h;
+  }
+  request(method,params={}){
+    const id=randomUUID();
+    if(method==='connect')this.log('send',{connection:this.label,frame:{type:'req',id,method,params:{client:params.client,role:params.role,scopes:params.scopes,deviceAlias:this.identity.alias,usedStoredToken:Boolean(params.auth?.token)}}});
+    else if(method!=='sessions.list')this.log('send',{connection:this.label,frame:{type:'req',id,method,params}});
+    return new Promise((resolve,reject)=>{
+      if(this.ws.readyState!==WebSocket.OPEN){reject(new Error(method+' socket not open'));return;}
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(method+' timeout'));},30000);
+      this.pending.set(id,{resolve,reject,timer,method});this.ws.send(JSON.stringify({type:'req',id,method,params}));
+    });
+  }
+  async close(reason){
+    if(this.closed)return;
+    this.log('socket-close-requested',{connection:this.label,connId:this.hello?.server?.connId,reason});
+    await new Promise(resolve=>{const t=setTimeout(resolve,3000);this.ws.addEventListener('close',()=>{clearTimeout(t);resolve();},{once:true});this.ws.close(1000,reason);});
+  }
+}
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/fetch-release.py
+from manage import *
+from urllib.request import Request,urlopen
+from concurrent.futures import ThreadPoolExecutor,as_completed
+import base64,time
+url='https://registry.npmjs.org/openclaw/-/openclaw-2026.10.1.tgz'
+total=102727261
+metadata=json.loads(json.loads((EV/'01-package-integrity.txt').read_text().splitlines()[-1])['stdout'])
+expected=metadata['dist.integrity']
+assert metadata['dist.tarball']==url
+archive=RUN/'openclaw-2026.10.1.tgz'
+assert not archive.exists()
+with archive.open('wb') as f: f.truncate(total)
+start=now(); count=24; size=(total+count-1)//count
+def fetch(i):
+    lo=i*size;hi=min(total-1,(i+1)*size-1)
+    req=Request(url,headers={'Range':f'bytes={lo}-{hi}'})
+    with urlopen(req,timeout=90) as response:
+        assert response.status==206
+        assert response.headers['Content-Range']==f'bytes {lo}-{hi}/{total}'
+        with archive.open('r+b') as out:
+            out.seek(lo); n=0
+            while True:
+                b=response.read(65536)
+                if not b: break
+                out.write(b);n+=len(b)
+        assert n==hi-lo+1,(i,n,hi-lo+1)
+    return i,n,now()
+parts=[]
+with ThreadPoolExecutor(max_workers=count) as pool:
+    for future in as_completed([pool.submit(fetch,i) for i in range(count)]):
+        row=future.result();parts.append(row);print(json.dumps({'part':row[0],'bytes':row[1],'endedAt':row[2]}),flush=True)
+actual='sha512-'+base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode()
+write('01-transfer-recovery.json',{'url':url,'bytes':total,'parts':parts,'startedAt':start,'endedAt':now(),'expectedIntegrity':expected,'actualIntegrity':actual,'matches':actual==expected,'method':'Parallel byte ranges from the same official npm tarball, followed by full SHA-512 comparison. No package source was edited.'})
+assert actual==expected,'tarball integrity mismatch'
+print('Complete: official release SHA-512 matches',flush=True)
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/final-metadata.py
+from manage import *
+
+def versions():
+    paths=[ROOT/'lib/node_modules/openclaw/package.json']
+    paths+=list((ROOT/'lib/node_modules/openclaw/dist/extensions').glob('*/package.json'))
+    paths+=list((ROOT/'state/npm/projects').glob('*/node_modules/@openclaw/*/package.json'))
+    paths+=list((ROOT/'state/npm/projects').glob('*/node_modules/@openai/codex/package.json'))
+    rows=[]
+    for p in paths:
+        d=json.loads(p.read_text())
+        if d.get('name') in ['openclaw','@openclaw/anthropic-provider','@openclaw/codex','@openclaw/typesafe','@openai/codex']:
+            rows.append({'path':str(p),'name':d.get('name'),'version':d.get('version'),'dependencies':d.get('dependencies',{})})
+    write('10-plugin-versions.json',rows)
+    for args in [[str(ROOT/'oc'),'--version'],['/home/user/.local/bin/claude','--version'],['/home/user/.local/bin/codex','--version']]:
+        record('10-versions.txt',args,True)
+    print(json.dumps([{'name':r['name'],'version':r['version']} for r in rows]))
+
+def state():
+    commands=[['systemctl','--user','list-units','--all','v03-*.service','--no-pager'],['docker','ps','--format','{{.Names}} {{.Status}} {{.Ports}}'],['tmux','list-sessions'],['git','-C','/home/user/v03/work/openclaw/scratch','status','--short']]
+    write('10-final-environment.json',{'utc':now(),'commands':[execute(c) for c in commands]})
+    rows=[]
+    for base,dirs,files in os.walk(ROOT/'state',followlinks=False):
+        dirs[:]=[x for x in dirs if x not in ['npm','node_modules','cache','tmp','.git']]
+        for name in files:
+            if name in ['auth.json','.credentials.json','.claude.json','auth-profiles.json','credentials.json']:
+                p=Path(base)/name;s=p.lstat();rows.append({'path':str(p),'size':s.st_size,'mode':oct(s.st_mode),'mtimeNs':s.st_mtime_ns})
+    write('10-auth-metadata-after.json',rows)
+    start=json.loads((EV/'00-baseline.json').read_text())['utc'];end=now()
+    r=execute(['journalctl','--user','-u','v03-openclaw.service','--since',start,'--until',end,'--utc','-o','short-iso-precise','--no-pager'])
+    (EV/'10-run-journal.txt').write_text(scrub('UTC window '+start+' .. '+end+'\n'+r['stdout']+r['stderr']))
+    print(json.dumps({'authMetadataFiles':len(rows),'journalLines':len(r['stdout'].splitlines())}))
+
+if __name__=='__main__':
+    {'versions':versions,'state':state}[sys.argv[1]]()
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/finish-service.py
+from manage import *
+import time
+inspection=json.loads((EV/'00-api-before-cleanup.json').read_text())
+assert inspection['active']==[], 'Do not restart with active work'
+prior=execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','--value'])['stdout'].strip()
+for verb in ['stop','start']:
+    r=record('10-lifecycle.txt',['systemctl','--user',verb,'v03-openclaw.service']);assert r['exitCode']==0
+readiness=[]
+for _ in range(90):
+    r=execute(['curl','-sS','--max-time','3','-o','/dev/null','-w','%{http_code}','http://127.0.0.1:5114/readyz'])
+    readiness.append(r)
+    if r['exitCode']==0 and r['stdout']=='200':break
+    time.sleep(1)
+assert r['exitCode']==0 and r['stdout']=='200'
+write('10-final-readiness.json',{'reason':'After all trials and their idle verification, one restart releases cached trial CLI processes and transient MCP adapters; handoff A1-A3 had no restart.','previousMainPid':prior,'readiness':readiness,'current':execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState'])})
+print('final Gateway ready')
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/handoff.mjs
+import {Client,identity,safe,sleep,evidence} from './client.mjs';
+import {appendFileSync,writeFileSync,existsSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+
+const label=process.argv[2];if(!/^A[123]$/.test(label))throw new Error('invalid trial label');
+const mode=label[0];const file=evidence+label+'.jsonl';if(existsSync(file))throw new Error('trial evidence already exists; do not overwrite');
+const prompt='r3-worker に sessions_spawn で「7 と 8 を足した答えだけを 1 行で返して」と頼み、子の完了の通知を待ってから、子の答えをそのまま引用して私に報告して。';
+const key=`agent:r3-leader:update-${label.toLowerCase()}-${Date.now()}`;const keys=new Set([key]);const children=new Set();
+const summary={label,mode,key,prompt,startedAt:new Date().toISOString(),connections:[],histories:[],spawnEvents:[],terminalEvents:[],polls:[],failures:[]};
+let c;let disconnectStarted=false;let disconnectTask;let lastRelevant=Date.now();let sendTime;let deadline;
+function log(type,data){
+  if(type==='receive'){
+    const m=data.frame;
+    if(m.type==='event'&&!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+    if(m.payload?.session){m.payload={...m.payload};delete m.payload.session;}
+  }
+  appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),type,data:safe(data)})+'\n');
+}
+function attach(client){
+  client.handlers.push(m=>{
+    if(m.type!=='event'||!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+    const p=m.payload;
+    if(['agent','chat','sessions.messages'].includes(m.event))lastRelevant=Date.now();
+    const t=p.data;
+    if(p.sessionKey===key&&m.event==='agent'&&p.stream==='tool'&&t?.name?.endsWith('sessions_spawn')){
+      const spawn={utc:new Date().toISOString(),eventTs:p.ts,runId:p.runId,...t};summary.spawnEvents.push(spawn);log('spawn-observed',spawn);
+      if(mode!=='A'&&!disconnectStarted){
+        disconnectStarted=true;summary.disconnectTriggeredBy=spawn;
+        disconnectTask=client.close('spawn observed').then(()=>{summary.disconnectedAt=client.closedAt;log('disconnected-wait-start',{waitMs:120000,disconnectedAt:client.closedAt});});
+      }
+    }
+    for(const child of JSON.stringify(p).match(/agent:r3-worker:subagent:[A-Za-z0-9-]+/g)??[]){keys.add(child);children.add(child);}
+    if(m.event==='chat'&&['final','error','aborted'].includes(p.state)){
+      const e={utc:new Date().toISOString(),eventTs:p.ts,key:p.sessionKey,runId:p.runId,state:p.state,message:p.message,error:p.error};summary.terminalEvents.push(e);log('terminal',e);
+    }
+  });
+}
+async function open(d,suffix){const usedStoredToken=Boolean(d.token);const client=new Client(d,label+'-'+suffix,log);attach(client);await client.connect();summary.connections.push({label:client.label,deviceAlias:d.alias,openedAt:client.openedAt,connectedAt:client.connectedAt,connId:client.hello.server?.connId,usedStoredToken});return client;}
+async function poll(){
+  const ss=await c.request('sessions.list',{});
+  for(const s of ss.sessions??[])if(s.spawnedBy===key){keys.add(s.key);children.add(s.key);}
+  const statuses=(ss.sessions??[]).filter(s=>keys.has(s.key)).map(s=>({key:s.key,sessionId:s.sessionId,status:s.status,hasActiveRun:s.hasActiveRun,activeRunIds:s.activeRunIds,lastRunError:s.lastRunError,spawnedBy:s.spawnedBy}));
+  const p={utc:new Date().toISOString(),statuses};summary.polls.push(p);log('status',p);return statuses;
+}
+async function histories(){
+  summary.histories=[];
+  for(const k of keys){const h=await c.request('chat.history',{sessionKey:k,limit:100});summary.histories.push({key:k,retrievedAt:new Date().toISOString(),history:h});log('history',{key:k,history:h});}
+}
+try{
+  const scratch='/home/user/v03/work/openclaw/scratch';
+  const initial=execFileSync('git',['-C',scratch,'rev-list','--max-parents=0','HEAD'],{encoding:'utf8'}).trim();
+  execFileSync('git',['-C',scratch,'restore','--source='+initial,'--','README.md','hello.py']);
+  summary.mainPid=execFileSync('systemctl',['--user','show','v03-openclaw.service','-p','MainPID','--value'],{encoding:'utf8'}).trim();
+  log('reset-before-trial',{initial,diff:execFileSync('git',['-C',scratch,'diff','--','README.md','hello.py'],{encoding:'utf8'})});
+  log('trial-start',{label,key,prompt,mode,maximumWaitMs:300000,mainPid:summary.mainPid});
+  c=await open(identity('update-persistent',true),'initial');
+  summary.modelsBefore=await c.request('models.list',{agentId:'r3-worker'});
+  log('models-before',summary.modelsBefore);
+  await c.request('sessions.patch',{key,verboseLevel:'on'});
+  await c.request('sessions.messages.subscribe',{key,includeApprovals:true});
+  sendTime=Date.now();deadline=sendTime+300000;summary.sentAt=new Date(sendTime).toISOString();
+  summary.sendResult=await c.request('chat.send',{sessionKey:key,message:prompt,idempotencyKey:randomUUID()});
+  let lastPoll=0;
+  while(Date.now()<deadline){
+    if(disconnectStarted){
+      await disconnectTask;
+      if(!summary.reconnectedAt){
+        const reconnectAt=Date.parse(summary.disconnectedAt)+120000;
+        while(Date.now()<reconnectAt)await sleep(Math.min(1000,reconnectAt-Date.now()));
+        const previous=c;summary.connections.at(-1).closedAt=previous.closedAt;
+        c=await open(identity(mode==='C'?'authority-ephemeral':'authority-persistent',mode!=='C'),'reconnect');
+        summary.reconnectedAt=c.connectedAt;summary.disconnectedMs=Date.parse(c.openedAt)-Date.parse(summary.disconnectedAt);
+        await c.request('sessions.messages.subscribe',{key,includeApprovals:true});
+        await poll();await histories();
+      }
+    }
+    if(c.closed)throw new Error('unexpected socket closure');
+    if(Date.now()-lastPoll>=2500){
+      const statuses=await poll();lastPoll=Date.now();
+      const final=summary.terminalEvents.some(x=>x.key===key&&x.state==='final');
+      if(statuses.length&&statuses.every(x=>!x.hasActiveRun)&&((mode==='A'&&final&&Date.now()-lastRelevant>10000)||(mode!=='A'&&summary.reconnectedAt))){
+        if(children.size){
+          await histories();
+          const latestText=h=>Math.max(0,...(h?.history?.messages??[]).filter(m=>m.role==='assistant'&&(typeof m.content==='string'?m.content.trim():(m.content??[]).some(b=>b.type==='text'&&b.text?.trim()))).map(m=>typeof m.timestamp==='number'?m.timestamp:Date.parse(m.timestamp)||0));
+          const parentLatest=latestText(summary.histories.find(h=>h.key===key));
+          const childLatest=Math.max(0,...summary.histories.filter(h=>children.has(h.key)).map(latestText));
+          summary.settleCheck={parentLatest,childLatest,parentAfterChild:parentLatest>childLatest};
+          log('settle-check',summary.settleCheck);
+          if(!childLatest||parentLatest<=childLatest){await sleep(100);continue;}
+        }
+        summary.stopReason=children.size?'parent-and-child-idle':'parent-idle-no-child';break;
+      }
+    }
+    await sleep(100);
+  }
+  if(Date.now()>=deadline){summary.stopReason='five-minute-limit';log('wait-limit',{deadline:new Date(deadline).toISOString()});}
+  if(!c.closed){await poll();await histories();summary.modelsAfter=await c.request('models.list',{agentId:'r3-worker'});log('models-after',summary.modelsAfter);}
+}catch(e){summary.failures.push({utc:new Date().toISOString(),error:e.message});log('collector-error',{error:e.stack});process.exitCode=1;}
+finally{
+  if(c){await c.close('trial complete');if(summary.connections.length)summary.connections.at(-1).closedAt=c.closedAt;}
+  summary.children=[...children];summary.endedAt=new Date().toISOString();
+  writeFileSync(evidence+label+'-summary.json',JSON.stringify(safe(summary),null,2)+'\n');
+  console.log(JSON.stringify(safe({label,key,startedAt:summary.startedAt,endedAt:summary.endedAt,stopReason:summary.stopReason,children:summary.children,spawnEvents:summary.spawnEvents.length,terminals:summary.terminalEvents.map(x=>({key:x.key,state:x.state,utc:x.utc})),failures:summary.failures})));
+}
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/inspect.mjs
+import {Client,identity,safe,evidence} from './client.mjs';
+import {writeFileSync} from 'node:fs';
+const label=process.argv[2];const c=new Client(identity('update-persistent',true),'inspect-'+label,()=>{});
+try {
+ await c.connect();
+ const ss=await c.request('sessions.list',{});
+ const models=await c.request('models.list',{agentId:'r3-worker'});
+ const out={utc:new Date().toISOString(),server:c.hello.server,models,active:(ss.sessions??[]).filter(s=>s.hasActiveRun).map(s=>({key:s.key,activeRunIds:s.activeRunIds})),sessions:(ss.sessions??[]).map(s=>({key:s.key,status:s.status,hasActiveRun:s.hasActiveRun}))};
+ if(label!=='before'){
+   const key='agent:r3-leader:update-config-check-20261011';
+   await c.request('sessions.patch',{key});
+   out.tools=await c.request('tools.effective',{sessionKey:key});
+ }
+ writeFileSync(evidence+'00-api-'+label+'.json',JSON.stringify(safe(out),null,2)+'\n');
+ console.log(JSON.stringify({utc:out.utc,server:out.server,active:out.active,model:models.models?.filter(x=>x.id==='gpt-6-astra'||x.id==='openai/gpt-6-astra')}));
+}finally{await c.close('inspection complete');}
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/manage.py
+import os, sys, json, re, subprocess, datetime, hashlib
+from pathlib import Path
+ROOT=Path('/home/user/v03/openclaw')
+RUN=ROOT/'update-2026-10-11'
+EV=Path('/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-update')
+REG=RUN/'device-aliases.json'
+SECRET=re.compile(r'^(deviceTokens?|tokens?|access_token|refresh_token|id_token|password|secret|apiKey|authorization|signature|nonce|publicKey|privateKey(?:Pem)?|recoveryScope)$',re.I)
+def now(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def private_write(p,v):
+    fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+    with os.fdopen(fd,'w') as f: json.dump(v,f,ensure_ascii=False,indent=2)
+def aliases(): return json.loads(REG.read_text()) if REG.exists() else {}
+def scrub(s):
+    for k,v in aliases().items(): s=s.replace(k,v)
+    s=re.sub(r'\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+','[REDACTED]',s)
+    s=re.sub(r'(Bearer\s+)\S+',r'\1[REDACTED]',s,flags=re.I)
+    s=re.sub(r'(device(?:Id)?[=:]\s*)[0-9a-f]{64}',r'\1[REDACTED]',s,flags=re.I)
+    return s
+def safe(v):
+    if isinstance(v,dict):
+        return {k:(safe(x) if k=='apiKey' and isinstance(x,dict) and set(x)<= {'source','provider','id'} else '[REDACTED]') if SECRET.fullmatch(k) else safe(x) for k,x in v.items()}
+    if isinstance(v,list): return [safe(x) for x in v]
+    if isinstance(v,str): return scrub(v)
+    return v
+def write(name,v): (EV/name).write_text(json.dumps(safe(v),ensure_ascii=False,indent=2)+'\n')
+def env():
+    e=dict(os.environ)
+    for k in ['CODEX_HOME','OPENAI_API_KEY','CODEX_API_KEY','ANTHROPIC_API_KEY','CLAUDE_CODE_OAUTH_TOKEN']: e.pop(k,None)
+    e.update(HOME='/home/user/v03/agent-home',CLAUDE_CONFIG_DIR='/home/user/pda/secrets/claude',OPENCLAW_STATE_DIR=str(ROOT/'state'),OPENCLAW_CONFIG_PATH=str(ROOT/'openclaw.json'),PATH='/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin')
+    return e
+def execute(args, agent=False):
+    start=now(); p=subprocess.run(args,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,env=env() if agent else None,cwd='/home/user/v03/work/openclaw/scratch' if agent or args[0]==str(ROOT/'oc') else None)
+    return {'startedAt':start,'endedAt':now(),'command':args,'exitCode':p.returncode,'stdout':p.stdout,'stderr':p.stderr}
+def record(name,args,agent=False):
+    r=execute(args,agent)
+    with (EV/name).open('a') as f: f.write(json.dumps(safe(r),ensure_ascii=False)+'\n')
+    print(json.dumps(safe(r),ensure_ascii=False)); return r
+def devices(label):
+    r=execute([str(ROOT/'oc'),'devices','list','--json']); assert r['exitCode']==0, scrub(r['stderr'])
+    d=json.loads(r.pop('stdout')); a=aliases()
+    for group in ['paired','pending']:
+        for x in d.get(group,[]):
+            k=x.get('deviceId')
+            if k and k not in a: a[k]=('preexisting-' if label=='before' else 'unrelated-new-')+str(len(a)+1)
+    private_write(REG,a); r['result']=d; write('00-devices-'+label+'.json',r)
+    return d
+def config(label):
+    c=json.loads((ROOT/'openclaw.json').read_text()); write('00-config-'+label+'.json',c); return c
+def metadata():
+    files=[]
+    for p in [Path('/home/user/v03/agent-home'),Path('/home/user/pda/secrets/claude'),ROOT]:
+        for q in p.iterdir():
+            if '.bak' in q.name or '.backup' in q.name:
+                s=q.lstat(); files.append({'path':str(q),'size':s.st_size,'mode':oct(s.st_mode),'mtimeNs':s.st_mtime_ns})
+    return files
+def preflight():
+    assert not (EV/'00-baseline.json').exists()
+    config('before'); d=devices('before')
+    fixed=[ROOT/'oc',Path('/home/user/.config/systemd/user/v03-openclaw.service')]
+    fixed += list(Path('/home/user/v03/work/openclaw/scratch').glob('r3-*/*.md'))
+    commands=[['git','status','--short','--branch'],['git','rev-parse','HEAD'],[str(ROOT/'oc'),'--version'],['systemctl','--user','list-units','--all','v03-*.service','--no-pager'],['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState','-p','ActiveEnterTimestamp'],['/home/user/.local/bin/tailscale-pda','serve','status'],['docker','ps','--format','{{.Names}} {{.Status}} {{.Ports}}'],['git','-C','/home/user/v03/work/openclaw/scratch','status','--short']]
+    out={'utc':now(),'commands':[execute(c) for c in commands],'fixedFiles':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in fixed},'backupMetadata':metadata(),'initialDeviceAliases':[aliases()[x['deviceId']] for x in d['paired']]}
+    write('00-baseline.json',out); print(json.dumps({'utc':out['utc'],'paired':len(d['paired']),'backupCount':len(out['backupMetadata'])}))
+def logs(label):
+    s=json.loads((EV/(label+'-summary.json')).read_text()); start,end=s['startedAt'],s['endedAt']
+    r=execute(['journalctl','--user','-u','v03-openclaw.service','--since',start,'--until',end,'--utc','-o','short-iso-precise','--no-pager'])
+    (EV/(label+'-journal.txt')).write_text(scrub('UTC window '+start+' .. '+end+'\n'+r['stdout']+r['stderr']))
+    source=Path('/tmp/openclaw/openclaw-2026-10-11.log'); rows=[]; bad=0
+    lo=datetime.datetime.fromisoformat(start.replace('Z','+00:00')); hi=datetime.datetime.fromisoformat(end.replace('Z','+00:00'))
+    with source.open() as f:
+        for i,line in enumerate(f,1):
+            try:
+                row=json.loads(line); t=datetime.datetime.fromisoformat((row.get('time') or row.get('_meta',{}).get('date')).replace('Z','+00:00'))
+            except (ValueError,TypeError,AttributeError): bad+=1; continue
+            if lo<=t<=hi: rows.append({'sourceLine':i,'entry':safe(row)})
+    (EV/(label+'-gateway-log.jsonl')).write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in rows))
+    write(label+'-log-window.json',{'source':str(source),'startedAt':start,'endedAt':end,'journalExitCode':r['exitCode'],'fileRows':len(rows),'unparseableRows':bad})
+    print(json.dumps({'label':label,'journalRows':len(r['stdout'].splitlines()),'fileRows':len(rows)}))
+if __name__=='__main__':
+    action=sys.argv[1]
+    if action=='preflight': preflight()
+    elif action=='config': config(sys.argv[2]); print('config snapshot saved')
+    elif action=='devices': d=devices(sys.argv[2]); print(json.dumps({'paired':len(d['paired']),'pending':len(d['pending'])}))
+    elif action=='run': sys.exit(record(sys.argv[2],sys.argv[3:],True)['exitCode'])
+    elif action=='host': sys.exit(record(sys.argv[2],sys.argv[3:])['exitCode'])
+    elif action=='logs': logs(sys.argv[2])
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/service.py
+from manage import *
+import time
+label=sys.argv[1]
+if label=='start':
+    r=record('01-lifecycle.txt',['systemctl','--user','start','v03-openclaw.service']);assert r['exitCode']==0
+    readiness=[]
+    for _ in range(90):
+        r=execute(['curl','-sS','--max-time','3','-o','/dev/null','-w','%{http_code}','http://127.0.0.1:5114/readyz'])
+        readiness.append(r)
+        if r['exitCode']==0 and r['stdout']=='200': break
+        time.sleep(1)
+    write('01-readiness.json',readiness)
+prefix='01' if label=='start' else '10-final'
+unit=[execute(['systemctl','--user','status','v03-openclaw.service','--no-pager']),execute(['systemctl','--user','cat','v03-openclaw.service']),execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState','-p','ActiveEnterTimestamp'])]
+write(prefix+'-unit.txt',unit)
+urls=['http://127.0.0.1:5114/','https://pda-web.tailaff53a.ts.net:19114/','http://127.0.0.1:5114/readyz']
+if label!='start': urls=[u for u in urls if not u.startswith('https:')]
+checks=[execute(['curl','-sS','--max-time','20','-o','/dev/null','-w','%{http_code}',url]) for url in urls]
+ss=execute(['ss','-ltnp']);ss['stdout']='\n'.join(line for line in ss['stdout'].splitlines() if ':5114' in line)
+write(prefix+'-listen.txt',{'checks':checks,'listeners':ss,'serve':execute(['/home/user/.local/bin/tailscale-pda','serve','status'])})
+print(json.dumps({'unit':unit[-1]['stdout'],'checks':[{'url':u,'exit':r['exitCode'],'status':r['stdout']} for u,r in zip(urls,checks)],'listeners':ss['stdout']},ensure_ascii=False))
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/tail-probe.py
+from manage import *
+import socket,threading
+host='pda-web.tailaff53a.ts.net'
+listener=socket.socket();listener.bind(('127.0.0.1',0));listener.listen(1);listener.settimeout(25)
+port=listener.getsockname()[1];children=[];connections=[];errors=[]
+def bridge():
+    try:
+        conn,_=listener.accept();connections.append(conn)
+        p=subprocess.Popen(['/home/user/.local/bin/tailscale-pda','nc',host,'19114'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        children.append(p)
+        def forward():
+            try:
+                while True:
+                    b=conn.recv(65536)
+                    if not b: break
+                    p.stdin.write(b);p.stdin.flush()
+            except (OSError,ValueError): pass
+            finally:
+                try:p.stdin.close()
+                except OSError:pass
+        t=threading.Thread(target=forward,daemon=True);t.start()
+        while True:
+            b=os.read(p.stdout.fileno(),65536)
+            if not b:break
+            conn.sendall(b)
+    except (OSError,ValueError) as e: errors.append(str(e))
+    finally:
+        for c in connections:
+            try:c.shutdown(socket.SHUT_RDWR);c.close()
+            except OSError:pass
+t=threading.Thread(target=bridge,daemon=True);t.start()
+args=['curl','-sS','--max-time','20','--connect-to',f'{host}:19114:127.0.0.1:{port}','-o','/dev/null','-w','%{http_code}',f'https://{host}:19114/']
+result=execute(args)
+for c in connections:
+    try:c.shutdown(socket.SHUT_RDWR);c.close()
+    except OSError:pass
+listener.close()
+for p in children:
+    if p.poll() is None:p.terminate()
+    try:p.wait(timeout=3)
+    except subprocess.TimeoutExpired:p.kill();p.wait()
+    errors.append(p.stderr.read().decode(errors='replace'))
+t.join(timeout=3)
+write(sys.argv[1] if len(sys.argv)>1 else '01-tailscale-retry.txt',{'method':'curl with TLS verification and original HTTPS URL/SNI, connected through a temporary loopback byte relay to tailscale-pda nc. Existing userspace Tailscale supplies routing and name resolution. No Tailscale setting changed. Relay and nc exited after the request.','curl':result,'ncCommand':['/home/user/.local/bin/tailscale-pda','nc',host,'19114'],'relayErrors':errors,'relayThreadExited':not t.is_alive(),'childExitCodes':[p.returncode for p in children]})
+print(json.dumps({'exitCode':result['exitCode'],'httpCode':result['stdout'],'stderr':result['stderr'],'relayErrors':errors,'closed':not t.is_alive()},ensure_ascii=False))
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/trial.mjs
+import {Client,identity,safe,sleep,evidence} from './client.mjs';
+import {appendFileSync,writeFileSync,readlinkSync,readFileSync,existsSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+const [kind,reuseSession]=process.argv.slice(2);
+if(!['claude','stop-claude','codex','stop-codex'].includes(kind))throw new Error('invalid trial');
+const agent=kind.includes('codex')?'codex':'claude',stopping=kind.startsWith('stop-');
+const label=stopping?(agent==='claude'?'03-claude-stop':'05-codex-stop'):(agent==='claude'?'02-claude':'04-codex');
+const file=evidence+(stopping?label:label+'-stream')+'.txt';
+if(existsSync(file))throw new Error('evidence must not be overwritten');
+const scratch='/home/user/v03/work/openclaw/scratch';
+const run=(cmd,args)=>execFileSync(cmd,args,{encoding:'utf8',maxBuffer:16*1024*1024});
+const pid=Number(run('systemctl',['--user','show','v03-openclaw.service','-p','MainPID','--value']).trim());
+const key=reuseSession||`agent:${agent}:update-${kind}-${Date.now()}`;
+const prompt='hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。';
+const summary={label,kind,key,prompt,startedAt:new Date().toISOString(),mainPid:pid,firstOutput:null,terminal:null,failures:[]};
+let timer,done=false,abortAt,abortPromise,sampleCount=0;
+function log(type,data){appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),type,data:safe(data)})+'\n');}
+function sample(reason){
+ const lines=run('ps',['-ww','-eo','pid,ppid,etime,args','--forest']).split('\n');
+ const rows=lines.slice(1).map(line=>({line,m:line.match(/^\s*(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/)})).filter(r=>r.m);
+ const ids=new Set([pid]);let change=true;
+ while(change){change=false;for(const r of rows)if(ids.has(+r.m[2])&&!ids.has(+r.m[1])){ids.add(+r.m[1]);change=true;}}
+ const selected=rows.filter(r=>ids.has(+r.m[1]));
+ const text=lines[0]+'\n'+selected.map(r=>r.line).join('\n')+'\n';
+ const cwd=selected.map(r=>{try{return `${r.m[1]} cwd=${readlinkSync('/proc/'+r.m[1]+'/cwd')}`;}catch{return `${r.m[1]} exited`;}}).join('\n');
+ if(stopping)log('process-snapshot',{reason,ps:text,cwd});
+ else if((selected.some(r=>agent==='claude'?/\/claude\s/.test(r.m[4]):/\/codex\s+app-server/.test(r.m[4])))&&(sampleCount<5||reason==='first-output')){
+   appendFileSync(evidence+`06-ps-${agent}.txt`,JSON.stringify({utc:new Date().toISOString(),reason})+'\n$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)\n'+safe(text+cwd)+'\n');sampleCount++;
+   const envs=[];for(const r of selected){try{envs.push({pid:+r.m[1],environment:Object.fromEntries(readFileSync('/proc/'+r.m[1]+'/environ','utf8').split('\0').map(s=>s.split(/=(.*)/s).slice(0,2)).filter(([k])=>['HOME','CODEX_HOME','CLAUDE_CONFIG_DIR','PATH'].includes(k)))});}catch{}}
+   appendFileSync(evidence+'00-runtime-environment.jsonl',JSON.stringify({utc:new Date().toISOString(),kind,processes:envs})+'\n');
+ }
+}
+const initial=run('git',['-C',scratch,'rev-list','--max-parents=0','HEAD']).trim();
+run('git',['-C',scratch,'restore','--source='+initial,'--','README.md','hello.py']);
+log('reset-before-trial',{initial,diff:run('git',['-C',scratch,'diff','--','README.md','hello.py'])});
+log('trial-start',summary);
+const c=new Client(identity('update-persistent',true),label,(type,data)=>{
+ if(type==='receive'&&data.frame.type==='event'&&(data.frame.payload?.sessionKey??data.frame.payload?.key)!==key)return;
+ log(type,data);
+});
+c.handlers.push(m=>{
+ if(m.type!=='event'||m.payload?.sessionKey!==key)return;
+ const p=m.payload;
+ const output=(m.event==='agent'&&(['assistant','tool'].includes(p.stream)||(p.stream==='item'&&p.data?.progressText)))||(m.event==='chat'&&p.state==='delta');
+ if(output&&!summary.firstOutput){
+   summary.firstOutput=new Date().toISOString();log('first-output',{utc:summary.firstOutput});sample('first-output');
+   if(stopping){
+     abortAt=performance.now();summary.abortAt=new Date().toISOString();log('abort-request-start',{key});
+     abortPromise=c.request('chat.abort',{sessionKey:key}).then(x=>{summary.abortResult=x;log('abort-response',{result:x,secondsSinceAbort:(performance.now()-abortAt)/1000});}).catch(e=>{summary.failures.push(e.message);log('abort-error',e.message);});
+   }
+ }
+ if(m.event==='chat'&&['final','aborted','error'].includes(p.state)){
+   summary.terminal=p.state;summary.terminalAt=new Date().toISOString();summary.abortLatencySeconds=abortAt?(performance.now()-abortAt)/1000:null;log('terminal',p);done=true;
+ }
+});
+try{
+ await c.connect();summary.server=c.hello.server;
+ await c.request('sessions.patch',{key,verboseLevel:'on'});
+ await c.request('sessions.messages.subscribe',{key,includeApprovals:true});
+ summary.sentAt=new Date().toISOString();summary.sendResult=await c.request('chat.send',{sessionKey:key,message:prompt,idempotencyKey:randomUUID()});
+ sample('after-send');timer=setInterval(()=>{try{sample('periodic');}catch(e){log('sample-error',e.message);}},5000);
+ const deadline=performance.now()+360000;
+ while(!done&&performance.now()<deadline)await sleep(100);
+ if(!done){summary.failures.push('six-minute deadline');await c.request('chat.abort',{sessionKey:key});}
+ if(abortPromise)await abortPromise;
+ await sleep(2200);
+ summary.history=await c.request('chat.history',{sessionKey:key,limit:50});log('history-after',summary.history);
+ const settleDeadline=performance.now()+15000;
+ do{
+   const ss=await c.request('sessions.list',{});summary.status=(ss.sessions??[]).filter(s=>s.key===key);summary.statusAt=new Date().toISOString();log('session-status-after',{utc:summary.statusAt,sessions:summary.status});
+   if(summary.status.length&&summary.status.every(s=>!s.hasActiveRun))break;
+   await sleep(500);
+ }while(performance.now()<settleDeadline);
+ sample('after-terminal');
+ const diff=run('git',['-C',scratch,'diff','--','README.md','hello.py']);
+ if(stopping)log('git-diff',diff);else writeFileSync(evidence+label+'-result.txt',new Date().toISOString()+'\n$ git diff -- README.md hello.py\n'+diff);
+}catch(e){summary.failures.push(e.message);log('collector-error',e.stack);process.exitCode=1;}
+finally{
+ if(timer)clearInterval(timer);await c.close('trial complete');summary.closedAt=c.closedAt;summary.endedAt=new Date().toISOString();
+ writeFileSync(evidence+label+'-summary.json',JSON.stringify(safe(summary),null,2)+'\n');
+ console.log(JSON.stringify({label,key,terminal:summary.terminal,firstOutput:summary.firstOutput,abortLatencySeconds:summary.abortLatencySeconds,status:summary.status?.map(s=>({status:s.status,hasActiveRun:s.hasActiveRun,activeRunIds:s.activeRunIds})),failures:summary.failures}));
+}
+
+
+FILE: /home/user/v03/openclaw/update-2026-10-11/verify.py
+from manage import *
+from collections import Counter
+
+REPORT=Path('/home/user/pda-v03a/docs/reports/v0.3-openclaw-codex.md')
+def read(name):return json.loads((EV/name).read_text())
+def records(name):return [json.loads(x) for x in (EV/name).read_text().splitlines() if x]
+def at(s):return datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
+checks=[]
+def check(name,condition,detail=None):
+    checks.append({'check':name,'passed':bool(condition),'detail':detail})
+
+prefix=read('00-report-prefix.json');data=REPORT.read_bytes();section=data[prefix['bytes']:].decode()
+check('prior report bytes preserved',hashlib.sha256(data[:prefix['bytes']]).hexdigest()==prefix['sha256'])
+check('exact section heading and required order',section.count('## 12. 2026.10.1 への更新 (2026-10-11)')==1 and all(x in section for x in ['### 12.1 結論','### 12.2 版と導入','### 12.3 試用の結果','### 12.4 Claude Code と Codex の起動のされ方','### 12.5 認証','### 12.6 人の手順','### 12.7 分からなかったこと']))
+check('no unperformed trial sections',not re.search(r'^#### T[789]\b',section,re.M))
+missing=[x for x in re.findall(r'\]\((evidence/[^)]+)\)',section) if not (REPORT.parent/x).exists() and not x.endswith('/10-verification.json')]
+check('report evidence links resolve',not missing,missing)
+branch=execute(['git','branch','--show-current'])['stdout'].strip()
+base=execute(['git','merge-base','HEAD',prefix['baseCommit']])['stdout'].strip()
+check('requested branch and base',branch=='v0.3/update-openclaw' and base==prefix['baseCommit'],{'branch':branch,'base':base})
+paths=execute(['git','status','--porcelain','--untracked-files=all'])['stdout'].splitlines()
+unexpected=[x for x in paths if x[3:]!='docs/reports/v0.3-openclaw-codex.md' and not x[3:].startswith('docs/reports/evidence/v0.3-openclaw/2026-10-11-update/')]
+check('repo changes limited to report and requested evidence directory',not unexpected,unexpected)
+check('git diff whitespace including staged changes',execute(['git','diff','--check','HEAD'])['exitCode']==0)
+core=json.loads((ROOT/'lib/node_modules/openclaw/package.json').read_text())
+runtime=json.loads(records('01-typesafe-runtime.txt')[0]['stdout'])
+check('core and TypeSafe exactly stable 2026.10.1',core['version']=='2026.10.1' and runtime['plugin']['version']=='2026.10.1' and runtime['install']['spec']=='@openclaw/typesafe@2026.10.1')
+check('TypeSafe loaded and activated',runtime['plugin']['status']=='loaded' and runtime['plugin']['imported'] and runtime['plugin']['activated'])
+check('doctor once and guided fix once',len(records('01-doctor.txt'))==1 and len(records('01-doctor-fix.txt'))==1 and all(records(n)[0]['exitCode']==0 for n in ['01-doctor.txt','01-doctor-fix.txt']))
+cfg=read('00-config-final.json');before=read('00-config-before.json')
+check('5 agents, gateway, tools and TypeSafe reference unchanged',len(cfg['agents']['entries'])==5 and all(cfg[k]==before[k] for k in ['agents','gateway','tools']) and cfg['plugins']['entries']['typesafe']==before['plugins']['entries']['typesafe'])
+check('leader decision model and loopback proxy retained',cfg['agents']['entries']['r3-leader']['decisionModel']=='typesafe/jev-latest' and cfg['gateway']['trustedProxies']==['127.0.0.1'])
+api=read('00-api-final.json')
+check('decision_evaluate available in final Gateway catalog',any(x.get('id')=='decision_evaluate' and x.get('status')=='available' for x in api['tools']['toolAccess']['tools']))
+initial='c2c680a68fa41598b377d449dadeadb898a6944c'
+events={};summaries={};observations=[]
+for label in ['A1','A2','A3','02-claude','03-claude-stop','04-codex','05-codex-stop']:
+    filename=label+'.jsonl' if label.startswith('A') else label+('.txt' if '-stop' in label else '-stream.txt')
+    rows=records(filename);events[label]=rows;s=read(label+'-summary.json');summaries[label]=s
+    sends=[r for r in rows if r['type']=='send' and r['data'].get('frame',{}).get('method')=='chat.send']
+    resets=[r for r in rows if r['type']=='reset-before-trial']
+    check(label+' one prompt and reset before trial',len(sends)==1 and len(resets)==1 and resets[0]['data']=={'initial':initial,'diff':''} and at(resets[0]['utc'])<at(sends[0]['utc']))
+    check(label+' collector finished without failure',not s['failures'] and bool(s['endedAt']))
+    if not label.startswith('A'):
+        check(label+' interim output before terminal',at(s['firstOutput'])<at(s['terminalAt']))
+        check(label+' inactive after terminal',bool(s['status']) and all(x['hasActiveRun'] is False and not x['activeRunIds'] for x in s['status']))
+        if '-stop' in label:check(label+' stop accepted and aborted',s['abortResult']['aborted'] and s['terminal']=='aborted',{'secondsToAborted':s['abortLatencySeconds']})
+        else:check(label+' successful final with both file diffs',s['terminal']=='final' and all('diff --git a/'+n in (EV/(label+'-result.txt')).read_text() for n in ['README.md','hello.py']))
+    else:
+        conn=s['connections'];finals=[t for t in s['terminalEvents'] if t['key']==s['key'] and t['state']=='final']
+        check(label+' one saved identity connection held through last leader final',len(conn)==1 and conn[0]['deviceAlias']=='update-persistent' and conn[0]['usedStoredToken'] and bool(finals) and at(conn[0]['closedAt'])>max(at(t['utc']) for t in finals))
+        modelcalls=[r for r in rows if r['type']=='send' and r['data'].get('frame',{}).get('method')=='models.list']
+        model=[m['available'] for m in s['modelsBefore']['models'] if m['id']=='gpt-6-astra' and m['provider']=='openai']
+        check(label+' availability recorded before chat',len(model)==1 and at(modelcalls[0]['utc'])<at(sends[0]['utc']),model)
+check('T2 executable greeting',records('02-claude-verification.txt')[0]['exitCode']==0)
+check('T4 executable greeting after one corrected checker',read('04-codex-verification-corrected.json')['exitCode']==0)
+check('T3 target Claude gone; T5 app-server retained as observed',all('550919' not in r['data']['ps'] for r in events['03-claude-stop'] if r['type']=='process-snapshot' and r['data']['reason']=='after-terminal') and any('551727' in r['data']['ps'] for r in events['05-codex-stop'] if r['type']=='process-snapshot' and r['data']['reason']=='after-terminal'))
+for label,pid in [('claude','550919'),('codex','551727')]:
+    ps=(EV/('06-ps-'+label+'.txt')).read_text()
+    check('T6 '+label+' parent and cwd captured',bool(re.search(r'\b'+pid+r'\s+548594\s',ps)) and pid+' cwd=/home/user/v03/work/openclaw/scratch' in ps)
+boots=[]
+for label in ['A1','A2','A3']:
+    boots += [r['data']['server']['bootId'] for r in events[label] if r['type']=='connected']
+check('three handoffs sequential, identical Gateway PID and boot',len(set(boots))==1 and all(str(summaries[x]['mainPid'])=='548594' for x in ['A1','A2','A3']) and at(summaries['A1']['endedAt'])<at(summaries['A2']['startedAt']) and at(summaries['A2']['endedAt'])<at(summaries['A3']['startedAt']))
+life=records('01-lifecycle.txt')+records('10-lifecycle.txt')
+check('no recorded restart during handoff sequence',not any(at(summaries['A1']['startedAt'])<at(x['startedAt'])<at(summaries['A3']['endedAt']) for x in life))
+check('A3/T2 overlap disclosed',at(summaries['A3']['startedAt'])<at(summaries['02-claude']['startedAt'])<at(summaries['A3']['endedAt']) and '重なった' in section)
+handoffs=read('handoff-results.json')
+check('handoff refusal, quotes and errors counted without journal-only omission',[h['numericAnswerQuoted'] for h in handoffs]==[True,False,True] and [h['entireChildMessageQuoted'] for h in handoffs]==[True,False,False] and [h['targetCountsInHistoryUniqueToolCalls']['Gateway client authority closed'] for h in handoffs]==[0,0,9] and all(h['targetCountsInHistoryUniqueToolCalls']==h['targetCountsInEventsUniqueToolCalls'] for h in handoffs))
+check('terminal owner changed absent in all three rounds',all(h['targetCountsInHistoryUniqueToolCalls']['Subagent terminal signal owner changed before commit']==0 and h['targetCountsInJournal']['Subagent terminal signal owner changed before commit']==0 for h in handoffs))
+decision_calls=[]
+for label,rows in events.items():
+    for r in rows:
+        d=r.get('data');f=d.get('frame',{}) if isinstance(d,dict) else {};p=f.get('payload',{});t=p.get('data',{})
+        if f.get('event')=='agent' and p.get('stream')=='tool' and t.get('phase')=='start' and t.get('name','').endswith('decision_evaluate'):decision_calls.append({'label':label,'utc':r['utc']})
+check('no decision model invocation in seven recorded trials',not decision_calls,decision_calls)
+local=read('10-final-listen.txt');public=read('10-final-tailscale.txt')
+check('T1 local HTTP and final HTTPS 200',all(x['exitCode']==0 and x['stdout']=='200' for x in local['checks']) and public['curl']['exitCode']==0 and public['curl']['stdout']=='200' and public['relayThreadExited'])
+check('T1 HTTPS retry preserved successful evidence',read('01-tailscale-retry.txt')['curl']['stdout']=='200')
+baseline_serve=next(x['stdout'] for x in read('00-baseline.json')['commands'] if x['command']==['/home/user/.local/bin/tailscale-pda','serve','status'])
+check('Tailscale Serve configuration retained including 19114',local['serve']['stdout']==baseline_serve and ':19114' in local['serve']['stdout'] and 'http://127.0.0.1:5114' in local['serve']['stdout'])
+clean=read('10-cleanup.json');baseline=read('00-baseline.json')
+check('configuration and fixed files preserved',all(clean['invariants'].values()) and clean['fixedFiles']==baseline['fixedFiles'] and all(hashlib.sha256(Path(p).read_bytes()).hexdigest()==h for p,h in baseline['fixedFiles'].items()))
+check('own device revoked; preexisting devices retained',sorted(clean['devicesRemaining'])==sorted(baseline['initialDeviceAliases']) and not any((RUN/n).exists() for n in ['persistent-identity.json','persistent-token.json']))
+check('new backups and scratch changes removed',clean['scratchDiff']['stdout']=='' and clean['backupsRemaining']==baseline['backupMetadata'] and not any(Path(x['path']).exists() for x in clean['removedMetadataOnly']))
+check('transient adapter dirs gone',all(not Path(x['path']).exists() for x in read('10-adapter-cleanup.json')['paths']))
+check('auth filename metadata unchanged',read('00-auth-metadata-before.json')==read('10-auth-metadata-after.json')==[])
+mcp_before=records('00-mcp-before.txt');mcp_after=records('10-mcp-after.txt')
+check('MCP lists unchanged',[(x['command'][-3:],x['stdout']) for x in mcp_before]==[(x['command'][-3:],x['stdout']) for x in mcp_after])
+finalenv=read('10-final-environment.json')['commands']
+check('no own tmux sessions remain',any(x['command']==['tmux','list-sessions'] and x['exitCode']==1 and 'no server running' in x['stderr'] for x in finalenv))
+check('other v03 services inactive and protected containers running',all('active running' not in l or 'v03-openclaw.service' in l for l in finalenv[0]['stdout'].splitlines()) and all(n in finalenv[1]['stdout'] for n in ['pda-openobserve-1 Up','pda-otel-collector-1 Up']))
+unit=execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState'])
+check('final service running, API idle and final model available',unit['exitCode']==0 and 'ActiveState=active' in unit['stdout'] and 'SubState=running' in unit['stdout'] and api['active']==[] and any(m['id']=='gpt-6-astra' and m['available'] for m in api['models']['models']),unit)
+check('trial native processes released after final restart',all(not Path('/proc/'+str(pid)).exists() for pid in [548594,550184,550331,550610,550919,551021,551727]))
+secret_findings=[];parse_errors=[];total=0
+for p in sorted(EV.iterdir()):
+    if not p.is_file() or p.name in ['10-verification.json','10-manifest.json']:continue
+    text=p.read_text();total+=len(text.encode())
+    if p.suffix=='.json':
+        try:json.loads(text)
+        except Exception as e:parse_errors.append({'file':p.name,'error':str(e)})
+    if p.suffix=='.jsonl':
+        for i,l in enumerate(text.splitlines(),1):
+            try:json.loads(l)
+            except Exception as e:parse_errors.append({'file':p.name,'line':i,'error':str(e)})
+    if any(x in text for x in aliases()):secret_findings.append({'file':p.name,'reason':'unmasked device ID'})
+    if re.search(r'-----BEGIN (?:ED25519 |RSA |EC )?PRIVATE KEY-----|\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+',text):secret_findings.append({'file':p.name,'reason':'credential-like material'})
+    if re.search(r'"(?:deviceToken|access_token|refresh_token|id_token|password|privateKeyPem)"\s*:\s*"(?!\[REDACTED\])[^"\n]{10,}"',text):secret_findings.append({'file':p.name,'reason':'unmasked credential field'})
+check('JSON evidence parses',not parse_errors,parse_errors)
+check('secret and device identifier screening',not secret_findings,secret_findings)
+out={'utc':now(),'checks':checks,'passed':all(x['passed'] for x in checks),'evidenceBytesScanned':total,'testOutcomes':{'T1-T6':'recorded; T1 remote retry described; T2/T4 edit and stream confirmed; T3/T5 aborted and idle','handoff':'A1 whole quote; A2 unavailable refusal; A3 numeric quote with 9 authority errors','limitations':['T2 partially overlapped A3; recorded without repeating trials','No decision inference or secret values read','CLI TypeSafe credentialReady/callable false; Gateway inference not tested','HTTP through local userspace Tailscale; separate device/browser not tested']},'delivery':'This file verifies work before commit/push; delivery is checked against origin after push.'}
+write('10-verification.json',out)
+print(json.dumps({'passed':out['passed'],'checks':len(checks),'failures':[x for x in checks if not x['passed']]},ensure_ascii=False,indent=2))
+assert out['passed'],'verification failures above'
+manifest={p.name:{'bytes':p.stat().st_size,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for p in sorted(EV.iterdir()) if p.is_file() and p.name!='10-manifest.json'}
+write('10-manifest.json',{'utc':now(),'reportSha256':hashlib.sha256(REPORT.read_bytes()).hexdigest(),'files':manifest})

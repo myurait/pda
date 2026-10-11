@@ -1,0 +1,36 @@
+{
+  "method": "curl with TLS verification and original HTTPS URL/SNI, connected through a temporary loopback byte relay to tailscale-pda nc. Existing userspace Tailscale supplies routing and name resolution. No Tailscale setting changed. Relay and nc exited after the request.",
+  "curl": {
+    "startedAt": "2026-10-11T07:02:53.410963+00:00",
+    "endedAt": "2026-10-11T07:02:53.479735+00:00",
+    "command": [
+      "curl",
+      "-sS",
+      "--max-time",
+      "20",
+      "--connect-to",
+      "pda-web.tailaff53a.ts.net:19114:127.0.0.1:35439",
+      "-o",
+      "/dev/null",
+      "-w",
+      "%{http_code}",
+      "https://pda-web.tailaff53a.ts.net:19114/"
+    ],
+    "exitCode": 0,
+    "stdout": "200",
+    "stderr": ""
+  },
+  "ncCommand": [
+    "/home/user/.local/bin/tailscale-pda",
+    "nc",
+    "pda-web.tailaff53a.ts.net",
+    "19114"
+  ],
+  "relayErrors": [
+    ""
+  ],
+  "relayThreadExited": true,
+  "childExitCodes": [
+    0
+  ]
+}
