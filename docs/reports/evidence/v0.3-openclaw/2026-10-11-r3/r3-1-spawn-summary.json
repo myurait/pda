@@ -1,0 +1,29 @@
+{
+  "key": "agent:r3-leader:r3-r3-1-spawn-1791678783577",
+  "agent": "r3-leader",
+  "terminal": "final",
+  "children": [
+    "agent:r3-worker:subagent:e99790eb-70f3-40a2-9159-5fd42f19c856"
+  ],
+  "answers": [
+    {
+      "key": "agent:r3-leader:r3-r3-1-spawn-1791678783577",
+      "texts": [
+        "[ROLE:leader]",
+        "子エージェント(r3-worker)に仕事を渡しました。完了通知を待ちます。",
+        "Gateway接続が一時的に不安定なようです。再試行します。",
+        "Gatewayへの接続エラーが続いています。もう一度待機してから再試行します。",
+        "Gateway全体で一時的な接続障害が起きているようです。しばらく待って再試行します。",
+        "Gateway側の`sessions`関連API呼び出しが繰り返し失敗しています。もう一度yieldして完了イベントの到着を待ちます。",
+        "Gatewayは稼働中で、サブエージェントは完了済み(1件)と表示されています。履歴取得を再試行します。",
+        "子エージェント(r3-worker)の完了イベント受信を待機しています。到着したら1行目を含めてそのまま報告します。"
+      ]
+    },
+    {
+      "key": "agent:r3-worker:subagent:e99790eb-70f3-40a2-9159-5fd42f19c856",
+      "texts": [
+        "[ROLE:worker]\n5です。"
+      ]
+    }
+  ]
+}

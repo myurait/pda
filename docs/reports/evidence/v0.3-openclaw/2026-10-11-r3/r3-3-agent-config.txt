@@ -1,0 +1,18 @@
+
+2026-10-11T00:42:16.637629+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'mcp.servers.r3-mcp-probe.enabled', 'true', '--strict-json']
+Updated mcp.servers.r3-mcp-probe.enabled. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:42:19.593827+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'agents.entries.r3-worker.tools.deny', '["r3-mcp-probe__*"]', '--strict-json']
+Updated agents.entries.r3-worker.tools.deny. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:42:22.582255+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'agents.entries.r3-auditor.tools.deny', '["r3-mcp-probe__*"]', '--strict-json']
+Updated agents.entries.r3-auditor.tools.deny. Change will apply without restarting the gateway.
+
+exit=0

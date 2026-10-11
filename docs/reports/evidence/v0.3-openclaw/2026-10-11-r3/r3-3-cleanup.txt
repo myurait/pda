@@ -1,0 +1,29 @@
+{"utc":"2026-10-11T00:44:04.555Z","key":"agent:r3-leader:r3-r3-3-session-denied-leader-1791679398603","operation":"sessions.patch toolOverrides=null","remaining":null}
+{"utc":"2026-10-11T00:44:04.571Z","key":"agent:r3-leader:r3-r3-3-session-on-leader-retry-1791679213540","operation":"sessions.patch toolOverrides=null","remaining":null}
+{"utc":"2026-10-11T00:44:04.584Z","key":"agent:r3-leader:r3-r3-3-session-on-leader-1791679091881","operation":"sessions.patch toolOverrides=null","remaining":null}
+
+2026-10-11T00:44:05.412117+00:00
+$ ['/home/user/v03/openclaw/oc', 'mcp', 'remove', 'r3-mcp-probe']
+OpenClaw mcp has no command "remove".
+Try: openclaw mcp --help
+Docs: https://docs.openclaw.ai/cli
+
+exit=1
+
+2026-10-11T00:44:52.192017+00:00
+$ ['/home/user/v03/openclaw/oc', 'mcp', 'unset', 'r3-mcp-probe']
+Removed MCP server "r3-mcp-probe" from /home/user/v03/openclaw/openclaw.json.
+
+exit=0
+
+2026-10-11T00:44:55.093532+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'agents.entries.r3-worker.tools']
+Removed agents.entries.r3-worker.tools. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:44:58.004670+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'agents.entries.r3-auditor.tools']
+Removed agents.entries.r3-auditor.tools. Change will apply without restarting the gateway.
+
+exit=0

@@ -1,0 +1,102 @@
+--- before
++++ r3-3-config-session
+@@ -59,7 +59,6 @@
+     ]
+   },
+   "agents": {
+-    "ownership": "explicit",
+     "defaults": {
+       "workspace": "/home/user/v03/work/openclaw/scratch",
+       "cwd": "/home/user/v03/work/openclaw/scratch",
+@@ -83,6 +82,7 @@
+         }
+       }
+     },
++    "ownership": "explicit",
+     "entries": {
+       "claude": {
+         "name": "Claude Code",
+@@ -114,6 +114,53 @@
+             "claude"
+           ]
+         }
++      },
++      "r3-leader": {
++        "name": "r3-leader",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
++        "identity": {
++          "name": "r3-leader"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "verboseDefault": "on",
++        "subagents": {
++          "allowAgents": [
++            "r3-worker"
++          ]
++        },
++        "skills": [
++          "r3-worker-secret",
++          "r3-common-word"
++        ]
++      },
++      "r3-worker": {
++        "name": "r3-worker",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
++        "identity": {
++          "name": "r3-worker"
++        },
++        "model": "openai/gpt-6-astra",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "verboseDefault": "on",
++        "skills": [
++          "r3-worker-secret",
++          "r3-common-word"
++        ]
++      },
++      "r3-auditor": {
++        "name": "r3-auditor",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
++        "identity": {
++          "name": "r3-auditor"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "verboseDefault": "on",
++        "skills": []
+       }
+     }
+   },
+@@ -126,7 +173,10 @@
+       "enabled": true,
+       "allow": [
+         "claude",
+-        "codex"
++        "codex",
++        "r3-leader",
++        "r3-worker",
++        "r3-auditor"
+       ]
+     }
+   },
+@@ -149,5 +199,17 @@
+     "lastRunVersion": "2026.9.8",
+     "lastRunCommand": "doctor",
+     "lastRunMode": "local"
++  },
++  "mcp": {
++    "servers": {
++      "r3-mcp-probe": {
++        "command": "/usr/bin/node",
++        "args": [
++          "/home/user/v03/openclaw/r3-mcp/server.mjs"
++        ],
++        "cwd": "/home/user/v03/openclaw/r3-mcp",
++        "enabled": false
++      }
++    }
+   }
+ }

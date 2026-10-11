@@ -1,0 +1,265 @@
+Installed OpenClaw 2026.9.8 (fc23bc8). Official package documentation/source, not live-main assumptions.
+
+docs/plugins/hooks.md L117-L173
+sha256=5ee506d8a16a0a43a7f01f16223637d1f2b0d0d6630846d39b975c0a4235bb73
+117:
+118: ### Permissions and scope
+119:
+120: Hook registration does not bypass plugin loading rules. The plugin must be
+121: loaded and enabled; `plugins.enabled`, `plugins.allow`, and `plugins.deny` still
+122: apply. Run `openclaw plugins reload <id>` after changing plugin code. With the default hybrid
+123: reload mode, hook policy changes hot-reload the existing plugin runtime.
+124:
+125: - Non-bundled plugins need explicit
+126:   `plugins.entries.<id>.hooks.allowConversationAccess: true` for
+127:   `before_model_resolve`, `agent_turn_prepare`, `before_prompt_build`,
+128:   `before_agent_reply`, `llm_input`, `llm_output`, `before_agent_finalize`,
+129:   `agent_end`, and `before_agent_run`. Bundled plugins are allowed unless this
+130:   option is explicitly `false`.
+131: - `allowPromptInjection: false` blocks `agent_turn_prepare`,
+132:   `before_prompt_build`, `heartbeat_prompt_contribution`, and durable next-turn
+133:   injections. It defaults to allowed, but does not grant conversation access.
+134:   The first two hooks therefore need both permissions.
+135: - These are specific registration gates, not a sandbox or a universal filter
+136:   for every hook that can see message data. Install only plugins you trust.
+137:
+138: Incognito sessions do not dispatch `llm_input` or `llm_output` observations.
+139: Their `agent_end` hooks still receive run identity, success, and duration for
+140: cleanup and settlement, but receive empty `messages` and no `error` text.
+141: Policy, provider, approval, and explicitly invoked tool hooks remain active.
+142: This boundary does not sandbox plugins or disable native harness telemetry.
+143:
+144: A typed handler receives `(event, ctx)`. The event describes the operation;
+145: the second argument carries hook-specific context. Fields such as
+146: `ctx.agentId`, `ctx.sessionKey`, and `ctx.runId` are optional on many hooks and
+147: may be absent for the emitting path. A registration is not automatically
+148: scoped to one agent or session: check the context in your handler when needed.
+149:
+150: Read your plugin's resolved settings from `api.pluginConfig` inside the
+151: registration closure. Typed hooks do not receive a universal
+152: `event.context.pluginConfig` field; that field belongs to the internal
+153: `api.registerHook(...)` event contract.
+154: By default in hybrid reload mode, editing `plugins.entries.<id>.config` replaces the
+155: plugin instance and reruns registration with the new settings.
+156:
+157: ### Choose a hook
+158:
+159: | Task                                               | Hook                                                                        |
+160: | -------------------------------------------------- | --------------------------------------------------------------------------- |
+161: | Reply without a model call                         | `before_agent_reply` → `{ handled: true, reply }`; omit `reply` for silence |
+162: | Add context or narrow tools for a turn             | `before_prompt_build`                                                       |
+163: | Gate model input on a supported runner             | `before_agent_run` → `{ outcome: "block", reason, message? }`               |
+164: | Block a tool or request approval                   | `before_tool_call`                                                          |
+165: | Rewrite the full outgoing reply, including media   | `reply_payload_sending`                                                     |
+166: | Rewrite outgoing text or cancel a send             | `message_sending`                                                           |
+167: | Collect model timing without raw conversation text | `model_call_started` / `model_call_ended`                                   |
+168: | Flush state after a turn or at shutdown            | `agent_end` / `gateway_stop`                                                |
+169:
+170: The catalog is the registration API, not a promise that every runtime emits
+171: every hook. For example, `before_agent_run` is implemented by the embedded and
+172: CLI runners; do not rely on it as a Codex or Copilot input gate. Native tool,
+173: transcript, and compaction boundaries also differ. See
+
+docs/plugins/hooks/reference.md L90-L110
+sha256=e442a3a833f0cbe42e4c4dc1217c90e344268a60148c5116bfbd23ed33ac1cb9
+90:
+91: | Hooks                                                                                                          | Default timeout                     | On thrown error or timeout                                       |
+92: | -------------------------------------------------------------------------------------------------------------- | ----------------------------------- | ---------------------------------------------------------------- |
+93: | `before_agent_run`, `before_tool_call`, `before_install`                                                       | 15 seconds                          | Fail closed: block the run, tool call, or install                |
+94: | `before_agent_finalize`, `before_prompt_build`, `message_sending`, `reply_payload_sending`, `resolve_exec_env` | 15 seconds                          | Log and skip the failed handler; retain other successful results |
+95: | `agent_end`, `before_compaction`, `after_compaction`, `skill_changed`, `skill_proposal_changed`                | 30 seconds                          | Log and continue                                                 |
+96: | `channel_pairing_requested`                                                                                    | 2 seconds                           | Log and continue                                                 |
+97: | `gateway_stop`                                                                                                 | 5 seconds                           | Log and continue shutdown                                        |
+98: | `skill_proposal_evaluate`                                                                                      | 120 seconds                         | Record an attributed error outcome                               |
+99: | Other asynchronous hooks, including claim hooks                                                                | No runner timeout unless configured | Log and continue                                                 |
+100: | `tool_result_persist`, `before_message_write`                                                                  | No asynchronous timeout             | Synchronous errors are logged; failed results are ignored        |
+101:
+102: An emitter can impose a tighter overall lifecycle budget, such as the
+103: shutdown `session_end` drain below. A timeout only bounds an asynchronous
+104: await; it cannot interrupt synchronous JavaScript. For a policy requirement,
+105: use a fail-closed gate rather than assuming an observation or delivery hook
+106: will reject the operation on failure.
+107:
+108: For claim hooks, continuing means trying the next handler. The caller decides
+109: what happens if nobody claims; a failed `inbound_claim` for a bound
+110: conversation can produce a binding notice instead of an ordinary agent reply.
+
+docs/plugins/hooks/tool-policy.md L17-L85
+sha256=56f0683baa5d5b28e9436ffd2566b9e19fcf0346ef24792fc40fbde41a1e0348
+17: `before_tool_call` receives:
+18:
+19: - `event.toolName`
+20: - `event.params`
+21: - optional `event.toolKind` and `event.toolInputKind`, host-authoritative
+22:   discriminators for tools that intentionally share names; for example, outer
+23:   code-mode `exec` calls use `toolKind: "code_mode_exec"` and include
+24:   `toolInputKind: "javascript"` for accepted Code Mode input
+25: - optional `event.derivedPaths`, best-effort host-derived target path hints
+26:   for well-known tool envelopes such as `apply_patch`; these paths may be
+27:   incomplete or over-approximate what the tool will actually touch (for
+28:   example, with malformed or partial inputs)
+29: - optional `event.runId`
+30: - optional `event.toolCallId`
+31: - context fields such as `ctx.agentId`, `ctx.sessionKey`, `ctx.sessionId`,
+32:   `ctx.runId`, `ctx.toolKind`, `ctx.toolInputKind`, and diagnostic `ctx.trace`
+33: - optional `ctx.abortSignal`, which aborts when the owning tool call is
+34:   cancelled; handlers should pass it to cancellable I/O and remove any
+35:   listeners they register
+36: - optional `ctx.requester`, the host-derived requester that initiated the current
+37:   message run. It can include `channel`, `accountId`, `senderId`,
+38:   `senderIsOwner`, and provider-native `roleIds`. Missing fields are unproven,
+39:   not false assurances; fail closed when policy requires them.
+40:
+41: It can return:
+42:
+43: ```typescript
+44: type BeforeToolCallResult = {
+45:   params?: Record<string, unknown>;
+46:   block?: boolean;
+47:   blockReason?: string;
+48:   requireApproval?: {
+49:     title: string;
+50:     description: string;
+51:     scope?: ApprovalScope;
+52:     severity?: "info" | "warning" | "critical";
+53:     timeoutMs?: number;
+54:     /** @deprecated Unresolved approvals always deny. */
+55:     timeoutBehavior?: "allow" | "deny";
+56:     allowedDecisions?: Array<"allow-once" | "allow-always" | "deny">;
+57:     pluginId?: string;
+58:     onResolution?: (
+59:       decision: "allow-once" | "allow-always" | "deny" | "timeout" | "cancelled",
+60:     ) => Promise<void> | void;
+61:   };
+62: };
+63: ```
+64:
+65: Guard behavior for typed lifecycle hooks:
+66:
+67: - `block: true` is terminal and skips lower-priority handlers.
+68: - `block: false` is treated as no decision.
+69: - Return `params` to rewrite host-owned tool parameters. Each handler sees an
+70:   isolated copy of the original event, not prior returned rewrites. The last
+71:   returned `params` wins until an approval is requested.
+72: - The first `requireApproval` wins, and its plugin id is stamped by the host.
+73:   It freezes the selected parameter snapshot: later handlers can block but
+74:   cannot change the approved parameters.
+75: - Native tool relays can have narrower contracts. Codex native tools support
+76:   blocking and observation, but parameter rewrites are rejected; see
+77:   [Codex hook boundaries](/plugins/codex-harness-runtime#hook-boundaries).
+78: - `requireApproval` pauses the agent run and asks the user through plugin
+79:   approvals. `/approve` can approve both exec and plugin approvals. In Codex
+80:   app-server report-mode native `PreToolUse` relays, this defers to the
+81:   matching app-server approval request; see
+82:   [Codex harness runtime](/plugins/codex-harness-runtime#hook-boundaries).
+83: - A lower-priority `block: true` can still block after a higher-priority hook
+84:   requested approval.
+85: - `onResolution` receives the resolved decision: `allow-once`, `allow-always`,
+
+docs/plugins/codex-harness-runtime/hooks.md L65-L139
+sha256=7829b181c6b462dc0e197f8131e8e744394ad74ca9905511c8c7259efde92dc2
+65: | OpenClaw plugin hooks                 | OpenClaw                 | Product/plugin compatibility across OpenClaw and Codex harnesses.   |
+66: | Codex app-server extension middleware | OpenClaw bundled plugins | Per-turn adapter behavior around OpenClaw dynamic tools.            |
+67: | Codex native hooks                    | Codex                    | Low-level Codex lifecycle and native tool policy from Codex config. |
+68:
+69: OpenClaw does not use project or global Codex `hooks.json` files to route
+70: plugin behavior. For the native tool and permission bridge, OpenClaw injects
+71: per-thread Codex config for `PreToolUse`, `PostToolUse`, `PermissionRequest`,
+72: and `Stop`.
+73:
+74: Before starting or resuming a thread, OpenClaw prepares the native relay's
+75: stored MCP approval snapshot and direct publication attempt, then rechecks the
+76: current run's authority. If the listener or SQLite locator is unavailable, hook
+77: commands can use the existing Gateway fallback. Policy preparation must still
+78: succeed; Gateway invocation waits for that snapshot independently of publication.
+79: Registration returns a synchronous handle whose optional `deferMcpToolApprovals`
+80: field remains undefined until policy preparation finishes.
+81:
+82: The cold hook CLI reads the locator on a dedicated read-only worker, closes its
+83: database, and joins the worker before using the result. The worker preserves
+84: schema admission without loading shared-state writer startup. The caller retains
+85: the existing retry and deadline rules.
+86:
+87: Bridge publication, renewal, lookup, and removal run in the shared-state worker.
+88: Publication and renewal recheck the current host registration inside their write
+89: transaction, and cleanup joins accepted work before closing the listener.
+90:
+91: A relay without a listening direct bridge can still renew its logical expiry;
+92: a listening bridge updates its stored locator before extending the visible
+93: expiry. Unregistering invalidates foreground access
+94: immediately. Cleanup drains accepted locator writes and, once the relay is
+95: retired, listener closure. Existing grace windows for late hooks and direct
+96: children retained after a successful yield are preserved; draining pending
+97: storage work does not close those children.
+98:
+99: When Codex app-server approvals are enabled (`approvalPolicy` is not
+100: `"never"`), the default injected native hook config omits `PermissionRequest`
+101: so Codex's app-server reviewer and OpenClaw's approval bridge handle real
+102: escalations after review. Add `permission_request` to
+103: `nativeHookRelay.events` to force the compatibility relay anyway. Other Codex
+104: hooks such as `SessionStart` and `UserPromptSubmit` remain Codex-level
+105: controls; they are not exposed as OpenClaw plugin hooks in the v1 contract.
+106:
+107: For OpenClaw dynamic tools, OpenClaw executes the tool after Codex asks for
+108: the call, so plugin and middleware behavior runs in the harness adapter. Codex
+109: Code Mode receives generic dynamic results as text and serializes nested
+110: dynamic calls; callers must parse JSON-looking results and cannot rely on
+111: `Promise.all` for concurrent submission. For Codex-native tools, Codex owns the
+112: canonical tool record; OpenClaw can mirror selected events but cannot rewrite
+113: the native thread unless Codex exposes that through app-server or native hook
+114: callbacks.
+115:
+116: Codex app-server report-mode `PreToolUse` events defer plugin approval to the
+117: matching app-server approval. If an OpenClaw `before_tool_call` hook returns
+118: `requireApproval` while the native payload sets `openclaw_approval_mode:
+119: "report"`, the native hook relay records the plugin approval requirement and
+120: returns no native decision. When Codex later sends the app-server approval
+121: request for the same tool use, OpenClaw opens the plugin approval prompt and
+122: maps the decision back to Codex. Codex `PermissionRequest` events are a
+123: separate approval path and can still route through OpenClaw approvals when
+124: configured for that bridge.
+125:
+126: Codex app-server item notifications also provide async `after_tool_call`
+127: observations for native tool completions not already covered by the native
+128: `PostToolUse` relay. These are telemetry/compatibility only; they cannot
+129: block, delay, or mutate the native tool call.
+130:
+131: Compaction and LLM lifecycle projections come from Codex app-server
+132: notifications and OpenClaw adapter state, not native Codex hook commands.
+133: `before_compaction`, `after_compaction`, `llm_input`, and `llm_output` are
+134: adapter-level observations, not byte-for-byte captures of Codex's internal
+135: request or compaction payloads.
+136:
+137: Codex native `hook/started` and `hook/completed` app-server notifications are
+138: projected as `codex_app_server.hook` agent events for trajectory and
+139: debugging. They do not invoke OpenClaw plugin hooks.
+
+docs/concepts/decision-models.md L15-L41
+sha256=173073fb54479b9a2f54e621168a860f11cf9086ba24b89e66dd40f8c73be3cf
+15: meets a condition.
+16:
+17: `decisionModel` is a model role with a shared API. Its providers can use different
+18: model architectures and inference backends. Sharing the interface does not make
+19: their reasoning ability or probabilities interchangeable.
+20:
+21: The role and TypeSafe AI adapter were added after released OpenClaw
+22: `2026.9.5`. These instructions apply to development checkouts containing those
+23: features and to later releases that include them. See each provider's setup
+24: page for its host requirements.
+25:
+26: | Role            | Typical work                                             | Result                                  |
+27: | --------------- | -------------------------------------------------------- | --------------------------------------- |
+28: | Primary model   | Conversation and agent work                              | Messages and tool calls                 |
+29: | `utilityModel`  | Short language tasks such as titles and summaries        | Generated text                          |
+30: | `decisionModel` | Classification, rubric scoring, and predicate evaluation | Typed answers and probability estimates |
+31:
+32: Decision models have a separate **Decision** picker in the Control UI. Selection
+33: chooses the provider for explicit evaluation and supported consumers. The core
+34: `decision_evaluate` tool follows that selection plus ordinary tool policy.
+35: Selection does not start background work or replace the chat model.
+36: Automatic experimental consumers additionally require explicit
+37: [Decision assistance opt-in](/concepts/experimental-features#decision-assistance).
+38: That Labs entry currently provides the gate foundation only, with no automatic
+39: consumers connected; explicit `decision_evaluate` remains independent of Labs.
+40:
+41: ## Choose a provider and model

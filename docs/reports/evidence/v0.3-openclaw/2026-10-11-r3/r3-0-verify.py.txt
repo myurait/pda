@@ -1,0 +1,102 @@
+from manage import *
+import re
+REPO=pathlib.Path('/home/user/pda-v03a')
+checks=[]
+def check(name,ok):
+ checks.append((name,bool(ok)))
+ if not ok:print('FAIL',name)
+def read(name):return json.loads((EV/name).read_text())
+def answers(label):return read(label+'-summary.json')['answers']
+def texts(label):return '\n'.join(t for a in answers(label) for t in a['texts'])
+base=subprocess.check_output(['git','show','HEAD:docs/reports/v0.3-openclaw-codex.md'])
+report=(REPO/'docs/reports/v0.3-openclaw-codex.md').read_bytes()
+check('Previous report bytes preserved; section 9 appended once',report.startswith(base) and report.count('## 9. R3 の確認 (2026-10-11)'.encode())==1)
+check('Branch is v0.3/r3-openclaw',subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='v0.3/r3-openclaw')
+check('Initial raw config backup SHA256 matches preflight',hashlib.sha256((ROOT/'backup-r3/openclaw.before.json').read_bytes()).hexdigest()=='ad9992b661281cd58c9ae3741e58ffd91c20730a65a4b1c861d8b53c6c2a8342')
+for role in ['leader','worker','auditor']:
+ check('R3-1 first reply marker '+role,answers('r3-1-prompt-'+role)[0]['texts'][0].splitlines()[0]=='[ROLE:'+role+']')
+ check('R3-1 shared added instruction '+role,texts('r3-1-common-'+role).strip().endswith('[COMMON:r3-added]'))
+ check('R3-2 shared skill initial '+role,'cobalt-7' in texts('r3-2-initial-'+role))
+ check('R3-2 shared skill update '+role,'cobalt-8' in texts('r3-2-updated-'+role))
+ check('R3-2 workspace-only skill '+role,('tangerine-42' in texts('r3-2-initial-'+role))==(role=='worker'))
+child=answers('r3-1-spawn')[1]
+check('R3-1 delegated child keeps worker marker',child['key'].startswith('agent:r3-worker:subagent:') and child['texts'][0].startswith('[ROLE:worker]'))
+a=read('r3-2-inventory-disabled-after-reload.json')['auditor']
+check('R3-2 empty agent filter hides shared skill',a['agentSkillFilter']==[] and all(s['modelVisible'] is False and s['blockedByAgentFilter'] is True for s in a['skills']))
+check('R3-2 retry does not reveal either test word','cobalt-8' not in texts('r3-2-disabled-auditor-retry') and 'tangerine-42' not in texts('r3-2-disabled-auditor-retry'))
+check('R3-3 two enable attempts retained as unsuccessful','見えない' in texts('r3-3-session-on-leader') and '見えない' in texts('r3-3-session-on-leader-retry'))
+check('R3-3 initial ENOENT captured','ENOENT' in (EV/'r3-3-first-failure.txt').read_text())
+check('R3-3 global server call succeeded','R3-MCP-OK' in texts('r3-3-agent-leader'))
+for role in ['worker','auditor']:
+ check('R3-3 agent deny '+role,'見えない' in texts('r3-3-agent-'+role))
+check('R3-3 separate session denial confirmed','見えない' in texts('r3-3-session-denied-leader'))
+for label,wanted in [('r3-3-agent-leader-catalog',1),('r3-3-agent-worker-catalog',0),('r3-3-agent-auditor-catalog',0),('r3-3-session-denied-catalog',0)]:
+ ts=[t for g in read(label+'.json')['groups'] for t in g['tools'] if t.get('source')=='mcp']
+ check('R3-3 effective MCP catalog '+label,len(ts)==wanted)
+hooks=[json.loads(l) for l in (EV/'r3-4-hook-events.jsonl').read_text().splitlines()]
+blocked=[r for r in hooks if r.get('block')]
+check('R3-4 only worker date blocked',len(blocked)==1 and blocked[0]['agentId']=='r3-worker' and blocked[0]['hasDate'] and blocked[0]['toolName']=='exec')
+for role in ['leader','worker','auditor']:
+ hits=[r for r in hooks if r.get('agentId')=='r3-'+role]
+ check('R3-4 before_prompt_build and agent_end '+role,all(any(r['hook']==h for r in hits) for h in ['before_prompt_build','agent_end']))
+ check('R3-4 before_agent_run runtime boundary '+role,any(r['hook']=='before_agent_run' for r in hits)==(role!='worker'))
+ check('R3-4 native edit intercepted '+role,any(r.get('toolName')==('apply_patch' if role=='worker' else 'edit') for r in hits))
+ check('R3-4 only auditor received hook word '+role,('banana-9' in texts('r3-4-word-'+role))==(role=='auditor'))
+check('R3-4 decisions evaluate present but not called',any(r.get('decisionsEvaluateType')=='function' for r in hooks) and not any(r.get('toolName')=='decision_evaluate' for r in hooks))
+check('R3-4 decision tool exists',any(t['id']=='decision_evaluate' for t in read('r3-4-decision-catalog.json')['decisionTools']))
+final=read('r3-0-final-api.json')
+check('No active R3 session and no temporary plugin/MCP in runtime',not final['hasActiveR3'] and final['temporaryPlugin'] is None and final['mcp'] is None and not final['loadPaths'])
+check('MCP session overrides cleared',all(not s.get('toolOverrides',{}).get('mcpServers') for s in final['sessions']))
+before=read('r3-0-config-before.json');after=read('r3-0-config-final.json')
+expected=json.loads(json.dumps(after))
+for role in ['leader','worker','auditor']:
+ entry=expected['agents']['entries'].pop('r3-'+role)
+ check('Agent retained without temporary skills/tools '+role,'skills' not in entry and 'tools' not in entry and pathlib.Path(entry['workspace'],'AGENTS.md').is_file())
+expected['tools']['agentToAgent']['allow']=before['tools']['agentToAgent']['allow']
+check('Other original config exactly preserved semantically',expected==before)
+check('No temporary extension sources remain',all(not p.exists() for p in [ROOT/'r3-hook-probe',ROOT/'r3-mcp',ROOT/'state/skills/r3-common-word',pathlib.Path('/home/user/v03/work/openclaw/scratch/r3-worker/skills/r3-worker-secret'),ROOT/'r3-run/common-instructions.txt']))
+check('No run-generated backup remains',all(not (p.is_file() and ('.bak' in p.name or '.backup.' in p.name) and p.stat().st_mtime>=1791678556) for base in [pathlib.Path('/home/user/v03/agent-home'),ROOT] for p in base.iterdir()))
+check('No new named credential files found',read('r3-0-auth-file-metadata.json')['matches']==[])
+# Compare CLI output bodies only (timestamps and command headers differ).
+def cli_body(name):
+ s=(EV/name).read_text();return [x.split('\nexit=')[0].strip() for x in re.split(r"\$ \[[^\n]+\]\n",s)[1:]]
+check('Shared CLI MCP lists unchanged',cli_body('r3-0-mcp-before.txt')==cli_body('r3-0-mcp-after.txt'))
+for unit in ['v03-openclaw.service','v03-cccc.service']:
+ check(unit+' remains active',subprocess.run(['systemctl','--user','is-active','--quiet',unit]).returncode==0)
+check('No extra v03 product running',{line.split()[0] for line in subprocess.check_output(['systemctl','--user','list-units','v03-*.service','--state=running','--no-legend','--plain'],text=True).splitlines() if line.strip()}=={'v03-openclaw.service','v03-cccc.service'})
+# Validate every local report link, including the pending verification artifact itself.
+missing=[]
+for target in re.findall(r'\]\(([^)]+)\)',report.decode()):
+ if target.startswith(('http:','https:','#')):continue
+ path=(REPO/'docs/reports'/target.split('#')[0])
+ if not path.exists() and path!=EV/'r3-0-verification.txt':missing.append(str(path))
+check('All local report links resolve',not missing)
+# Parse all structured evidence. Never scan protected authentication paths.
+parse_errors=[]
+for p in EV.iterdir():
+ try:
+  if p.suffix=='.json':json.loads(p.read_text())
+  elif p.suffix=='.jsonl':
+   for l in p.read_text().splitlines():json.loads(l)
+ except Exception as e:parse_errors.append((p.name,str(e)))
+check('All JSON/JSONL evidence parses',not parse_errors)
+secrets=[]
+patterns=[r'\bsk-[A-Za-z0-9_-]{20,}',r'\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+',r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',r'"(?:access_token|refresh_token|id_token|deviceToken|token|password|apiKey|authorization)"\s*:\s*"(?!\[REDACTED\]|none)[A-Za-z0-9_-]{20,}']
+for p in [REPO/'docs/reports/v0.3-openclaw-codex.md',*EV.iterdir()]:
+ if not p.is_file():continue
+ data=p.read_text()
+ for pattern in patterns:
+  if re.search(pattern,data):secrets.append(p.name)
+check('Secret-pattern scan of deliverables has no matches',not secrets)
+diff=subprocess.run(['git','diff','--check'],cwd=REPO,capture_output=True,text=True)
+check('git diff --check',diff.returncode==0)
+check('git diff --cached --check',subprocess.run(['git','diff','--cached','--check'],cwd=REPO,capture_output=True).returncode==0)
+lines=[datetime.datetime.now(datetime.timezone.utc).isoformat()+'\n','Scope: procedure completion, including explicitly recorded unsuccessful/unconfirmed results; not a claim that every R3 capability passed.\n']
+lines.extend(('PASS ' if ok else 'FAIL ')+name+'\n' for name,ok in checks)
+if missing:lines.append('Missing links: '+repr(missing)+'\n')
+if secrets:lines.append('Secret-pattern file hits (values withheld): '+repr(secrets)+'\n')
+if parse_errors:lines.append('Parse errors: '+repr(parse_errors)+'\n')
+lines.append(f'Checks: {sum(ok for _,ok in checks)}/{len(checks)}\n')
+(EV/'r3-0-verification.txt').write_text(''.join(lines))
+print(''.join(lines))
+if not all(ok for _,ok in checks):raise SystemExit(1)

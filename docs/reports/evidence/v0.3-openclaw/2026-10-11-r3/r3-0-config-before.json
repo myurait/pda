@@ -1,0 +1,153 @@
+{
+  "plugins": {
+    "entries": {
+      "codex": {
+        "enabled": true,
+        "config": {
+          "appServer": {
+            "homeScope": "user",
+            "command": "/home/user/.local/bin/codex",
+            "mode": "yolo"
+          },
+          "sessionCatalog": {
+            "enabled": false
+          }
+        }
+      },
+      "anthropic": {
+        "config": {
+          "sessionCatalog": {
+            "enabled": false
+          }
+        },
+        "enabled": true
+      },
+      "acpx": {
+        "enabled": false
+      },
+      "openai": {
+        "enabled": true
+      }
+    }
+  },
+  "meta": {
+    "migrations": {
+      "modelPolicyAllowlist": true,
+      "utilityModelSeparation": true
+    },
+    "lastTouchedVersion": "2026.9.8"
+  },
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "port": 5114,
+    "auth": {
+      "mode": "none"
+    },
+    "controlUi": {
+      "enabled": true,
+      "sessionObserver": false,
+      "allowedOrigins": [
+        "https://pda-web.tailaff53a.ts.net:19114"
+      ]
+    },
+    "tailscale": {
+      "mode": "off"
+    },
+    "trustedProxies": [
+      "127.0.0.1"
+    ]
+  },
+  "agents": {
+    "ownership": "explicit",
+    "defaults": {
+      "workspace": "/home/user/v03/work/openclaw/scratch",
+      "cwd": "/home/user/v03/work/openclaw/scratch",
+      "skipBootstrap": true,
+      "skills": [],
+      "heartbeat": {
+        "every": "0m"
+      },
+      "timeoutSeconds": 300,
+      "utilityModel": "",
+      "models": {
+        "openai/gpt-6-astra": {
+          "agentRuntime": {
+            "id": "codex"
+          }
+        },
+        "anthropic/claude-sonnet-5": {
+          "agentRuntime": {
+            "id": "claude-cli"
+          }
+        }
+      }
+    },
+    "entries": {
+      "claude": {
+        "name": "Claude Code",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "anthropic/claude-sonnet-5",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "codex"
+          ]
+        },
+        "models": {
+          "anthropic/claude-sonnet-5": {
+            "agentRuntime": {
+              "id": "claude-cli"
+            }
+          }
+        }
+      },
+      "codex": {
+        "name": "Codex",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "cwd": "/home/user/v03/work/openclaw/scratch",
+        "model": "openai/gpt-6-astra",
+        "verboseDefault": "on",
+        "subagents": {
+          "allowAgents": [
+            "claude"
+          ]
+        }
+      }
+    }
+  },
+  "tools": {
+    "profile": "full",
+    "exec": {
+      "mode": "full"
+    },
+    "agentToAgent": {
+      "enabled": true,
+      "allow": [
+        "claude",
+        "codex"
+      ]
+    }
+  },
+  "browser": {
+    "enabled": false
+  },
+  "discovery": {
+    "mdns": {
+      "mode": "off"
+    }
+  },
+  "update": {
+    "checkOnStart": false
+  },
+  "cron": {
+    "enabled": false
+  },
+  "wizard": {
+    "lastRunAt": "2026-10-07T22:02:22.906Z",
+    "lastRunVersion": "2026.9.8",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  }
+}

@@ -1,0 +1,134 @@
+
+2026-10-11T00:51:48.667203+00:00
+$ ['systemctl', '--user', 'show', 'v03-openclaw.service', 'v03-cccc.service', '-p', 'Id', '-p', 'ActiveState', '-p', 'SubState', '-p', 'MainPID', '-p', 'ExecMainStartTimestamp']
+MainPID=509062
+ExecMainStartTimestamp=Sun 2026-10-11 09:50:52 JST
+Id=v03-openclaw.service
+ActiveState=active
+SubState=running
+
+MainPID=472921
+ExecMainStartTimestamp=Sat 2026-10-10 10:32:03 JST
+Id=v03-cccc.service
+ActiveState=active
+SubState=running
+
+exit=0
+
+2026-10-11T00:51:48.670874+00:00
+$ ['systemctl', '--user', 'list-units', 'v03-*.service', '--all', '--no-pager']
+  UNIT                 LOAD   ACTIVE   SUB     DESCRIPTION
+  v03-cccc.service     loaded active   running PDA v0.3 CCCC trial
+  v03-cezar.service    loaded inactive dead    PDA v0.3 cezar trial
+  v03-happier.service  loaded inactive dead    PDA v0.3 Happier relay, web and daemon trial
+  v03-luvus.service    loaded inactive dead    PDA v0.3 Luvus trial
+  v03-multica.service  loaded inactive dead    PDA v0.3 Multica trial
+  v03-openclaw.service loaded active   running PDA v0.3 OpenClaw trial
+
+Legend: LOAD   → Reflects whether the unit definition was properly loaded.
+        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.
+        SUB    → The low-level unit activation state, values depend on unit type.
+
+6 loaded units listed.
+To show all installed unit files use 'systemctl list-unit-files'.
+
+exit=0
+
+2026-10-11T00:51:48.722558+00:00
+$ ['docker', 'ps', '--format', '{{.Names}}\t{{.Status}}\t{{.Ports}}']
+pda-otel-collector-1	Up 2 weeks	4317-4318/tcp, 55679/tcp
+pda-openobserve-1	Up 2 weeks	0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp
+
+exit=0
+
+2026-10-11T00:51:48.895971+00:00
+$ ['curl', '-sS', '-o', '/dev/null', '-w', '%{http_code}\n', 'http://127.0.0.1:5114/']
+200
+
+exit=0
+
+2026-10-11T00:51:48.903310+00:00
+$ ['curl', '-sS', '-o', '/dev/null', '-w', '%{http_code}\n', 'http://127.0.0.1:5114/readyz']
+200
+
+exit=0
+
+2026-10-11T00:51:48.974678+00:00
+$ ['/home/user/v03/openclaw/oc', '--version']
+OpenClaw 2026.9.8 (fc23bc8)
+
+exit=0
+
+2026-10-11T00:51:51.643255+00:00
+$ ['/home/user/v03/openclaw/oc', 'agents', 'list', '--json']
+[
+  {
+    "id": "claude",
+    "name": "Claude Code",
+    "workspace": "/home/user/v03/work/openclaw/scratch",
+    "agentDir": "/home/user/v03/openclaw/state/agents/claude/agent",
+    "model": "anthropic/claude-sonnet-5",
+    "bindings": 0,
+    "isDefault": false
+  },
+  {
+    "id": "codex",
+    "name": "Codex",
+    "workspace": "/home/user/v03/work/openclaw/scratch",
+    "agentDir": "/home/user/v03/openclaw/state/agents/codex/agent",
+    "model": "openai/gpt-6-astra",
+    "bindings": 0,
+    "isDefault": false
+  },
+  {
+    "id": "r3-leader",
+    "name": "r3-leader",
+    "identityName": "r3-leader",
+    "identitySource": "config",
+    "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
+    "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
+    "model": "anthropic/claude-sonnet-5",
+    "bindings": 0,
+    "isDefault": false,
+    "createdVia": "operator",
+    "creatorAgentId": null,
+    "createdAt": 1791678686704
+  },
+  {
+    "id": "r3-worker",
+    "name": "r3-worker",
+    "identityName": "r3-worker",
+    "identitySource": "config",
+    "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
+    "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
+    "model": "openai/gpt-6-astra",
+    "bindings": 0,
+    "isDefault": false,
+    "createdVia": "operator",
+    "creatorAgentId": null,
+    "createdAt": 1791678700088
+  },
+  {
+    "id": "r3-auditor",
+    "name": "r3-auditor",
+    "identityName": "r3-auditor",
+    "identitySource": "config",
+    "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+    "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
+    "model": "anthropic/claude-sonnet-5",
+    "bindings": 0,
+    "isDefault": false,
+    "createdVia": "operator",
+    "creatorAgentId": null,
+    "createdAt": 1791678713294
+  }
+]
+
+exit=0
+
+2026-10-11T00:51:53.735339+00:00
+$ ['/home/user/v03/openclaw/oc', 'mcp', 'list']
+No OpenClaw-managed MCP servers configured in /home/user/v03/openclaw/openclaw.json. Add one with openclaw mcp set <name> '{"command":"uvx","args":["context7-mcp"]}'.
+Note: this command only shows OpenClaw-managed mcp.servers entries and does not include mcporter servers from config/mcporter.json.
+
+exit=0

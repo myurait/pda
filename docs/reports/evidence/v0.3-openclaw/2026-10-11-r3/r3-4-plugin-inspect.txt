@@ -1,0 +1,141 @@
+
+2026-10-11T00:44:32.411508+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'inspect', 'r3-hook-probe', '--runtime', '--json']
+WARN: Workspace plugin discovery was skipped because multiple explicit agents are configured without agents.defaults.systemAgent.agentId. This partial result includes bundled, managed, and global plugins only; set agents.defaults.systemAgent.agentId to include that owner's workspace plugins.
+{
+  "plugin": {
+    "id": "r3-hook-probe",
+    "name": "R3 Hook Probe",
+    "description": "Temporary R3 hook observation and role policy probe.",
+    "packageVersion": "1.0.0",
+    "version": "1.0.0",
+    "packageName": "r3-hook-probe",
+    "format": "openclaw",
+    "source": "/home/user/v03/openclaw/r3-hook-probe/index.ts",
+    "rootDir": "/home/user/v03/openclaw/r3-hook-probe",
+    "origin": "config",
+    "trust": {
+      "reason": "origin-path",
+      "registryPath": "/home/user/v03/openclaw/state/state/openclaw.sqlite",
+      "origin": "config",
+      "installSource": "path"
+    },
+    "enabled": true,
+    "compat": [],
+    "explicitlyEnabled": true,
+    "activated": true,
+    "activationSource": "explicit",
+    "activationReason": "enabled in config",
+    "syntheticAuthRefs": [],
+    "status": "loaded",
+    "toolNames": [],
+    "hookNames": [],
+    "channelIds": [],
+    "cliBackendIds": [],
+    "providerIds": [],
+    "embeddingProviderIds": [],
+    "speechProviderIds": [],
+    "realtimeTranscriptionProviderIds": [],
+    "realtimeVoiceProviderIds": [],
+    "mediaUnderstandingProviderIds": [],
+    "transcriptSourceProviderIds": [],
+    "imageGenerationProviderIds": [],
+    "videoGenerationProviderIds": [],
+    "musicGenerationProviderIds": [],
+    "webFetchProviderIds": [],
+    "webSearchProviderIds": [],
+    "migrationProviderIds": [],
+    "contextEngineIds": [],
+    "agentHarnessIds": [],
+    "cliCommands": [],
+    "services": [],
+    "gatewayDiscoveryServiceIds": [],
+    "commands": [],
+    "httpRoutes": 0,
+    "hookCount": 4,
+    "configSchema": true,
+    "configJsonSchema": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "imported": true,
+    "dependencyStatus": {
+      "hasDependencies": false,
+      "installed": true,
+      "requiredInstalled": true,
+      "optionalInstalled": true,
+      "missing": [],
+      "missingOptional": [],
+      "dependencies": [],
+      "optionalDependencies": []
+    }
+  },
+  "shape": "hook-only",
+  "capabilityMode": "none",
+  "capabilityCount": 0,
+  "capabilities": [],
+  "typedHooks": [
+    {
+      "name": "agent_end"
+    },
+    {
+      "name": "before_agent_run"
+    },
+    {
+      "name": "before_prompt_build"
+    },
+    {
+      "name": "before_tool_call"
+    }
+  ],
+  "customHooks": [],
+  "tools": [],
+  "commands": [],
+  "cliCommands": [],
+  "services": [],
+  "decisions": [],
+  "gatewayDiscoveryServices": [],
+  "gatewayMethods": [],
+  "mcpServers": [],
+  "lspServers": [],
+  "httpRouteCount": 0,
+  "bundleCapabilities": [],
+  "diagnostics": [],
+  "policy": {
+    "allowConversationAccess": true,
+    "allowedModels": [],
+    "hasAllowedModelsConfig": false
+  },
+  "compatibility": [
+    {
+      "pluginId": "r3-hook-probe",
+      "code": "hook-only",
+      "compatCode": "hook-only-plugin-shape",
+      "severity": "info",
+      "message": "is hook-only. This remains a supported compatibility path, but it has not migrated to explicit capability registration yet."
+    }
+  ],
+  "install": {
+    "source": "path",
+    "sourcePath": "/home/user/v03/openclaw/r3-hook-probe",
+    "installPath": "/home/user/v03/openclaw/r3-hook-probe",
+    "version": "1.0.0",
+    "installedAt": "2026-10-11T00:44:08.310Z",
+    "acceptedSurface": {
+      "channels": [],
+      "providers": [],
+      "tools": [],
+      "contracts": [],
+      "hooks": [],
+      "mcpServers": [],
+      "cliCommands": [],
+      "cliBackends": [],
+      "skills": [],
+      "dangerousConfigFlags": []
+    },
+    "acceptedSurfaceHash": "e9ee055fdf3a7d0f5c8f4db342886ceca40fecac78cbd94febb73acd562e45fd",
+    "acceptedSurfaceAt": "2026-10-11T00:44:08.308Z"
+  }
+}
+
+exit=0

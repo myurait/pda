@@ -1,0 +1,1378 @@
+{
+  "utc": "2026-10-11T00:34:32.000Z",
+  "methods": [
+    "config.schema",
+    "config.schema.lookup",
+    "models.list",
+    "tools.catalog",
+    "mcp.app.view",
+    "mcp.app.listTools",
+    "mcp.app.listResources",
+    "mcp.app.listResourceTemplates",
+    "mcp.app.readResource",
+    "mcp.app.callTool",
+    "mcp.app.updateModelContext",
+    "skills.status",
+    "skills.library.list",
+    "skills.library.read",
+    "skills.library.save",
+    "skills.library.mutate",
+    "skills.library.activate",
+    "skills.library.import",
+    "skills.library.upload",
+    "skills.search",
+    "skills.detail",
+    "skills.securityVerdicts",
+    "skills.skillCard",
+    "skills.bins",
+    "skills.upload.begin",
+    "skills.upload.chunk",
+    "skills.upload.commit",
+    "skills.install",
+    "skills.update",
+    "skills.curator.status",
+    "skills.curator.pin",
+    "skills.curator.unpin",
+    "skills.curator.restore",
+    "skills.proposals.list",
+    "skills.proposals.inspect",
+    "skills.proposals.historyStatus",
+    "skills.proposals.historyScan",
+    "skills.proposals.create",
+    "skills.proposals.update",
+    "skills.proposals.revise",
+    "skills.proposals.requestRevision",
+    "skills.proposals.apply",
+    "skills.proposals.reject",
+    "skills.proposals.quarantine",
+    "node.skills.update",
+    "skills.proposals.events.list",
+    "skills.proposals.evaluate",
+    "skills.workshop.read",
+    "plugins.skills.read"
+  ],
+  "agents.defaults": {
+    "path": "agents.defaults",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Agent Defaults",
+      "description": "Shared default settings inherited by agents unless overridden per entry in agents.entries. Use defaults to enforce consistent baseline behavior and reduce duplicated per-agent configuration."
+    },
+    "reloadKind": "hot",
+    "hint": {
+      "label": "Agent Defaults",
+      "help": "Shared default settings inherited by agents unless overridden per entry in agents.entries. Use defaults to enforce consistent baseline behavior and reduce duplicated per-agent configuration.",
+      "advanced": true
+    },
+    "hintPath": "agents.defaults",
+    "children": [
+      {
+        "key": "params",
+        "path": "agents.defaults.params",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.params"
+      },
+      {
+        "key": "model",
+        "path": "agents.defaults.model",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.model"
+      },
+      {
+        "key": "modelSelectionScope",
+        "path": "agents.defaults.modelSelectionScope",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Model Selection Scope",
+          "help": "Scope for chat commands and Gateway session model updates without an explicit scope: \"session\" (default) changes only the current session, \"agent\" also updates that agent's primary, and \"global\" also updates the shared agents.defaults.model fallback. Explicit scope flags take precedence; configured-default writes require owner/admin authority. Telegram callback pickers and the embedded local TUI stay session-only.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.modelSelectionScope"
+      },
+      {
+        "key": "utilityModel",
+        "path": "agents.defaults.utilityModel",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Utility Model",
+          "help": "Optional lower-cost model (provider/model or alias) for short internal tasks such as generated titles and progress narration. Unset derives the primary provider's declared small model when available (otherwise the primary model); set to an empty string to disable utility routing.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.utilityModel"
+      },
+      {
+        "key": "decisionModel",
+        "path": "agents.defaults.decisionModel",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Decision Model",
+          "help": "Optional provider/model for typed choices, scores, and boolean probabilities. Unset or empty disables decision calls. Supporting plugins send bounded task evidence to this provider; chat and utility models are unchanged.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.decisionModel"
+      },
+      {
+        "key": "imageModel",
+        "path": "agents.defaults.imageModel",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.imageModel"
+      },
+      {
+        "key": "mediaModels",
+        "path": "agents.defaults.mediaModels",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.mediaModels"
+      },
+      {
+        "key": "voiceModel",
+        "path": "agents.defaults.voiceModel",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.voiceModel"
+      },
+      {
+        "key": "pdfModel",
+        "path": "agents.defaults.pdfModel",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.pdfModel"
+      },
+      {
+        "key": "pdfMaxMb",
+        "path": "agents.defaults.pdfMaxMb",
+        "type": "number",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "PDF Max Size (MB)",
+          "help": "Maximum PDF file size in megabytes for the PDF tool (default: 10).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.pdfMaxMb"
+      },
+      {
+        "key": "pdfMaxPages",
+        "path": "agents.defaults.pdfMaxPages",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "PDF Max Pages",
+          "help": "Maximum number of PDF pages to process for the PDF tool (default: 20).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.pdfMaxPages"
+      },
+      {
+        "key": "models",
+        "path": "agents.defaults.models",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Models",
+          "help": "Configured model catalog and per-model settings. Entries provide aliases, params, runtime metadata, and Code Mode overrides; they do not restrict model overrides.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.models"
+      },
+      {
+        "key": "modelPolicy",
+        "path": "agents.defaults.modelPolicy",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Model Policy",
+          "help": "Explicit policy for model overrides. Omit it or leave allow empty to permit any model.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.modelPolicy"
+      },
+      {
+        "key": "workspace",
+        "path": "agents.defaults.workspace",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Workspace",
+          "help": "Default agent workspace for bootstrap and memory files. Also used as the working directory when agents.defaults.cwd is unset. Set this explicitly when running from wrappers so path resolution stays deterministic.",
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.workspace"
+      },
+      {
+        "key": "cwd",
+        "path": "agents.defaults.cwd",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Working Directory",
+          "help": "Working directory for agent reply runs, separate from workspace bootstrap and memory files. Agent-specific cwd and session-spawned cwd take precedence. Supports ~ and relative paths; a distinct cwd requires an unsandboxed run.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.cwd"
+      },
+      {
+        "key": "skills",
+        "path": "agents.defaults.skills",
+        "type": "array",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Skills",
+          "help": "Optional default skill allowlist inherited by agents that omit agents.entries.*.skills. Omit for unrestricted skills, set [] to give inheriting agents no skills, and remember explicit agents.entries.*.skills replaces this default instead of merging with it.",
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.skills"
+      },
+      {
+        "key": "silentReply",
+        "path": "agents.defaults.silentReply",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.silentReply"
+      },
+      {
+        "key": "repoRoot",
+        "path": "agents.defaults.repoRoot",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Repo Root",
+          "help": "Optional repository root shown in the system prompt runtime line (overrides auto-detect).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.repoRoot"
+      },
+      {
+        "key": "skipBootstrap",
+        "path": "agents.defaults.skipBootstrap",
+        "type": "boolean",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Skip Workspace Bootstrap Creation",
+          "help": "Skips automatic creation of workspace bootstrap files, not injection of existing files. For the embedded runtime, set agents.defaults.contextInjection to \"never\" to disable injection unless overridden per agent.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.skipBootstrap"
+      },
+      {
+        "key": "skipOptionalBootstrapFiles",
+        "path": "agents.defaults.skipOptionalBootstrapFiles",
+        "type": "array",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Skipped Optional Bootstrap Files",
+          "help": "Optional bootstrap files that should not be created in agent workspaces. Valid values: SOUL.md, USER.md, IDENTITY.md (HEARTBEAT.md is accepted but a no-op).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.skipOptionalBootstrapFiles"
+      },
+      {
+        "key": "contextInjection",
+        "path": "agents.defaults.contextInjection",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Context Injection",
+          "help": "Controls workspace bootstrap-file injection in the embedded runtime: \"always\" uses normal injection (default), \"continuation-skip\" skips eligible continuation turns after a recorded full-bootstrap turn, and \"never\" disables injection. Does not control CLI-backed prompt preparation.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.contextInjection"
+      },
+      {
+        "key": "bootstrapMaxChars",
+        "path": "agents.defaults.bootstrapMaxChars",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Bootstrap Max Chars",
+          "help": "Max characters of each workspace bootstrap file injected into the system prompt before truncation (default: 20000).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.bootstrapMaxChars"
+      },
+      {
+        "key": "bootstrapTotalMaxChars",
+        "path": "agents.defaults.bootstrapTotalMaxChars",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Bootstrap Total Max Chars",
+          "help": "Max total characters across all injected workspace bootstrap files (default: 60000).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.bootstrapTotalMaxChars"
+      },
+      {
+        "key": "experimental",
+        "path": "agents.defaults.experimental",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Experimental Agent Flags",
+          "help": "Experimental agent-default flags. Keep these off unless you are intentionally testing a preview surface.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.experimental"
+      },
+      {
+        "key": "userTimezone",
+        "path": "agents.defaults.userTimezone",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.userTimezone"
+      },
+      {
+        "key": "startupContext",
+        "path": "agents.defaults.startupContext",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Startup Context",
+          "help": "Runtime-owned first-turn prelude for bare \"/new\" and \"/reset\". Use this to control whether recent daily memory files are preloaded into the first prompt instead of asking the model to decide what to read.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.startupContext"
+      },
+      {
+        "key": "contextPruning",
+        "path": "agents.defaults.contextPruning",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.contextPruning"
+      },
+      {
+        "key": "compaction",
+        "path": "agents.defaults.compaction",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Compaction",
+          "help": "Compaction behavior for when context nears token limits, including strategy and pre-compaction memory flush behavior. Use this when long-running sessions need stable continuity under tight context windows.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.compaction"
+      },
+      {
+        "key": "embeddedAgent",
+        "path": "agents.defaults.embeddedAgent",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Embedded OpenClaw",
+          "help": "Embedded OpenClaw runner hardening controls for how workspace-local agent settings are trusted and applied in OpenClaw sessions.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.embeddedAgent"
+      },
+      {
+        "key": "thinkingDefault",
+        "path": "agents.defaults.thinkingDefault",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.thinkingDefault"
+      },
+      {
+        "key": "fastModeDefault",
+        "path": "agents.defaults.fastModeDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Default Agent Fast Mode",
+          "help": "Default fast-mode policy for the agent loop (\"auto\", true, or false). Individual agent entries override it.",
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.fastModeDefault"
+      },
+      {
+        "key": "verboseDefault",
+        "path": "agents.defaults.verboseDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.verboseDefault"
+      },
+      {
+        "key": "toolProgressDetail",
+        "path": "agents.defaults.toolProgressDetail",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.toolProgressDetail"
+      },
+      {
+        "key": "reasoningDefault",
+        "path": "agents.defaults.reasoningDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.reasoningDefault"
+      },
+      {
+        "key": "elevatedDefault",
+        "path": "agents.defaults.elevatedDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.defaults.elevatedDefault"
+      },
+      {
+        "key": "blockStreamingDefault",
+        "path": "agents.defaults.blockStreamingDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.blockStreamingDefault"
+      },
+      {
+        "key": "blockStreamingBreak",
+        "path": "agents.defaults.blockStreamingBreak",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.blockStreamingBreak"
+      },
+      {
+        "key": "timeoutSeconds",
+        "path": "agents.defaults.timeoutSeconds",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.timeoutSeconds"
+      },
+      {
+        "key": "mediaMaxMb",
+        "path": "agents.defaults.mediaMaxMb",
+        "type": "number",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.mediaMaxMb"
+      },
+      {
+        "key": "imageMaxDimensionPx",
+        "path": "agents.defaults.imageMaxDimensionPx",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Image Max Dimension (px)",
+          "help": "Max image side length in pixels when sanitizing transcript/tool-result image payloads (default: 1200).",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.imageMaxDimensionPx"
+      },
+      {
+        "key": "imageQuality",
+        "path": "agents.defaults.imageQuality",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Image Quality",
+          "help": "Image-tool media compression preference: \"auto\" adapts to provider/model limits and image count, \"efficient\" saves tokens and bytes, \"balanced\" keeps the current middle ground, and \"high\" preserves more detail for screenshots and document images.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.imageQuality"
+      },
+      {
+        "key": "typingIntervalSeconds",
+        "path": "agents.defaults.typingIntervalSeconds",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Typing Interval (Seconds)",
+          "help": "Controls typing-indicator keepalive cadence in seconds for every agent. Increase it to reduce update frequency across all typing-capable channels.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.typingIntervalSeconds"
+      },
+      {
+        "key": "systemAgent",
+        "path": "agents.defaults.systemAgent",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "System Agent Target",
+          "help": "Target settings for ambient OpenClaw system-agent and Custodian inference plus selected unscoped operator reads.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.systemAgent"
+      },
+      {
+        "key": "authInheritance",
+        "path": "agents.defaults.authInheritance",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Auth Inheritance Target",
+          "help": "Upgrade compatibility owner for the inherited credential store until credentials are relocated per agent.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.authInheritance"
+      },
+      {
+        "key": "sessionStore",
+        "path": "agents.defaults.sessionStore",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Legacy Session Store Target",
+          "help": "Upgrade compatibility owner for retired main-agent rows and fixed legacy session stores.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.sessionStore"
+      },
+      {
+        "key": "maxConcurrent",
+        "path": "agents.defaults.maxConcurrent",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.maxConcurrent"
+      },
+      {
+        "key": "subagents",
+        "path": "agents.defaults.subagents",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.subagents"
+      },
+      {
+        "key": "contextLimits",
+        "path": "agents.defaults.contextLimits",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Default Context Limits",
+          "help": "Focused per-agent-context budget defaults for selected high-volume excerpts and injected prompt blocks. Use this to tune bounded read/injection sizes without reopening any unbounded call paths.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.contextLimits"
+      },
+      {
+        "key": "blockStreamingChunk",
+        "path": "agents.defaults.blockStreamingChunk",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.blockStreamingChunk"
+      },
+      {
+        "key": "blockStreamingCoalesce",
+        "path": "agents.defaults.blockStreamingCoalesce",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.blockStreamingCoalesce"
+      },
+      {
+        "key": "humanDelay",
+        "path": "agents.defaults.humanDelay",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.humanDelay"
+      },
+      {
+        "key": "typingMode",
+        "path": "agents.defaults.typingMode",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Typing Mode",
+          "help": "Controls when typing starts for agents: \"never\", \"instant\", \"thinking\", or \"message\". Per-agent typingMode overrides this default.",
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.typingMode"
+      },
+      {
+        "key": "heartbeat",
+        "path": "agents.defaults.heartbeat",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.heartbeat"
+      },
+      {
+        "key": "sandbox",
+        "path": "agents.defaults.sandbox",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.defaults.sandbox"
+      }
+    ]
+  },
+  "agents.entries.*": {
+    "path": "agents.entries.*",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false
+    },
+    "reloadKind": "hot",
+    "hint": {
+      "advanced": true
+    },
+    "hintPath": "agents.entries.*",
+    "children": [
+      {
+        "key": "name",
+        "path": "agents.entries.*.name",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.entries.*.name"
+      },
+      {
+        "key": "description",
+        "path": "agents.entries.*.description",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.description"
+      },
+      {
+        "key": "workspace",
+        "path": "agents.entries.*.workspace",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.entries.*.workspace"
+      },
+      {
+        "key": "cwd",
+        "path": "agents.entries.*.cwd",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Working Directory",
+          "help": "Working directory for this agent's reply runs. Overrides agents.defaults.cwd but not session-spawned cwd; bootstrap and memory files stay in workspace. Supports ~ and relative paths; a distinct cwd requires an unsandboxed run.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.cwd"
+      },
+      {
+        "key": "agentDir",
+        "path": "agents.entries.*.agentDir",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.agentDir"
+      },
+      {
+        "key": "model",
+        "path": "agents.entries.*.model",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.entries.*.model"
+      },
+      {
+        "key": "utilityModel",
+        "path": "agents.entries.*.utilityModel",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Utility Model",
+          "help": "Optional per-agent utility model override for short internal tasks. Overrides agents.defaults.utilityModel.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.utilityModel"
+      },
+      {
+        "key": "decisionModel",
+        "path": "agents.entries.*.decisionModel",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Decision Model",
+          "help": "Per-agent decision model. Unset inherits agents.defaults.decisionModel; an empty string disables decision calls for this agent.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.decisionModel"
+      },
+      {
+        "key": "models",
+        "path": "agents.entries.*.models",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Model Overrides",
+          "help": "Per-agent model catalog overrides keyed by full provider/model IDs.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.models"
+      },
+      {
+        "key": "modelPolicy",
+        "path": "agents.entries.*.modelPolicy",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Model Policy",
+          "help": "Per-agent model override policy. An explicit allow list replaces the default policy for this agent.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.modelPolicy"
+      },
+      {
+        "key": "thinkingDefault",
+        "path": "agents.entries.*.thinkingDefault",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Thinking Default",
+          "help": "Optional per-agent default thinking level. Overrides agents.defaults.thinkingDefault for this agent when no per-message or session override is set.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.thinkingDefault"
+      },
+      {
+        "key": "verboseDefault",
+        "path": "agents.entries.*.verboseDefault",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.verboseDefault"
+      },
+      {
+        "key": "toolProgressDetail",
+        "path": "agents.entries.*.toolProgressDetail",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.toolProgressDetail"
+      },
+      {
+        "key": "reasoningDefault",
+        "path": "agents.entries.*.reasoningDefault",
+        "type": "string",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Reasoning Default",
+          "help": "Optional per-agent default reasoning visibility (on|off|stream). Applies when no per-message or session reasoning override is set.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.reasoningDefault"
+      },
+      {
+        "key": "fastModeDefault",
+        "path": "agents.entries.*.fastModeDefault",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Fast Mode Default",
+          "help": "Optional per-agent default for fast mode (\"auto\", true, or false). Applies when no per-message or session fast-mode override is set.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.fastModeDefault"
+      },
+      {
+        "key": "contextInjection",
+        "path": "agents.entries.*.contextInjection",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Context Injection",
+          "help": "Per-agent override for workspace bootstrap-file injection in the embedded runtime. Omit to inherit agents.defaults.contextInjection. Does not control CLI-backed prompt preparation.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.contextInjection"
+      },
+      {
+        "key": "bootstrapMaxChars",
+        "path": "agents.entries.*.bootstrapMaxChars",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Bootstrap Max Chars",
+          "help": "Per-agent override for max characters of each workspace bootstrap file injected into this agent's system prompt. Omit to inherit agents.defaults.bootstrapMaxChars.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.bootstrapMaxChars"
+      },
+      {
+        "key": "bootstrapTotalMaxChars",
+        "path": "agents.entries.*.bootstrapTotalMaxChars",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Bootstrap Total Max Chars",
+          "help": "Per-agent override for max total characters across all workspace bootstrap files injected into this agent's system prompt. Omit to inherit agents.defaults.bootstrapTotalMaxChars.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.bootstrapTotalMaxChars"
+      },
+      {
+        "key": "experimental",
+        "path": "agents.entries.*.experimental",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Experimental Flags",
+          "help": "Per-agent experimental flags. Omitted fields inherit agents.defaults.experimental.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.experimental"
+      },
+      {
+        "key": "skills",
+        "path": "agents.entries.*.skills",
+        "type": "array",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Skill Filter",
+          "help": "Optional allowlist of skills for this agent. If omitted, the agent inherits agents.defaults.skills when set; otherwise skills stay unrestricted. Set [] for no skills. An explicit list fully replaces inherited defaults instead of merging with them.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.skills"
+      },
+      {
+        "key": "subagents",
+        "path": "agents.entries.*.subagents",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.subagents"
+      },
+      {
+        "key": "embeddedAgent",
+        "path": "agents.entries.*.embeddedAgent",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Embedded OpenClaw",
+          "help": "Optional per-agent embedded OpenClaw overrides. Use this to opt specific agents into stricter GPT-5 execution behavior without changing the global default.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.embeddedAgent"
+      },
+      {
+        "key": "params",
+        "path": "agents.entries.*.params",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.params"
+      },
+      {
+        "key": "runtime",
+        "path": "agents.entries.*.runtime",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Runtime",
+          "help": "Optional runtime descriptor for this agent. Use embedded for default OpenClaw execution or acp for external ACP harness defaults.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.runtime"
+      },
+      {
+        "key": "memory",
+        "path": "agents.entries.*.memory",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.memory"
+      },
+      {
+        "key": "humanDelay",
+        "path": "agents.entries.*.humanDelay",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.humanDelay"
+      },
+      {
+        "key": "typingMode",
+        "path": "agents.entries.*.typingMode",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Typing Mode",
+          "help": "Overrides the default typing start policy for one agent without changing other agents.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.typingMode"
+      },
+      {
+        "key": "tts",
+        "path": "agents.entries.*.tts",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.tts"
+      },
+      {
+        "key": "skillsLimits",
+        "path": "agents.entries.*.skillsLimits",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Skills Limits",
+          "help": "Optional per-agent overrides for skills subsystem budgets. Use this when an agent needs a different skills prompt budget without introducing a second generic context-limits path.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.skillsLimits"
+      },
+      {
+        "key": "contextLimits",
+        "path": "agents.entries.*.contextLimits",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Agent Context Limits",
+          "help": "Optional per-agent overrides for the focused context budget knobs. Omitted fields inherit agents.defaults.contextLimits.",
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.contextLimits"
+      },
+      {
+        "key": "heartbeat",
+        "path": "agents.entries.*.heartbeat",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.heartbeat"
+      },
+      {
+        "key": "identity",
+        "path": "agents.entries.*.identity",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": false
+        },
+        "hintPath": "agents.entries.*.identity"
+      },
+      {
+        "key": "groupChat",
+        "path": "agents.entries.*.groupChat",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.groupChat"
+      },
+      {
+        "key": "sandbox",
+        "path": "agents.entries.*.sandbox",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.sandbox"
+      },
+      {
+        "key": "tools",
+        "path": "agents.entries.*.tools",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.tools"
+      },
+      {
+        "key": "default",
+        "path": "agents.entries.*.default",
+        "type": "boolean",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "advanced": true
+        },
+        "hintPath": "agents.entries.*.default"
+      }
+    ]
+  },
+  "mcp": {
+    "path": "mcp",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "MCP",
+      "description": "Global MCP server definitions managed by OpenClaw. Embedded OpenClaw and other runtime adapters can consume these servers without storing them inside runtime-owned project settings."
+    },
+    "reloadKind": "hot",
+    "hint": {
+      "docsUrl": "https://docs.openclaw.ai/tools/mcp",
+      "label": "MCP",
+      "help": "Global MCP server definitions managed by OpenClaw. Embedded OpenClaw and other runtime adapters can consume these servers without storing them inside runtime-owned project settings.",
+      "advanced": true
+    },
+    "hintPath": "mcp",
+    "children": [
+      {
+        "key": "sessionIdleTtlMs",
+        "path": "mcp.sessionIdleTtlMs",
+        "type": "number",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "MCP Session Idle TTL (ms)",
+          "help": "Optional idle eviction for OpenClaw session MCP runtimes in milliseconds. Unset or 0 keeps runtimes alive until session cleanup or Gateway shutdown. Positive values round down; active leases and pending acquisitions prevent eviction. Run-owned runtimes still retire when their one-shot run ends.",
+          "advanced": true
+        },
+        "hintPath": "mcp.sessionIdleTtlMs"
+      },
+      {
+        "key": "servers",
+        "path": "mcp.servers",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "MCP Servers",
+          "help": "Named MCP server definitions. OpenClaw stores them in its own config and runtime adapters decide which transports are supported at execution time.",
+          "advanced": true
+        },
+        "hintPath": "mcp.servers"
+      },
+      {
+        "key": "apps",
+        "path": "mcp.apps",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "restart",
+        "hint": {
+          "label": "MCP Apps",
+          "help": "MCP Apps UI support. When enabled, configured MCP servers may provide interactive HTML views for their tool results.",
+          "advanced": true
+        },
+        "hintPath": "mcp.apps"
+      }
+    ]
+  },
+  "plugins.entries.*.hooks": {
+    "path": "plugins.entries.*.hooks",
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "title": "Plugin Hook Policy",
+      "description": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin."
+    },
+    "reloadKind": "hot",
+    "hint": {
+      "label": "Plugin Hook Policy",
+      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
+      "advanced": true
+    },
+    "hintPath": "plugins.entries.*.hooks",
+    "children": [
+      {
+        "key": "allowPromptInjection",
+        "path": "plugins.entries.*.hooks.allowPromptInjection",
+        "type": "boolean",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Allow Prompt Injection Hooks",
+          "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build`.",
+          "advanced": true
+        },
+        "hintPath": "plugins.entries.*.hooks.allowPromptInjection"
+      },
+      {
+        "key": "allowConversationAccess",
+        "path": "plugins.entries.*.hooks.allowConversationAccess",
+        "type": "boolean",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Allow Conversation Access Hooks",
+          "help": "Controls whether this plugin may read raw conversation content from typed hooks such as `before_agent_run`, `before_model_resolve`, `before_agent_reply`, `llm_input`, `llm_output`, `before_agent_finalize`, and `agent_end`. Non-bundled plugins must opt in explicitly.",
+          "advanced": true
+        },
+        "hintPath": "plugins.entries.*.hooks.allowConversationAccess"
+      },
+      {
+        "key": "timeoutMs",
+        "path": "plugins.entries.*.hooks.timeoutMs",
+        "type": "integer",
+        "required": false,
+        "hasChildren": false,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Plugin Hook Timeout (ms)",
+          "help": "Default timeout in milliseconds for this plugin's typed hooks, capped at 600000. When unset, each hook uses the plugin's declared timeout or the Gateway's per-hook policy; there is no single fixed default. Per-hook values in hooks.timeouts take precedence.",
+          "placeholder": "Automatic (per hook)",
+          "advanced": true
+        },
+        "hintPath": "plugins.entries.*.hooks.timeoutMs"
+      },
+      {
+        "key": "timeouts",
+        "path": "plugins.entries.*.hooks.timeouts",
+        "type": "object",
+        "required": false,
+        "hasChildren": true,
+        "reloadKind": "hot",
+        "hint": {
+          "label": "Plugin Hook Timeout Overrides",
+          "help": "Per-hook timeout overrides in milliseconds keyed by typed hook name, capped at 600000. Use narrow overrides for known slow hooks such as before_prompt_build or agent_end instead of raising every hook timeout.",
+          "advanced": true
+        },
+        "hintPath": "plugins.entries.*.hooks.timeouts"
+      }
+    ]
+  }
+}

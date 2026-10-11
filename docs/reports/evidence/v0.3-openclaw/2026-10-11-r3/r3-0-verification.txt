@@ -1,0 +1,68 @@
+2026-10-11T00:57:49.266702+00:00
+Scope: procedure completion, including explicitly recorded unsuccessful/unconfirmed results; not a claim that every R3 capability passed.
+PASS Previous report bytes preserved; section 9 appended once
+PASS Branch is v0.3/r3-openclaw
+PASS Initial raw config backup SHA256 matches preflight
+PASS R3-1 first reply marker leader
+PASS R3-1 shared added instruction leader
+PASS R3-2 shared skill initial leader
+PASS R3-2 shared skill update leader
+PASS R3-2 workspace-only skill leader
+PASS R3-1 first reply marker worker
+PASS R3-1 shared added instruction worker
+PASS R3-2 shared skill initial worker
+PASS R3-2 shared skill update worker
+PASS R3-2 workspace-only skill worker
+PASS R3-1 first reply marker auditor
+PASS R3-1 shared added instruction auditor
+PASS R3-2 shared skill initial auditor
+PASS R3-2 shared skill update auditor
+PASS R3-2 workspace-only skill auditor
+PASS R3-1 delegated child keeps worker marker
+PASS R3-2 empty agent filter hides shared skill
+PASS R3-2 retry does not reveal either test word
+PASS R3-3 two enable attempts retained as unsuccessful
+PASS R3-3 initial ENOENT captured
+PASS R3-3 global server call succeeded
+PASS R3-3 agent deny worker
+PASS R3-3 agent deny auditor
+PASS R3-3 separate session denial confirmed
+PASS R3-3 effective MCP catalog r3-3-agent-leader-catalog
+PASS R3-3 effective MCP catalog r3-3-agent-worker-catalog
+PASS R3-3 effective MCP catalog r3-3-agent-auditor-catalog
+PASS R3-3 effective MCP catalog r3-3-session-denied-catalog
+PASS R3-4 only worker date blocked
+PASS R3-4 before_prompt_build and agent_end leader
+PASS R3-4 before_agent_run runtime boundary leader
+PASS R3-4 native edit intercepted leader
+PASS R3-4 only auditor received hook word leader
+PASS R3-4 before_prompt_build and agent_end worker
+PASS R3-4 before_agent_run runtime boundary worker
+PASS R3-4 native edit intercepted worker
+PASS R3-4 only auditor received hook word worker
+PASS R3-4 before_prompt_build and agent_end auditor
+PASS R3-4 before_agent_run runtime boundary auditor
+PASS R3-4 native edit intercepted auditor
+PASS R3-4 only auditor received hook word auditor
+PASS R3-4 decisions evaluate present but not called
+PASS R3-4 decision tool exists
+PASS No active R3 session and no temporary plugin/MCP in runtime
+PASS MCP session overrides cleared
+PASS Agent retained without temporary skills/tools leader
+PASS Agent retained without temporary skills/tools worker
+PASS Agent retained without temporary skills/tools auditor
+PASS Other original config exactly preserved semantically
+PASS No temporary extension sources remain
+PASS No run-generated backup remains
+PASS No new named credential files found
+PASS Shared CLI MCP lists unchanged
+PASS v03-openclaw.service remains active
+PASS v03-cccc.service remains active
+PASS No extra v03 product running
+PASS All local report links resolve
+PASS All JSON/JSONL evidence parses
+PASS Secret-pattern scan of deliverables has no matches
+PASS git diff --check
+PASS git diff --cached --check
+Checks: 64/64
+Commit preparation: first git commit refused because author identity was unset; prior OpenClaw report commits use Codex <codex@localhost>. Retrying once with per-command -c user.name=Codex -c user.email=codex@localhost; no persistent Git config changes.

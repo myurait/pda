@@ -1,0 +1,103 @@
+--- before
++++ r3-3-config-cleaned
+@@ -27,7 +27,18 @@
+       },
+       "openai": {
+         "enabled": true
++      },
++      "r3-hook-probe": {
++        "enabled": true,
++        "hooks": {
++          "allowConversationAccess": true
++        }
+       }
++    },
++    "load": {
++      "paths": [
++        "/home/user/v03/openclaw/r3-hook-probe"
++      ]
+     }
+   },
+   "meta": {
+@@ -59,7 +70,6 @@
+     ]
+   },
+   "agents": {
+-    "ownership": "explicit",
+     "defaults": {
+       "workspace": "/home/user/v03/work/openclaw/scratch",
+       "cwd": "/home/user/v03/work/openclaw/scratch",
+@@ -83,6 +93,7 @@
+         }
+       }
+     },
++    "ownership": "explicit",
+     "entries": {
+       "claude": {
+         "name": "Claude Code",
+@@ -114,6 +125,53 @@
+             "claude"
+           ]
+         }
++      },
++      "r3-leader": {
++        "name": "r3-leader",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
++        "identity": {
++          "name": "r3-leader"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "verboseDefault": "on",
++        "subagents": {
++          "allowAgents": [
++            "r3-worker"
++          ]
++        },
++        "skills": [
++          "r3-worker-secret",
++          "r3-common-word"
++        ]
++      },
++      "r3-worker": {
++        "name": "r3-worker",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
++        "identity": {
++          "name": "r3-worker"
++        },
++        "model": "openai/gpt-6-astra",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "verboseDefault": "on",
++        "skills": [
++          "r3-worker-secret",
++          "r3-common-word"
++        ]
++      },
++      "r3-auditor": {
++        "name": "r3-auditor",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
++        "identity": {
++          "name": "r3-auditor"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "verboseDefault": "on",
++        "skills": []
+       }
+     }
+   },
+@@ -126,7 +184,10 @@
+       "enabled": true,
+       "allow": [
+         "claude",
+-        "codex"
++        "codex",
++        "r3-leader",
++        "r3-worker",
++        "r3-auditor"
+       ]
+     }
+   },

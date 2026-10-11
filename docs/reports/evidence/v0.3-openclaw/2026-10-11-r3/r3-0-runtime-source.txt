@@ -1,0 +1,130 @@
+
+dist/cli-backend-Di-C7dFk.mjs:118-133 SHA256 b1b6f93d3940c32de24ba0d6812d37884440e3d25369f15e95ff64dba2984e16
+118: 		subscriptionAuthDispatch: true,
+119: 		config: {
+120: 			command: "claude",
+121: 			args: [...CLAUDE_CLI_DEFAULT_ARGS],
+122: 			resumeArgs: [
+123: 				...CLAUDE_CLI_DEFAULT_ARGS,
+124: 				"--resume",
+125: 				"{sessionId}"
+126: 			],
+127: 			forkArg: "--fork-session",
+128: 			resumeAtArg: "--resume-session-at",
+129: 			output: "jsonl",
+130: 			liveSession: "claude-stdio",
+131: 			input: "stdin",
+132: 			modelArg: "--model",
+133: 			modelAliases: CLAUDE_CLI_MODEL_ALIASES,
+
+dist/extensions/anthropic/cli.runtime.js:226-244 SHA256 175c1f6492c7320a354fed331ddd2437c28af821d53b67cd216fb97ec44770f0
+226: 		if (!session.transport) {
+227: 			const { args, excludeDynamicSections } = prepareClaudeCliTransportArgs(context);
+228: 			session.transport = createClaudeCliTransport({
+229: 				context,
+230: 				args,
+231: 				secretInput,
+232: 				currentContext: () => session.currentTurn?.context,
+233: 				initialize: {
+234: 					appendSystemPrompt: context.systemPrompt,
+235: 					excludeDynamicSections,
+236: 					hooks: {
+237: 						UserPromptSubmit: [{ hookCallbackIds: ["UserPromptSubmit"] }],
+238: 						PreToolUse: [{ hookCallbackIds: ["PreToolUse"] }]
+239: 					}
+240: 				},
+241: 				onMessage: (message) => acceptMessage(session, message),
+242: 				onRequest: async (request, signal) => {
+243: 					if (request.subtype === "elicitation") return () => ({ action: "decline" });
+244: 					const admittedTurn = activeTurn(session);
+
+dist/cli-transport-CgOJLNk7.mjs:16-30 SHA256 c59d76c94efc2781dccb81c58541e0a53154ede88c9417c7dde9ae4f32e7d15f
+16: 	try {
+17: 		const env = { ...params.context.env };
+18: 		delete env.NODE_OPTIONS;
+19: 		delete env.DEBUG;
+20: 		child = owner.spawn({
+21: 			...params.context,
+22: 			args: params.args,
+23: 			env
+24: 		});
+25: 	} catch (error) {
+26: 		owner[Symbol.dispose]();
+27: 		throw error;
+28: 	}
+29: 	const requests = /* @__PURE__ */ new Map();
+30: 	const initializeId = randomUUID();
+
+dist/cli-process-tHzwN0QT.mjs:10-35 SHA256 6dd0e886638f7336f2f69b0143953ca43845abe2254a67493d18f1d8dd64cb69
+10: import "./logging-core-Bd5We5HU.mjs";
+11: import { spawn } from "node:child_process";
+12: //#region extensions/anthropic/cli-process.ts
+13: const STDERR_CAPTURE_CHARS = 8192;
+14: const STDERR_DRAIN_GRACE_MS = 200;
+15: function spawnClaudeCliProcess(options, secretInput, observeStderr) {
+16: 	try {
+17: 		var _usingCtx$1 = _usingCtx();
+18: 		const stdio = [
+19: 			"pipe",
+20: 			"pipe",
+21: 			"pipe"
+22: 		];
+23: 		const secretDelivery = _usingCtx$1.u(prepareSecretInputStdio(stdio, secretInput));
+24: 		const child = spawn(options.command, options.args, {
+25: 			argv0: options.argv0,
+26: 			cwd: options.cwd,
+27: 			detached: process.platform !== "win32",
+28: 			env: options.env,
+29: 			signal: options.signal,
+30: 			stdio,
+31: 			windowsHide: true
+32: 		});
+33: 		observeStderr(child);
+34: 		const killChild = child.kill.bind(child);
+35: 		child.kill = (signal) => {
+
+dist/native-hook-relay-CXUYKBKa.mjs:402-430 SHA256 d726f2f301f4674794864665f84a40c44ec21b66984adb8c0b9a8947a01b632b
+402: 	}
+403: }
+404: async function clearNativeHookRelayBridgesForTests() {
+405: 	for (const relayId of relayBridges$1.keys()) unregisterNativeHookRelayBridge(relayId);
+406: 	while (pendingOperations.size > 0) await Promise.allSettled(pendingOperations);
+407: 	await clearNativeHookRelayBridgeRecordsForTests();
+408: }
+409: //#endregion
+410: //#region src/agents/harness/native-hook-relay-codec.ts
+411: const CODEX_NATIVE_HOOK_TOOL_NAME_ALIASES = {
+412: 	exec_command: "exec",
+413: 	write: "apply_patch",
+414: 	edit: "apply_patch",
+415: 	agent: "spawn_agent"
+416: };
+417: const codexNativeHookRelayProviderAdapter = {
+418: 	readToolInput: readCodexToolInput,
+419: 	readToolResponse: readCodexToolResponse,
+420: 	...codexNativeHookRelayResponseCodec,
+421: 	renderBeforeAgentFinalizeReviseResponse: (reason) => ({
+422: 		stdout: `${JSON.stringify({
+423: 			decision: "block",
+424: 			reason
+425: 		})}\n`,
+426: 		stderr: "",
+427: 		exitCode: 0
+428: 	}),
+429: 	renderBeforeAgentFinalizeStopResponse: (reason) => ({
+430: 		stdout: `${JSON.stringify({
+
+dist/native-hook-relay-CXUYKBKa.mjs:478-490 SHA256 d726f2f301f4674794864665f84a40c44ec21b66984adb8c0b9a8947a01b632b
+478: 	const toolInput = payload.tool_input;
+479: 	if (isJsonObject(toolInput)) return normalizeCodexToolInput(normalizeNativeHookToolName(readNonEmptyStringPreservingWhitespace(payload.tool_name)), toolInput);
+480: 	if (toolInput === void 0) return {};
+481: 	return { value: toolInput };
+482: }
+483: function normalizeCodexToolInput(toolName, toolInput) {
+484: 	const command = normalizeCodexCommand(toolInput.cmd);
+485: 	if (toolName !== "exec" || command === void 0) return toolInput;
+486: 	return {
+487: 		...toolInput,
+488: 		command
+489: 	};
+490: }

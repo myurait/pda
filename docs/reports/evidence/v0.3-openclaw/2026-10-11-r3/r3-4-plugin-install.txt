@@ -1,0 +1,22 @@
+
+2026-10-11T00:44:10.072317+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'install', '--link', '/home/user/v03/openclaw/r3-hook-probe', '--force']
+WARNING - Installing plugin from local path: /home/user/v03/openclaw/r3-hook-probe
+This source is outside ClawHub review and trust metadata. Only continue if you trust the publisher, package contents, and install source.
+Linked plugin path: /home/user/v03/openclaw/r3-hook-probe
+Applied in Gateway generation 3.
+
+exit=0
+
+2026-10-11T00:44:13.126764+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'set', 'plugins.entries.r3-hook-probe.hooks.allowConversationAccess', 'true', '--strict-json']
+Updated plugins.entries.r3-hook-probe.hooks.allowConversationAccess. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:44:29.418402+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'enable', 'r3-hook-probe']
+Plugin replacement waited for retained work to finish.
+Enabled plugin "r3-hook-probe".
+
+exit=0

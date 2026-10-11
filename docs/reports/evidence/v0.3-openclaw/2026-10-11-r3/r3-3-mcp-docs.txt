@@ -1,0 +1,108 @@
+Installed OpenClaw 2026.9.8 (fc23bc8). Official package documentation/source, not live-main assumptions.
+
+docs/tools/mcp.md L10-L27
+sha256=c8c41584e758a2deccbdf3d97bf2cabab248c8cd3b9c668950d543f8536d9a96
+10: The Model Context Protocol (MCP) is how an agent borrows tools from another program: an MCP server exposes tools, resources, and prompts, and OpenClaw connects to it and makes those tools available to your agents. Server definitions live under `mcp.servers` in config, and the tools they expose go through the same tool-profile and tool-policy controls as everything else — connecting a server does not bypass your policy.
+11:
+12: <Note>
+13: This guide is about connecting third-party MCP servers **to OpenClaw**. For the reverse — exposing OpenClaw channel conversations to another MCP client — use [`openclaw mcp serve`](/cli/mcp#openclaw-as-an-mcp-server).
+14: </Note>
+15:
+16: ## Add a server from Settings
+17:
+18: 1. Open the Control UI and go to **Settings → MCP**.
+19: 2. Under **Configured servers**, select **Add server**.
+20: 3. Give it a unique name and pick a transport: **Streamable HTTP**, **SSE**, or **Stdio**.
+21: 4. For the HTTP transports, enter the server's `http://` or `https://` URL. For stdio, enter the command followed by its arguments.
+22: 5. Select **Add server**.
+23:
+24: That writes the new `mcp.servers` entry through the Gateway. For anything beyond the basics — headers, environment values, OAuth metadata, TLS settings, timeouts, parallel-tool-call hints, tool filters — use the scoped config editor further down the page. The server rows also let you enable, disable, or remove a definition.
+25:
+26: Once the server is saved, verify it actually answers:
+27:
+
+docs/web/control-ui/chat.md L124-L141
+sha256=3368757c787e0da42b5806bb5cdfb3ff0415d74bd82d713ffa12ec235d793efc
+124: Select **+** beside the chat composer to open attachments and session capabilities in one menu:
+125:
+126: - **Skills** enables or disables individual skills for this session.
+127: - **Connectors** enables or disables configured MCP servers for this session. A **session** tag marks values that differ from the inherited configuration.
+128: - **Web search** enables or disables managed web search plus native OpenAI and Codex search for this session.
+129: - **Manage plugins** opens the Plugins page.
+130:
+131: These controls are sparse session overrides, like the model and thinking settings in the chat header. A capability with no override inherits the current agent or global configuration, and OpenClaw applies the resolved values when the next run materializes its tools and skills. When overrides are set, open **+** and select **1 override** or **N overrides** at the bottom of the menu to clear all capability overrides for this session and return to inherited settings.
+132:
+133: When `tools.web.search.enabled` is `false`, **Web search** stays off in Chat and New Session. The disabled control explains the global setting. If a session has an older enable override, selecting the control clears that override while search stays off. An explicit session disable remains saved.
+134:
+135: Video files selected in Chat or New Session show a small local frame preview with a play badge beside the filename. The slot keeps its size while loading. If the browser cannot decode the video promptly, the play icon remains. Removing the attachment releases its preview; generating the preview does not upload the video.
+136:
+137: In **Connectors**, administrators can select **Add MCP server…** and choose a scope. **This session** saves the server definition globally but disabled by default, then enables it only for the current session. **Everywhere** saves the definition enabled globally. Transport, authentication, and other server-definition fields are always global. Session policy can override server enablement and deny individual tools through **Tool access**.
+138:
+139: **Tool access** lists a connector's tools once a run has discovered them. Before that, it explains why the list is empty rather than reporting zero tools: a newly added server has not connected yet, a connected server has not finished listing its tools, or the runtime catalog predates a config change. Sessions that run on the Codex harness keep their MCP connections inside Codex, so their tools do not appear here.
+140:
+141: Capability toggles stay disabled until the Gateway, session, and runtime config are loaded, and read-only operators cannot change them. Adding a server requires administrator access. See [Connect MCP servers](/tools/mcp) for the Settings, CLI, and config paths.
+
+docs/gateway/config-tools/tool-policy.md L100-L118
+sha256=1918623208f89eace57a903586a03a7b7b35a69697b7244874bb449f2c485085
+100:
+101: Configured MCP servers are exposed as plugin-owned tools under the `bundle-mcp` plugin id. Normal tool profiles can allow them, but `tools.sandbox.tools` is an additional gate for sandboxed sessions. If sandbox mode is `"all"` or `"non-main"`, include one of these entries in the sandbox tool allowlist when MCP/plugin tools should be visible:
+102:
+103: - `bundle-mcp` for OpenClaw-managed MCP servers from `mcp.servers`
+104: - the plugin id for a specific native plugin
+105: - `group:plugins` for all loaded plugin-owned tools
+106: - exact MCP server tool names or server globs such as `outlook__send_mail` or `outlook__*` when you only want one server
+107:
+108: Server globs use the provider-safe MCP server prefix, not necessarily the raw `mcp.servers` key. Non-`[A-Za-z0-9_-]` characters become `-`, names that do not start with a letter get an `mcp-` prefix, and long or duplicate prefixes may be truncated or suffixed; for example, `mcp.servers["Outlook Graph"]` uses a glob like `outlook-graph__*`.
+109:
+110: Per-run `toolsAllow` caps also accept globs such as `outlook*` or `out*graph*` for configured MCP servers. These globs can trigger catalog discovery across all enabled static MCP servers, just like `outlook__*`; they do not limit which servers connect. Discovery is conservative and can run even when no tool ultimately matches. Final tool allow/deny and sandbox policies still apply, disabled servers remain excluded unless explicitly enabled by a session override, and requester-scoped servers still require their verified requester context.
+111:
+112: ```json5
+113: {
+114:   agents: { defaults: { sandbox: { mode: "all" } } },
+115:   mcp: {
+116:     servers: {
+117:       outlook: { command: "node", args: ["./outlook-mcp.js"] },
+118:     },
+
+dist/sessions-row-fdllm0w7.mjs L108-L113
+sha256=6e80ffa0d1d4c283162a530f705e9c50c6f54e129bd50dde83bbe613dbc7d3e7
+108: const SessionToolOverridesSchema = closedObject({
+109: 	mcpServers: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.Boolean())),
+110: 	mcpToolsDeny: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.Array(NonEmptyString))),
+111: 	skills: Type.Optional(Type.Record(Type.String({ minLength: 1 }), Type.Boolean())),
+112: 	webSearch: Type.Optional(Type.Boolean())
+113: });
+
+dist/agent-bundle-mcp-runtime-config-lDhmoPzE.mjs L59-L89
+sha256=d5d0540c0fd85c79ca00c336ad61366f8f6a8eeb48772ef77e052167346110c8
+59: function filterMcpServers(mcpServers, options) {
+60: 	if (!options.includeServerNames && !options.excludeServerNames && !options.toolDenylist?.length) return mcpServers;
+61: 	const filtered = {};
+62: 	const isDenied = createMcpServerToolDenyMatcher(options.toolDenylist);
+63: 	for (const [serverName, rawServer] of Object.entries(mcpServers)) {
+64: 		if (options.includeServerNames && !options.includeServerNames.has(serverName)) continue;
+65: 		if (options.excludeServerNames?.has(serverName)) continue;
+66: 		if (isDenied(options.safeServerNamesByServer.get(serverName) ?? serverName)) continue;
+67: 		filtered[serverName] = rawServer;
+68: 	}
+69: 	return filtered;
+70: }
+71: function loadSessionMcpConfig(params) {
+72: 	const loaded = params.loaded ?? loadEmbeddedAgentMcpConfig({
+73: 		workspaceDir: params.workspaceDir,
+74: 		cfg: params.cfg,
+75: 		manifestRegistry: params.manifestRegistry,
+76: 		toolOverrides: params.toolOverrides
+77: 	});
+78: 	if (params.logDiagnostics !== false) for (const diagnostic of loaded.diagnostics) logWarn(`bundle-mcp: ${diagnostic.pluginId}: ${diagnostic.message}`);
+79: 	const safeServerNamesByServer = params.safeServerNamesByServer ?? assignSafeServerNames(Object.keys(loaded.mcpServers));
+80: 	const safeServerNames = digestSafeServerNameAssignments(safeServerNamesByServer);
+81: 	const mcpAppsEnabled = params.cfg?.mcp?.apps?.enabled === true;
+82: 	const mcpToolsDeny = normalizeMcpToolDenials(params.toolOverrides?.mcpToolsDeny);
+83: 	const mcpServers = filterMcpServers(loaded.mcpServers, {
+84: 		includeServerNames: params.includeServerNames,
+85: 		excludeServerNames: params.excludeServerNames,
+86: 		safeServerNamesByServer,
+87: 		toolDenylist: params.toolDenylist
+88: 	});
+89: 	const prepareDataDirsByServer = Object.fromEntries(Object.entries(loaded.prepareDataDirsByServer ?? {}).filter(([serverName]) => Object.hasOwn(mcpServers, serverName)));

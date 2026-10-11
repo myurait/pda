@@ -1,0 +1,259 @@
+{
+  "models": {
+    "keys": [
+      "models"
+    ],
+    "count": 20,
+    "configuredChatModels": [
+      {
+        "id": "gpt-6-astra",
+        "name": "GPT-6-Astra",
+        "provider": "openai",
+        "reasoning": true,
+        "tags": [
+          "default",
+          "configured"
+        ],
+        "agentRuntime": {
+          "id": "codex",
+          "cloudPlacementSupported": true,
+          "cloudPlacementExecutionMode": "remote-exec",
+          "devicePlacement": {
+            "requiredNodeCommands": [
+              "codex.exec-server.stdio.v1"
+            ],
+            "consumesWorkerSlot": false
+          },
+          "devicePlacementSupported": true,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "anthropic",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "tags": [
+          "configured"
+        ],
+        "agentRuntime": {
+          "id": "claude-cli",
+          "cloudPlacementSupported": false,
+          "devicePlacementSupported": false,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-5-5",
+        "name": "Claude Sonnet 5.5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      }
+    ]
+  },
+  "decisionTools": [
+    {
+      "id": "decision_evaluate",
+      "label": "decision_evaluate",
+      "description": "Evaluate explicit evidence with the agent's decision model",
+      "source": "core",
+      "defaultProfiles": [
+        "coding",
+        "messaging"
+      ]
+    }
+  ],
+  "catalogKeys": [
+    "agentId",
+    "profiles",
+    "groups"
+  ]
+}

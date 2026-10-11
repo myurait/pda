@@ -1,0 +1,443 @@
+{
+  "counts": [
+    {
+      "agentId": "r3-auditor",
+      "hook": "agent_end",
+      "count": 4
+    },
+    {
+      "agentId": "r3-auditor",
+      "hook": "before_agent_run",
+      "count": 4
+    },
+    {
+      "agentId": "r3-auditor",
+      "hook": "before_prompt_build",
+      "count": 4
+    },
+    {
+      "agentId": "r3-auditor",
+      "hook": "before_tool_call",
+      "count": 4
+    },
+    {
+      "agentId": "r3-leader",
+      "hook": "agent_end",
+      "count": 4
+    },
+    {
+      "agentId": "r3-leader",
+      "hook": "before_agent_run",
+      "count": 4
+    },
+    {
+      "agentId": "r3-leader",
+      "hook": "before_prompt_build",
+      "count": 4
+    },
+    {
+      "agentId": "r3-leader",
+      "hook": "before_tool_call",
+      "count": 5
+    },
+    {
+      "agentId": "r3-worker",
+      "hook": "agent_end",
+      "count": 4
+    },
+    {
+      "agentId": "r3-worker",
+      "hook": "before_prompt_build",
+      "count": 4
+    },
+    {
+      "agentId": "r3-worker",
+      "hook": "before_tool_call",
+      "count": 2
+    }
+  ],
+  "registrations": [
+    {
+      "utc": "2026-10-11T00:44:09.259Z",
+      "pid": 501648,
+      "hook": "register",
+      "decisionsEvaluateType": "function"
+    },
+    {
+      "utc": "2026-10-11T00:44:18.795Z",
+      "pid": 501648,
+      "hook": "register",
+      "decisionsEvaluateType": "function"
+    },
+    {
+      "utc": "2026-10-11T00:44:27.831Z",
+      "pid": 501648,
+      "hook": "register",
+      "decisionsEvaluateType": "function"
+    },
+    {
+      "utc": "2026-10-11T00:44:32.304Z",
+      "pid": 504547,
+      "hook": "register",
+      "decisionsEvaluateType": "function"
+    },
+    {
+      "utc": "2026-10-11T00:45:09.995Z",
+      "pid": 505156,
+      "hook": "register",
+      "decisionsEvaluateType": "function"
+    }
+  ],
+  "nativeTools": [
+    {
+      "utc": "2026-10-11T00:46:26.433Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-leader",
+      "sessionKey": "agent:r3-leader:r3-r3-4-date-leader-1791679576396",
+      "runId": "52f167da-aa7f-4afc-961b-e6a0447a392c",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "exec",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command",
+        "description"
+      ],
+      "shell": true,
+      "hasDate": true,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:46:50.698Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-worker",
+      "sessionKey": "agent:r3-worker:r3-r3-4-date-worker-1791679590389",
+      "runId": "958f8f2f-de8a-43cd-94da-8983872119ec",
+      "configuredRuntime": "codex",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "trace",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "exec",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command"
+      ],
+      "shell": true,
+      "hasDate": true,
+      "block": true
+    },
+    {
+      "utc": "2026-10-11T00:47:06.561Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-auditor",
+      "sessionKey": "agent:r3-auditor:r3-r3-4-date-auditor-1791679617333",
+      "runId": "fdcad35f-6add-4689-979b-051c3bb918f1",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "exec",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command",
+        "description"
+      ],
+      "shell": true,
+      "hasDate": true,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:47:18.803Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-leader",
+      "sessionKey": "agent:r3-leader:r3-r3-4-word-leader-1791679630468",
+      "runId": "101acfe6-65fc-44be-8dbe-4a8eb4e3c86c",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "skill",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "skill",
+        "args"
+      ],
+      "shell": false,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:02.068Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-leader",
+      "sessionKey": "agent:r3-leader:r3-r3-4-native-edit-leader-1791679671177",
+      "runId": "c2814a14-643c-4748-a61f-d67b42f7ab5a",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "exec",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command",
+        "description"
+      ],
+      "shell": true,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:04.529Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-leader",
+      "sessionKey": "agent:r3-leader:r3-r3-4-native-edit-leader-1791679671177",
+      "runId": "c2814a14-643c-4748-a61f-d67b42f7ab5a",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "read",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "file_path",
+        "path"
+      ],
+      "shell": false,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:07.492Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-leader",
+      "sessionKey": "agent:r3-leader:r3-r3-4-native-edit-leader-1791679671177",
+      "runId": "c2814a14-643c-4748-a61f-d67b42f7ab5a",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "edit",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "file_path",
+        "old_string",
+        "new_string",
+        "replace_all",
+        "path",
+        "edits"
+      ],
+      "shell": false,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:26.173Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-worker",
+      "sessionKey": "agent:r3-worker:r3-r3-4-native-edit-worker-1791679692776",
+      "runId": "46f66bf8-2d66-4070-9bbf-ab570f3eb7c2",
+      "configuredRuntime": "codex",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "trace",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "apply_patch",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command"
+      ],
+      "shell": false,
+      "hasDate": true,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:42.220Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-auditor",
+      "sessionKey": "agent:r3-auditor:r3-r3-4-native-edit-auditor-1791679711064",
+      "runId": "b1437436-1fb7-4880-901c-295f5244f88d",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "exec",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "command",
+        "description"
+      ],
+      "shell": true,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:45.061Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-auditor",
+      "sessionKey": "agent:r3-auditor:r3-r3-4-native-edit-auditor-1791679711064",
+      "runId": "b1437436-1fb7-4880-901c-295f5244f88d",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "read",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "file_path",
+        "path"
+      ],
+      "shell": false,
+      "hasDate": false,
+      "block": false
+    },
+    {
+      "utc": "2026-10-11T00:48:47.848Z",
+      "pid": 505156,
+      "hook": "before_tool_call",
+      "agentId": "r3-auditor",
+      "sessionKey": "agent:r3-auditor:r3-r3-4-native-edit-auditor-1791679711064",
+      "runId": "b1437436-1fb7-4880-901c-295f5244f88d",
+      "configuredRuntime": "claude-cli",
+      "contextRuntime": null,
+      "contextKeys": [
+        "toolName",
+        "agentId",
+        "sessionKey",
+        "sessionId",
+        "runId",
+        "abortSignal",
+        "toolCallId",
+        "channelId",
+        "requester"
+      ],
+      "toolName": "edit",
+      "toolKind": null,
+      "toolInputKind": null,
+      "paramKeys": [
+        "file_path",
+        "old_string",
+        "new_string",
+        "replace_all",
+        "path",
+        "edits"
+      ],
+      "shell": false,
+      "hasDate": false,
+      "block": false
+    }
+  ],
+  "agentRuntimeNote": "configuredRuntime is resolved from api.config model mapping; contextRuntime records a context-provided value if present; actual runtime also verified through session rows and process argv."
+}

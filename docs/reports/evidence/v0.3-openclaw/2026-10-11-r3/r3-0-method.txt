@@ -1,0 +1,31 @@
+実施方法
+
+指示: /home/user/pda-v03a-runs/v03-r3-openclaw.instruction.md
+共通・製品別指示、plan-v0.3 の指定節、同製品の前走行報告を参照。他製品報告と research は参照していない。
+製品コードの変更・製品版の更新は行わず、CLI 設定・workspace ファイル・公式 plugin hook の拡張を使用。
+役割 workspace は既存 scratch リポジトリの下に分けた。既存の未追跡 prompt_summary.md は読まず保持。認証や信頼の追加操作を要求されず、そのまま CLI 実行が進んだ。
+
+API: ws://127.0.0.1:5114/、protocol 4。前走行の client.mjs を再利用。各採取接続でメモリ内の device identity を生成し、認証値を証拠へ残さない。
+セッションの作成・設定は sessions.patch、依頼は chat.send、途中イベントは sessions.messages.subscribe、終了後は chat.history と sessions.list。試験ごとに新規セッション。
+生ログの時刻は UTC、journal と date の表示は JST (UTC+9)。trial summary は assistant の全 text を順に抜き出すため、説明文と最終応答が別要素の場合がある。
+子セッションの印は親の引用の有無ではなく子自身の API 履歴と final イベントで確認。
+MCP の This session と同じ設定は、mcp.servers.<name>.enabled=false と sessions.patch.toolOverrides.mcpServers.<name>=true。UIクリックは未実施。
+MCP visibility の別確認は tools.effective。この API は未発見サーバーを実際には起動しないため「not yet connected」を非対応とは判定しない。
+MCP は同梱公式 SDK を使った固定文字列1道具の stdio サーバー。ネットワーク待受・認証・追加 npm 導入は無し。
+hook は ctx.agentId/sessionKey/runId・道具名・パラメータのキーと判定値を記録し、道具の引数や会話本文を複製しない。configuredRuntime は api.config のモデル設定から算出し、ctx 由来の値と区別した。実実行器はセッション API とプロセスでも照合。
+
+試行の上限
+送信は原則各1回。auditor skills=[] は初回が hot reload 前で、skills.status の agentSkillFilter=[]/modelVisible=false を確認後に1回再送。
+MCP This session は初回の /usr/bin/node が存在せず、正しい /home/user/.local/bin/node へ変更して1回再送したが、古い MCP runtime の後始末失敗で旧パスが保持された。2回で終了。サービス再起動後の API 一覧診断は未接続と表示され、3回目の会話送信はしていない。
+R3-1 委譲は1回。子は完了したが親が結果を回収する内部道具で複数のエラーと再試行を起こした。親モデルの内部再試行と試験依頼の再送を区別する。
+
+採取補助の訂正
+config.get の正規化済みオブジェクトとファイルを JSON.stringify で比較した最初の確認はキー順の差で false となった。deep equality と runtimeConfig を使うように変更した。plugin の正規化で config:{} が補われる差は enabled と hooks.allowConversationAccess の葉を照合して解消。これらの準備待ちの失敗ではモデル依頼は再送していない。
+models.list の最初の API 呼出しは agentId の省略により INVALID_REQUEST。agentId=r3-worker を明示した1回の訂正で成功。
+OpenClaw MCP 撤去の最初の mcp remove はコマンド無しで失敗。help を確認し mcp unset で1回訂正した。
+
+環境
+製品と CLI 操作は既存ラッパーの HOME=/home/user/v03/agent-home、CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude、PATH 先頭 /home/user/.local/bin を利用。CODEX_HOME と API キー類を手動起動で unset。認証ファイルの中身は読取・表示・複製・手編集せず、既存 symlink を使用。
+
+Instruction SHA256: b33571a289dd021276fe0857b6d9fb18739df14fccac7d9ef21f42321c943876
+証拠の整形: 行番号付き資料抜粋と採取補助ソースの行末空白だけを除去した。JSON/JSONL 内の記録本文は変更していない。

@@ -1,0 +1,64 @@
+
+2026-10-11T00:50:36.099236+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'disable', 'r3-hook-probe']
+Disabled plugin "r3-hook-probe".
+
+exit=0
+
+2026-10-11T00:50:40.753947+00:00
+$ ['/home/user/v03/openclaw/oc', 'plugins', 'uninstall', 'r3-hook-probe', '--force']
+Plugin: R3 Hook Probe (r3-hook-probe)
+Will remove: plugin settings, install record, load path
+Uninstalled plugin "r3-hook-probe". Removed: plugin settings, install record, load path.
+
+exit=0
+
+2026-10-11T00:50:43.743409+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'agents.entries.r3-leader.skills']
+Removed agents.entries.r3-leader.skills. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:50:46.723245+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'agents.entries.r3-worker.skills']
+Removed agents.entries.r3-worker.skills. Change will apply without restarting the gateway.
+
+exit=0
+
+2026-10-11T00:50:49.749962+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'agents.entries.r3-auditor.skills']
+Removed agents.entries.r3-auditor.skills. Change will apply without restarting the gateway.
+
+exit=0
+2026-10-11T00:50:49.750438+00:00 Removed skill directory /home/user/v03/openclaw/state/skills/r3-common-word
+2026-10-11T00:50:49.750670+00:00 Removed skill directory /home/user/v03/work/openclaw/scratch/r3-worker/skills/r3-worker-secret
+2026-10-11T00:50:49.750827+00:00 Removed temporary native edit target /home/user/v03/work/openclaw/scratch/r3-leader/r3-native-probe.txt
+2026-10-11T00:50:49.750950+00:00 Removed temporary native edit target /home/user/v03/work/openclaw/scratch/r3-worker/r3-native-probe.txt
+2026-10-11T00:50:49.751088+00:00 Removed temporary native edit target /home/user/v03/work/openclaw/scratch/r3-auditor/r3-native-probe.txt
+2026-10-11T00:50:49.751507+00:00 Removed shared prompt source after archiving /home/user/v03/openclaw/r3-run/common-instructions.txt
+2026-10-11T00:50:49.751811+00:00 Removed temporary extension source /home/user/v03/openclaw/r3-hook-probe
+2026-10-11T00:50:49.752025+00:00 Removed temporary extension source /home/user/v03/openclaw/r3-mcp
+
+2026-10-11T00:50:52.178274+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'validate']
+Config valid: /home/user/v03/openclaw/openclaw.json
+
+exit=0
+
+2026-10-11T00:50:52.933203+00:00
+$ ['systemctl', '--user', 'restart', 'v03-openclaw.service']
+
+exit=0
+2026-10-11T00:50:52.933298+00:00 Kept all 3 agents, their AGENTS.md, initial backup-r3/openclaw.before.json, original authentication and CLI config files.
+
+2026-10-11T00:51:38.253328+00:00
+$ ['/home/user/v03/openclaw/oc', 'config', 'unset', 'plugins.entries.r3-hook-probe']
+Removed plugins.entries.r3-hook-probe. Change will apply without restarting the gateway.
+
+exit=0
+Removed run-generated backup (metadata only): {"path": "/home/user/v03/openclaw/openclaw.json.bak", "size": 4586, "mtime": 1791679898.0369313}
+Removed run-generated backup (metadata only): {"path": "/home/user/v03/openclaw/openclaw.json.bak.1", "size": 4608, "mtime": 1791679849.4767072}
+Removed run-generated backup (metadata only): {"path": "/home/user/v03/openclaw/openclaw.json.bak.2", "size": 4696, "mtime": 1791679846.5047548}
+Removed run-generated backup (metadata only): {"path": "/home/user/v03/openclaw/openclaw.json.bak.3", "size": 4784, "mtime": 1791679843.5228024}
+Removed run-generated backup (metadata only): {"path": "/home/user/v03/openclaw/openclaw.json.bak.4", "size": 4856, "mtime": 1791679839.8888602}
+Removed empty workspace skills directory: /home/user/v03/work/openclaw/scratch/r3-worker/skills

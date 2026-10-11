@@ -1,0 +1,191 @@
+Installed OpenClaw 2026.9.8 (fc23bc8). Official package documentation/source, not live-main assumptions.
+
+docs/concepts/multi-agent.md L17-L47
+sha256=d9f45f820a694649525e40de597b0b2057036bfa5223377517bfe3c8b5152b4c
+17: Each agent has its own:
+18:
+19: - **Workspace**: files, `AGENTS.md`/`SOUL.md`/`USER.md`, local notes, persona rules.
+20: - **State directory** (`agentDir`): auth profiles, model registry, per-agent config.
+21: - **Session store**: chat history and routing state in `<agentDir>/openclaw-agent.sqlite`.
+22:
+23: Auth profiles are per-agent, read from `<agentDir>/openclaw-agent.sqlite`. With the default layout, that resolves to:
+24:
+25: ```text
+26: ~/.openclaw/agents/<agentId>/agent/openclaw-agent.sqlite
+27: ```
+28:
+29: <Note>
+30: `sessions_history` is the safer cross-session recall path: it returns a bounded, redacted view, not a raw transcript dump. It strips thinking-block signatures, tool-result payload details, `<relevant-memories>` scaffolding, tool-call XML tags (`<tool_call>`, `<function_call>`, and their plural/downgraded forms), and MiniMax tool-call XML, then truncates and caps output by byte size.
+31: </Note>
+32:
+33: <Warning>
+34: Never reuse `agentDir` across agents — it causes auth/session state collisions. When a secondary agent's local OAuth credential is expired or its refresh fails, OpenClaw reads through to the default/main agent's credential for the same profile id and adopts whichever token is freshest, without copying the refresh token into the secondary agent's store. If you want a fully independent OAuth account, sign in from that agent. If you copy credentials manually, copy only portable static `api_key` or `token` profiles — OAuth refresh material is not portable by default (`copyToAgents` can opt a profile in explicitly).
+35: </Warning>
+36:
+37: Skills load from each agent workspace plus shared roots such as `~/.openclaw/skills`, then filter by the effective agent skill allowlist. Use `agents.defaults.skills` for a shared baseline and `agents.entries.*.skills` for a per-agent replacement (explicit entries replace the default, they do not merge). See [Skills: per-agent vs shared](/tools/skills#per-agent-vs-shared-skills) and [Skills: agent allowlists](/tools/skills#agent-allowlists).
+38:
+39: Plugin-owned storage follows that plugin's configuration; adding a second agent
+40: does not automatically split every global plugin store. For example, configure
+41: [Memory Wiki per-agent vaults](/concepts/multi-agent#per-agent-memory-wiki-vaults)
+42: when personas must not share compiled wiki knowledge.
+43:
+44: <Note>
+45: **Workspace note:** each agent's workspace is the **default cwd**, not a hard sandbox. Relative paths resolve inside the workspace, but absolute paths can reach other host locations unless sandboxing is enabled. See [Sandboxing](/gateway/sandboxing).
+46: </Note>
+47:
+
+docs/concepts/system-prompt.md L145-L180
+sha256=92f445c634a3592f4d34c2b410f1386099d9e7a4a1666f1f4ab5fc5c10344307
+145: ## Workspace bootstrap injection
+146:
+147: Agent identity, instructions, and memory are resolved from the configured agent workspace and routed to the prompt surface matching their lifetime. When a session runs from another folder or managed worktree, that folder remains the execution workspace. Its `AGENTS.md` is appended after the configured workspace files as project context; OpenClaw does not load `SOUL.md`, `IDENTITY.md`, `USER.md`, `MEMORY.md`, or `BOOTSTRAP.md` from the execution folder.
+148:
+149: - `AGENTS.md`
+150: - `SOUL.md`
+151: - `IDENTITY.md`
+152: - `USER.md`
+153: - `BOOTSTRAP.md` (only on brand-new workspaces)
+154: - `MEMORY.md` when present
+155:
+156: On the native Codex harness, OpenClaw avoids repeating stable workspace files in every user turn. Codex loads the execution folder's `AGENTS.md`, including its `## Tools` section, through native project-doc discovery, so OpenClaw does not inject that file again. When execution uses another folder, OpenClaw adds the configured agent workspace's bounded `AGENTS.md` snapshot to the thread-level developer instructions so native Codex sub-agents inherit it. On the managed bundled stdio app-server, `SOUL.md`, `IDENTITY.md`, and `USER.md` are appended to parent-only model request instructions rather than native history, so newly delivered persona does not automatically flow to native subagents. External and Desktop connections retain the legacy collaboration carrier with an explicit availability warning; older history is preserved. `MEMORY.md` content is not pasted into every native Codex turn either: when memory tools are available for the agent workspace, Codex turns get a small workspace-memory note directing the model to `memory_search` or `memory_get`. If tools are disabled or memory search is unavailable, `MEMORY.md` falls back to the normal bounded turn-context path. `BOOTSTRAP.md` keeps the normal turn-context role.
+157:
+158: Heartbeat monitor scratch is not a bootstrap file. The heartbeat runner appends it only to the scheduled heartbeat user message; normal turns do not receive it, and the system prompt contains no heartbeat-specific section.
+159:
+160: On non-Codex harnesses, the remaining bootstrap files compose into the OpenClaw prompt per their existing gates. Keep injected files concise, especially non-Codex `MEMORY.md`: it should stay a curated long-term summary, with detailed daily notes in `memory/*.md` retrievable on demand via `memory_search` / `memory_get`. Oversized non-Codex `MEMORY.md` files increase prompt usage and can be partially injected under the bootstrap file limits below.
+161:
+162: <Note>
+163: `memory/*.md` daily files are **not** part of the normal bootstrap Project Context. On ordinary turns they are accessed on demand via `memory_search` / `memory_get`, so they do not count against the context window unless the model explicitly reads them. Bare `/new` and `/reset` turns are the exception: the runtime can prepend recent daily memory as a one-shot startup-context block for that first turn.
+164: </Note>
+165:
+166: Large files are truncated with a marker:
+167:
+168: | Limit                   | Config key                               | Default |
+169: | ----------------------- | ---------------------------------------- | ------- |
+170: | Per-file max characters | `agents.defaults.bootstrapMaxChars`      | 20000   |
+171: | Total across all files  | `agents.defaults.bootstrapTotalMaxChars` | 60000   |
+172:
+173: When truncation happens, OpenClaw always injects a concise notice into the system prompt saying some bootstrap files were truncated and to read the affected files directly; this notice is built in and not configurable, and it deliberately omits per-file details. Missing files inject a short missing-file marker. File names and raw/injected counts stay in diagnostics such as `/context`, `/status`, doctor, and logs.
+174:
+175: For memory files, truncation is not data loss: the file stays intact on disk. On native Codex, `MEMORY.md` is read on demand through memory tools when available, with bounded prompt fallback otherwise. On other harnesses, the model only sees the shortened injected copy until it reads or searches memory directly. If `MEMORY.md` is repeatedly truncated, distill it into a shorter durable summary, move detailed history into `memory/*.md`, or intentionally raise the bootstrap limits.
+176:
+177: Sub-agent sessions only inject `AGENTS.md` (other bootstrap files are filtered out to keep sub-agent context small).
+178:
+179: Internal hooks can intercept this step via the `agent:bootstrap` event to mutate or replace the injected bootstrap files (for example swapping `SOUL.md` for an alternate persona).
+180:
+
+docs/automation/hooks/bundled-hooks.md L45-L79
+sha256=3090c72c46fcbc7e5ec6f361683ead8b540d9228a6ff506e32dd73d242a1d883
+45: <a id="bootstrap-extra-files"></a>
+46:
+47: ### bootstrap-extra-files config
+48:
+49: ```json
+50: {
+51:   "hooks": {
+52:     "internal": {
+53:       "entries": {
+54:         "bootstrap-extra-files": {
+55:           "enabled": true,
+56:           "paths": ["packages/*/AGENTS.md"]
+57:         }
+58:       }
+59:     }
+60:   }
+61: }
+62: ```
+63:
+64: `paths` is preferred. If it is empty, the handler tries `patterns`, then `files`;
+65: these are alternatives, not merged lists. Without patterns, the hook does nothing.
+66:
+67: Paths resolve relative to the event's workspace and must remain inside it,
+68: including after symlink resolution. Only these basenames load: `AGENTS.md`,
+69: `SOUL.md`, `IDENTITY.md`, `USER.md`, `BOOTSTRAP.md`, and `MEMORY.md`.
+70:
+71: Extra files go through normal bootstrap filtering and injection limits. Reads
+72: are capped at 2 MiB per file. Injection defaults to 20,000 characters per file
+73: and 60,000 total, controlled by `bootstrapMaxChars` and
+74: `bootstrapTotalMaxChars` in agent defaults or overrides; `USER.md` has a separate
+75: 4,000-character cap. Duplicate paths are removed. Subagents retain only
+76: `AGENTS.md`; cron and non-private conversations have additional context/privacy
+77: filters. Inspect the actual injected result with `/context detail`; see
+78: [Context](/concepts/context).
+79:
+
+docs/gateway/doctor/config-migrations.md L399-L410
+sha256=066b7360cf70b1edf8216b03b9541a93df35dd39c5e8323b6d808e4157d5ac2f
+399:     | `agents.list`                                                                                    | keyed `agents.entries`                                                        |
+400:     | top-level `defaultModel`                                                                         | `agents.defaults.model`                                                      |
+401:     | `session.maintenance.pruneDays`, `session.resetByType.dm`                                        | `session.maintenance.pruneAfter`, `session.resetByType.direct`               |
+402:     | top-level `tui`                                                                                  | removed (the TUI footer uses the compact default)                            |
+403:     | `plugins.entries.codex.config.codexDynamicToolsProfile`                                          | removed (Codex app-server always keeps Codex-native workspace tools native) |
+404:     | `commands.modelsWrite`                                                                           | removed (`/models add` is deprecated)                                       |
+405:     | `agents.defaults/list[].silentReplyRewrite`, `surfaces.*.silentReplyRewrite`                     | removed (exact `NO_REPLY` is no longer rewritten to visible fallback text)  |
+406:     | `agents.defaults.silentReply.direct/internal`, `surfaces.*.silentReply.direct/internal`          | removed (only external channel groups may opt into silent replies)          |
+407:     | `agents.defaults/list[].systemPromptOverride`                                                    | removed (OpenClaw owns the generated system prompt)                        |
+408:     | top-level `memorySearch`, `agents.defaults.memorySearch`                                         | `memory.search`                                                             |
+409:     | `agents.entries.*.memorySearch`                                                                     | `agents.entries.*.memory.search`                                               |
+410:     | `memorySearch.provider: "auto"`                                                                  | `"openai"`                                                                    |
+
+docs/concepts/user-model.md L12-L30
+sha256=01b2422c7a623a674b3e01c390a1bebfc9da0db567ca0218db48b96070c5d427
+12: `USER.md` is the optional user-model artifact in an agent workspace. It stores stable preferences, communication style, relationships, and active-project context as directives that can guide future sessions.
+13:
+14: OpenClaw loads `USER.md` beside `MEMORY.md` at session start. It has a separate small bootstrap budget, and edits are picked up on later turns in a long-lived session. If the file is absent, startup continues without it.
+15:
+16: ## Personal USER files on a shared Gateway
+17:
+18: Single-user Gateways use only the agent workspace's root `USER.md`, editable in
+19: **Agents → Files**. They do not expose the personal instructions editor or chat
+20: tool, accept personal-file API requests, or load a second per-profile `USER.md`.
+21: An existing per-profile file is left on disk unchanged, not automatically merged
+22: into the root file.
+23:
+24: Personal files are available only when the Gateway has at least two distinct,
+25: unmerged person profiles, using the existing multi-user identity policy. The
+26: shared Owner profile does not count as a separate person. After the roster
+27: changes, reconnect the Control UI to refresh its advertised capabilities; the
+28: server rechecks the current policy on every read and write.
+29:
+30: Open **Settings → Profile → Personal instructions**, choose an agent in the
+
+docs/plugins/hooks/prompt-and-session.md L25-L63
+sha256=6e84e739638c66a45315a9af7c5348dc9d244bbd0bb97a40e5e872212b369c4a
+25: `--raw-stream-path <path>` to write raw model stream events to a jsonl file.
+26:
+27: ## Prompt and model hooks
+28:
+29: Use the phase-specific hooks for new plugins:
+30:
+31: - `before_model_resolve`: receives only the current prompt and attachment
+32:   metadata. Return `providerOverride` or `modelOverride`.
+33: - `agent_turn_prepare`: receives the current prompt, prepared session
+34:   messages, and queued injections consumed for this session.
+35:   Return `prependContext` or `appendContext`.
+36: - `before_prompt_build`: receives the prepared prompt and session messages.
+37:   Harnesses may also supply `currentUserMessage`, the current request before
+38:   history/context projection, and `currentUserMessageId`, its native admission
+39:   identity. The ID stays stable across rebuilds and retries of one admitted
+40:   request and differs between admissions. Use the explicit request for intent
+41:   detection when available; `prompt` may contain reconstructed history. Do not
+42:   parse envelope markers to recover request boundaries. An explicit empty string
+43:   means no textual request, including image-only input or a continuation without
+44:   a retained request. It must not fall back to history. Codex runtime refresh
+45:   retains the original recorder's text and identity. Without a recorder, Codex
+46:   supplies current text but no admission ID; equal text and a correlation run ID
+47:   alone do not identify an admission. Omitted fields preserve existing harness
+48:   behavior.
+49:   Return `prependContext`, `appendContext`, `systemPrompt`,
+50:   `prependSystemContext`, `appendSystemContext`, or `toolsAllow`. `toolsAllow`
+51:   can only narrow the host-resolved tool surface for the current turn; `[]`
+52:   submits no optional tools, while omitting it leaves the existing surface unchanged.
+53:   Restrictions returned by multiple hooks are intersected. The embedded runner
+54:   and Copilot harness apply this field to their turn-scoped submitted tool
+55:   surfaces. The Codex app-server harness rejects restrictive values because its
+56:   dynamic tools are thread-scoped and Codex `turn/start` has no tool-surface
+57:   override; use the embedded or Copilot runtime when a plugin requires this
+58:   policy.
+59: - `before_prompt_build` with `{ requiresToolAuthority: true }`: runs in a
+60:   second, post-policy phase. Use it when prompt enrichment reads data through
+61:   a tool-backed capability and the same turn must be allowed to call that
+62:   tool. See [Authorized prompt
+63:   enrichment](/plugins/hooks/prompt-and-session#authorized-prompt-enrichment).

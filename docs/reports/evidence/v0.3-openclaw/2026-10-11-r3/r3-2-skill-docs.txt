@@ -1,0 +1,88 @@
+Installed OpenClaw 2026.9.8 (fc23bc8). Official package documentation/source, not live-main assumptions.
+
+docs/tools/skills.md L115-L135
+sha256=885caf108b22097db469ed3263542e8546cfeafcd8a6e41f5e5bd32e55fe92fd
+115: ## Per-agent vs shared skills
+116:
+117: In multi-agent setups, each agent has its own workspace. Use the path that
+118: matches your desired visibility:
+119:
+120: | Scope          | Path                                                 | Visible to                     |
+121: | -------------- | ---------------------------------------------------- | ------------------------------ |
+122: | Per-agent      | `<workspace>/skills`                                 | Only that agent                |
+123: | Project-agent  | `<workspace>/.agents/skills`                         | Only that workspace's agent    |
+124: | Personal-agent | `~/.agents/skills`                                   | Agents using the default state |
+125: | Shared managed | `<state-dir>/skills`                                 | All agents using that state    |
+126: | Workshop       | `<state-dir>/agents/<agentId>/agent/workshop-skills` | Only that agent                |
+127: | Extra dirs     | `skills.load.extraDirs`                              | All agents using that config   |
+128:
+129: Workshop skills learned by one agent are not shared with another agent. Publish
+130: a skill to the managed library when it must be available to multiple agents.
+131:
+132: When `OPENCLAW_STATE_DIR` points somewhere other than the default
+133: `~/.openclaw`, session skill indexes exclude home-scoped personal or
+134: compatibility skill roots such as `~/.agents/skills`. Workspace, project,
+135: bundled, extra, and state-owned managed skills continue to load normally.
+
+docs/tools/skills.md L215-L247
+sha256=885caf108b22097db469ed3263542e8546cfeafcd8a6e41f5e5bd32e55fe92fd
+215:
+216: <a id="agent-skill-allowlists" />
+217:
+218: ## Agent allowlists
+219:
+220: Skill **location** (precedence) and skill **visibility** (which agent can use
+221: it) are separate controls. Use allowlists to restrict which skills an agent sees,
+222: regardless of where they are loaded from.
+223:
+224: ```json5
+225: {
+226:   agents: {
+227:     defaults: {
+228:       skills: ["github", "weather"], // shared baseline
+229:     },
+230:     entries: {
+231:       writer: { default: true }, // inherits github, weather
+232:       docs: { skills: ["docs-search"] }, // replaces defaults entirely
+233:       "locked-down": { skills: [] }, // no skills
+234:     },
+235:   },
+236: }
+237: ```
+238:
+239: <AccordionGroup>
+240:   <Accordion title="Allowlist rules">
+241:     - Omit `agents.defaults.skills` to leave all skills unrestricted by default.
+242:     - Omit `agents.entries.*.skills` to inherit `agents.defaults.skills`.
+243:     - Set `agents.entries.*.skills: []` to expose no skills for that agent.
+244:     - A non-empty `agents.entries.*.skills` list is the **final** set — it does not
+245:       merge with defaults.
+246:     - The effective allowlist applies across prompt building, slash-command
+247:       discovery, sandbox sync, and skill snapshots.
+
+docs/tools/skills.md L723-L746
+sha256=885caf108b22097db469ed3263542e8546cfeafcd8a6e41f5e5bd32e55fe92fd
+723: Managed library selections keep their exact revisions until an explicit
+724: attach or refresh, including across Gateway restarts. The refresh triggers
+725: below apply to ordinary file-backed skill roots.
+726:
+727: File-backed skills refresh mid-session when:
+728:
+729: - The skills watcher detects a `SKILL.md` change.
+730: - The Gateway restarts, including when `skills.load.watch` is `false`.
+731: - A new eligible remote node connects.
+732: - Native file-watch capacity is exhausted and the next agent turn starts.
+733: - A previously idle or evicted workspace resumes watching on its next agent turn.
+734:
+735: The refreshed list is picked up on the next agent turn in the same session.
+736: If the effective agent allowlist changes, OpenClaw refreshes the snapshot to
+737: keep visible skills aligned.
+738:
+739: When native watch capacity is exhausted, OpenClaw logs one warning and stops
+740: the skills watchers. With watching enabled, later agent turns refresh file-backed
+741: skills through the existing snapshot preparation. Restart the Gateway after
+742: restoring watch capacity to enable native watching again.
+743:
+744: Watcher subscriptions are retained for the 128 most recently used combinations of
+745: agent, configured workspace, and execution workspace. Subscriptions idle for an
+746: hour are also retired when another workspace prepares its skills. Shared skill

@@ -1,0 +1,75 @@
+--- before
++++ r3-0-config-final
+@@ -59,7 +59,6 @@
+     ]
+   },
+   "agents": {
+-    "ownership": "explicit",
+     "defaults": {
+       "workspace": "/home/user/v03/work/openclaw/scratch",
+       "cwd": "/home/user/v03/work/openclaw/scratch",
+@@ -83,6 +82,7 @@
+         }
+       }
+     },
++    "ownership": "explicit",
+     "entries": {
+       "claude": {
+         "name": "Claude Code",
+@@ -114,6 +114,44 @@
+             "claude"
+           ]
+         }
++      },
++      "r3-leader": {
++        "name": "r3-leader",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
++        "identity": {
++          "name": "r3-leader"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-leader",
++        "verboseDefault": "on",
++        "subagents": {
++          "allowAgents": [
++            "r3-worker"
++          ]
++        }
++      },
++      "r3-worker": {
++        "name": "r3-worker",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
++        "identity": {
++          "name": "r3-worker"
++        },
++        "model": "openai/gpt-6-astra",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-worker",
++        "verboseDefault": "on"
++      },
++      "r3-auditor": {
++        "name": "r3-auditor",
++        "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
++        "identity": {
++          "name": "r3-auditor"
++        },
++        "model": "anthropic/claude-sonnet-5",
++        "cwd": "/home/user/v03/work/openclaw/scratch/r3-auditor",
++        "verboseDefault": "on"
+       }
+     }
+   },
+@@ -126,7 +164,10 @@
+       "enabled": true,
+       "allow": [
+         "claude",
+-        "codex"
++        "codex",
++        "r3-leader",
++        "r3-worker",
++        "r3-auditor"
+       ]
+     }
+   },

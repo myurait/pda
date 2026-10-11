@@ -1,0 +1,889 @@
+{
+  "utc": "2026-10-11T00:51:38.458Z",
+  "agents": {
+    "defaultId": "claude",
+    "ownership": "explicit",
+    "selectionRequired": true,
+    "mainKey": "main",
+    "scope": "per-sender",
+    "agents": [
+      {
+        "id": "claude",
+        "name": "Claude Code",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "workspaceGit": true,
+        "agentRuntime": {
+          "id": "claude-cli",
+          "cloudPlacementSupported": false,
+          "devicePlacementSupported": false,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingOptions": [
+          "off",
+          "minimal",
+          "low",
+          "medium",
+          "adaptive",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "thinkingDefault": "high",
+        "model": {
+          "primary": "anthropic/claude-sonnet-5"
+        },
+        "defaultPermissionMode": "full"
+      },
+      {
+        "id": "codex",
+        "name": "Codex",
+        "workspace": "/home/user/v03/work/openclaw/scratch",
+        "workspaceGit": true,
+        "agentRuntime": {
+          "id": "codex",
+          "cloudPlacementSupported": true,
+          "cloudPlacementExecutionMode": "remote-exec",
+          "devicePlacement": {
+            "requiredNodeCommands": [
+              "codex.exec-server.stdio.v1"
+            ],
+            "consumesWorkerSlot": false
+          },
+          "devicePlacementSupported": true,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingOptions": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "thinkingDefault": "medium",
+        "model": {
+          "primary": "openai/gpt-6-astra"
+        },
+        "defaultPermissionMode": "full"
+      },
+      {
+        "id": "r3-auditor",
+        "name": "r3-auditor",
+        "identity": {
+          "name": "r3-auditor"
+        },
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+        "workspaceGit": true,
+        "agentRuntime": {
+          "id": "claude-cli",
+          "cloudPlacementSupported": false,
+          "devicePlacementSupported": false,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingOptions": [
+          "off",
+          "minimal",
+          "low",
+          "medium",
+          "adaptive",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "thinkingDefault": "high",
+        "model": {
+          "primary": "anthropic/claude-sonnet-5"
+        },
+        "defaultPermissionMode": "full",
+        "createdVia": "operator",
+        "creatorAgentId": null,
+        "createdAt": 1791678713294
+      },
+      {
+        "id": "r3-leader",
+        "name": "r3-leader",
+        "identity": {
+          "name": "r3-leader"
+        },
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
+        "workspaceGit": true,
+        "agentRuntime": {
+          "id": "claude-cli",
+          "cloudPlacementSupported": false,
+          "devicePlacementSupported": false,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingOptions": [
+          "off",
+          "minimal",
+          "low",
+          "medium",
+          "adaptive",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "thinkingDefault": "high",
+        "model": {
+          "primary": "anthropic/claude-sonnet-5"
+        },
+        "defaultPermissionMode": "full",
+        "createdVia": "operator",
+        "creatorAgentId": null,
+        "createdAt": 1791678686704
+      },
+      {
+        "id": "r3-worker",
+        "name": "r3-worker",
+        "identity": {
+          "name": "r3-worker"
+        },
+        "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
+        "workspaceGit": true,
+        "agentRuntime": {
+          "id": "codex",
+          "cloudPlacementSupported": true,
+          "cloudPlacementExecutionMode": "remote-exec",
+          "devicePlacement": {
+            "requiredNodeCommands": [
+              "codex.exec-server.stdio.v1"
+            ],
+            "consumesWorkerSlot": false
+          },
+          "devicePlacementSupported": true,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingOptions": [
+          "low",
+          "medium",
+          "high",
+          "xhigh",
+          "max",
+          "ultra"
+        ],
+        "thinkingDefault": "medium",
+        "model": {
+          "primary": "openai/gpt-6-astra"
+        },
+        "defaultPermissionMode": "full",
+        "createdVia": "operator",
+        "creatorAgentId": null,
+        "createdAt": 1791678700088
+      }
+    ]
+  },
+  "sessions": [
+    {
+      "key": "agent:r3-auditor:r3-r3-1-common-auditor-1791679774631",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-1-common-worker-1791679761099",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-1-common-leader-1791679750053",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-4-native-edit-auditor-1791679711064",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-4-native-edit-worker-1791679692776",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-4-native-edit-leader-1791679671177",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-4-word-auditor-1791679654043",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-4-word-worker-1791679643508",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-4-word-leader-1791679630468",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-4-date-auditor-1791679617333",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-4-date-worker-1791679590389",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-4-date-leader-1791679576396",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-3-session-on-leader-1791679091881",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-3-session-on-leader-retry-1791679213540",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-3-session-denied-leader-1791679398603",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-3-agent-auditor-1791679368941",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-3-agent-worker-1791679359103",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-3-agent-leader-1791679345927",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-3-session-off-worker-1791679134774",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-3-session-off-leader-1791679107078",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-2-disabled-auditor-retry-1791679090743",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-2-disabled-auditor-1791679043643",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-2-updated-auditor-1791679029228",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-2-updated-worker-1791679013692",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-2-updated-leader-1791679000595",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-2-initial-auditor-1791678984769",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-2-initial-worker-1791678951188",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-2-initial-leader-1791678936580",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-1-spawn-1791678783577",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:subagent:e99790eb-70f3-40a2-9159-5fd42f19c856",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-auditor:r3-r3-1-prompt-auditor-1791678775242",
+      "agentId": "r3-auditor",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:r3-r3-1-prompt-worker-1791678759363",
+      "agentId": "r3-worker",
+      "model": "gpt-6-astra",
+      "agentRuntime": {
+        "id": "codex",
+        "cloudPlacementSupported": true,
+        "cloudPlacementExecutionMode": "remote-exec",
+        "devicePlacement": {
+          "requiredNodeCommands": [
+            "codex.exec-server.stdio.v1"
+          ],
+          "consumesWorkerSlot": false
+        },
+        "devicePlacementSupported": true,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:r3-r3-1-prompt-leader-1791678747445",
+      "agentId": "r3-leader",
+      "model": "claude-sonnet-5",
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "status": "done",
+      "hasActiveRun": false
+    }
+  ],
+  "r3RuntimeConfig": {
+    "r3-leader": {
+      "name": "r3-leader",
+      "workspace": "/home/user/v03/work/openclaw/scratch/r3-leader",
+      "cwd": "/home/user/v03/work/openclaw/scratch/r3-leader",
+      "agentDir": "/home/user/v03/openclaw/state/agents/r3-leader/agent",
+      "model": "anthropic/claude-sonnet-5",
+      "verboseDefault": "on",
+      "subagents": {
+        "allowAgents": [
+          "r3-worker"
+        ]
+      },
+      "identity": {
+        "name": "r3-leader"
+      }
+    },
+    "r3-worker": {
+      "name": "r3-worker",
+      "workspace": "/home/user/v03/work/openclaw/scratch/r3-worker",
+      "cwd": "/home/user/v03/work/openclaw/scratch/r3-worker",
+      "agentDir": "/home/user/v03/openclaw/state/agents/r3-worker/agent",
+      "model": "openai/gpt-6-astra",
+      "verboseDefault": "on",
+      "identity": {
+        "name": "r3-worker"
+      }
+    },
+    "r3-auditor": {
+      "name": "r3-auditor",
+      "workspace": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+      "cwd": "/home/user/v03/work/openclaw/scratch/r3-auditor",
+      "agentDir": "/home/user/v03/openclaw/state/agents/r3-auditor/agent",
+      "model": "anthropic/claude-sonnet-5",
+      "verboseDefault": "on",
+      "identity": {
+        "name": "r3-auditor"
+      }
+    }
+  },
+  "mcp": null,
+  "temporaryPlugin": null,
+  "loadPaths": [],
+  "hasActiveR3": false
+}
