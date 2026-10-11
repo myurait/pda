@@ -668,3 +668,35 @@ cccc 自身の文書 (v0.4.42) と、cccc がエージェントに渡す約束�
   - チャットは「エージェントの作業の様子」ではなく「人とエージェントの連絡」を映す。作業の様子は Terminals か報告で見る。
   - 入口のエージェントは、個人の秘書ではなく、チームの取りまとめ役として振る舞うよう指示されている。
   - グループは作業するフォルダに結びつく。プロジェクトをまたぐ仕事は、作業先を複数付けるか、グループを分けて cccc の Connect でつなぐ形になる。
+
+## 14. OpenClaw の hook と判定モデル (2026-10-11)
+
+エージェントの作業の段ごとに割り込む仕組みと、Jev のような判定モデルを組み込む口を、OpenClaw の資料、公開済みの plugin、第三者の実装で調べた。R3 の試用で確かめた点は [評価](../../reports/v0.3-openclaw-evaluation.md) の R3 の節にある。
+
+### 14.1 plugin の hook
+
+- plugin は `api.on("<hook>", handler)` で、作業の段ごとの hook を登録できる ([hooks.md](https://github.com/openclaw/openclaw/blob/main/docs/plugins/hooks.md)、[reference.md](https://github.com/openclaw/openclaw/blob/main/docs/plugins/hooks/reference.md))。主なもの:
+  - 依頼の受け取り: `before_dispatch` (通常の振り分けの前に受け取る)、`reply_dispatch` (返事の生成を引き受ける)。
+  - モデルに渡す前: `before_model_resolve` (提供元とモデルを差し替える)、`before_prompt_build` (文脈を足す、そのターンの道具を絞る)、`before_agent_run` (モデルに渡す前に止める)。
+  - 道具: `before_tool_call` (引数の書き換え、止める、承認を求める)、`after_tool_call`。
+  - 返事: `before_agent_reply`、`before_agent_finalize` (もう 1 回考えさせる)、`message_sending`。
+  - 下位のエージェント: `subagent_spawned`、`subagent_ended`。
+- 登録はエージェントやセッションに自動では絞られない。絞るには、hook の処理の中で `ctx.agentId` などを見て分ける。
+- 実行器ごとの違い (資料):
+  - Codex では `before_agent_run` を入力の止め口として当てにしない。`before_prompt_build` の道具を絞る指定は Codex の実行器では断られる。Codex の内蔵の道具は、止めることと見ることはできるが、引数の書き換えはできない ([codex-harness-runtime/hooks.md](https://github.com/openclaw/openclaw/blob/main/docs/plugins/codex-harness-runtime/hooks.md))。
+  - Codex の `SessionStart` と `UserPromptSubmit` は、OpenClaw の plugin の hook として出ていない。
+
+### 14.2 判定モデル
+
+- `decisionModel` はモデルの役の 1 つで、エージェントごとに選べる。選んだエージェントには `decision_evaluate` の道具が付く ([decision-models.md](https://github.com/openclaw/openclaw/blob/main/docs/concepts/decision-models.md))。
+- plugin の hook や道具の中から `api.runtime.decisions.evaluate(...)` で判定を呼べる。質問は choice、score、boolean の 3 種で、結果は確率付きで返る。1 回の判定の上限は 30 秒、提供元ごとに同時 4 件。
+- 提供元: TypeSafe (Jev を hosted で、Kev を手元のサーバで) と ONNX (手元の CPU の分類器)。TypeSafe の plugin は npm に `@openclaw/typesafe` として公開されている (2026-09-23 初版、最新 2026.10.1)。この plugin は判定の提供元を登録するだけで、hook は登録しない。
+- 製品が自動で判定を使うのは、試験的な機能 (`decisionAssistance`) で、OpenClaw 自身の実行器のターンで要らない道具を外す用途だけ。
+
+### 14.3 第三者の plugin で、hook と判定モデルを組み合わせたもの
+
+- [trietphan/jev-claw](https://github.com/trietphan/jev-claw): `sessions_spawn` の呼び出しに `before_tool_call` を掛け、Jev の判定と違う相手のエージェントへの委譲を止める。Jev がエージェントの割り当てを決める形。
+- [jason-allen-oneal/openclaw-plugin-typesafe-ai](https://github.com/jason-allen-oneal/openclaw-plugin-typesafe-ai): `before_tool_call` で Jev に危険度を採点させ、高ければ承認を求める。`before_model_resolve` で Jev にモデルを選ばせる機能もある (既定は切ってある)。
+- [FailproofAI/failproofai](https://github.com/FailproofAI/failproofai): OpenClaw 用の hook (`before_tool_call`、`before_agent_run`、`before_agent_finalize`) から自前の判定に渡し、その中で Jev に「頼まれたことと道具の呼び出しが合っているか」を判定させる。
+- [OpenBMB/ClawXRouter](https://github.com/OpenBMB/ClawXRouter): `before_model_resolve` で、手元の小さなモデルに依頼の難しさを判定させ、使うモデルを振り分ける。今の版から外れた hook も使っており、今の版での動作は確かめられていない。
+- 判定モデルを使わず `before_tool_call` で止める・承認を求める plugin は多い (Cisco DefenseClaw、NVIDIA NemoClaw、Gen Digital Sage ほか)。公開の場は npm と ClawHub (https://clawhub.ai)。
