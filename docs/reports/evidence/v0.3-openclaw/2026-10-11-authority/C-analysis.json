@@ -1,0 +1,93 @@
+{
+  "label": "C",
+  "key": "agent:r3-leader:authority-c-1791695861948",
+  "startedAt": "2026-10-11T05:17:41.948Z",
+  "sentAt": "2026-10-11T05:17:44.209Z",
+  "endedAt": "2026-10-11T05:20:06.850Z",
+  "connections": [
+    {
+      "label": "C-initial",
+      "deviceAlias": "authority-persistent",
+      "openedAt": "2026-10-11T05:17:41.950Z",
+      "connectedAt": "2026-10-11T05:17:42.832Z",
+      "connId": "6da76265-2516-4f01-b8c0-bc3845f1fda5",
+      "usedStoredToken": true,
+      "closedAt": "2026-10-11T05:18:06.720Z"
+    },
+    {
+      "label": "C-reconnect",
+      "deviceAlias": "authority-ephemeral",
+      "openedAt": "2026-10-11T05:20:06.723Z",
+      "connectedAt": "2026-10-11T05:20:06.753Z",
+      "connId": "bf78fe22-704d-4b4a-8e33-8bfb57dee57d",
+      "usedStoredToken": false,
+      "closedAt": "2026-10-11T05:20:06.850Z"
+    }
+  ],
+  "disconnectedAt": "2026-10-11T05:18:06.720Z",
+  "reconnectedAt": "2026-10-11T05:20:06.753Z",
+  "disconnectedMs": 120003,
+  "children": [
+    "agent:r3-worker:subagent:08d1bca5-9e3a-49b0-ad70-3c9b007f925e"
+  ],
+  "answers": [
+    {
+      "key": "agent:r3-leader:authority-c-1791695861948",
+      "timestamp": "2026-10-11T05:18:09.352000+00:00",
+      "text": "[ROLE:leader]\n子の完了を待ちます。"
+    },
+    {
+      "key": "agent:r3-leader:authority-c-1791695861948",
+      "timestamp": "2026-10-11T05:18:15.048000+00:00",
+      "text": "子エージェント(r3-worker)の完了を待っています。結果が届いたら報告します。"
+    },
+    {
+      "key": "agent:r3-leader:authority-c-1791695861948",
+      "timestamp": "2026-10-11T05:18:36.710000+00:00",
+      "text": "[ROLE:leader]\n子(r3-worker)の回答:「15」"
+    },
+    {
+      "key": "agent:r3-worker:subagent:08d1bca5-9e3a-49b0-ad70-3c9b007f925e",
+      "timestamp": "2026-10-11T05:18:26.729000+00:00",
+      "text": "[ROLE:worker]\n15"
+    }
+  ],
+  "numericAnswerQuoted": true,
+  "entireChildMessageQuoted": false,
+  "firstNumericQuoteAt": "2026-10-11T05:18:36.710000+00:00",
+  "firstWholeQuoteAt": null,
+  "secondsToNumericQuote": 52.501,
+  "toolErrorsInHistory": [],
+  "toolErrorsInEvents": [],
+  "historyMessagesWithTargetErrors": [],
+  "targetErrorOccurrencesBySource": {
+    "C.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    },
+    "C-journal.txt": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 48,
+          "text": "2026-10-11T05:18:26.958780+00:00 agent-node openclaw[535731]: 2026-10-11T14:18:26.958+09:00 [sessions/state-events] failed to record session state event: Error: Subagent terminal signal owner changed before commit"
+        }
+      ]
+    },
+    "C-gateway-log.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 49,
+          "text": "{\"sourceLine\": 1436, \"entry\": {\"0\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"1\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"_meta\": {\"runtime\": \"node\", \"runtimeVersion\": \"24.18.0\", \"hostname\": \"agent-node\", \"date\": \"2026-10-11T05:18:26.958Z\", \"logLevelId\": 4, \"logLevelName\": \"WARN\", \"name\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"parentNames\": [\"openclaw\"]}, \"time\": \"2026-10-11T14:18:26.958+09:00\", \"hostname\": \"agent-node\", \"message\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"traceId\": \"11266ab8a0a127f3ab14d1b60a3f7cab\", \"spanId\": \"bfe932b27e0546a5\", \"parentSpanId\": \"9bef85880d0f17c7\", \"traceFlags\": \"01\"}}"
+        }
+      ]
+    }
+  },
+  "failedRPCs": [],
+  "stopReason": "parent-and-child-idle",
+  "collectorFailures": []
+}

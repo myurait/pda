@@ -1,0 +1,101 @@
+{
+  "label": "A3",
+  "key": "agent:r3-leader:authority-a3-1791695464210",
+  "startedAt": "2026-10-11T05:11:04.210Z",
+  "sentAt": "2026-10-11T05:11:04.458Z",
+  "endedAt": "2026-10-11T05:11:32.250Z",
+  "connections": [
+    {
+      "label": "A3-initial",
+      "deviceAlias": "authority-persistent",
+      "openedAt": "2026-10-11T05:11:04.211Z",
+      "connectedAt": "2026-10-11T05:11:04.250Z",
+      "connId": "7eb1e9c3-203e-47c3-96f4-4a29b7f57be8",
+      "usedStoredToken": true,
+      "closedAt": "2026-10-11T05:11:32.250Z"
+    }
+  ],
+  "disconnectedAt": null,
+  "reconnectedAt": null,
+  "disconnectedMs": null,
+  "children": [],
+  "answers": [
+    {
+      "key": "agent:r3-leader:authority-a3-1791695464210",
+      "timestamp": "2026-10-11T05:11:15.438000+00:00",
+      "text": "r3-workerにタスクを依頼する。"
+    },
+    {
+      "key": "agent:r3-leader:authority-a3-1791695464210",
+      "timestamp": "2026-10-11T05:11:21.154000+00:00",
+      "text": "r3-workerのモデル(openai/gpt-6-astra)に紐づくアカウントが利用できず、子エージェントを起動できませんでした。\n\n[ROLE:leader]\nr3-worker への spawn は失敗しました。エラー: 「選択されたアカウントまたはネイティブランタイムが openai/gpt-6-astra に対して利用できません。そのアカウントを復旧してから再度 spawn してください」。子からの回答は得られていません。復旧後に再試行しますか。"
+    }
+  ],
+  "numericAnswerQuoted": false,
+  "entireChildMessageQuoted": false,
+  "firstNumericQuoteAt": null,
+  "firstWholeQuoteAt": null,
+  "secondsToNumericQuote": null,
+  "toolErrorsInHistory": [
+    {
+      "source": "history",
+      "key": "agent:r3-leader:authority-a3-1791695464210",
+      "timestamp": "2026-10-11T05:11:16.628000+00:00",
+      "toolCallId": "toolu_017pKyBwhtz63L69mjT3fPrJ",
+      "name": "mcp__openclaw__sessions_spawn",
+      "arguments": {
+        "agentId": "r3-worker",
+        "task": "7 と 8 を足した答えだけを 1 行で返してください。余計な説明は不要です。",
+        "label": "7+8計算依頼"
+      },
+      "result": {
+        "type": "tool_result",
+        "content": "{\n  \"status\": \"error\",\n  \"error\": \"sessions_spawn model \\\"openai/gpt-6-astra\\\" is not usable: The selected account or native runtime is unavailable for openai/gpt-6-astra. Restore that account before spawning this model.\",\n  \"role\": \"r3-worker\"\n}",
+        "is_error": true,
+        "tool_use_id": "toolu_017pKyBwhtz63L69mjT3fPrJ",
+        "name": "mcp__openclaw__sessions_spawn"
+      }
+    }
+  ],
+  "toolErrorsInEvents": [
+    {
+      "sourceFile": "A3.jsonl",
+      "sourceLine": 29,
+      "utc": "2026-10-11T05:11:16.707Z",
+      "eventTs": 1791695476706,
+      "key": "agent:r3-leader:authority-a3-1791695464210",
+      "runId": "f8102de5-ab10-4a84-a452-b61169944fbb",
+      "phase": "result",
+      "name": "mcp__openclaw__sessions_spawn",
+      "toolCallId": "toolu_017pKyBwhtz63L69mjT3fPrJ",
+      "isError": true,
+      "result": "{\n  \"status\": \"error\",\n  \"error\": \"sessions_spawn model \\\"openai/gpt-6-astra\\\" is not usable: The selected account or native runtime is unavailable for openai/gpt-6-astra. Restore that account before spawning this model.\",\n  \"role\": \"r3-worker\"\n}",
+      "args": {
+        "agentId": "r3-worker",
+        "task": "7 と 8 を足した答えだけを 1 行で返してください。余計な説明は不要です。",
+        "label": "7+8計算依頼"
+      }
+    }
+  ],
+  "historyMessagesWithTargetErrors": [],
+  "targetErrorOccurrencesBySource": {
+    "A3.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    },
+    "A3-journal.txt": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    },
+    "A3-gateway-log.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    }
+  },
+  "failedRPCs": [],
+  "stopReason": "parent-idle-no-child",
+  "collectorFailures": []
+}

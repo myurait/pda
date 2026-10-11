@@ -1,0 +1,208 @@
+{
+  "requestedAt": "2026-10-11T05:14:25.319382+00:00",
+  "trial": "before-B",
+  "reason": "Preflight models.list reports worker model available=false after prior successful child run, matching the A2/A3 pre-spawn failures. All sessions idle. Restart once before B so that the requested disconnect trial can reach child creation; no extra task sent and no configuration changes.",
+  "before": {
+    "utc": "2026-10-11T05:14:25.325437+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveEnterTimestamp",
+      "-p",
+      "ActiveState"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=533245\nActiveState=active\nActiveEnterTimestamp=Sun 2026-10-11 14:12:16 JST\n",
+    "stderr": ""
+  },
+  "restart": {
+    "utc": "2026-10-11T05:14:26.577570+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "restart",
+      "v03-openclaw.service"
+    ],
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "completedAt": "2026-10-11T05:14:26.577584+00:00",
+  "readiness": [
+    {
+      "utc": "2026-10-11T05:14:26.584159+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:27.590930+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:28.597830+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:29.605306+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:30.612338+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:31.619656+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:32.627045+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:33.634034+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 7,
+      "stdout": "000",
+      "stderr": "curl: (7) Failed to connect to 127.0.0.1 port 5114 after 0 ms: Couldn't connect to server\n"
+    },
+    {
+      "utc": "2026-10-11T05:14:39.395590+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 0,
+      "stdout": "503",
+      "stderr": ""
+    },
+    {
+      "utc": "2026-10-11T05:14:40.425570+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    }
+  ],
+  "after": {
+    "utc": "2026-10-11T05:14:40.431298+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveEnterTimestamp",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=534447\nActiveState=active\nSubState=running\nActiveEnterTimestamp=Sun 2026-10-11 14:14:26 JST\n",
+    "stderr": ""
+  }
+}
