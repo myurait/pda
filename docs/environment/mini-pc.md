@@ -24,6 +24,7 @@
 
 - 端末名は `pda-web`（`pda-web.tailaff53a.ts.net`）。公開範囲は tailnet の中だけ。
 - ユーザー単位の常駐 `tailscale-pda.service` が、userspace networking で `tailscaled` を動かす。root の権限も TUN デバイスも使わない。本体は `~/.local/opt/tailscale-1.104.2/`、状態は `~/.local/share/tailscale-pda/`。
+- 常駐の設定では、ユーザー名前空間を要する隔離の指定（`PrivateTmp`、`PrivateDevices`、`ProtectSystem`、`ProtectHome`、`ReadWritePaths`、`ProtectControlGroups`、`ProtectKernelModules`、`ProtectKernelTunables`）と `CapabilityBoundingSet=` をコメントにして外している。Ubuntu の AppArmor の制限（`kernel.apparmor_restrict_unprivileged_userns = 1`）の下では、ユーザー単位の systemd がこれらを適用できず、起動が `218/CAPABILITIES` で失敗するため。`NoNewPrivileges` などの名前空間を要しない指定は残している。
 - CLI は `~/.local/bin/tailscale-pda`。常駐のソケットを指定して `tailscale` を呼ぶ。
 - 公開設定（Serve）には v0.1 のサービスへの転送が残っている。転送先（`127.0.0.1` の 9120、9121、9122、18501〜18504）は撤去済みで、どの URL も応答しない。転送は `tailscale-pda serve` で変更する。
 
