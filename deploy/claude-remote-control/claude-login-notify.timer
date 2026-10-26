@@ -1,0 +1,9 @@
+[Unit]
+Description=Claude のログインの期限を毎朝確かめる
+
+[Timer]
+OnCalendar=*-*-* 10:30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

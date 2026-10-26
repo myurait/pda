@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Claude の claude.ai ログインの期限が近づいたらスマホへ ntfy push を送る。
+
+Remote Control の常駐 (claude-remote-control.service) は、ログインの期限
+(ログインから約 29 日) が切れると再ログインするまで止まる。期限は
+$CLAUDE_CONFIG_DIR/.credentials.json の refreshTokenExpiresAt にある。
+
+systemd のタイマーから 1 日 1 回呼ばれ、残りが NOTIFY_DAYS 日以下か、
+すでに切れているか、期限を読めないときに 1 通送る。判定できないときは送る。
+
+使い方:
+    claude-login-expiry-notify            # 判定して必要なら送る
+    claude-login-expiry-notify --dry-run  # 送らずに判定と本文だけ表示する
+"""
+
+import argparse
+import datetime
+import json
+import os
+import pathlib
+import sys
+import urllib.request
+
+ENV_FILE = pathlib.Path(
+    os.environ.get("CLAUDE_LOGIN_NOTIFY_ENV")
+    or pathlib.Path.home() / ".config" / "claude-login-notify" / "ntfy.env"
+)
+NOTIFY_DAYS = int(os.environ.get("CLAUDE_LOGIN_NOTIFY_DAYS") or 3)
+HTTP_TIMEOUT_SECONDS = 10
+JST = datetime.timezone(datetime.timedelta(hours=9))
+RELOGIN_COMMAND = (
+    "ssh -t agent-node 'HOME=/home/user/v03/agent-home "
+    "CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude "
+    "/home/user/.local/bin/claude auth login'"
+)
+
+
+def load_config() -> dict:
+    config = {}
+    for raw in ENV_FILE.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        config[key.strip()] = value.strip().strip('"').strip("'")
+    return config
+
+
+def read_expiry() -> datetime.datetime | None:
+    """ログインの期限を返す。ログインしていないときは None。"""
+    config_dir = pathlib.Path(
+        os.environ.get("CLAUDE_CONFIG_DIR") or pathlib.Path.home() / ".claude"
+    )
+    data = json.loads((config_dir / ".credentials.json").read_text(encoding="utf-8"))
+    oauth = data.get("claudeAiOauth") or {}
+    expires_ms = oauth.get("refreshTokenExpiresAt") or 0
+    if not oauth.get("refreshToken") or expires_ms <= 0:
+        return None
+    return datetime.datetime.fromtimestamp(expires_ms / 1000, tz=JST)
+
+
+def build_notice(now: datetime.datetime) -> tuple[str, str] | None:
+    """送るなら (タイトル, 本文)、送らないなら None を返す。"""
+    try:
+        expiry = read_expiry()
+    except (OSError, ValueError) as exc:
+        return ("[mini-pc] Claude のログインを確認できません", str(exc))
+    if expiry is None:
+        return (
+            "[mini-pc] Claude のログインが切れています",
+            f"Remote Control の常駐は止まっています。再ログイン:\n{RELOGIN_COMMAND}",
+        )
+    remaining = expiry - now
+    if remaining > datetime.timedelta(days=NOTIFY_DAYS):
+        return None
+    when = expiry.strftime("%m/%d %H:%M")
+    if remaining.total_seconds() <= 0:
+        title = f"[mini-pc] Claude のログインが切れています ({when})"
+    elif remaining.days >= 1:
+        title = f"[mini-pc] Claude のログインの期限まであと {remaining.days} 日 ({when})"
+    else:
+        hours = int(remaining.total_seconds() // 3600)
+        title = f"[mini-pc] Claude のログインの期限まであと {hours} 時間 ({when})"
+    return (title, f"切れると Remote Control の常駐が止まります。再ログイン:\n{RELOGIN_COMMAND}")
+
+
+def send(config: dict, title: str, message: str) -> None:
+    payload = {"topic": config["NTFY_TOPIC"], "title": title, "message": message, "priority": 4}
+    request = urllib.request.Request(
+        config.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/"),
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=HTTP_TIMEOUT_SECONDS) as response:
+        response.read()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--dry-run", action="store_true", help="送らずに判定と本文だけ表示する")
+    args = parser.parse_args()
+
+    notice = build_notice(datetime.datetime.now(tz=JST))
+    if notice is None:
+        print(f"期限まで {NOTIFY_DAYS} 日より先なので送らない")
+        return 0
+    title, message = notice
+    print(f"{title}\n{message}")
+    if args.dry_run:
+        return 0
+    send(load_config(), title, message)
+    print("送信した")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

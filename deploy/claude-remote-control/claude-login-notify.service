@@ -1,0 +1,8 @@
+[Unit]
+Description=Claude のログインの期限が近づいたらスマホへ通知する
+After=network-online.target
+
+[Service]
+Type=oneshot
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+ExecStart=/usr/bin/python3 /home/user/.local/bin/claude-login-expiry-notify

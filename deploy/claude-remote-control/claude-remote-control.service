@@ -1,0 +1,20 @@
+[Unit]
+Description=Claude Code Remote Control (/home/user)
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/user
+Environment=HOME=/home/user/v03/agent-home
+Environment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/user/.local/bin/claude remote-control --name mini-pc
+Restart=always
+RestartSec=10
+RestartSteps=5
+RestartMaxDelaySec=5min
+TimeoutStopSec=30
+KillMode=control-group
+
+[Install]
+WantedBy=default.target

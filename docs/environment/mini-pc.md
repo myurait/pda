@@ -48,7 +48,10 @@
 ## 3. 動いているもの
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
-- ユーザー単位の常駐は `tailscale-pda.service` と `v03-openclaw.service`（どちらも自動起動が有効）。独自の定期実行（cron、ユーザーのタイマー）は無い。
+- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`（どれも自動起動が有効）。
+- `claude-remote-control.service` は Claude Code の Remote Control の常駐で、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選ぶとミニ PC の `/home/user` でセッションが始まる。個人契約の claude.ai のログインを使い、ログインの期限（ログインから約 29 日）が切れると止まる。
+- 定期実行はユーザーのタイマー `claude-login-notify.timer` だけ。毎日 10:30 に上のログインの期限を確かめ、残りが 3 日以下ならスマホへ ntfy で通知する。cron は使っていない。
+- この 2 つの定義と再ログインの手順は `deploy/claude-remote-control/` にある。
 - コンテナは v0.2 のものだけ。`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda`（2026-09-23 に `pda-increment-2` から改めた）。
 - 待ち受けるポートは次のとおり。22 以外は `127.0.0.1` だけで待ち受ける。
   - 22: SSH
@@ -65,7 +68,7 @@
 
 - Docker Engine 29.9.2、Docker Compose v5.6.1。
 - Codex CLI 0.156.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済みで、認証は `~/.codex/auth.json`。
-- Claude Code CLI 2.1.205。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、認証は `~/.claude/.credentials.json`。
+- Claude Code CLI 2.1.293。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、常駐（Remote Control、OpenClaw）が使う認証は `~/pda/secrets/claude/.credentials.json`（`CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude`）。
 - v0.2 の実行器は、この 2 つの認証ファイルの複製を `~/pda/secrets/` に置いて使う。ホストの `~/.codex` と `~/.claude` はマウントしない。手順は `docs/runbook/increment-3.md` の 2〜3 節。
 - uv 0.13.5（`~/.local/bin/uv`）と、uv が管理する Python 3.11.17（`~/.local/bin/python3.11`）。OS の `python3` は 3.12.3。
 - Node.js 24.22.1。nvm で入れたもので、`~/.local/bin/node`、`npm`、`npx` はその symlink。止めてある `beauty-passport-web.service` が直接指す 24.18.0 も nvm に残している。
