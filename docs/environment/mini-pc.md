@@ -41,7 +41,7 @@
 ## 3. 動いているもの
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
-- ユーザー単位の常駐は `tailscale-pda.service` だけ。独自の定期実行（cron、ユーザーのタイマー）は無い。
+- ユーザー単位の常駐は `tailscale-pda.service` と `v03-openclaw.service`（どちらも自動起動が有効）。独自の定期実行（cron、ユーザーのタイマー）は無い。
 - コンテナは v0.2 のものだけ。`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda`（2026-09-23 に `pda-increment-2` から改めた）。
 - 待ち受けるポートは次のとおり。
   - 22: SSH
@@ -54,12 +54,12 @@
 
 ## 4. 入っているツールと認証
 
-- Docker Engine 29.6.2、Docker Compose v5.3.1。
+- Docker Engine 29.9.2、Docker Compose v5.6.1。
 - Codex CLI 0.156.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済みで、認証は `~/.codex/auth.json`。
 - Claude Code CLI 2.1.205。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、認証は `~/.claude/.credentials.json`。
 - v0.2 の実行器は、この 2 つの認証ファイルの複製を `~/pda/secrets/` に置いて使う。ホストの `~/.codex` と `~/.claude` はマウントしない。手順は `docs/runbook/increment-3.md` の 2〜3 節。
-- uv 0.11.29（`~/.local/bin/uv`）と、uv が管理する Python 3.11（`~/.local/bin/python3.11`）。OS の `python3` は 3.12.3。
-- Node.js 24.18.0。nvm で入れたもので、`~/.local/bin/node`、`npm`、`npx` はその symlink。
+- uv 0.13.5（`~/.local/bin/uv`）と、uv が管理する Python 3.11.17（`~/.local/bin/python3.11`）。OS の `python3` は 3.12.3。
+- Node.js 24.22.1。nvm で入れたもので、`~/.local/bin/node`、`npm`、`npx` はその symlink。止めてある `beauty-passport-web.service` が直接指す 24.18.0 も nvm に残している。
 - git 2.43.0。
 
 ## 5. v0.2 のリポジトリ
