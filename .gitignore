@@ -12,3 +12,7 @@ secrets/
 .env
 deploy/.env
 dist/
+
+# OpenClaw のプラグインは、ビルドの結果 (dist/) を読み込みに使うのでコミットする
+!deploy/openclaw/plugins/*/dist/
+node_modules/
