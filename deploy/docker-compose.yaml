@@ -13,7 +13,7 @@ services:
     volumes:
     - ./conductor.properties:/app/config/pda.properties:ro
     ports:
-    - 8080:8080
+    - "127.0.0.1:8080:8080"
     networks:
     - backend
     - public
@@ -92,7 +92,7 @@ services:
     volumes:
     - ./nginx.conf:/etc/nginx/pda.conf:ro
     ports:
-    - ${CONDUCTOR_UI_PORT:-5000}:5000
+    - "127.0.0.1:${CONDUCTOR_UI_PORT:-5000}:5000"
     networks:
     - public
     depends_on:
@@ -130,7 +130,7 @@ services:
     volumes:
     - observe-data:/data
     ports:
-    - 5080:5080
+    - "127.0.0.1:5080:5080"
     networks:
     - telemetry
     - public
@@ -319,7 +319,7 @@ services:
       ZO_ROOT_USER_EMAIL: ${ZO_ROOT_USER_EMAIL:?set in deploy/.env}
       ZO_ROOT_USER_PASSWORD: ${ZO_ROOT_USER_PASSWORD:?set in deploy/.env}
     ports:
-    - 5081:5081
+    - "127.0.0.1:5081:5081"
     networks: [public, telemetry, mirror]
     depends_on:
       conductor-server:
