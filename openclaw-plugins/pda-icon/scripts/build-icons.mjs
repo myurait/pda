@@ -32,71 +32,33 @@ function loadResvg() {
 }
 const { Resvg } = loadResvg();
 
-// ---- X1 の寸法 ---------------------------------------------------------
-const BG = "#0d4e55"; // 原案の深い青緑
-const FG = "#f5eedd"; // 原案のアイボリー
+// 唯一の原稿。1024 座標の比率を全サイズでそのまま使う。
+// 門: y=190..834 (高さ644)、柱: y=470..804 (長さ334)。
+const svg = fs.readFileSync(path.join(root, "assets", "x1-gate.source.svg"), "utf8");
 
-// 門の形。座標の単位は size (viewBox の一辺) で決まる。
-// wall = 壁の太さ、outerR / innerR = アーチの外側 / 内側の丸み、foot = 足の角の丸み、
-// inset = 柱の下端を門の足より上げる量。
-function gate(size, a, p) {
-  const { left: l, right: r, top: t, bottom: b, wall: w, outerR: R, innerR: ir, foot: f } = a;
-  const il = l + w;
-  const irr = r - w;
-  const it = t + w;
-  const d = [
-    `M${l} ${b - f}`, `V${t + R}`, `A${R} ${R} 0 0 1 ${l + R} ${t}`, `H${r - R}`,
-    `A${R} ${R} 0 0 1 ${r} ${t + R}`, `V${b - f}`, `A${f} ${f} 0 0 1 ${r - f} ${b}`, `H${irr + f}`,
-    `A${f} ${f} 0 0 1 ${irr} ${b - f}`, `V${it + ir}`, `A${ir} ${ir} 0 0 0 ${irr - ir} ${it}`,
-    `H${il + ir}`, `A${ir} ${ir} 0 0 0 ${il} ${it + ir}`, `V${b - f}`,
-    `A${f} ${f} 0 0 1 ${il - f} ${b}`, `H${l + f}`, `A${f} ${f} 0 0 1 ${l} ${b - f}`, "Z",
-  ].join("");
-  const x0 = il + (irr - il - (3 * p.width + 2 * p.gap)) / 2;
-  const h = b - p.inset - p.top;
-  const pillarBoxes = [0, 1, 2].map((i) => ({ x: x0 + i * (p.width + p.gap), y: p.top, w: p.width, h, rx: p.rx }));
-  return { size, d, pillarBoxes };
-}
-
-function gateSvg({ size, d, pillarBoxes }) {
-  const rects = pillarBoxes
-    .map((q) => `<rect x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" rx="${q.rx}"/>`)
-    .join("");
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">` +
-    `<rect width="${size}" height="${size}" fill="${BG}"/>` +
-    `<g fill="${FG}"><path d="${d}"/>${rects}</g></svg>\n`
+// テーマ用は背景の角だけを丸める。門と柱は原稿の要素をそのまま使う。
+// 要素数の制限に合わせ、同じ rect を等価な path にまとめる。
+function themeArtSvg(source) {
+  const pillars = [];
+  const theme = source.replace(
+    /<rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)" rx="([\d.]+)"\/>/g,
+    (_, ...args) => {
+      const [x, y, w, h, rx] = args.slice(0, 5).map(Number);
+      pillars.push(
+        `M${x + rx} ${y}H${x + w - rx}A${rx} ${rx} 0 0 1 ${x + w} ${y + rx}V${y + h - rx}` +
+        `A${rx} ${rx} 0 0 1 ${x + w - rx} ${y + h}H${x + rx}A${rx} ${rx} 0 0 1 ${x} ${y + h - rx}` +
+        `V${y + rx}A${rx} ${rx} 0 0 1 ${x + rx} ${y}Z`,
+      );
+      return "";
+    },
   );
+  return theme
+    .replace('<rect width="1024" height="1024"', '<rect width="1024" height="1024" rx="225"')
+    .replace('<g fill="#f5eedd">', "")
+    .replace("<path d=", '<path fill="#f5eedd" d=')
+    .replace("</g>", `<path fill="#f5eedd" d="${pillars.join("")}"/>`)
+    .replace(/^[ \t]+$/gm, "");
 }
-
-// 画面の中のロゴ (テーマの brandIcon) 用。マニフェストの資料の制限 (要素 4 つまで、
-// path と rect などだけ) に収めるため、柱は 1 つの path にまとめ、角丸の背景を付ける。
-function themeArtSvg({ size, d, pillarBoxes }) {
-  const box = ({ x, y, w, h, rx }) =>
-    `M${x + rx} ${y}H${x + w - rx}A${rx} ${rx} 0 0 1 ${x + w} ${y + rx}V${y + h - rx}` +
-    `A${rx} ${rx} 0 0 1 ${x + w - rx} ${y + h}H${x + rx}A${rx} ${rx} 0 0 1 ${x} ${y + h - rx}` +
-    `V${y + rx}A${rx} ${rx} 0 0 1 ${x + rx} ${y}Z`;
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">` +
-    `<rect width="${size}" height="${size}" rx="${Math.round(size * 0.22)}" fill="${BG}"/>` +
-    `<path fill="${FG}" d="${d}"/>` +
-    `<path fill="${FG}" d="${pillarBoxes.map(box).join("")}"/></svg>\n`
-  );
-}
-
-// 本体 (svg、180px、512px)。1024 の座標。
-const geometry = gate(
-  1024,
-  { left: 172, right: 852, top: 190, bottom: 834, wall: 100, outerR: 165, innerR: 66, foot: 20 },
-  { width: 100, gap: 48, top: 470, inset: 30, rx: 16 },
-);
-const svg = gateSvg(geometry);
-// 32px 用。32 の座標で、壁・柱・隙間を整数の画素に合わせて、縮小でにじまないようにする。
-// (壁 3 画素、柱 3 画素、柱の間 2 画素、柱と壁の間 2 画素)
-const svg32 = gateSvg(gate(
-  32,
-  { left: 4, right: 27, top: 5, bottom: 28, wall: 3, outerR: 6, innerR: 3, foot: 0.6 },
-  { width: 3, gap: 2, top: 13, inset: 1, rx: 0.5 },
-));
 
 const render = (source, size) =>
   new Resvg(source, { fitTo: { mode: "width", value: size } }).render().asPng();
@@ -107,7 +69,7 @@ fs.mkdirSync(path.join(root, "preview"), { recursive: true });
 
 const out = {
   "favicon.svg": Buffer.from(svg),
-  "favicon-32.png": render(svg32, 32),
+  "favicon-32.png": render(svg, 32),
   "apple-touch-icon.png": render(svg, 180),
   "icon-512.png": render(svg, 512),
 };
@@ -116,11 +78,13 @@ for (const [name, data] of Object.entries(out)) fs.writeFileSync(path.join(root,
 fs.writeFileSync(path.join(root, "assets", "icon.png"), out["icon-512.png"]);
 
 fs.mkdirSync(path.join(root, "assets", "theme-art"), { recursive: true });
-fs.writeFileSync(path.join(root, "assets", "theme-art", "x1-gate.svg"), themeArtSvg(geometry));
+const themeSvg = themeArtSvg(svg);
+fs.writeFileSync(path.join(root, "assets", "theme-art", "x1-gate.svg"), themeSvg);
 
 // 画像を変えたら URL の ?v= も変わるようにする (iOS やブラウザの古い保存を避ける)
 const hash = createHash("sha256");
 for (const name of Object.keys(out).sort()) hash.update(out[name]);
+hash.update(themeSvg);
 fs.writeFileSync(
   path.join(root, "src", "icon-version.generated.ts"),
   `// scripts/build-icons.mjs が作る。手で直さない。\nexport const ICON_VERSION = ${JSON.stringify(hash.digest("hex").slice(0, 10))};\n`,
@@ -144,8 +108,6 @@ fs.writeFileSync(path.join(root, "src", "icons.generated.ts"), ts);
 // 180px と 32px を明るい背景・暗い背景に並べる。32px は実寸と、画素を見るための 4 倍 (最近傍) を置く。
 const b64 = (n) => out[n].toString("base64");
 const row = (y, bg, label, fg) => {
-  const iosClip = (id, size, r) =>
-    `<clipPath id="${id}"><rect width="${size}" height="${size}" rx="${r}"/></clipPath>`;
   return (
     `<rect x="0" y="${y}" width="1200" height="320" fill="${bg}"/>` +
     `<text x="24" y="${y + 36}" font-size="20" fill="${fg}" font-family="sans-serif">${label}</text>` +
