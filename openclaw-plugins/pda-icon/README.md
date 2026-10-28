@@ -97,7 +97,7 @@ RESVG_MODULE=<@resvg/resvg-js の場所> npm run icons   # 省略時は、opencl
 npm run build
 ```
 
-32px の画像だけは、縮小でにじまないよう、32 の座標で壁と柱を整数の画素に合わせて別に描いています (本体の SVG と形は同じ)。
+原稿は `assets/x1-gate.source.svg` の 1 つだけです。32px、180px、512px はこれを縮小して書き出し、テーマ用のロゴは同じ形のまま背景の角だけ丸めます。サイズごとに形を変えないでください。
 
 ## 検証したこと
 
