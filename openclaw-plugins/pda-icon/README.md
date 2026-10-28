@@ -39,13 +39,13 @@ cd openclaw-plugins/pda-icon
 npm install            # 型の確認とビルドに typescript、esbuild、openclaw を使う (openclaw は約 700MB)
 npm run build          # tsc と openclaw plugins build。dist/ と、openclaw.plugin.json の controlUi が更新される
 npm run validate       # openclaw plugins validate --json
-openclaw plugins install -l "$PWD"   # 場所を指したまま入れる (コピーしない)
+openclaw plugins install -l --force "$PWD"   # 場所を指したまま入れる (コピーしない)
 ```
 
 - `npm install` が openclaw 本体を取りに行くのを避けたいときは、`node_modules/openclaw` を入れ済みの本体 (`.../lib/node_modules/openclaw`) へのシンボリックリンクにし、`typescript`、`esbuild`、`@types/node` だけ別に入れます。
 - テーマを使うので、`openclaw plugins pack` の tgz では入れません。tgz には `themes/` と `assets/` が入らないためです (バックエンドと画面のコードだけが入ります)。上の、ディレクトリを指す入れ方にします。
 - 入れたあと、Control UI のブラウザのタブを再読み込みします。画面のコードだけを直したときは、Plugins → Advanced → Customize UI → Reload plugin UI (管理者) でもかまいません。
-- この README の「入れ方」は、まだ実機の Gateway では実行していません。ビルドと検証と、使い捨ての Gateway での読み込み (下の「検証」) までを確かめています。
+- `openclaw plugins install -l` は、`--force` なしでは「Install cancelled; rerun with --force after reviewing the source.」で止まります。中身を確かめたうえで `--force` を付けて実行します。Gateway の再起動は要りません。
 
 ### iPhone での反映
 
