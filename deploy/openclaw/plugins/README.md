@@ -5,6 +5,7 @@ PDA のために作った OpenClaw のプラグインの正本を置く。ミニ
 | プラグイン | 役目 | 読み込み方 |
 | --- | --- | --- |
 | [tap-to-dictate](tap-to-dictate/README.md) | Control UI の入力欄のマイクボタンを 1 回タップすると、Talk ではなく音声入力 (dictation) を始める | `plugins.load.paths` でこのフォルダを指す |
+| [touch-selection-popup](touch-selection-popup/README.md) | Control UI でメッセージ本文を選んだときの本体の「チャットに追加」「サイドチャットで質問」の吹き出しを、スマートフォン (タッチ端末) では出さない。パソコンは変えない。Enter で改行にするのはプラグインではなく設定 `ui.prefs.chatSendShortcut: "modifier-enter"` | `openclaw plugins install <このフォルダ>/touch-selection-popup --link --force` |
 | [pda-common](pda-common/README.md) | 全エージェントに共通の指示 (`/home/user/v03/openclaw/pda/common.md`) を、毎回のプロンプトに足す | 今は `/home/user/v03/openclaw/state/extensions/pda-common` に写したものを読む。ここの中身と同じ |
 
 ## 決まり
