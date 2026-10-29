@@ -63,6 +63,9 @@ mkdir -p node_modules && ln -sfn /home/user/v03/openclaw/lib/node_modules/opencl
 rm node_modules/typescript node_modules/@typescript node_modules/esbuild node_modules/@esbuild
 ```
 
+On the mini PC the plugin is loaded in place from `/home/user/pda/plugins/openclaw/touch-selection-popup`
+(see [deploy/openclaw/README.md](../../../deploy/openclaw/README.md)); `dist/` is committed.
+
 Requires **Settings > Labs > Custom plugin UI** (`gateway.controlUi.experimental.customPlugins: true`).
 After a browser-only rebuild: **Plugins > Advanced > Customize UI > Reload plugin UI**.
 

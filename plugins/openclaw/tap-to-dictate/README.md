@@ -27,6 +27,9 @@ npm run validate
 openclaw plugins install . --link --force
 ```
 
+On the mini PC the plugin is loaded in place from `/home/user/pda/plugins/openclaw/tap-to-dictate`
+(see [deploy/openclaw/README.md](../../../deploy/openclaw/README.md)); `dist/` is committed.
+
 Requires **Settings > Labs > Custom plugin UI** (`gateway.controlUi.experimental.customPlugins: true`).
 After a browser-only rebuild: **Plugins > Advanced > Customize UI > Reload plugin UI**.
 After a backend edit: `openclaw plugins reload tap-to-dictate`.

@@ -35,14 +35,15 @@ OpenClaw の Control UI のアイコンを、PDA の「X1 門」(太いアーチ
 前提: Gateway の設定 `gateway.controlUi.experimental.customPlugins` が `true` であること (画面のコードを動かす設定。この Gateway では有効)。
 
 ```bash
-cd openclaw-plugins/pda-icon
+cd plugins/openclaw/pda-icon
 npm install            # 型の確認とビルドに typescript、esbuild、openclaw を使う (openclaw は約 700MB)
 npm run build          # tsc と openclaw plugins build。dist/ と、openclaw.plugin.json の controlUi が更新される
 npm run validate       # openclaw plugins validate --json
-openclaw plugins install -l --force "$PWD"   # 場所を指したまま入れる (コピーしない)
+openclaw plugins install -l --force "$PWD"   # 場所を指したまま入れる (コピーしない)。ミニ PC では /home/user/pda/plugins/openclaw/pda-icon を指す
 ```
 
 - `npm install` が openclaw 本体を取りに行くのを避けたいときは、`node_modules/openclaw` を入れ済みの本体 (`.../lib/node_modules/openclaw`) へのシンボリックリンクにし、`typescript`、`esbuild`、`@types/node` だけ別に入れます。
+- `dist/` はコミットしてある。取り出したままで動かすときは、`npm install` を省いて `node_modules/openclaw` のリンクだけ作り ([deploy/openclaw/README.md](../../../deploy/openclaw/README.md))、`npm run build` は要らない。
 - テーマを使うので、`openclaw plugins pack` の tgz では入れません。tgz には `themes/` と `assets/` が入らないためです (バックエンドと画面のコードだけが入ります)。上の、ディレクトリを指す入れ方にします。
 - 入れたあと、Control UI のブラウザのタブを再読み込みします。画面のコードだけを直したときは、Plugins → Advanced → Customize UI → Reload plugin UI (管理者) でもかまいません。
 - `openclaw plugins install -l` は、`--force` なしでは「Install cancelled; rerun with --force after reviewing the source.」で止まります。中身を確かめたうえで `--force` を付けて実行します。Gateway の再起動は要りません。
