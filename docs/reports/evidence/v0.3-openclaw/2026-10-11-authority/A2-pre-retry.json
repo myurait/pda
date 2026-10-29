@@ -1,0 +1,792 @@
+{
+  "utc": "2026-10-11T05:09:15.174Z",
+  "label": "A2-pre-retry",
+  "connections": [
+    {
+      "type": "connected",
+      "connection": "A2-pre-retry",
+      "deviceAlias": "authority-persistent",
+      "protocol": 4,
+      "server": {
+        "version": "2026.9.8",
+        "buildId": "2026.9.8-release-fc23bc864e45-2026-10-02T18-22-33.858Z",
+        "bootId": "6f24055e-5606-463f-aa8f-e665738f38a2",
+        "controlUiBuildSource": "bundled",
+        "connId": "2af71024-3443-48a6-bb5d-5074afe9e00a"
+      },
+      "scopes": [
+        "operator.read",
+        "operator.write",
+        "operator.admin",
+        "operator.approvals",
+        "operator.pairing"
+      ],
+      "usedStoredToken": true,
+      "connectedAt": "2026-10-11T05:09:15.214Z",
+      "client": {
+        "id": "cli",
+        "version": "v03-authority-2026-10-11",
+        "platform": "linux",
+        "mode": "cli",
+        "displayName": "PDA authority check 2026-10-11"
+      }
+    },
+    {
+      "type": "socket-closed",
+      "connection": "A2-pre-retry",
+      "connId": "2af71024-3443-48a6-bb5d-5074afe9e00a",
+      "deviceAlias": "authority-persistent",
+      "closedAt": "2026-10-11T05:09:15.236Z",
+      "code": 1000,
+      "reason": "diagnosis finished",
+      "wasClean": true
+    }
+  ],
+  "activeSessions": [],
+  "trialSessions": [
+    {
+      "key": "agent:r3-leader:authority-a2-1791695048945",
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-leader:authority-a1-1791694983505",
+      "status": "done",
+      "hasActiveRun": false
+    },
+    {
+      "key": "agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3",
+      "status": "done",
+      "hasActiveRun": false,
+      "spawnedBy": "agent:r3-leader:authority-a1-1791694983505"
+    }
+  ],
+  "models": {
+    "models": [
+      {
+        "id": "gpt-6-astra",
+        "name": "GPT-6-Astra",
+        "provider": "openai",
+        "reasoning": true,
+        "tags": [
+          "default",
+          "configured"
+        ],
+        "agentRuntime": {
+          "id": "codex",
+          "cloudPlacementSupported": true,
+          "cloudPlacementExecutionMode": "remote-exec",
+          "devicePlacement": {
+            "requiredNodeCommands": [
+              "codex.exec-server.stdio.v1"
+            ],
+            "consumesWorkerSlot": false
+          },
+          "devicePlacementSupported": true,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": false
+      },
+      {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "anthropic",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "tags": [
+          "configured"
+        ],
+        "agentRuntime": {
+          "id": "claude-cli",
+          "cloudPlacementSupported": false,
+          "devicePlacementSupported": false,
+          "source": "model"
+        },
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-opus-5-5",
+        "name": "Claude Opus 5.5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-opus-5",
+        "name": "Claude Opus 5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-5-5",
+        "name": "Claude Sonnet 5.5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-5",
+        "name": "Claude Sonnet 5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "high",
+        "available": true
+      },
+      {
+        "id": "claude-fable-5-1",
+        "name": "Claude Fable 5.1",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-fable-5",
+        "name": "Claude Fable 5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-opus-4-7",
+        "name": "Claude Opus 4.7 (Claude CLI)",
+        "provider": "claude-cli",
+        "contextWindow": 200000,
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "xhigh",
+            "label": "xhigh"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "off",
+        "available": true
+      },
+      {
+        "id": "claude-sonnet-4-6",
+        "name": "Claude Sonnet 4.6 (Claude CLI)",
+        "provider": "claude-cli",
+        "contextWindow": 200000,
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "adaptive",
+        "available": true
+      },
+      {
+        "id": "claude-opus-4-6",
+        "name": "Claude Opus 4.6 (Claude CLI)",
+        "provider": "claude-cli",
+        "contextWindow": 200000,
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "adaptive",
+            "label": "adaptive"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "max",
+            "label": "max"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "adaptive",
+        "available": true
+      },
+      {
+        "id": "claude-haiku-4-5",
+        "name": "Claude Haiku 4.5",
+        "provider": "claude-cli",
+        "contextWindow": 200000,
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-haiku-5-5",
+        "name": "Claude Haiku 5.5 (Claude CLI)",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "contextWindows": [
+          {
+            "id": "200k",
+            "label": "200K",
+            "contextWindow": 200000
+          },
+          {
+            "id": "1m",
+            "label": "1M",
+            "contextWindow": 1000000
+          }
+        ],
+        "contextWindowDefault": "1m",
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "minimal",
+            "label": "minimal"
+          },
+          {
+            "id": "low",
+            "label": "low"
+          },
+          {
+            "id": "medium",
+            "label": "medium"
+          },
+          {
+            "id": "high",
+            "label": "high"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "medium",
+        "available": true
+      },
+      {
+        "id": "claude-mythos-5",
+        "name": "Claude Mythos 5",
+        "provider": "claude-cli",
+        "contextWindow": 1000000,
+        "reasoning": true,
+        "thinkingLevels": [
+          {
+            "id": "off",
+            "label": "off"
+          },
+          {
+            "id": "ultra",
+            "label": "ultra"
+          }
+        ],
+        "thinkingDefault": "off",
+        "available": true
+      }
+    ],
+    "decisionModels": [
+      {
+        "provider": "typesafe",
+        "id": "jev-latest",
+        "name": "Jev",
+        "capabilities": {
+          "questionTypes": [
+            "boolean",
+            "choice",
+            "score"
+          ],
+          "maxQuestions": 256,
+          "maxChoiceAlternatives": 255,
+          "maxScoreLevels": 10,
+          "confidence": "provider-specific"
+        },
+        "pluginId": "typesafe"
+      },
+      {
+        "provider": "typesafe",
+        "id": "jev-1.13.0",
+        "name": "Jev 1.13.0",
+        "capabilities": {
+          "questionTypes": [
+            "boolean",
+            "choice",
+            "score"
+          ],
+          "maxQuestions": 256,
+          "maxChoiceAlternatives": 255,
+          "maxScoreLevels": 10,
+          "confidence": "provider-specific"
+        },
+        "pluginId": "typesafe"
+      },
+      {
+        "provider": "typesafe",
+        "id": "kev-latest",
+        "name": "Kev (local server)",
+        "capabilities": {
+          "questionTypes": [
+            "boolean",
+            "choice",
+            "score"
+          ],
+          "maxQuestions": 256,
+          "maxChoiceAlternatives": 255,
+          "maxScoreLevels": 10,
+          "confidence": "provider-specific"
+        },
+        "pluginId": "typesafe"
+      }
+    ]
+  }
+}

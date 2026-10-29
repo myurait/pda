@@ -1,0 +1,428 @@
+Installed OpenClaw source excerpts; no product source modified. UTC 2026-10-11T05:06:34.308300+00:00
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/server-plugin-in-process-dispatch-B5twfTO5.mjs sha256=e5f67679dd4c25d51a21d94fd0847c2bdd0792279001fdbea94625b1af230bd2
+283: 	const resume = readInProcessSubagentResume(options);
+284: 	if (resume) {
+285: 		if (method !== "agent" || options?.forceSyntheticClient !== true || !client.internal) throw new Error("Task resume requires a synthetic agent admission.");
+286: 		bindInProcessSubagentResume(client.internal, resume);
+287: 	}
+288: 	const assertSourceCurrent = () => {
+289: 		operatorRunAuthority?.assertCurrent();
+290: 		if ((resolveGatewayContext ? resolveGatewayContext() : scope?.context) !== context) throw new Error(`In-process gateway dispatch requires a current gateway instance binding (method: ${method}).`);
+291: 	};
+292: 	return {
+293: 		assertInvocationCurrent,
+294: 		assertContextCurrent: () => {
+295: 			assertSourceCurrent();
+296: 			if (method !== "agent") assertCallerCurrent?.(method);
+297: 		},
+298: 		...transfersCreatedInput ? { assertCreatedInputSourceCurrent: assertSourceCurrent } : {},
+299: 		client,
+300: 		context,
+301: 		delegatedToolPolicyHandoffId,
+302: 		isWebchatConnect,
+303: 		operatorSourceClient: operatorRunAuthority ? {
+304: 			...client,
+305: 			internal: {
+306: 				...client.internal,
+307: 				operatorRunAuthority
+308: 			}
+309: 		} : inheritedOperatorAuthority ? createSyntheticPluginRuntimeClient({
+310: 			authenticatedUserProfile: inheritedOperatorAuthority.authenticatedUserProfile,
+311: 			operatorRoleActor: inheritedOperatorAuthority.operatorRoleActor,
+312: 			scopes: [...inheritedOperatorAuthority.scopes]
+313: 		}) : scope?.client ?? client,
+314: 		hasCurrentClientAuthority: options?.hasCurrentClientAuthority ?? (operatorRunAuthority && !useScopedClient ? void 0 : scope?.hasCurrentClientAuthority)
+315: 	};
+316: }
+317: /** Authorizes a sessionless agent execution against its captured Gateway and caller. */
+318: async function prepareInProcessAgentExecution(input) {
+319: 	const params = { ...input };
+320: 	const inheritedAuthority = readOperatorToolGatewayAuthority();
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/server-plugin-in-process-dispatch-B5twfTO5.mjs sha256=e5f67679dd4c25d51a21d94fd0847c2bdd0792279001fdbea94625b1af230bd2
+426: async function dispatchGatewayMethodInProcessRaw(method, params, options) {
+427: 	return await withInProcessGatewayDispatch(method, params, options, async (resolved) => {
+428: 		const assertExplicitRequestCurrent = () => {
+429: 			throwIfGatewayDispatchAborted(method, options?.signal);
+430: 			if (resolved.hasCurrentClientAuthority?.() === false) throw new Error(`Gateway client authority closed before dispatching ${method}.`);
+431: 			options?.sessionMutationCommitGuard?.();
+432: 		};
+433: 		const assertCreatedInputSourceCurrent = resolved.assertCreatedInputSourceCurrent;
+434: 		return await dispatchGatewayRequestInProcessRaw(method, params, {
+435: 			client: resolved.client,
+436: 			context: resolved.context,
+437: 			expectFinal: options?.expectFinal,
+438: 			isWebchatConnect: resolved.isWebchatConnect,
+439: 			hasCurrentClientAuthority: resolved.hasCurrentClientAuthority,
+440: 			methodRegistry: resolved.context.getGatewayMethodRegistry?.(),
+441: 			onAccepted: options?.onAccepted,
+442: 			onExecution: options?.onExecution,
+443: 			onSignalAbort: options?.onSignalAbort,
+444: 			requestIdPrefix: "plugin-subagent",
+445: 			sessionMutationCommitGuard: () => {
+446: 				resolved.assertContextCurrent();
+447: 				resolved.assertInvocationCurrent();
+448: 				assertExplicitRequestCurrent();
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/message-handler-DbX-nn9k.mjs sha256=10f62f42d8dc984c658015cf699351c0335b0df76b16e6a270b7eee6c10a1b1c
+309: 		if (closeInvalidatedClient(client, req.method, isCommittedGrantCurrent)) return;
+310: 		const diagnostics = createGatewayRpcDiagnostics(req.method, getMethodRegistry, extraHandlers);
+311: 		logWs("in", "req", {
+312: 			connId,
+313: 			id: req.id,
+314: 			method: req.method
+315: 		});
+316: 		const generationState = SharedGatewaySessionGenerationState.fromReader(getRequiredSharedGatewaySessionGeneration);
+317: 		const clientAuthority = captureGatewayDeviceRevocation(context, {
+318: 			deviceId: client.connect.device?.id,
+319: 			role: client.connect.role
+320: 		}, () => {
+321: 			if (!hasCurrentGatewayOperatorAccess(client.internal?.operatorAccessAuthority)) invalidateGatewayPolicyClient(client, {
+322: 				reason: "operator-access-closed",
+323: 				code: 4001,
+324: 				message: GATEWAY_OPERATOR_ACCESS_DENIED_MESSAGE,
+325: 				close: () => close(4001, GATEWAY_OPERATOR_ACCESS_DENIED_MESSAGE)
+326: 			});
+327: 			if (closeInvalidatedClient(client, req.method, isCommittedGrantCurrent)) return false;
+328: 			const requiredGeneration = client.usesSharedGatewayAuth ? getRequiredSharedGatewaySessionGeneration?.() : void 0;
+329: 			if (requiredGeneration !== void 0 && client.sharedGatewaySessionGeneration !== requiredGeneration) {
+330: 				setCloseCause("gateway-auth-rotated", {
+331: 					authGenerationStale: true,
+332: 					method: req.method
+333: 				});
+334: 				invalidateGatewayPolicyClient(client, {
+335: 					reason: "gateway-auth-changed",
+336: 					code: 4001,
+337: 					message: "gateway auth changed",
+338: 					close: () => close(4001, "gateway auth changed"),
+339: 					revokeSource: false
+340: 				});
+341: 				return false;
+342: 			}
+343: 			return true;
+344: 		}, client.connectionSignal, client.connect.role === "operator" && (!client.usesSharedGatewayAuth || generationState) ? {
+345: 			dependencies: {
+346: 				client,
+347: 				context: sourceContext,
+348: 				authPolicyGeneration: client.authPolicy?.grantGeneration,
+349: 				sharedGenerationOwner: client.usesSharedGatewayAuth ? generationState : void 0,
+350: 				sharedGeneration: client.usesSharedGatewayAuth ? client.sharedGatewaySessionGeneration : void 0
+351: 			},
+352: 			isCurrent: () => hasCurrentGatewayPolicyClientSource(client) && isCommittedGrantCurrent(),
+353: 			subscribe: (onRevoked) => {
+354: 				const releaseClient = onGatewayPolicyClientInvalidated(client, onRevoked);
+355: 				const releasePolicy = onOperatorRolePolicyChanged((change) => {
+356: 					if (change.kind === "config" && change.context === sourceContext && !isCommittedGrantCurrent()) onRevoked();
+357: 				});
+358: 				const releaseGeneration = client.usesSharedGatewayAuth ? generationState?.onInvalidated(client.sharedGatewaySessionGeneration, onRevoked, client.authPolicy) : void 0;
+359: 				return () => {
+360: 					releaseClient();
+361: 					releasePolicy();
+362: 					releaseGeneration?.();
+363: 				};
+364: 			}
+365: 		} : void 0);
+366: 		const hasCurrentClientAuthority = clientAuthority.isCurrent;
+367: 		const releaseAuthority = clients.retainRequest(client);
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/device-revocation-CtZLAXd7.mjs sha256=58df3b0540365c41f710e99ee5708d86a225ad562973ba691e3cd9531bf7bcea
+44: 	let released = false;
+45: 	return () => {
+46: 		if (released) return;
+47: 		released = true;
+48: 		state.references -= 1;
+49: 		if (state.references !== 0) return;
+50: 		capture.releaseSourceIdentity?.();
+51: 		capture.releaseSourceIdentity = void 0;
+52: 		capture.releaseClientRevocation?.();
+53: 		capture.releaseClientRevocation = void 0;
+54: 		state.listeners?.clear();
+55: 		if (!state.deviceId) return;
+56: 		const bucket = owner.devices.get(state.deviceId);
+57: 		bucket?.delete(state);
+58: 		if (bucket?.size === 0) owner.devices.delete(state.deviceId);
+59: 	};
+60: }
+61: function revoke(state) {
+62: 	if (state.revoked) return;
+63: 	state.revoked = true;
+64: 	notifyListeners(state.listeners ?? [], void 0);
+65: }
+66: /** Capture the attested identity before dispatch yields, without retaining credentials or sockets. */
+67: function captureGatewayDeviceRevocation(context, identity, hasCurrentClientAuthority, connectionSignal, sourceAuthority) {
+68: 	const owner = getOwner(context);
+69: 	const state = {
+70: 		deviceId: identity.deviceId,
+71: 		role: identity.role,
+72: 		references: 1,
+73: 		revoked: false,
+74: 		sourceAccepted: false
+75: 	};
+76: 	if (state.deviceId && !owner.closed) {
+77: 		let bucket = owner.devices.get(state.deviceId);
+78: 		if (!bucket) {
+79: 			bucket = /* @__PURE__ */ new Set();
+80: 			owner.devices.set(state.deviceId, bucket);
+81: 		}
+82: 		bucket.add(state);
+83: 	}
+84: 	const isRevocationCurrent = () => !owner.closed && !state.revoked && (state.references > 0 || !state.sourceAccepted && connectionSignal?.aborted === false);
+85: 	const isCurrent = () => isRevocationCurrent() && (state.sourceAccepted && sourceAuthority ? sourceAuthority.isCurrent() : hasCurrentClientAuthority());
+86: 	const capture = {
+87: 		owner,
+88: 		state,
+89: 		isCurrent,
+90: 		isSourceCurrent: sourceAuthority ? () => isRevocationCurrent() && sourceAuthority.isCurrent() : isCurrent,
+91: 		hasSourceAuthority: sourceAuthority !== void 0,
+92: 		isRevocationCurrent,
+93: 		sourceIdentity: Object.freeze({})
+94: 	};
+95: 	captures.set(isCurrent, capture);
+96: 	capture.releaseClientRevocation = sourceAuthority?.subscribe(() => revoke(state));
+97: 	if (sourceAuthority?.dependencies) {
+98: 		const source = retainSourceIdentity(sourceAuthority.dependencies);
+99: 		capture.sourceIdentity = source.token;
+100: 		capture.releaseSourceIdentity = source.release;
+101: 	}
+102: 	return {
+103: 		isCurrent,
+104: 		release: releaseHold(capture)
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/device-revocation-CtZLAXd7.mjs sha256=58df3b0540365c41f710e99ee5708d86a225ad562973ba691e3cd9531bf7bcea
+144: /** Transfer a hold on the original captured state, never recapture a later device/session. */
+145: function retainGatewayDeviceRevocation(guard) {
+146: 	const capture = guard ? captures.get(guard) : void 0;
+147: 	if (!capture) return;
+148: 	if (!capture.isCurrent() || capture.state.references === 0) throw new Error("Gateway caller authority is no longer active.");
+149: 	capture.state.references += 1;
+150: 	return releaseHold(capture);
+151: }
+152: function invalidateGatewayDeviceRevocation(context, deviceId, role) {
+153: 	for (const state of owners.get(context)?.devices.get(deviceId) ?? []) if (!role || state.role === role) revoke(state);
+154: }
+155: function closeGatewayDeviceRevocation(context) {
+156: 	const owner = getOwner(context);
+157: 	owner.closed = true;
+158: 	for (const bucket of owner.devices.values()) bucket.clear();
+159: 	owner.devices.clear();
+160: }
+161: //#endregion
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/subagent-registry-Dfg59-Q4.mjs sha256=e606c03eca234aff587d94317bb1b2a8855c64de7c78201fc02b6ff368d2a2b6
+2293: }
+2294: async function completeTerminalEffects(context, args) {
+2295: 	const params = context.options;
+2296: 	const { completeParams, completionReason, entry, mutated, terminalGeneration } = args;
+2297: 	let { sessionSuperseded, suppressSessionEffects } = args;
+2298: 	const isCurrentTerminalCallback = () => {
+2299: 		if (!context.isTerminalCallbackCurrent(completeParams.runId, entry, terminalGeneration)) return false;
+2300: 		args.assertCurrent();
+2301: 		return true;
+2302: 	};
+2303: 	const isCurrentSessionEffectsOwner = () => isCurrentTerminalCallback() && !context.newerGenerationOwnsSession(entry) && !context.shouldSuppressSessionEffects(entry);
+2304: 	const refreshSessionEffectsSuppression = async () => {
+2305: 		if (!context.shouldSuppressSessionEffects(entry)) return false;
+2306: 		suppressSessionEffects = true;
+2307: 		if (entry.execution.suppressSessionEffects !== true) {
+2308: 			const previous = captureSubagentRunMutationSnapshot(entry);
+2309: 			entry.execution = {
+2310: 				...entry.execution,
+2311: 				suppressSessionEffects: true
+2312: 			};
+2313: 			const result = await publishSubagentRunPostimages({
+2314: 				runs: params.runs,
+2315: 				previous: /* @__PURE__ */ new Map([[entry, previous]]),
+2316: 				context: args.stateContext,
+2317: 				persist: params.persistAsyncOrThrow,
+2318: 				assertCurrent: () => {
+2319: 					args.assertCurrent();
+2320: 					if (!context.isTerminalCallbackCurrent(completeParams.runId, entry, terminalGeneration)) throw new Error("Subagent terminal effects lost their original generation");
+2321: 				}
+2322: 			});
+2323: 			if (result.publication !== "published") throw new SubagentRegistryWriteError("committed", /* @__PURE__ */ new Error("Subagent terminal effects publication superseded"), result.publication);
+2324: 		}
+2325: 		return true;
+2326: 	};
+2327: 	if (!isCurrentTerminalCallback()) return;
+2328: 	const retireSupersededSession = async (currentEntry) => {
+2329: 		if (completionReason !== "subagent-killed") await params.retireSupersededRun(completeParams.runId, currentEntry);
+2330: 	};
+2331: 	sessionSuperseded ||= context.newerGenerationOwnsSession(entry);
+2332: 	if (sessionSuperseded) {
+2333: 		await retireSupersededSession(entry);
+2334: 		return;
+2335: 	}
+2336: 	if (entry.collect) releaseSwarmRun(entry.schedulerSlotId ?? entry.runId);
+2337: 	await refreshSessionEffectsSuppression();
+2338: 	const terminalOutcome = entry.execution.outcome;
+2339: 	const outcomeStatus = terminalOutcome?.status;
+2340: 	if (!suppressSessionEffects && entry.killReconciliation === void 0 && outcomeStatus && outcomeStatus !== "unknown") {
+2341: 		const signal = {
+2342: 			childSessionKey: entry.childSessionKey,
+2343: 			runId: entry.runId,
+2344: 			requesterSessionKey: entry.requesterSessionKey,
+2345: 			outcomeStatus
+2346: 		};
+2347: 		const terminalEndedAt = entry.execution.endedAt;
+2348: 		const hasCurrentTerminalOutcome = () => entry.killReconciliation === void 0 && entry.execution.status === "terminal" && entry.execution.outcome === terminalOutcome && entry.execution.outcome?.status === outcomeStatus && entry.execution.endedAt === terminalEndedAt && entry.runId === signal.runId && entry.childSessionKey === signal.childSessionKey && entry.requesterSessionKey === signal.requesterSessionKey;
+2349: 		await recordSubagentTerminalState(signal, () => {
+2350: 			if (!isCurrentSessionEffectsOwner() || !hasCurrentTerminalOutcome()) throw new Error("Subagent terminal signal owner changed before commit");
+2351: 		});
+2352: 		if (!isCurrentTerminalCallback()) return;
+2353: 		await refreshSessionEffectsSuppression();
+2354: 		if (context.newerGenerationOwnsSession(entry)) {
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/subagent-terminal-state-C9LSgyE4.mjs sha256=7041572613ebc2b8bf1b56af3f7e7f8a43f6fd0726b61a2de6195c440265a3d7
+1: import { l as resolveAgentIdFromSessionKey } from "./session-key-BC4m_Ly5.mjs";
+2: import { p as recordSessionStateEventAsync } from "./session-state-events-DxrQGYa3.mjs";
+3: //#region src/sessions/subagent-terminal-state.ts
+4: const SUBAGENT_TERMINAL_SUMMARY = {
+5: 	ok: "child run completed",
+6: 	error: "child run failed",
+7: 	timeout: "child run timed out",
+8: 	cancelled: "child run cancelled"
+9: };
+10: /** Project an already-normalized subagent terminal outcome into the signal log. */
+11: async function recordSubagentTerminalState(params, assertCurrent, acpControl) {
+12: 	await recordSessionStateEventAsync({
+13: 		sessionKey: params.childSessionKey,
+14: 		agentId: resolveAgentIdFromSessionKey(params.childSessionKey),
+15: 		kind: params.outcomeStatus === "ok" ? "run_completed" : "run_failed",
+16: 		actorType: "system",
+17: 		runId: params.runId,
+18: 		dedupeKey: `run-terminal:${params.runId}`,
+19: 		summary: SUBAGENT_TERMINAL_SUMMARY[params.outcomeStatus],
+20: 		...params.outcomeStatus === "ok" ? {} : { payload: { outcome: params.outcomeStatus } },
+21: 		watcherSessionKeys: [params.requesterSessionKey]
+22: 	}, {
+23: 		assertCurrent,
+24: 		acpControl
+25: 	});
+26: }
+27: //#endregion
+28: export { recordSubagentTerminalState as t };
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/openclaw-state-worker-runtime-CckKB9al.mjs sha256=70fd0b674f23dec869fbefb10bbcf38afb1a7a4798070fa51a257b093dd6c892
+3908: function silentPairingClusterKey(device) {
+3909: 	const clientId = device.clientId?.trim().toLowerCase() ?? "";
+3910: 	const clientMode = device.clientMode?.trim().toLowerCase() ?? "";
+3911: 	const displayName = device.displayName?.trim().toLowerCase() ?? "";
+3912: 	if (!clientId && !clientMode && !displayName) return null;
+3913: 	return `${clientId}\0${clientMode}\0${displayName}`;
+3914: }
+3915: const PRUNE_RECENT_APPROVAL_GRACE_MS = 6e4;
+3916: /**
+3917: * Remove silent-approved sibling records superseded by a newly approved silent
+3918: * pairing of the same client cluster. Only records whose latest approval was
+3919: * same-host local ("silent") are eligible, as anchor and as victim: local
+3920: * clients re-pair silently by construction and share the gateway host, so the
+3921: * metadata cluster key cannot match a different machine. Currently connected
+3922: * devices are skipped so concurrent sessions with distinct state dirs keep
+3923: * their tokens while live.
+3924: */
+3925: function pruneSupersededSilentPairedDevicesInWorker(params) {
+3926: 	const state = loadDevicePairingStateForMutation(params.nowMs, params.baseDir);
+3927: 	const anchor = state.pairedByDeviceId[normalizeDevicePairingId(params.deviceId)];
+3928: 	if (!anchor || anchor.approvedVia !== "silent") return [];
+3929: 	const anchorKey = silentPairingClusterKey(anchor);
+3930: 	if (!anchorKey) return [];
+3931: 	const nowMs = params.nowMs;
+3932: 	const protectedDeviceIds = new Set(params.protectedDeviceIds);
+3933: 	const removed = [];
+3934: 	for (const device of Object.values(state.pairedByDeviceId)) {
+3935: 		if (device.deviceId === anchor.deviceId) continue;
+3936: 		if (device.approvedVia !== "silent") continue;
+3937: 		if (silentPairingClusterKey(device) !== anchorKey) continue;
+3938: 		if (nowMs - device.approvedAtMs < PRUNE_RECENT_APPROVAL_GRACE_MS) continue;
+3939: 		if (protectedDeviceIds.has(device.deviceId)) continue;
+3940: 		delete state.pairedByDeviceId[device.deviceId];
+3941: 		for (const [requestId, pending] of Object.entries(state.pendingById)) if (pending.deviceId === device.deviceId) delete state.pendingById[requestId];
+3942: 		removed.push({
+3943: 			deviceId: device.deviceId,
+3944: 			roles: listApprovedPairedDeviceRoles(device)
+3945: 		});
+3946: 	}
+3947: 	if (removed.length === 0) return [];
+3948: 	requestDevicePairingMutationAdmission({
+3949: 		kind: "pairing-prune",
+3950: 		deviceIds: removed.map((entry) => entry.deviceId)
+3951: 	});
+3952: 	persistDevicePairingStoreState(state, params.baseDir, "both", { clearApnsNodeIds: removed.map((entry) => entry.deviceId) });
+3953: 	return removed;
+3954: }
+3955: /** Remove one approved paired-device role while preserving unrelated role tokens. */
+3956: function removePairedDeviceRoleInWorker(params) {
+3957: 	const state = loadDevicePairingStateForMutation(params.nowMs, params.baseDir);
+3958: 	const normalizedDeviceId = normalizeDevicePairingId(params.deviceId);
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/message-handler-DbX-nn9k.mjs sha256=10f62f42d8dc984c658015cf699351c0335b0df76b16e6a270b7eee6c10a1b1c
+1383: //#region src/gateway/device-pairing-prune.ts
+1384: /**
+1385: * After a silent auto-approval, retire older silent pairings of the same client
+1386: * cluster. Ephemeral state dirs mint a fresh deviceId per run and every run
+1387: * re-pairs silently, so without this the paired-device list grows without bound
+1388: * (dozens of stale operator/node records per host).
+1389: */
+1390: async function pruneSupersededSilentPairingsAfterApproval(params) {
+1391: 	const { context } = params;
+1392: 	const pruned = await pruneSupersededSilentPairedDevices({
+1393: 		deviceId: params.deviceId,
+1394: 		baseDir: params.baseDir,
+1395: 		nowMs: params.nowMs,
+1396: 		isDeviceConnected: (deviceId) => context.hasConnectedClientsForDevice?.(deviceId) ?? false
+1397: 	});
+1398: 	for (const entry of pruned) {
+1399: 		context.logGateway.info(`device pairing pruned superseded silent pairing device=${entry.deviceId} roles=${entry.roles.join(",") || "none"}`);
+1400: 		if (entry.roles.includes("node")) clearRemovedNodeRuntimeState({
+1401: 			nodeId: entry.deviceId,
+1402: 			context
+1403: 		});
+1404: 		context.invalidateClientsForDevice?.(entry.deviceId, { reason: "device-pair-removed" });
+1405: 		await reconcileRevokedDeviceWorker(context, entry.deviceId);
+1406: 		if (entry.roles.includes("node")) context.broadcast("node.pair.resolved", {
+1407: 			requestId: "",
+1408: 			nodeId: entry.deviceId,
+1409: 			decision: "removed",
+1410: 			ts: Date.now()
+1411: 		}, { dropIfSlow: true });
+1412: 		context.disconnectClientsForDevice?.(entry.deviceId);
+1413: 	}
+1414: 	return pruned;
+1415: }
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/model-runtime-choice-BjdSuQ6n.mjs sha256=cc9d9b44622cda985aa3f287807ff8a896d6035a3b955fa32cd52f635230510b
+103: 			const auth = decisions.evaluateNative(entry, host);
+104: 			if (auth.routeResolution?.kind === "incompatible") return {
+105: 				kind: "unavailable",
+106: 				error: auth.routeResolution.message
+107: 			};
+108: 			if ((profileId || auth.availabilityAuthoritative) && auth.availability === false) return {
+109: 				kind: "unavailable",
+110: 				error: `The selected account or native runtime is unavailable for ${key}. Restore that account before spawning this model.`
+111: 			};
+112: 			const selectedRuntime = resolveCatalogDecisionRuntime({
+113: 				cfg: owner.config,
+
+/home/user/v03/openclaw/lib/node_modules/openclaw/dist/spawn-thread-binding-CC3RQjiW.mjs sha256=40d81917324899d0c2486073c335c9953820d007009becc7c7c5b7eb5ccae3cd
+558: 			...inheritedModel ? { resolvedRef: inheritedModel } : {},
+559: 			...modelOverrideSource === "auto" ? { fallbacks: modelFallbackOverrideFromAvailability(resolveModelFallbackAvailability({
+560: 				cfg: params.cfg,
+561: 				agentId: params.targetAgentId,
+562: 				hasSessionModelOverride: true,
+563: 				modelOverrideSource: "auto",
+564: 				subagentSpawnLineage: true
+565: 			})) } : {}
+566: 		});
+567: 	} catch (error) {
+568: 		return {
+569: 			status: "error",
+570: 			resolvedModel: requestedModel,
+571: 			error: `sessions_spawn could not verify the selected model: ${summarizeSpawnError(error)}`
+572: 		};
+573: 	}
+574: 	if (choice.kind === "unavailable") return {
+575: 		status: "error",
+576: 		resolvedModel: requestedModel,
+577: 		error: `sessions_spawn model "${requestedModel}" is not usable: ${choice.error}`
+578: 	};

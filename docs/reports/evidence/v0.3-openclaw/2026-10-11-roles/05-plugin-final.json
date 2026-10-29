@@ -1,0 +1,147 @@
+{
+  "startedAt": "2026-10-11T07:53:34.411280+00:00",
+  "endedAt": "2026-10-11T07:53:37.119540+00:00",
+  "command": [
+    "/home/user/v03/openclaw/oc",
+    "plugins",
+    "inspect",
+    "pda-common",
+    "--runtime",
+    "--json"
+  ],
+  "exitCode": 0,
+  "stderr": "WARN: Workspace plugin discovery was skipped because multiple explicit agents are configured without agents.defaults.systemAgent.agentId. This partial result includes bundled, managed, and global plugins only; set agents.defaults.systemAgent.agentId to include that owner's workspace plugins.\n",
+  "result": {
+    "plugin": {
+      "id": "pda-common",
+      "name": "PDA common instructions",
+      "description": "全エージェントに共通の指示を毎回ファイルから読み込みます。",
+      "packageVersion": "0.1.0",
+      "version": "0.1.0",
+      "packageName": "pda-common",
+      "format": "openclaw",
+      "source": "/home/user/v03/openclaw/state/extensions/pda-common/index.js",
+      "rootDir": "/home/user/v03/openclaw/state/extensions/pda-common",
+      "origin": "global",
+      "trust": {
+        "reason": "origin-path",
+        "registryPath": "/home/user/v03/openclaw/state/state/openclaw.sqlite",
+        "origin": "global",
+        "installSource": "path"
+      },
+      "enabled": true,
+      "compat": [],
+      "explicitlyEnabled": true,
+      "activated": true,
+      "activationSource": "explicit",
+      "activationReason": "enabled in config",
+      "syntheticAuthRefs": [],
+      "status": "loaded",
+      "toolNames": [],
+      "hookNames": [],
+      "channelIds": [],
+      "cliBackendIds": [],
+      "providerIds": [],
+      "embeddingProviderIds": [],
+      "speechProviderIds": [],
+      "realtimeTranscriptionProviderIds": [],
+      "realtimeVoiceProviderIds": [],
+      "mediaUnderstandingProviderIds": [],
+      "transcriptSourceProviderIds": [],
+      "imageGenerationProviderIds": [],
+      "videoGenerationProviderIds": [],
+      "musicGenerationProviderIds": [],
+      "webFetchProviderIds": [],
+      "webSearchProviderIds": [],
+      "migrationProviderIds": [],
+      "contextEngineIds": [],
+      "agentHarnessIds": [],
+      "cliCommands": [],
+      "services": [],
+      "gatewayDiscoveryServiceIds": [],
+      "commands": [],
+      "httpRoutes": 0,
+      "hookCount": 1,
+      "configSchema": true,
+      "configJsonSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "commonFile": {
+            "type": "string",
+            "minLength": 1,
+            "default": "/home/user/v03/openclaw/pda/common.md"
+          }
+        }
+      },
+      "imported": true,
+      "dependencyStatus": {
+        "hasDependencies": false,
+        "installed": true,
+        "requiredInstalled": true,
+        "optionalInstalled": true,
+        "missing": [],
+        "missingOptional": [],
+        "dependencies": [],
+        "optionalDependencies": []
+      }
+    },
+    "shape": "hook-only",
+    "capabilityMode": "none",
+    "capabilityCount": 0,
+    "capabilities": [],
+    "typedHooks": [
+      {
+        "name": "before_prompt_build"
+      }
+    ],
+    "customHooks": [],
+    "tools": [],
+    "commands": [],
+    "cliCommands": [],
+    "services": [],
+    "decisions": [],
+    "gatewayDiscoveryServices": [],
+    "gatewayMethods": [],
+    "mcpServers": [],
+    "lspServers": [],
+    "httpRouteCount": 0,
+    "bundleCapabilities": [],
+    "diagnostics": [],
+    "policy": {
+      "allowConversationAccess": true,
+      "allowedModels": [],
+      "hasAllowedModelsConfig": false
+    },
+    "compatibility": [
+      {
+        "pluginId": "pda-common",
+        "code": "hook-only",
+        "compatCode": "hook-only-plugin-shape",
+        "severity": "info",
+        "message": "is hook-only. This remains a supported compatibility path, but it has not migrated to explicit capability registration yet."
+      }
+    ],
+    "install": {
+      "source": "path",
+      "sourcePath": "/home/user/pda-v03a/deploy/openclaw/plugins/pda-common",
+      "installPath": "/home/user/v03/openclaw/state/extensions/pda-common",
+      "version": "0.1.0",
+      "installedAt": "2026-10-11T07:36:33.355Z",
+      "acceptedSurface": {
+        "channels": [],
+        "providers": [],
+        "tools": [],
+        "contracts": [],
+        "hooks": [],
+        "mcpServers": [],
+        "cliCommands": [],
+        "cliBackends": [],
+        "skills": [],
+        "dangerousConfigFlags": []
+      },
+      "acceptedSurfaceHash": "e9ee055fdf3a7d0f5c8f4db342886ceca40fecac78cbd94febb73acd562e45fd",
+      "acceptedSurfaceAt": "2026-10-11T07:36:33.354Z"
+    }
+  }
+}

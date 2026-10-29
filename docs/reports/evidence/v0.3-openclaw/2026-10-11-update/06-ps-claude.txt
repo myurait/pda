@@ -1,0 +1,93 @@
+{"utc":"2026-10-11T07:06:53.332Z","reason":"after-send"}
+$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)
+    PID    PPID     ELAPSED COMMAND
+ 548594    1274       07:26  \_ openclaw-gateway
+ 548818  548594       07:18      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 548909  548818       07:05      |   \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 548833  548594       07:17      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 550184  548594       02:59      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-T9Y14E/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --resume d991cd12-8ab8-41b9-be51-fc1e6ebf5024
+ 550331  548594       02:14      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-SmQPaR/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 9aacd2a0-fd69-4197-8202-eba1c366a2b7
+ 550610  548594       01:17      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-okXzfz/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 757b35a9-5953-4187-b3db-afb7413684ea
+548594 cwd=/home/user/v03/work/openclaw/scratch
+548818 cwd=/home/user/v03/work/openclaw/scratch
+548909 cwd=/home/user/v03/work/openclaw/scratch
+548833 cwd=/home/user/v03/work/openclaw/scratch
+550184 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550331 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550610 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+{"utc":"2026-10-11T07:06:58.348Z","reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)
+    PID    PPID     ELAPSED COMMAND
+ 548594    1274       07:31  \_ openclaw-gateway
+ 548818  548594       07:23      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 548909  548818       07:10      |   \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 548833  548594       07:22      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 550184  548594       03:04      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-T9Y14E/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --resume d991cd12-8ab8-41b9-be51-fc1e6ebf5024
+ 550331  548594       02:19      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-SmQPaR/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 9aacd2a0-fd69-4197-8202-eba1c366a2b7
+ 550610  548594       01:22      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-okXzfz/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 757b35a9-5953-4187-b3db-afb7413684ea
+ 550919  548594       00:04      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-8JAVfd/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 21d704f4-3a75-45bd-b460-2224e05fdcc3
+548594 cwd=/home/user/v03/work/openclaw/scratch
+548818 cwd=/home/user/v03/work/openclaw/scratch
+548909 cwd=/home/user/v03/work/openclaw/scratch
+548833 cwd=/home/user/v03/work/openclaw/scratch
+550184 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550331 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550610 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550919 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-11T07:06:58.386Z","reason":"first-output"}
+$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)
+    PID    PPID     ELAPSED COMMAND
+ 548594    1274       07:31  \_ openclaw-gateway
+ 548818  548594       07:23      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 548909  548818       07:10      |   \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 548833  548594       07:22      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 550184  548594       03:04      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-T9Y14E/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --resume d991cd12-8ab8-41b9-be51-fc1e6ebf5024
+ 550331  548594       02:19      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-SmQPaR/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 9aacd2a0-fd69-4197-8202-eba1c366a2b7
+ 550610  548594       01:22      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-okXzfz/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 757b35a9-5953-4187-b3db-afb7413684ea
+ 550919  548594       00:04      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-8JAVfd/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 21d704f4-3a75-45bd-b460-2224e05fdcc3
+548594 cwd=/home/user/v03/work/openclaw/scratch
+548818 cwd=/home/user/v03/work/openclaw/scratch
+548909 cwd=/home/user/v03/work/openclaw/scratch
+548833 cwd=/home/user/v03/work/openclaw/scratch
+550184 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550331 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550610 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550919 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-11T07:07:03.349Z","reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)
+    PID    PPID     ELAPSED COMMAND
+ 548594    1274       07:36  \_ openclaw-gateway
+ 548818  548594       07:28      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 548909  548818       07:15      |   \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 548833  548594       07:27      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 550184  548594       03:09      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-T9Y14E/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --resume d991cd12-8ab8-41b9-be51-fc1e6ebf5024
+ 550331  548594       02:24      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-SmQPaR/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 9aacd2a0-fd69-4197-8202-eba1c366a2b7
+ 550610  548594       01:27      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-okXzfz/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 757b35a9-5953-4187-b3db-afb7413684ea
+ 550919  548594       00:09      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-8JAVfd/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 21d704f4-3a75-45bd-b460-2224e05fdcc3
+548594 cwd=/home/user/v03/work/openclaw/scratch
+548818 cwd=/home/user/v03/work/openclaw/scratch
+548909 cwd=/home/user/v03/work/openclaw/scratch
+548833 cwd=/home/user/v03/work/openclaw/scratch
+550184 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550331 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550610 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550919 cwd=/home/user/v03/work/openclaw/scratch
+{"utc":"2026-10-11T07:07:08.350Z","reason":"periodic"}
+$ ps -ww -eo pid,ppid,etime,args --forest (MainPID and descendants)
+    PID    PPID     ELAPSED COMMAND
+ 548594    1274       07:41  \_ openclaw-gateway
+ 548818  548594       07:33      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js
+ 548909  548818       07:20      |   \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 548833  548594       07:32      \_ /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session
+ 550184  548594       03:14      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-T9Y14E/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --resume d991cd12-8ab8-41b9-be51-fc1e6ebf5024
+ 550331  548594       02:29      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-SmQPaR/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 9aacd2a0-fd69-4197-8202-eba1c366a2b7
+ 550610  548594       01:32      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-okXzfz/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 757b35a9-5953-4187-b3db-afb7413684ea
+ 550919  548594       00:14      \_ /home/user/.local/bin/claude --strict-mcp-config --mcp-config /tmp/openclaw-cli-mcp-8JAVfd/mcp.json --disallowedTools ScheduleWakeup,CronCreate,Bash(run_in_background:true),Monitor,Bash --effort high --print --input-format stream-json --output-format stream-json --verbose --include-partial-messages --replay-user-messages --permission-prompt-tool stdio --permission-mode default --setting-sources user --model claude-sonnet-5 --allowedTools mcp__openclaw__* --session-id 21d704f4-3a75-45bd-b460-2224e05fdcc3
+548594 cwd=/home/user/v03/work/openclaw/scratch
+548818 cwd=/home/user/v03/work/openclaw/scratch
+548909 cwd=/home/user/v03/work/openclaw/scratch
+548833 cwd=/home/user/v03/work/openclaw/scratch
+550184 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550331 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550610 cwd=/home/user/v03/work/openclaw/scratch/r3-leader
+550919 cwd=/home/user/v03/work/openclaw/scratch

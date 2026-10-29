@@ -1,0 +1,50 @@
+[
+  {
+    "startedAt": "2026-10-11T07:15:53.337449+00:00",
+    "endedAt": "2026-10-11T07:15:53.345324+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "status",
+      "v03-openclaw.service",
+      "--no-pager"
+    ],
+    "exitCode": 0,
+    "stdout": "● v03-openclaw.service - PDA v0.3 OpenClaw trial\n     Loaded: loaded (/home/user/.config/systemd/user/v03-openclaw.service; disabled; preset: enabled)\n     Active: active (running) since Sun 2026-10-11 16:14:32 JST; 1min 21s ago\n   Main PID: 552759 (openclaw-gatewa)\n      Tasks: 79 (limit: 15004)\n     Memory: 1.7G (peak: 1.7G)\n        CPU: 1min 1.658s\n     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/v03-openclaw.service\n             ├─552759 openclaw-gateway\n             ├─552912 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/process/spawn-broker/worker.js\n             ├─552927 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session\n             ├─553019 /home/user/.nvm/versions/node/v24.18.0/bin/node /home/user/v03/openclaw/lib/node_modules/openclaw/dist/infra/sqlite-readonly-location.worker.js --openclaw-sqlite-readonly-child session\n             └─553362 /home/user/.local/bin/codex app-server --listen stdio://\n\nOct 11 16:14:51 agent-node openclaw[552759]: 2026-10-11T16:14:51.587+09:00 [state/database-verify] database integrity verification passed\nOct 11 16:14:51 agent-node openclaw[552759]: 2026-10-11T16:14:51.947+09:00 [ws] ⇄ res ✓ config.get 567ms bytes=24843 conn=9fce86bb…a5d8 id=5:b425be53-2…819c\nOct 11 16:14:51 agent-node openclaw[552759]: 2026-10-11T16:14:51.951+09:00 [ws] ⇄ res ✓ agent.identity.get 460ms bytes=157 conn=9fce86bb…a5d8 id=12:7726888d-…b731\nOct 11 16:14:52 agent-node openclaw[552759]: 2026-10-11T16:14:52.292+09:00 [ws] ⇄ res ✓ update.status 912ms bytes=201 conn=9fce86bb…a5d8 id=6:b1879c2e-7…939e\nOct 11 16:15:03 agent-node openclaw[552759]: 2026-10-11T16:15:03.389+09:00 [agent/embedded] codex app-server is newer than OpenClaw's managed runtime; continuing with normal startup validation detectedVersion=0.161.0 validatedVersion=0.160.0\nOct 11 16:15:32 agent-node openclaw[552759]: 2026-10-11T16:15:32.621+09:00 [ws] ⇄ res ✓ models.list 50ms bytes=11920 conn=8d66a5c7…4551 id=383ef26e…bc97\nOct 11 16:15:33 agent-node openclaw[552759]: 2026-10-11T16:15:33.443+09:00 [state/database-verify] database integrity verification passed\nOct 11 16:15:33 agent-node openclaw[552759]: 2026-10-11T16:15:33.559+09:00 [ws] ⇄ res ✓ sessions.patch 936ms bytes=600 conn=8d66a5c7…4551 id=b375e083…1de6\nOct 11 16:15:38 agent-node openclaw[552759]: 2026-10-11T16:15:38.222+09:00 [ws] ⇄ res ✓ tools.effective 4657ms bytes=48043 conn=8d66a5c7…4551 id=e81165ae…f2fc\nOct 11 16:15:40 agent-node openclaw[552759]: 2026-10-11T16:15:40.140+09:00 [gateway] device pairing removed device=update-persistent\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:15:53.345337+00:00",
+    "endedAt": "2026-10-11T07:15:53.349749+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "cat",
+      "v03-openclaw.service"
+    ],
+    "exitCode": 0,
+    "stdout": "# /home/user/.config/systemd/user/v03-openclaw.service\n[Unit]\nDescription=PDA v0.3 OpenClaw trial\nAfter=network-online.target\n\n[Service]\nType=simple\nWorkingDirectory=/home/user/v03/work/openclaw/scratch\nEnvironment=HOME=/home/user/v03/agent-home\nEnvironment=CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude\nEnvironment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin\nEnvironment=OPENCLAW_STATE_DIR=/home/user/v03/openclaw/state\nEnvironment=OPENCLAW_CONFIG_PATH=/home/user/v03/openclaw/openclaw.json\nExecStart=/home/user/v03/openclaw/bin/openclaw gateway run --port 5114 --bind loopback\nRestart=no\nTimeoutStopSec=30\nKillMode=control-group\n\n[Install]\nWantedBy=default.target\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:15:53.349760+00:00",
+    "endedAt": "2026-10-11T07:15:53.354876+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "-p",
+      "ActiveEnterTimestamp"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=552759\nActiveState=active\nSubState=running\nActiveEnterTimestamp=Sun 2026-10-11 16:14:32 JST\n",
+    "stderr": ""
+  }
+]

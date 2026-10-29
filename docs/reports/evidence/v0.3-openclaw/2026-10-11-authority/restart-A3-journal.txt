@@ -1,0 +1,31 @@
+2026-10-11T05:12:14.986721+00:00 agent-node systemd[1274]: Stopping v03-openclaw.service - PDA v0.3 OpenClaw trial...
+2026-10-11T05:12:15.001540+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.001+09:00 [admission] closed: stop (SIGTERM)
+2026-10-11T05:12:15.002087+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.001+09:00 [gateway] received SIGTERM; shutting down
+2026-10-11T05:12:15.040557+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.040+09:00 [gateway] shutdown budget at shutdown: drain=14960ms shutdown=24960ms reserve=10000ms exitMargin=5000ms; source=systemd user v03-openclaw.service TimeoutStopUSec=30000ms
+2026-10-11T05:12:15.051184+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.051+09:00 [gateway] active-work drain settled; beginning server close
+2026-10-11T05:12:15.123947+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.123+09:00 [ws] webchat disconnected code=1012 reason=service restart conn=85b9f304-16c8-4083-982d-714438bfbf5a
+2026-10-11T05:12:15.137733+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.137+09:00 [gmail-watcher] gmail watcher stopped
+2026-10-11T05:12:15.470429+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.470+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=131321 opsServed=5
+2026-10-11T05:12:15.471275+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.471+09:00 [session-sqlite] reclamation worker retired reason=revoked kind=maintenance-plan ageMs=121238 opsServed=3
+2026-10-11T05:12:15.589587+00:00 agent-node openclaw[531874]: 2026-10-11T14:12:15.589+09:00 [shutdown] completed cleanly in 534ms
+2026-10-11T05:12:15.990572+00:00 agent-node systemd[1274]: Stopped v03-openclaw.service - PDA v0.3 OpenClaw trial.
+2026-10-11T05:12:15.990592+00:00 agent-node systemd[1274]: v03-openclaw.service: Consumed 1min 14.871s CPU time, 2.0G memory peak, 0B memory swap peak.
+2026-10-11T05:12:16.004064+00:00 agent-node systemd[1274]: Started v03-openclaw.service - PDA v0.3 OpenClaw trial.
+2026-10-11T05:12:19.747669+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:19.747+09:00 [gateway] loading configuration…
+2026-10-11T05:12:20.001429+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:20.001+09:00 [gateway] resolving authentication…
+2026-10-11T05:12:20.008433+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:20.007+09:00 [gateway] auth mode=none explicitly configured; all gateway connections are unauthenticated.
+2026-10-11T05:12:20.008955+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:20.008+09:00 [gateway] starting...
+2026-10-11T05:12:20.291357+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:20.291+09:00 [gateway] shutdown budget at startup: drain=15000ms shutdown=25000ms reserve=10000ms exitMargin=5000ms; source=systemd user v03-openclaw.service TimeoutStopUSec=30000ms
+2026-10-11T05:12:20.411289+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:20.411+09:00 [gateway] spawn broker ready pid=533331
+2026-10-11T05:12:22.543090+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:22.542+09:00 [gateway] starting HTTP server...
+2026-10-11T05:12:22.638943+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:22.638+09:00 [health-monitor] started (interval: 300s, startup-grace: 60s, channel-connect-grace: 120s)
+2026-10-11T05:12:28.733593+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.733+09:00 [gateway] agent model: openai/gpt-6-astra (thinking=medium, fast=off)
+2026-10-11T05:12:28.734110+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.734+09:00 [gateway] http server listening (16 plugins: anthropic, browser, canvas, codex, cua-computer, device-pair, file-transfer, geolocation, github, linux-node, memory-core, ollama, openai, talk-voice, typesafe, xai; 8.4s)
+2026-10-11T05:12:28.734536+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.734+09:00 [gateway] log file: /tmp/openclaw/openclaw-2026-10-11.log
+2026-10-11T05:12:28.734846+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.734+09:00 [gateway] native runtime: {"pid":533245,"platform":"linux","arch":"x64","node":"24.18.0","v8":"13.6.233.17-node.50","uv":"1.52.1","openssl":"3.5.7","sqlite":"3.53.1"}
+2026-10-11T05:12:28.735348+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.735+09:00 [gateway] worker startup state: {"workerCount":6,"workerLifecycle":[{"script":"other","started":1,"retired":[{"reason":"exit","count":1}]},{"script":"sqlite-store.worker.js","started":1,"retired":[]},{"script":"openclaw-state-lease-heartbeat.worker.js","started":1,"retired":[]},{"script":"openclaw-state-read.worker.js","started":2,"retired":[]},{"script":"session-transcript.worker.js","started":2,"retired":[]}],"compute":{"limit":11,"active":0,"waitingPools":0,"pendingTasks":0,"pendingBytes":0}}
+2026-10-11T05:12:28.775226+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:28.775+09:00 [gateway] starting channels and sidecars...
+2026-10-11T05:12:29.653273+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:29.653+09:00 [gateway] startup outcomes: internal-hooks=skipped (not-configured); internal-startup-hook=skipped (no-handlers-loaded); gateway-start-hooks=scheduled; gmail-watcher=skipped (hooks-disabled); gmail-model=skipped (not-configured)
+2026-10-11T05:12:29.664814+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:29.664+09:00 [gateway] ready
+2026-10-11T05:12:29.701307+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:29.701+09:00 [skill-workshop] scheduled skill collection reviews are disabled because the cron scheduler is disabled; enable cron and restart the gateway
+2026-10-11T05:12:29.702340+00:00 agent-node openclaw[533245]: 2026-10-11T14:12:29.702+09:00 [heartbeat] disabled

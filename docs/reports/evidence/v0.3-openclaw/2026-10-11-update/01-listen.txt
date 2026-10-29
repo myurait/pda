@@ -1,0 +1,81 @@
+{
+  "checks": [
+    {
+      "startedAt": "2026-10-11T06:59:48.875838+00:00",
+      "endedAt": "2026-10-11T06:59:49.095151+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "20",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    },
+    {
+      "startedAt": "2026-10-11T06:59:49.095174+00:00",
+      "endedAt": "2026-10-11T06:59:49.601723+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "20",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "https://pda-web.tailaff53a.ts.net:19114/"
+      ],
+      "exitCode": 6,
+      "stdout": "000",
+      "stderr": "curl: (6) Could not resolve host: pda-web.tailaff53a.ts.net\n"
+    },
+    {
+      "startedAt": "2026-10-11T06:59:49.601743+00:00",
+      "endedAt": "2026-10-11T06:59:49.609711+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "20",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    }
+  ],
+  "listeners": {
+    "startedAt": "2026-10-11T06:59:49.609729+00:00",
+    "endedAt": "2026-10-11T06:59:49.622115+00:00",
+    "command": [
+      "ss",
+      "-ltnp"
+    ],
+    "exitCode": 0,
+    "stdout": "LISTEN 0      511        127.0.0.1:5114       0.0.0.0:*    users:((\"openclaw-gatewa\",pid=548594,fd=121))\nLISTEN 0      511            [::1]:5114          [::]:*    users:((\"openclaw-gatewa\",pid=548594,fd=122))",
+    "stderr": ""
+  },
+  "serve": {
+    "startedAt": "2026-10-11T06:59:49.622151+00:00",
+    "endedAt": "2026-10-11T06:59:49.632288+00:00",
+    "command": [
+      "/home/user/.local/bin/tailscale-pda",
+      "serve",
+      "status"
+    ],
+    "exitCode": 0,
+    "stdout": "https://pda-web.tailaff53a.ts.net:18443 (tailnet only)\n|-- / proxy http://127.0.0.1:18501\n\nhttps://pda-web.tailaff53a.ts.net:18444 (tailnet only)\n|-- / proxy http://127.0.0.1:18502\n\nhttps://pda-web.tailaff53a.ts.net:18445 (tailnet only)\n|-- / proxy http://127.0.0.1:18504\n\nhttps://pda-web.tailaff53a.ts.net:19114 (tailnet only)\n|-- / proxy http://127.0.0.1:5114\n\nhttps://pda-web.tailaff53a.ts.net (tailnet only)\n|-- /                           proxy http://127.0.0.1:5081\n|-- /hermes                     proxy http://127.0.0.1:9121/hermes\n|-- /pda-push-test              proxy http://127.0.0.1:9122/pda-push-test\n|-- /beauty-passport-comparison proxy http://127.0.0.1:18503\n\n",
+    "stderr": ""
+  }
+}

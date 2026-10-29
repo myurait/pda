@@ -1,0 +1,452 @@
+[
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1099,
+    "utc": "2026-10-11T05:03:05.023000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:03:05.023+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1103,
+    "utc": "2026-10-11T05:03:05.521000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/sessions\"} {'operation': 'sessions.list', 'pid': 524204, 'threadId': 0, 'isMainThread': True, 'handlerElapsedMs': 1159, 'phaseDurationsMs': {'setup': 0, 'materialize': 1152, 'storeLoad': 0, 'filterSetup': 0, 'sharing': 0, 'rows': 2, 'decoration': 1, 'visibilityRepair': 0, 'response': 3, 'handlerExit': 0}, 'prepareThreadCpuMs': 1, 'rowThreadCpuMs': 3, 'responseThreadCpuMs': 3.002, 'prepareSyncMs': 0, 'rowSyncMs': 3, 'yieldWaitMs': 1152, 'yieldCount': 1, 'selectedRowCount': 60, 'dirtyRowCount': 1, 'materializedRowCount': 1, 'reusedRowCount': 59, 'handlerOutcome': 'returned', 'responseOutcome': 'ok'} slow session list",
+    "recordedTime": "2026-10-11T14:03:05.521+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1106,
+    "utc": "2026-10-11T05:03:27.934000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': 'e7a47a02-cb15-4a4b-aeb9-2a027873c721', 'sessionId': 'e1cd7a97-79ed-4861-beb4-aac3251594d1', 'sessionKey': 'agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3', 'action': 'started', 'threadId': '01a12958-1cf0-7632-8e02-038fb30c7a0c', 'totalMs': 5134, 'spans': [{'name': 'legacy-dynamic-tools-fingerprint', 'durationMs': 2, 'elapsedMs': 2}, {'name': 'dynamic-tools-fingerprint', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'web-search-plan', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'context-engine-binding', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'native-skill-isolation', 'durationMs': 43, 'elapsedMs': 45}, {'name': 'effective-config-read', 'durationMs': 5, 'elapsedMs': 50}, {'name': 'restricted-tool-surface-mcp-policy', 'durationMs': 0, 'elapsedMs': 50}, {'name': 'tool-policy-config-requirements-read', 'durationMs': 2, 'elapsedMs': 52}, {'name': 'plugin-config-build', 'durationMs': 1, 'elapsedMs': 54}, {'name': 'merge-thread-config', 'durationMs': 0, 'elapsedMs': 55}, {'name': 'thread-start-params', 'durationMs': 0, 'elapsedMs': 55}, {'name': 'thread-start-request', 'durationMs': 5051, 'elapsedMs': 5106}, {'name': 'restricted-tool-surface-mcp-attestation', 'durationMs': 3, 'elapsedMs': 5110}, {'name': 'thread-start-mark-managed', 'durationMs': 4, 'elapsedMs': 5116}, {'name': 'thread-start-write-binding', 'durationMs': 18, 'elapsedMs': 5134}, {'name': 'thread-ready', 'durationMs': 0, 'elapsedMs': 5134}]} [trace:codex-app-server] thread lifecycle: runId=e7a47a02-cb15-4a4b-aeb9-2a027873c721 sessionId=e1cd7a97-79ed-4861-beb4-aac3251594d1 sessionKey=agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3 action=started totalMs=5134 stages=legacy-dynamic-tools-fingerprint:2ms@2ms,dynamic-tools-fingerprint:0ms@2ms,web-search-plan:0ms@2ms,context-engine-binding:0ms@2ms,native-skill-isolation:43ms@45ms,effective-config-read:5ms@50ms,restricted-tool-surface-mcp-policy:0ms@50ms,tool-policy-config-requirements-read:2ms@52ms,plugin-config-build:1ms@54ms,merge-thread-config:0ms@55ms,thread-start-params:0ms@55ms,thread-start-request:5051ms@5106ms,restricted-tool-surface-mcp-attestation:3ms@5110ms,thread-start-mark-managed:4ms@5116ms,thread-start-write-binding:18ms@5134ms,thread-ready:0ms@5134ms",
+    "recordedTime": "2026-10-11T14:03:27.934+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1107,
+    "utc": "2026-10-11T05:03:27.958000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': 'e7a47a02-cb15-4a4b-aeb9-2a027873c721', 'sessionId': 'e1cd7a97-79ed-4861-beb4-aac3251594d1', 'sessionKey': 'agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3', 'stage': 'runtime-start', 'outcome': 'completed', 'totalMs': 5844, 'stages': [{'name': 'connection', 'durationMs': 13, 'elapsedMs': 13}, {'name': 'runtime', 'durationMs': 4, 'elapsedMs': 17}, {'name': 'tools', 'durationMs': 59, 'elapsedMs': 76}, {'name': 'context', 'durationMs': 578, 'elapsedMs': 654}, {'name': 'prompt', 'durationMs': 9, 'elapsedMs': 663}, {'name': 'runtime-start', 'durationMs': 5181, 'elapsedMs': 5844}]} codex app-server preparation timings runId=e7a47a02-cb15-4a4b-aeb9-2a027873c721 sessionId=e1cd7a97-79ed-4861-beb4-aac3251594d1 stage=runtime-start outcome=completed totalMs=5844 stages=connection:13ms@13ms,runtime:4ms@17ms,tools:59ms@76ms,context:578ms@654ms,prompt:9ms@663ms,runtime-start:5181ms@5844ms",
+    "recordedTime": "2026-10-11T14:03:27.958+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1108,
+    "utc": "2026-10-11T05:03:27.963000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} Codex parent-local egress workaround is unavailable for this connection or native network profile; legacy collaboration delivery is not guaranteed.",
+    "recordedTime": "2026-10-11T14:03:27.963+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1111,
+    "utc": "2026-10-11T05:03:33.160000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/state-events\"} failed to record session state event: Error: Subagent terminal signal owner changed before commit",
+    "recordedTime": "2026-10-11T14:03:33.160+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1114,
+    "utc": "2026-10-11T05:03:38.246000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:03:38.246+09:00"
+  },
+  {
+    "trial": "A1",
+    "sourceFile": "A1-gateway-log.jsonl",
+    "sourceLine": 1117,
+    "utc": "2026-10-11T05:03:40.324000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/diagnostics/memory\"} memory pressure: level=warning reason=rss_threshold rss=1.61 GiB heap=397.2 MiB threshold=1.5 GiB thresholdRatio=107.6% rssBytes=1732481024 heapUsedBytes=416472848 externalBytes=33977329 arrayBuffersBytes=19342293 workerHeapTotalBytes=693075968 workerHeapUsedBytes=602874176 workerExternalBytes=67412744 workerArrayBuffersBytes=5060578 workerCount=13 workerHeapSampledCount=11 workerArrayBuffersSampledCount=8 workerMemoryCoverage=partial workerMemoryScope=direct workerMemoryMissing=[{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":47,\"reason\":\"pending\"},{\"script\":\"sqlite-store.worker.js\",\"threadId\":49,\"reason\":\"pending\"}] workerHeaps=[{\"script\":\"prepared-model-catalog.worker.js\",\"threadId\":10,\"heapUsed\":166714832,\"heapTotal\":173477888,\"external\":7964974,\"arrayBuffers\":2515909,\"sampleAgeMs\":30001},{\"script\":\"session-transcript.worker.js\",\"threadId\":7,\"heapUsed\":82404664,\"heapTotal\":90906624,\"external\":5878744,\"arrayBuffers\":560047,\"sampleAgeMs\":30001},{\"script\":\"session-transcript.worker.js\",\"threadId\":44,\"heapUsed\":76365848,\"heapTotal\":95625216,\"external\":5858262,\"arrayBuffers\":559687,\"sampleAgeMs\":30001},{\"script\":\"sqlite-store.worker.js\",\"threadId\":3,\"heapUsed\":57100152,\"heapTotal\":60882944,\"external\":4567637,\"sampleAgeMs\":30000},{\"script\":\"openclaw-state-read.worker.js\",\"threadId\":5,\"heapUsed\":38132728,\"heapTotal\":44011520,\"external\":11026757,\"arrayBuffers\":145847,\"sampleAgeMs\":30000}] thresholdBytes=1610612736 workerLimitScope=js-heap-only; external/ArrayBuffers are not capped; nested workers are not included. nextStep=run openclaw gateway status --deep and openclaw gateway diagnostics export; restart gateway if pressure persists",
+    "recordedTime": "2026-10-11T14:03:40.324+09:00"
+  },
+  {
+    "trial": "A2",
+    "sourceFile": "A2-gateway-log.jsonl",
+    "sourceLine": 1122,
+    "utc": "2026-10-11T05:04:09.426000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:04:09.426+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1180,
+    "utc": "2026-10-11T05:10:04.590000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:10:04.590+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1184,
+    "utc": "2026-10-11T05:10:25.886000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '76a11d76-b1eb-4b95-bda8-d0daf3388130', 'sessionId': '8dcda463-a01e-4517-bf9c-6739714e9a90', 'sessionKey': 'agent:r3-worker:subagent:a43f9d9c-1cd9-4c1d-8554-ec993e4cc963', 'action': 'started', 'threadId': '01a1295e-7d91-7982-95a3-26ce479a0a61', 'totalMs': 5119, 'spans': [{'name': 'legacy-dynamic-tools-fingerprint', 'durationMs': 4, 'elapsedMs': 4}, {'name': 'dynamic-tools-fingerprint', 'durationMs': 0, 'elapsedMs': 4}, {'name': 'web-search-plan', 'durationMs': 0, 'elapsedMs': 4}, {'name': 'context-engine-binding', 'durationMs': 0, 'elapsedMs': 4}, {'name': 'native-skill-isolation', 'durationMs': 29, 'elapsedMs': 33}, {'name': 'effective-config-read', 'durationMs': 4, 'elapsedMs': 37}, {'name': 'restricted-tool-surface-mcp-policy', 'durationMs': 0, 'elapsedMs': 37}, {'name': 'tool-policy-config-requirements-read', 'durationMs': 1, 'elapsedMs': 38}, {'name': 'plugin-config-build', 'durationMs': 1, 'elapsedMs': 40}, {'name': 'merge-thread-config', 'durationMs': 0, 'elapsedMs': 41}, {'name': 'thread-start-params', 'durationMs': 1, 'elapsedMs': 42}, {'name': 'thread-start-request', 'durationMs': 5046, 'elapsedMs': 5088}, {'name': 'restricted-tool-surface-mcp-attestation', 'durationMs': 2, 'elapsedMs': 5092}, {'name': 'thread-start-mark-managed', 'durationMs': 4, 'elapsedMs': 5098}, {'name': 'thread-start-write-binding', 'durationMs': 21, 'elapsedMs': 5119}, {'name': 'thread-ready', 'durationMs': 0, 'elapsedMs': 5119}]} [trace:codex-app-server] thread lifecycle: runId=76a11d76-b1eb-4b95-bda8-d0daf3388130 sessionId=8dcda463-a01e-4517-bf9c-6739714e9a90 sessionKey=agent:r3-worker:subagent:a43f9d9c-1cd9-4c1d-8554-ec993e4cc963 action=started totalMs=5119 stages=legacy-dynamic-tools-fingerprint:4ms@4ms,dynamic-tools-fingerprint:0ms@4ms,web-search-plan:0ms@4ms,context-engine-binding:0ms@4ms,native-skill-isolation:29ms@33ms,effective-config-read:4ms@37ms,restricted-tool-surface-mcp-policy:0ms@37ms,tool-policy-config-requirements-read:1ms@38ms,plugin-config-build:1ms@40ms,merge-thread-config:0ms@41ms,thread-start-params:1ms@42ms,thread-start-request:5046ms@5088ms,restricted-tool-surface-mcp-attestation:2ms@5092ms,thread-start-mark-managed:4ms@5098ms,thread-start-write-binding:21ms@5119ms,thread-ready:0ms@5119ms",
+    "recordedTime": "2026-10-11T14:10:25.886+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1185,
+    "utc": "2026-10-11T05:10:25.914000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '76a11d76-b1eb-4b95-bda8-d0daf3388130', 'sessionId': '8dcda463-a01e-4517-bf9c-6739714e9a90', 'sessionKey': 'agent:r3-worker:subagent:a43f9d9c-1cd9-4c1d-8554-ec993e4cc963', 'stage': 'runtime-start', 'outcome': 'completed', 'totalMs': 5910, 'stages': [{'name': 'connection', 'durationMs': 20, 'elapsedMs': 20}, {'name': 'runtime', 'durationMs': 6, 'elapsedMs': 26}, {'name': 'tools', 'durationMs': 91, 'elapsedMs': 117}, {'name': 'context', 'durationMs': 613, 'elapsedMs': 730}, {'name': 'prompt', 'durationMs': 11, 'elapsedMs': 741}, {'name': 'runtime-start', 'durationMs': 5169, 'elapsedMs': 5910}]} codex app-server preparation timings runId=76a11d76-b1eb-4b95-bda8-d0daf3388130 sessionId=8dcda463-a01e-4517-bf9c-6739714e9a90 stage=runtime-start outcome=completed totalMs=5910 stages=connection:20ms@20ms,runtime:6ms@26ms,tools:91ms@117ms,context:613ms@730ms,prompt:11ms@741ms,runtime-start:5169ms@5910ms",
+    "recordedTime": "2026-10-11T14:10:25.914+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1186,
+    "utc": "2026-10-11T05:10:25.920000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} Codex parent-local egress workaround is unavailable for this connection or native network profile; legacy collaboration delivery is not guaranteed.",
+    "recordedTime": "2026-10-11T14:10:25.920+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1189,
+    "utc": "2026-10-11T05:10:34.852000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/state-events\"} failed to record session state event: Error: Subagent terminal signal owner changed before commit",
+    "recordedTime": "2026-10-11T14:10:34.852+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1190,
+    "utc": "2026-10-11T05:10:39.572000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"diagnostic\"} liveness heartbeat delayed: overdue=3055ms elapsed=33055ms; deferring recovery decisions",
+    "recordedTime": "2026-10-11T14:10:39.572+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1191,
+    "utc": "2026-10-11T05:10:39.574000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/diagnostics/memory\"} memory pressure: level=warning reason=rss_threshold rss=1.71 GiB heap=370.8 MiB threshold=1.5 GiB thresholdRatio=114.2% rssBytes=1839321088 heapUsedBytes=388839256 externalBytes=8222231 arrayBuffersBytes=3891469 workerHeapTotalBytes=874332160 workerHeapUsedBytes=684757768 workerExternalBytes=80797294 workerArrayBuffersBytes=6149756 workerCount=15 workerHeapSampledCount=14 workerArrayBuffersSampledCount=10 workerMemoryCoverage=partial workerMemoryScope=direct workerMemoryMissing=[{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":16,\"reason\":\"pending\"}] workerHeaps=[{\"script\":\"prepared-model-catalog.worker.js\",\"threadId\":10,\"heapUsed\":166868272,\"heapTotal\":193400832,\"external\":7965806,\"arrayBuffers\":2515909,\"sampleAgeMs\":33053},{\"script\":\"session-transcript.worker.js\",\"threadId\":7,\"heapUsed\":79657856,\"heapTotal\":88285184,\"external\":5878744,\"arrayBuffers\":559695,\"sampleAgeMs\":33053},{\"script\":\"session-transcript.worker.js\",\"threadId\":8,\"heapUsed\":78482784,\"heapTotal\":84877312,\"external\":5923798,\"arrayBuffers\":625223,\"sampleAgeMs\":33053},{\"script\":\"sqlite-store.worker.js\",\"threadId\":3,\"heapUsed\":51291584,\"heapTotal\":54001664,\"external\":4633261,\"sampleAgeMs\":33053},{\"script\":\"sqlite-store.worker.js\",\"threadId\":13,\"heapUsed\":45899720,\"heapTotal\":80887808,\"external\":4353946,\"sampleAgeMs\":33053}] thresholdBytes=1610612736 workerLimitScope=js-heap-only; external/ArrayBuffers are not capped; nested workers are not included. nextStep=run openclaw gateway status --deep and openclaw gateway diagnostics export; restart gateway if pressure persists",
+    "recordedTime": "2026-10-11T14:10:39.574+09:00"
+  },
+  {
+    "trial": "A2-retry",
+    "sourceFile": "A2-retry-gateway-log.jsonl",
+    "sourceLine": 1194,
+    "utc": "2026-10-11T05:10:42.047000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:10:42.047+09:00"
+  },
+  {
+    "trial": "A3",
+    "sourceFile": "A3-gateway-log.jsonl",
+    "sourceLine": 1200,
+    "utc": "2026-10-11T05:11:04.719000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:11:04.719+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1259,
+    "utc": "2026-10-11T05:13:02.610000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:13:02.610+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1264,
+    "utc": "2026-10-11T05:13:22.620000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/diagnostics/memory\"} memory pressure: level=warning reason=rss_threshold rss=1.68 GiB heap=328.7 MiB threshold=1.5 GiB thresholdRatio=112.2% rssBytes=1807360000 heapUsedBytes=344653200 externalBytes=7758539 arrayBuffersBytes=3562036 workerHeapTotalBytes=822067200 workerHeapUsedBytes=613973232 workerExternalBytes=72899574 workerArrayBuffersBytes=6785305 workerCount=15 workerHeapSampledCount=12 workerArrayBuffersSampledCount=10 workerMemoryCoverage=partial workerMemoryScope=direct workerMemoryMissing=[{\"script\":\"sqlite-store.worker.js\",\"threadId\":13,\"reason\":\"pending\"},{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":15,\"reason\":\"pending\"},{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":16,\"reason\":\"pending\"}] workerHeaps=[{\"script\":\"prepared-model-catalog.worker.js\",\"threadId\":10,\"heapUsed\":166794560,\"heapTotal\":193400832,\"external\":7965806,\"arrayBuffers\":2515909,\"sampleAgeMs\":30001},{\"script\":\"session-transcript.worker.js\",\"threadId\":8,\"heapUsed\":78211256,\"heapTotal\":97198080,\"external\":5923798,\"arrayBuffers\":625223,\"sampleAgeMs\":30001},{\"script\":\"session-transcript.worker.js\",\"threadId\":7,\"heapUsed\":76415816,\"heapTotal\":78585856,\"external\":5813208,\"arrayBuffers\":494151,\"sampleAgeMs\":30001},{\"script\":\"sqlite-store.worker.js\",\"threadId\":3,\"heapUsed\":51297888,\"heapTotal\":56033280,\"external\":4826804,\"sampleAgeMs\":30001},{\"script\":\"disk-budget.worker.js\",\"threadId\":14,\"heapUsed\":43957352,\"heapTotal\":97632256,\"external\":4943454,\"arrayBuffers\":1056980,\"sampleAgeMs\":20096}] thresholdBytes=1610612736 workerLimitScope=js-heap-only; external/ArrayBuffers are not capped; nested workers are not included. nextStep=run openclaw gateway status --deep and openclaw gateway diagnostics export; restart gateway if pressure persists",
+    "recordedTime": "2026-10-11T14:13:22.620+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1265,
+    "utc": "2026-10-11T05:13:27.827000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '7a7c5428-51a3-4bc4-b305-b191eb740a55', 'sessionId': '797269f3-1d60-42ee-b0eb-d035675d40d2', 'sessionKey': 'agent:r3-worker:subagent:393fc2ef-6191-413a-9b9e-aceb85334763', 'action': 'started', 'threadId': '01a12961-4446-7541-b3d5-3988bf147e6d', 'totalMs': 5117, 'spans': [{'name': 'legacy-dynamic-tools-fingerprint', 'durationMs': 2, 'elapsedMs': 2}, {'name': 'dynamic-tools-fingerprint', 'durationMs': 0, 'elapsedMs': 3}, {'name': 'web-search-plan', 'durationMs': 0, 'elapsedMs': 3}, {'name': 'context-engine-binding', 'durationMs': 0, 'elapsedMs': 3}, {'name': 'native-skill-isolation', 'durationMs': 28, 'elapsedMs': 31}, {'name': 'effective-config-read', 'durationMs': 4, 'elapsedMs': 35}, {'name': 'restricted-tool-surface-mcp-policy', 'durationMs': 0, 'elapsedMs': 36}, {'name': 'tool-policy-config-requirements-read', 'durationMs': 1, 'elapsedMs': 37}, {'name': 'plugin-config-build', 'durationMs': 1, 'elapsedMs': 39}, {'name': 'merge-thread-config', 'durationMs': 0, 'elapsedMs': 39}, {'name': 'thread-start-params', 'durationMs': 1, 'elapsedMs': 40}, {'name': 'thread-start-request', 'durationMs': 5048, 'elapsedMs': 5088}, {'name': 'restricted-tool-surface-mcp-attestation', 'durationMs': 3, 'elapsedMs': 5092}, {'name': 'thread-start-mark-managed', 'durationMs': 5, 'elapsedMs': 5099}, {'name': 'thread-start-write-binding', 'durationMs': 18, 'elapsedMs': 5117}, {'name': 'thread-ready', 'durationMs': 0, 'elapsedMs': 5117}]} [trace:codex-app-server] thread lifecycle: runId=7a7c5428-51a3-4bc4-b305-b191eb740a55 sessionId=797269f3-1d60-42ee-b0eb-d035675d40d2 sessionKey=agent:r3-worker:subagent:393fc2ef-6191-413a-9b9e-aceb85334763 action=started totalMs=5117 stages=legacy-dynamic-tools-fingerprint:2ms@2ms,dynamic-tools-fingerprint:0ms@3ms,web-search-plan:0ms@3ms,context-engine-binding:0ms@3ms,native-skill-isolation:28ms@31ms,effective-config-read:4ms@35ms,restricted-tool-surface-mcp-policy:0ms@36ms,tool-policy-config-requirements-read:1ms@37ms,plugin-config-build:1ms@39ms,merge-thread-config:0ms@39ms,thread-start-params:1ms@40ms,thread-start-request:5048ms@5088ms,restricted-tool-surface-mcp-attestation:3ms@5092ms,thread-start-mark-managed:5ms@5099ms,thread-start-write-binding:18ms@5117ms,thread-ready:0ms@5117ms",
+    "recordedTime": "2026-10-11T14:13:27.827+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1266,
+    "utc": "2026-10-11T05:13:27.852000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '7a7c5428-51a3-4bc4-b305-b191eb740a55', 'sessionId': '797269f3-1d60-42ee-b0eb-d035675d40d2', 'sessionKey': 'agent:r3-worker:subagent:393fc2ef-6191-413a-9b9e-aceb85334763', 'stage': 'runtime-start', 'outcome': 'completed', 'totalMs': 5882, 'stages': [{'name': 'connection', 'durationMs': 20, 'elapsedMs': 20}, {'name': 'runtime', 'durationMs': 7, 'elapsedMs': 27}, {'name': 'tools', 'durationMs': 102, 'elapsedMs': 129}, {'name': 'context', 'durationMs': 577, 'elapsedMs': 706}, {'name': 'prompt', 'durationMs': 12, 'elapsedMs': 718}, {'name': 'runtime-start', 'durationMs': 5164, 'elapsedMs': 5882}]} codex app-server preparation timings runId=7a7c5428-51a3-4bc4-b305-b191eb740a55 sessionId=797269f3-1d60-42ee-b0eb-d035675d40d2 stage=runtime-start outcome=completed totalMs=5882 stages=connection:20ms@20ms,runtime:7ms@27ms,tools:102ms@129ms,context:577ms@706ms,prompt:12ms@718ms,runtime-start:5164ms@5882ms",
+    "recordedTime": "2026-10-11T14:13:27.852+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1267,
+    "utc": "2026-10-11T05:13:27.858000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} Codex parent-local egress workaround is unavailable for this connection or native network profile; legacy collaboration delivery is not guaranteed.",
+    "recordedTime": "2026-10-11T14:13:27.858+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1270,
+    "utc": "2026-10-11T05:13:35.697000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/state-events\"} failed to record session state event: Error: Subagent terminal signal owner changed before commit",
+    "recordedTime": "2026-10-11T14:13:35.697+09:00"
+  },
+  {
+    "trial": "A3-retry",
+    "sourceFile": "A3-retry-gateway-log.jsonl",
+    "sourceLine": 1273,
+    "utc": "2026-10-11T05:13:42.959000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:13:42.959+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1316,
+    "utc": "2026-10-11T05:14:41.151000+00:00",
+    "severity": "INFO",
+    "message": "{\"subsystem\":\"gateway/ws\"} ⇄ res ✗ talk.catalog 581ms errorCode=INVALID_REQUEST errorM…rror: Multiple agents are configured, but Talk session ownership has no explicit owner. Set talk.agentId to the agent that owns unscoped Talk sessions.: code=AGENT_SELECTION_REQUIRED conn=0672b5ac…1de5 id=15:10e55b8c-…cbb6",
+    "recordedTime": "2026-10-11T14:14:41.151+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1325,
+    "utc": "2026-10-11T05:14:41.314000+00:00",
+    "severity": "WARN",
+    "message": "{\"module\":\"cron\",\"storeKey\":\"/home/user/v03/openclaw/state/cron/jobs.json\"} {'enabled': False, 'action': 'add', 'storePath': '/home/user/v03/openclaw/state/cron/jobs.json'} cron: scheduler disabled; jobs will not run automatically",
+    "recordedTime": "2026-10-11T14:14:41.314+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1334,
+    "utc": "2026-10-11T05:14:42.638000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"session-sqlite\"} slow SQLite session write {'agentId': 'r3-leader', 'pid': 534447, 'threadId': 0, 'isMainThread': True, 'operation': 'session.entry-replacements', 'elapsedMs': 1291, 'queueWaitMs': 0, 'writerExecutionMs': 1291, 'completionDelayMs': 0, 'storePath': '/home/user/v03/openclaw/state/agents/r3-leader/agent/openclaw-agent.sqlite'}",
+    "recordedTime": "2026-10-11T14:14:42.638+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1335,
+    "utc": "2026-10-11T05:14:42.641000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/lifecycle\"} {'pid': 534447, 'threadId': 0, 'isMainThread': True, 'diagnosticEpoch': '9c7ea652684dc9eb', 'omittedObservations': 0, 'operationId': 1, 'operation': 'mutation', 'operationTraceId': 'c5a3618b8376c54f8f53ed47f7f19870', 'operationSpanId': '1196a4a5cdeae415', 'elapsedMs': 1297, 'completionDelayMs': 0, 'mutationQueueWaitMs': 0, 'lifecycleQueueWaitMs': 0, 'phaseDurationsMs': {'prepare': 0, 'run': 1296, 'finalize': 0}, 'signalAborted': False} slow session lifecycle operation",
+    "recordedTime": "2026-10-11T14:14:42.641+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1340,
+    "utc": "2026-10-11T05:14:43.360000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:14:43.360+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1343,
+    "utc": "2026-10-11T05:14:50.717000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'detectedVersion': '0.161.0', 'validatedVersion': '0.158.0'} codex app-server is newer than OpenClaw's managed runtime; continuing with normal startup validation",
+    "recordedTime": "2026-10-11T14:14:50.717+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1346,
+    "utc": "2026-10-11T05:15:03.198000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/diagnostics/memory\"} memory pressure: level=warning reason=rss_threshold rss=1.64 GiB heap=354.9 MiB threshold=1.5 GiB thresholdRatio=109.5% rssBytes=1763295232 heapUsedBytes=372117008 externalBytes=8250567 arrayBuffersBytes=4168088 workerHeapTotalBytes=729432064 workerHeapUsedBytes=366084328 workerExternalBytes=51640685 workerArrayBuffersBytes=5205804 workerCount=13 workerHeapSampledCount=8 workerArrayBuffersSampledCount=8 workerMemoryCoverage=partial workerMemoryScope=direct workerMemoryMissing=[{\"script\":\"sqlite-store.worker.js\",\"threadId\":3,\"reason\":\"pending\"},{\"script\":\"openclaw-state-lease-heartbeat.worker.js\",\"threadId\":4,\"reason\":\"pending\"},{\"script\":\"sqlite-store.worker.js\",\"threadId\":12,\"reason\":\"pending\"},{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":14,\"reason\":\"pending\"},{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":15,\"reason\":\"pending\"}] workerHeaps=[{\"script\":\"prepared-model-catalog.worker.js\",\"threadId\":10,\"heapUsed\":118413808,\"heapTotal\":211607552,\"external\":6557862,\"arrayBuffers\":1163271,\"sampleAgeMs\":21613},{\"script\":\"openclaw-state-read.worker.js\",\"threadId\":6,\"heapUsed\":48869672,\"heapTotal\":99586048,\"external\":11364616,\"arrayBuffers\":473527,\"sampleAgeMs\":30266},{\"script\":\"openclaw-state-read.worker.js\",\"threadId\":5,\"heapUsed\":48867712,\"heapTotal\":100372480,\"external\":11364616,\"arrayBuffers\":473527,\"sampleAgeMs\":30903},{\"script\":\"disk-budget.worker.js\",\"threadId\":13,\"heapUsed\":44621120,\"heapTotal\":97370112,\"external\":4984053,\"arrayBuffers\":1097579,\"sampleAgeMs\":19876},{\"script\":\"session-transcript.worker.js\",\"threadId\":8,\"heapUsed\":27118592,\"heapTotal\":56573952,\"external\":4348449,\"arrayBuffers\":486955,\"sampleAgeMs\":29664}] thresholdBytes=1610612736 workerLimitScope=js-heap-only; external/ArrayBuffers are not capped; nested workers are not included. nextStep=run openclaw gateway status --deep and openclaw gateway diagnostics export; restart gateway if pressure persists",
+    "recordedTime": "2026-10-11T14:15:03.198+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1347,
+    "utc": "2026-10-11T05:15:10.605000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '2f28baa9-164d-41c5-82cb-e5b7681e1676', 'sessionId': '0c06ee3f-fd35-40ef-ad9e-6761d608fd60', 'sessionKey': 'agent:r3-worker:subagent:06ac9f41-dbb9-441b-926f-47bf0e3a6fcd', 'action': 'started', 'threadId': '01a12962-d5c4-79e3-b62a-7e2337e19a52', 'totalMs': 5096, 'spans': [{'name': 'legacy-dynamic-tools-fingerprint', 'durationMs': 2, 'elapsedMs': 2}, {'name': 'dynamic-tools-fingerprint', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'web-search-plan', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'context-engine-binding', 'durationMs': 0, 'elapsedMs': 2}, {'name': 'native-skill-isolation', 'durationMs': 13, 'elapsedMs': 15}, {'name': 'effective-config-read', 'durationMs': 4, 'elapsedMs': 19}, {'name': 'restricted-tool-surface-mcp-policy', 'durationMs': 0, 'elapsedMs': 19}, {'name': 'tool-policy-config-requirements-read', 'durationMs': 1, 'elapsedMs': 20}, {'name': 'plugin-config-build', 'durationMs': 1, 'elapsedMs': 22}, {'name': 'merge-thread-config', 'durationMs': 1, 'elapsedMs': 23}, {'name': 'thread-start-params', 'durationMs': 0, 'elapsedMs': 23}, {'name': 'thread-start-request', 'durationMs': 5046, 'elapsedMs': 5069}, {'name': 'restricted-tool-surface-mcp-attestation', 'durationMs': 3, 'elapsedMs': 5073}, {'name': 'thread-start-mark-managed', 'durationMs': 4, 'elapsedMs': 5078}, {'name': 'thread-start-write-binding', 'durationMs': 17, 'elapsedMs': 5095}, {'name': 'thread-ready', 'durationMs': 0, 'elapsedMs': 5095}]} [trace:codex-app-server] thread lifecycle: runId=2f28baa9-164d-41c5-82cb-e5b7681e1676 sessionId=0c06ee3f-fd35-40ef-ad9e-6761d608fd60 sessionKey=agent:r3-worker:subagent:06ac9f41-dbb9-441b-926f-47bf0e3a6fcd action=started totalMs=5096 stages=legacy-dynamic-tools-fingerprint:2ms@2ms,dynamic-tools-fingerprint:0ms@2ms,web-search-plan:0ms@2ms,context-engine-binding:0ms@2ms,native-skill-isolation:13ms@15ms,effective-config-read:4ms@19ms,restricted-tool-surface-mcp-policy:0ms@19ms,tool-policy-config-requirements-read:1ms@20ms,plugin-config-build:1ms@22ms,merge-thread-config:1ms@23ms,thread-start-params:0ms@23ms,thread-start-request:5046ms@5069ms,restricted-tool-surface-mcp-attestation:3ms@5073ms,thread-start-mark-managed:4ms@5078ms,thread-start-write-binding:17ms@5095ms,thread-ready:0ms@5095ms",
+    "recordedTime": "2026-10-11T14:15:10.605+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1348,
+    "utc": "2026-10-11T05:15:10.627000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '2f28baa9-164d-41c5-82cb-e5b7681e1676', 'sessionId': '0c06ee3f-fd35-40ef-ad9e-6761d608fd60', 'sessionKey': 'agent:r3-worker:subagent:06ac9f41-dbb9-441b-926f-47bf0e3a6fcd', 'stage': 'runtime-start', 'outcome': 'completed', 'totalMs': 5820, 'stages': [{'name': 'connection', 'durationMs': 18, 'elapsedMs': 18}, {'name': 'runtime', 'durationMs': 4, 'elapsedMs': 22}, {'name': 'tools', 'durationMs': 59, 'elapsedMs': 81}, {'name': 'context', 'durationMs': 591, 'elapsedMs': 672}, {'name': 'prompt', 'durationMs': 10, 'elapsedMs': 682}, {'name': 'runtime-start', 'durationMs': 5138, 'elapsedMs': 5820}]} codex app-server preparation timings runId=2f28baa9-164d-41c5-82cb-e5b7681e1676 sessionId=0c06ee3f-fd35-40ef-ad9e-6761d608fd60 stage=runtime-start outcome=completed totalMs=5820 stages=connection:18ms@18ms,runtime:4ms@22ms,tools:59ms@81ms,context:591ms@672ms,prompt:10ms@682ms,runtime-start:5138ms@5820ms",
+    "recordedTime": "2026-10-11T14:15:10.627+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1349,
+    "utc": "2026-10-11T05:15:10.632000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} Codex parent-local egress workaround is unavailable for this connection or native network profile; legacy collaboration delivery is not guaranteed.",
+    "recordedTime": "2026-10-11T14:15:10.632+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1352,
+    "utc": "2026-10-11T05:15:20.350000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/state-events\"} failed to record session state event: Error: Subagent terminal signal owner changed before commit",
+    "recordedTime": "2026-10-11T14:15:20.350+09:00"
+  },
+  {
+    "trial": "B",
+    "sourceFile": "B-gateway-log.jsonl",
+    "sourceLine": 1355,
+    "utc": "2026-10-11T05:15:28.196000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:15:28.196+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1398,
+    "utc": "2026-10-11T05:17:42.618000+00:00",
+    "severity": "INFO",
+    "message": "{\"subsystem\":\"gateway/ws\"} ⇄ res ✗ talk.catalog 575ms errorCode=INVALID_REQUEST errorM…rror: Multiple agents are configured, but Talk session ownership has no explicit owner. Set talk.agentId to the agent that owns unscoped Talk sessions.: code=AGENT_SELECTION_REQUIRED conn=528095f3…9b74 id=15:e3ce343a-…1400",
+    "recordedTime": "2026-10-11T14:17:42.618+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1409,
+    "utc": "2026-10-11T05:17:42.804000+00:00",
+    "severity": "WARN",
+    "message": "{\"module\":\"cron\",\"storeKey\":\"/home/user/v03/openclaw/state/cron/jobs.json\"} {'enabled': False, 'action': 'add', 'storePath': '/home/user/v03/openclaw/state/cron/jobs.json'} cron: scheduler disabled; jobs will not run automatically",
+    "recordedTime": "2026-10-11T14:17:42.804+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1416,
+    "utc": "2026-10-11T05:17:44.184000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"session-sqlite\"} slow SQLite session write {'agentId': 'r3-leader', 'pid': 535731, 'threadId': 0, 'isMainThread': True, 'operation': 'session.entry-replacements', 'elapsedMs': 1330, 'queueWaitMs': 0, 'writerExecutionMs': 1330, 'completionDelayMs': 0, 'storePath': '/home/user/v03/openclaw/state/agents/r3-leader/agent/openclaw-agent.sqlite'}",
+    "recordedTime": "2026-10-11T14:17:44.184+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1417,
+    "utc": "2026-10-11T05:17:44.186000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/lifecycle\"} {'pid': 535731, 'threadId': 0, 'isMainThread': True, 'diagnosticEpoch': '606b7f714c066791', 'omittedObservations': 0, 'operationId': 1, 'operation': 'mutation', 'operationTraceId': 'cbf484150eda09db55a7bdf3129c9701', 'operationSpanId': '1081072dedf4a0ed', 'elapsedMs': 1334, 'completionDelayMs': 0, 'mutationQueueWaitMs': 0, 'lifecycleQueueWaitMs': 0, 'phaseDurationsMs': {'prepare': 0, 'run': 1333, 'finalize': 0}, 'signalAborted': False} slow session lifecycle operation",
+    "recordedTime": "2026-10-11T14:17:44.186+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1422,
+    "utc": "2026-10-11T05:17:44.923000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:17:44.923+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1425,
+    "utc": "2026-10-11T05:17:52.151000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'detectedVersion': '0.161.0', 'validatedVersion': '0.158.0'} codex app-server is newer than OpenClaw's managed runtime; continuing with normal startup validation",
+    "recordedTime": "2026-10-11T14:17:52.151+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1426,
+    "utc": "2026-10-11T05:18:04.664000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"gateway/diagnostics/memory\"} memory pressure: level=warning reason=rss_threshold rss=1.57 GiB heap=342.9 MiB threshold=1.5 GiB thresholdRatio=104.9% rssBytes=1689870336 heapUsedBytes=359513328 externalBytes=7477979 arrayBuffersBytes=3391319 workerHeapTotalBytes=731529216 workerHeapUsedBytes=365186152 workerExternalBytes=51706221 workerArrayBuffersBytes=5271340 workerCount=12 workerHeapSampledCount=8 workerArrayBuffersSampledCount=8 workerMemoryCoverage=partial workerMemoryScope=direct workerMemoryMissing=[{\"script\":\"sqlite-store.worker.js\",\"threadId\":3,\"reason\":\"pending\"},{\"script\":\"openclaw-state-lease-heartbeat.worker.js\",\"threadId\":4,\"reason\":\"pending\"},{\"script\":\"sqlite-store.worker.js\",\"threadId\":12,\"reason\":\"pending\"},{\"script\":\"session-accessor.sqlite-archive.worker.js\",\"threadId\":14,\"reason\":\"pending\"}] workerHeaps=[{\"script\":\"prepared-model-catalog.worker.js\",\"threadId\":10,\"heapUsed\":117087944,\"heapTotal\":214228992,\"external\":6557862,\"arrayBuffers\":1163271,\"sampleAgeMs\":21607},{\"script\":\"openclaw-state-read.worker.js\",\"threadId\":6,\"heapUsed\":48835296,\"heapTotal\":100110336,\"external\":11364616,\"arrayBuffers\":473527,\"sampleAgeMs\":30263},{\"script\":\"openclaw-state-read.worker.js\",\"threadId\":5,\"heapUsed\":48669616,\"heapTotal\":99848192,\"external\":11364616,\"arrayBuffers\":473527,\"sampleAgeMs\":30922},{\"script\":\"disk-budget.worker.js\",\"threadId\":13,\"heapUsed\":44575152,\"heapTotal\":97370112,\"external\":4984053,\"arrayBuffers\":1097579,\"sampleAgeMs\":19777},{\"script\":\"session-transcript.worker.js\",\"threadId\":7,\"heapUsed\":27589720,\"heapTotal\":55787520,\"external\":4348449,\"arrayBuffers\":486955,\"sampleAgeMs\":30544}] thresholdBytes=1610612736 workerLimitScope=js-heap-only; external/ArrayBuffers are not capped; nested workers are not included. nextStep=run openclaw gateway status --deep and openclaw gateway diagnostics export; restart gateway if pressure persists",
+    "recordedTime": "2026-10-11T14:18:04.664+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1431,
+    "utc": "2026-10-11T05:18:18.552000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '027b569a-05a0-4247-8fec-af9b14fc4d3c', 'sessionId': 'fffec200-4704-43e4-9286-d8d335a9567f', 'sessionKey': 'agent:r3-worker:subagent:08d1bca5-9e3a-49b0-ad70-3c9b007f925e', 'action': 'started', 'threadId': '01a12965-b3e4-7ae2-bdb6-c1a70986fd36', 'totalMs': 5127, 'spans': [{'name': 'legacy-dynamic-tools-fingerprint', 'durationMs': 2, 'elapsedMs': 2}, {'name': 'dynamic-tools-fingerprint', 'durationMs': 1, 'elapsedMs': 3}, {'name': 'web-search-plan', 'durationMs': 0, 'elapsedMs': 3}, {'name': 'context-engine-binding', 'durationMs': 0, 'elapsedMs': 3}, {'name': 'native-skill-isolation', 'durationMs': 29, 'elapsedMs': 32}, {'name': 'effective-config-read', 'durationMs': 4, 'elapsedMs': 36}, {'name': 'restricted-tool-surface-mcp-policy', 'durationMs': 0, 'elapsedMs': 37}, {'name': 'tool-policy-config-requirements-read', 'durationMs': 1, 'elapsedMs': 38}, {'name': 'plugin-config-build', 'durationMs': 1, 'elapsedMs': 40}, {'name': 'merge-thread-config', 'durationMs': 0, 'elapsedMs': 41}, {'name': 'thread-start-params', 'durationMs': 0, 'elapsedMs': 41}, {'name': 'thread-start-request', 'durationMs': 5048, 'elapsedMs': 5090}, {'name': 'restricted-tool-surface-mcp-attestation', 'durationMs': 3, 'elapsedMs': 5094}, {'name': 'thread-start-mark-managed', 'durationMs': 10, 'elapsedMs': 5106}, {'name': 'thread-start-write-binding', 'durationMs': 21, 'elapsedMs': 5127}, {'name': 'thread-ready', 'durationMs': 0, 'elapsedMs': 5127}]} [trace:codex-app-server] thread lifecycle: runId=027b569a-05a0-4247-8fec-af9b14fc4d3c sessionId=fffec200-4704-43e4-9286-d8d335a9567f sessionKey=agent:r3-worker:subagent:08d1bca5-9e3a-49b0-ad70-3c9b007f925e action=started totalMs=5127 stages=legacy-dynamic-tools-fingerprint:2ms@2ms,dynamic-tools-fingerprint:1ms@3ms,web-search-plan:0ms@3ms,context-engine-binding:0ms@3ms,native-skill-isolation:29ms@32ms,effective-config-read:4ms@36ms,restricted-tool-surface-mcp-policy:0ms@37ms,tool-policy-config-requirements-read:1ms@38ms,plugin-config-build:1ms@40ms,merge-thread-config:0ms@41ms,thread-start-params:0ms@41ms,thread-start-request:5048ms@5090ms,restricted-tool-surface-mcp-attestation:3ms@5094ms,thread-start-mark-managed:10ms@5106ms,thread-start-write-binding:21ms@5127ms,thread-ready:0ms@5127ms",
+    "recordedTime": "2026-10-11T14:18:18.552+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1432,
+    "utc": "2026-10-11T05:18:18.575000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} {'runId': '027b569a-05a0-4247-8fec-af9b14fc4d3c', 'sessionId': 'fffec200-4704-43e4-9286-d8d335a9567f', 'sessionKey': 'agent:r3-worker:subagent:08d1bca5-9e3a-49b0-ad70-3c9b007f925e', 'stage': 'runtime-start', 'outcome': 'completed', 'totalMs': 5833, 'stages': [{'name': 'connection', 'durationMs': 15, 'elapsedMs': 15}, {'name': 'runtime', 'durationMs': 4, 'elapsedMs': 19}, {'name': 'tools', 'durationMs': 58, 'elapsedMs': 77}, {'name': 'context', 'durationMs': 576, 'elapsedMs': 653}, {'name': 'prompt', 'durationMs': 11, 'elapsedMs': 664}, {'name': 'runtime-start', 'durationMs': 5169, 'elapsedMs': 5833}]} codex app-server preparation timings runId=027b569a-05a0-4247-8fec-af9b14fc4d3c sessionId=fffec200-4704-43e4-9286-d8d335a9567f stage=runtime-start outcome=completed totalMs=5833 stages=connection:15ms@15ms,runtime:4ms@19ms,tools:58ms@77ms,context:576ms@653ms,prompt:11ms@664ms,runtime-start:5169ms@5833ms",
+    "recordedTime": "2026-10-11T14:18:18.575+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1433,
+    "utc": "2026-10-11T05:18:18.580000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/embedded\"} Codex parent-local egress workaround is unavailable for this connection or native network profile; legacy collaboration delivery is not guaranteed.",
+    "recordedTime": "2026-10-11T14:18:18.580+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1436,
+    "utc": "2026-10-11T05:18:26.958000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"sessions/state-events\"} failed to record session state event: Error: Subagent terminal signal owner changed before commit",
+    "recordedTime": "2026-10-11T14:18:26.958+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1437,
+    "utc": "2026-10-11T05:18:31.722000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agents/subagent-registry-completion\"} failed to emit subagent_ended hook for run 027b569a-05a0-4247-8fec-af9b14fc4d3c: Queued subagent registry persistence failed: Queued registry write was superseded",
+    "recordedTime": "2026-10-11T14:18:31.722+09:00"
+  },
+  {
+    "trial": "C",
+    "sourceFile": "C-gateway-log.jsonl",
+    "sourceLine": 1438,
+    "utc": "2026-10-11T05:18:31.868000+00:00",
+    "severity": "WARN",
+    "message": "{\"subsystem\":\"agent/cli-backend\"} cli session history refused across auth boundary: reason=auth-unknown",
+    "recordedTime": "2026-10-11T14:18:31.868+09:00"
+  }
+]

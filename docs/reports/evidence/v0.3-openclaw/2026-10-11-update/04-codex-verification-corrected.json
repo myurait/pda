@@ -1,0 +1,18 @@
+{
+  "utc": "2026-10-11T07:13:39.828340+00:00",
+  "method": "Reconstruct the exact saved T4 diff over the initial scratch files in an isolated temporary directory after T5 reset. The first probe wrongly assumed greet returns text; T4 implements stdout as documented in README. This is the one corrected verification, not a repeated agent trial.",
+  "directory": "/home/user/v03/openclaw/update-2026-10-11/t4-verify-oahck_f9",
+  "sourceHash": "698c44f922529e429638853ef7c22662cd7b4bd7d754ebca0192e6c5a0f1109e",
+  "source": "def greet(name):\n    print(f\"Hello, {name}!\")\n\n\nif __name__ == \"__main__\":\n    print(\"hello\")\n",
+  "README": "# scratch\n使い方: `python3 -c 'from hello import greet; greet(\"太郎\")'` で名前付きの挨拶を表示します。\n",
+  "command": [
+    "python3",
+    "-B",
+    "-c",
+    "import contextlib,io; from hello import greet; buf=io.StringIO();\nwith contextlib.redirect_stdout(buf): result=greet(\"太郎\")\ntext=buf.getvalue()+(result if isinstance(result,str) else \"\"); print(text,end=\"\"); assert \"太郎\" in text"
+  ],
+  "exitCode": 0,
+  "stdout": "Hello, 太郎!\n",
+  "stderr": "",
+  "temporaryDirectoryRemovedAfterwards": true
+}

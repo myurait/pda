@@ -1,0 +1,31 @@
+--- before
++++ after-doctor-fix
+@@ -43,9 +43,14 @@
+   "meta": {
+     "migrations": {
+       "modelPolicyAllowlist": true,
+-      "utilityModelSeparation": true
+-    },
+-    "lastTouchedVersion": "2026.9.8"
++      "utilityModelSeparation": true,
++      "webhookListeners": {
++        "telegram": [],
++        "feishu": [],
++        "nextcloud-talk": []
++      }
++    },
++    "lastTouchedVersion": "2026.10.1"
+   },
+   "gateway": {
+     "mode": "local",
+@@ -197,8 +202,8 @@
+     "enabled": false
+   },
+   "wizard": {
+-    "lastRunAt": "2026-10-07T22:02:22.906Z",
+-    "lastRunVersion": "2026.9.8",
++    "lastRunAt": "2026-10-11T06:57:43.557Z",
++    "lastRunVersion": "2026.10.1",
+     "lastRunCommand": "doctor",
+     "lastRunMode": "local"
+   }

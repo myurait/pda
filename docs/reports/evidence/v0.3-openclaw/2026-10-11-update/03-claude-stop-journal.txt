@@ -1,0 +1,10 @@
+UTC window 2026-10-11T07:10:52.550Z .. 2026-10-11T07:10:59.133Z
+2026-10-11T07:10:52.635429+00:00 agent-node openclaw[548594]: [state/agent-db] agent database clean-close receipt: active-leases
+2026-10-11T07:10:53.465092+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:53.465+09:00 [ws] ⇄ res ✓ sessions.patch 860ms bytes=16362 conn=e8cffc5c…00c6 id=6fe39373…81ec
+2026-10-11T07:10:53.539801+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:53.539+09:00 [ws] ⇄ res ✓ chat.send 58ms runId=81aabb82-0dc0-4d02-b96e-46c71823b6e9 bytes=146 conn=e8cffc5c…00c6 id=30b5df5a…258e
+2026-10-11T07:10:53.908762+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:53.908+09:00 [agent/cli-backend] cli session history refused across auth boundary: reason=auth-unknown
+2026-10-11T07:10:53.917002+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:53.916+09:00 [agent/cli-backend] cli exec: provider=claude-cli model=claude-sonnet-5 promptChars=84 trigger=user useResume=true session=present resumeSession=6150eefb3376 reuse=reusable historyPrompt=none
+2026-10-11T07:10:56.798892+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:56.798+09:00 [gateway] chat.abort requested: actor=cli device=update-persistent ip=unknown-ip conn=e8cffc5c-2001-43ab-9bd7-59f0a97f00c6 session=agent:claude:update-claude-1791702413147 runId=none
+2026-10-11T07:10:58.092558+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:58.092+09:00 [agent/cli-backend] cli terminal failure: provider=claude-cli model=claude-sonnet-5 durationMs=4277 runId=81aabb82-0dc0-4d02-b96e-46c71823b6e9 error=CLI run aborted
+2026-10-11T07:10:58.110886+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:58.110+09:00 [diagnostic] lane task error: lane=session:agent:claude:update-claude-1791702413147 durationMs=4318 error="CLI run aborted" errorName=AbortError
+2026-10-11T07:10:58.112296+00:00 agent-node openclaw[548594]: 2026-10-11T16:10:58.112+09:00 [model-fallback/decision] model fallback chain stopped: reason=caller_signal_aborted candidate=anthropic/claude-sonnet-5 errorName=AbortError

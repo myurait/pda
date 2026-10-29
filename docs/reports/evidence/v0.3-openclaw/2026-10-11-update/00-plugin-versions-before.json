@@ -1,0 +1,90 @@
+[
+  {
+    "path": "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/package.json",
+    "name": "@openclaw/typesafe",
+    "version": "2026.9.8",
+    "openclaw": {
+      "extensions": [
+        "./index.ts"
+      ],
+      "install": {
+        "clawhubSpec": "clawhub:@openclaw/typesafe",
+        "npmSpec": "@openclaw/typesafe",
+        "defaultChoice": "npm",
+        "minHostVersion": ">=2026.9.6"
+      },
+      "compat": {
+        "pluginApi": ">=2026.9.8"
+      },
+      "build": {
+        "bundledDist": false,
+        "openclawVersion": "2026.9.8"
+      },
+      "release": {
+        "publishToClawHub": true,
+        "publishToNpm": true
+      },
+      "runtimeExtensions": [
+        "./dist/index.js"
+      ]
+    },
+    "dependencies": {}
+  },
+  {
+    "path": "/home/user/v03/openclaw/state/npm/projects/openclaw-codex-8902d781d4__openclaw-generation__g-8b0d230c729a2812/node_modules/@openclaw/codex/package.json",
+    "name": "@openclaw/codex",
+    "version": "2026.9.8",
+    "openclaw": {
+      "extensions": [
+        "./index.ts"
+      ],
+      "install": {
+        "clawhubSpec": "clawhub:@openclaw/codex",
+        "npmSpec": "@openclaw/codex",
+        "defaultChoice": "npm",
+        "minHostVersion": ">=2026.5.1-beta.1",
+        "requiredPlatformPackages": [
+          "@openai/codex-linux-x64",
+          "@openai/codex-linux-arm64",
+          "@openai/codex-darwin-x64",
+          "@openai/codex-darwin-arm64",
+          "@openai/codex-win32-x64",
+          "@openai/codex-win32-arm64"
+        ]
+      },
+      "compat": {
+        "pluginApi": ">=2026.9.8"
+      },
+      "build": {
+        "openclawVersion": "2026.9.8",
+        "workerEntries": [
+          "./catalog-page.worker.ts"
+        ]
+      },
+      "release": {
+        "publishToClawHub": true,
+        "publishToNpm": true,
+        "requireLatestDependencies": [
+          "@openai/codex"
+        ],
+        "bundleRuntimeDependencies": false
+      },
+      "runtimeExtensions": [
+        "./dist/index.js"
+      ]
+    },
+    "dependencies": {
+      "@openai/codex": "0.158.0"
+    }
+  },
+  {
+    "path": "/home/user/v03/openclaw/state/npm/projects/openclaw-codex-8902d781d4__openclaw-generation__g-8b0d230c729a2812/node_modules/@openai/codex/package.json",
+    "name": "@openai/codex",
+    "version": "0.158.0"
+  },
+  {
+    "path": "/home/user/v03/openclaw/state/npm/projects/openclaw-codex-8902d781d4/node_modules/@openai/codex/package.json",
+    "name": "@openai/codex",
+    "version": "0.158.0"
+  }
+]
