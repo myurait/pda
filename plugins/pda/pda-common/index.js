@@ -6,7 +6,7 @@ export default {
   name: "PDA common instructions",
   register(api) {
     // The Gateway HOME is agent-home, so use the deployment path explicitly.
-    const commonFile = api.pluginConfig?.commonFile ?? "/home/user/v03/openclaw/pda/common.md";
+    const commonFile = api.pluginConfig?.commonFile ?? "/home/user/pda/deploy/openclaw/common.md";
 
     api.on("before_prompt_build", async (_event, ctx) => {
       let content;

@@ -2,7 +2,7 @@
 
 `before_prompt_build` ごとに共通指示を読み、`appendSystemContext` でエージェントの system prompt に追加します。対象エージェントの絞り込みやキャッシュはありません。読めない場合はエラーの種類だけを記録して続行します。依頼や道具を止める hook、判定による割り当て、依頼者の指定を書き換える処理はありません。
 
-共通指示のファイルは `plugins.entries.pda-common.config.commonFile` に絶対パスで指定します。ミニ PC では、反映用の取り出しの中の `/home/user/pda/deploy/openclaw/common.md` を直接読みます (写しは作りません)。設定が無いときの既定は `/home/user/v03/openclaw/pda/common.md` です。Gateway の `HOME` は `/home/user/v03/agent-home` なので、`~` は使いません。
+共通指示のファイルは `plugins.entries.pda-common.config.commonFile` に絶対パスで指定します。ミニ PC では、反映用の取り出しの中の `/home/user/pda/deploy/openclaw/common.md` を直接読みます (写しは作りません)。設定が無いときの既定も同じ場所です。Gateway の `HOME` は `/home/user/v03/agent-home` なので、`~` は使いません。
 
 ```sh
 openclaw plugins install /home/user/pda/plugins/pda/pda-common --link --force
