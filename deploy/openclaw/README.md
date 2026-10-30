@@ -18,7 +18,7 @@ for r in leader worker auditor; do cp deploy/openclaw/agents/$r.md /home/user/v0
 
 ## プラグイン
 
-4 つとも、`/home/user/pda/plugins/` の中の場所を指したまま入れる (`--link`。コピーしない)。ソースを直したら、`/home/user/pda` で `git pull --ff-only` するだけで反映される (画面のコードの変更は、ビルドしてコミットした `dist/` が正本)。
+5 つとも、`/home/user/pda/plugins/` の中の場所を指したまま入れる (`--link`。コピーしない)。ソースを直したら、`/home/user/pda` で `git pull --ff-only` するだけで反映される (画面のコードの変更は、ビルドしてコミットした `dist/` が正本)。
 
 | プラグイン | 場所 | 設定 |
 | --- | --- | --- |
@@ -26,12 +26,13 @@ for r in leader worker auditor; do cp deploy/openclaw/agents/$r.md /home/user/v0
 | tap-to-dictate | `plugins/openclaw/tap-to-dictate` | 追加なし |
 | touch-selection-popup | `plugins/openclaw/touch-selection-popup` | 追加なし |
 | pda-common | `plugins/pda/pda-common` | `plugins.entries.pda-common.config.commonFile` = `/home/user/pda/deploy/openclaw/common.md`、`plugins.entries.pda-common.hooks.allowConversationAccess` = `true` |
+| pda-ntfy | `plugins/pda/pda-ntfy` | `plugins.entries.pda-ntfy.config.ntfyEnvFile` = `/home/user/.config/claude-login-notify/ntfy.env` (トピックの入ったファイルのパス。値は書かない)、`plugins.entries.pda-ntfy.hooks.allowConversationAccess` = `true` |
 
 画面のコードを動かす設定として `gateway.controlUi.experimental.customPlugins` を `true` にしておく (pda-icon、tap-to-dictate、touch-selection-popup に要る)。
 
 ### 取り出した後に作るもの
 
-読み込みに要る `node_modules/openclaw` のリンクを、画面のコードを持つ 3 つに作る (`node_modules/` はコミットしない)。pda-common には要らない。
+読み込みに要る `node_modules/openclaw` のリンクを、画面のコードを持つ 3 つに作る (`node_modules/` はコミットしない)。pda-common と pda-ntfy には要らない。
 
 ```sh
 cd /home/user/pda/plugins/openclaw
@@ -47,8 +48,11 @@ openclaw plugins install /home/user/pda/plugins/openclaw/pda-icon --link --force
 openclaw plugins install /home/user/pda/plugins/openclaw/tap-to-dictate --link --force
 openclaw plugins install /home/user/pda/plugins/openclaw/touch-selection-popup --link --force
 openclaw plugins install /home/user/pda/plugins/pda/pda-common --link --force
+openclaw plugins install /home/user/pda/plugins/pda/pda-ntfy --link --force
 openclaw config set plugins.entries.pda-common.config.commonFile /home/user/pda/deploy/openclaw/common.md
 openclaw config set plugins.entries.pda-common.hooks.allowConversationAccess true --strict-json
+openclaw config set plugins.entries.pda-ntfy.config.ntfyEnvFile /home/user/.config/claude-login-notify/ntfy.env
+openclaw config set plugins.entries.pda-ntfy.hooks.allowConversationAccess true --strict-json
 ```
 
 - 入れ直すときに `uninstall` は使わない (`plugins.entries` の設定が消える)。`--force` で上書きする。

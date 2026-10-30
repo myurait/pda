@@ -21,6 +21,7 @@ PDA のために作った OpenClaw のプラグインのソースの正本を置
 | [tap-to-dictate](openclaw/tap-to-dictate/README.md) | `openclaw/` | Control UI の入力欄のマイクボタンを 1 回タップすると、Talk ではなく音声入力 (dictation) を始める |
 | [touch-selection-popup](openclaw/touch-selection-popup/README.md) | `openclaw/` | Control UI で本文を選んだときの「チャットに追加」「サイドチャットで質問」の吹き出しを、タッチ端末では出さない |
 | [pda-common](pda/pda-common/README.md) | `pda/` | 全エージェントに共通の指示 ([deploy/openclaw/common.md](../deploy/openclaw/common.md)) を、毎回のプロンプトに足す |
+| [pda-ntfy](pda/pda-ntfy/README.md) | `pda/` | オーナーとの会話への返事、承認待ち、エージェントからの質問を、ntfy でスマートフォンへ通知する |
 
 ## 決まり
 
