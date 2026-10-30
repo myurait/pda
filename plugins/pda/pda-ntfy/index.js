@@ -3,6 +3,8 @@ import { sendNtfy } from "./ntfy.js";
 const DEFAULT_ENV_FILE = "/home/user/.config/claude-login-notify/ntfy.env";
 const SILENT_REPLIES = new Set(["NO_REPLY", "HEARTBEAT_OK"]);
 const SEEN_APPROVALS_MAX = 200;
+// 承認待ちは OpenClaw 本体の Web Push (既定でオン、タップでホーム画面のアプリが開く) が同じ内容を届けるので、既定には入れない。
+const DEFAULT_EVENTS = ["reply", "question"];
 
 // agent:<agentId>:main / agent:<agentId>:dashboard:<id> / agent:<agentId>:subagent:<id> ...
 export function parseSessionKey(sessionKey) {
@@ -51,15 +53,17 @@ export function createPlugin({ fetchImpl } = {}) {
       const timeoutMs = config.timeoutMs ?? 5000;
       const excerptChars = config.excerptChars ?? 100;
       const sessionKinds = new Set(config.sessionKinds ?? ["main", "dashboard"]);
-      const events = new Set(config.events ?? ["reply", "approval", "question"]);
+      const events = new Set(config.events ?? DEFAULT_EVENTS);
       const base = config.controlUiUrl ?? api.config?.gateway?.publicOrigin;
+      // ntfy の iOS アプリは Click の https を Safari で開く。ホーム画面の Web アプリは外から開けないので、既定では付けない。
+      const clickLinks = config.clickLinks === true;
       const seenApprovals = new Set();
 
       // ログにはトピックも本文も出さない。出すのは出来事の種類、エージェント、セッション、結果だけ。
       async function notify(kind, ids, { title, message, click, priority }) {
         const record = { kind, agentId: ids.agentId, sessionKey: ids.sessionKey, runId: ids.runId };
         try {
-          await sendNtfy({ envFile, timeoutMs, title, message, click, priority, fetchImpl });
+          await sendNtfy({ envFile, timeoutMs, title, message, click: clickLinks ? click : undefined, priority, fetchImpl });
           api.logger.info(`[pda-ntfy] ${JSON.stringify({ ...record, outcome: "sent" })}`);
         } catch (error) {
           api.logger.warn(`[pda-ntfy] ${JSON.stringify({ ...record, outcome: "failed", code: error.code ?? error.name ?? "SEND_FAILED" })}`);

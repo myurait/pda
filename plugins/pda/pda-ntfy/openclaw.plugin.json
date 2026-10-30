@@ -13,6 +13,7 @@
         "default": "/home/user/.config/claude-login-notify/ntfy.env"
       },
       "controlUiUrl": { "type": "string" },
+      "clickLinks": { "type": "boolean", "default": false },
       "sessionKinds": {
         "type": "array",
         "items": { "type": "string", "minLength": 1 },
@@ -21,7 +22,7 @@
       "events": {
         "type": "array",
         "items": { "enum": ["reply", "approval", "question"] },
-        "default": ["reply", "approval", "question"]
+        "default": ["reply", "question"]
       },
       "excerptChars": { "type": "integer", "minimum": 0, "maximum": 500, "default": 100 },
       "timeoutMs": { "type": "integer", "minimum": 500, "maximum": 30000, "default": 5000 }

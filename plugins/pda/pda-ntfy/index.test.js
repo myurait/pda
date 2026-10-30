@@ -41,8 +41,27 @@ test("session key parsing and Control UI URLs follow the documented rule", () =>
   assert.equal(excerpt("あいうえお", 3), "あいう…");
 });
 
-test("replies in the owner's conversation notify with excerpt, title and click URL", async () => {
+test("by default no click URL is sent, so tapping never opens Safari", async () => {
   const t = await setup();
+  try {
+    await t.hooks.agent_end({ runId: "r1", success: true, messages: [assistant("やあ")] }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    await t.hooks.agent_end({ success: false, error: "boom", messages: [] }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    assert.equal(t.sent.length, 2);
+    for (const { body } of t.sent) assert.ok(!("click" in body));
+  } finally { await t.cleanup(); }
+});
+
+test("default events leave approvals to the built-in Web Push; approval can be opted in", async () => {
+  const t = await setup();
+  try {
+    assert.equal(t.subscription, undefined);
+    assert.equal(typeof t.hooks.agent_end, "function");
+    assert.equal(typeof t.hooks.before_tool_call, "function");
+  } finally { await t.cleanup(); }
+});
+
+test("replies in the owner's conversation notify with excerpt, title and click URL when clickLinks is on", async () => {
+  const t = await setup({ clickLinks: true });
   try {
     const long = "あ".repeat(150);
     await t.hooks.agent_end({ runId: "r1", success: true, messages: [{ role: "user", content: "hi" }, assistant(long)] }, { agentId: "leader", sessionKey: "agent:leader:main" });
@@ -83,7 +102,7 @@ test("failed runs in the owner's conversation notify with the error excerpt", as
 });
 
 test("pending approvals notify once per approval from any session, without the command", async () => {
-  const t = await setup();
+  const t = await setup({ events: ["approval"], clickLinks: true });
   try {
     const event = { runId: "r", sessionKey: "agent:worker:subagent:abc", agentId: "worker", data: { phase: "requested", status: "pending", approvalId: "ap-1", command: "rm -rf secret-thing" } };
     await t.subscription.handle(event);
@@ -107,6 +126,7 @@ test("ask_user notifies without blocking the tool call; other tools are ignored"
     assert.equal(t.sent.length, 1);
     assert.equal(t.sent[0].body.title, "[leader] 質問が来ています");
     assert.equal(t.sent[0].body.message, "どちらにしますか");
+    assert.ok(!("click" in t.sent[0].body));
   } finally { await t.cleanup(); }
 });
 
