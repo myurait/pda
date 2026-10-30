@@ -1,0 +1,793 @@
+{
+  "label": "02-claude",
+  "kind": "claude",
+  "key": "agent:claude:update-claude-1791702413147",
+  "prompt": "hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。",
+  "startedAt": "2026-10-11T07:06:53.147Z",
+  "mainPid": 548594,
+  "firstOutput": "2026-10-11T07:06:58.371Z",
+  "terminal": "final",
+  "failures": [],
+  "server": {
+    "version": "2026.10.1",
+    "buildId": "2026.10.1-release-e178c39e9aae-2026-10-10T17-54-10.792Z",
+    "bootId": "aa0e8395-6015-4d5b-a893-a224e7429db3",
+    "controlUiBuildSource": "bundled",
+    "connId": "770507aa-fb78-4522-a1de-3a66ddc604d5"
+  },
+  "sentAt": "2026-10-11T07:06:53.279Z",
+  "sendResult": {
+    "runId": "487a55e6-ad9c-41f3-916d-45969e40dd63",
+    "status": "started"
+  },
+  "terminalAt": "2026-10-11T07:07:10.469Z",
+  "abortLatencySeconds": null,
+  "history": {
+    "sessionKey": "agent:claude:update-claude-1791702413147",
+    "sessionId": "3a1e4bf8-726c-4550-aab9-4d2148746e51",
+    "messages": [
+      {
+        "role": "user",
+        "content": "hello.py に、名前を引数で受け取って挨拶する関数を足し、README.md に使い方を 1 行書き足してください。何をしているかを短く書きながら進めてください。",
+        "timestamp": 1791702413296,
+        "idempotencyKey": "487a55e6-ad9c-41f3-916d-45969e40dd63:user",
+        "__openclaw": {
+          "senderIsOwner": true,
+          "transport": {
+            "clients": [
+              {
+                "id": "cli",
+                "mode": "cli",
+                "displayName": "PDA update check 2026-10-11"
+              }
+            ]
+          },
+          "id": "1d8b3b75-2566-4230-8b4a-7d0c149e02f9",
+          "idempotencyKey": "487a55e6-ad9c-41f3-916d-45969e40dd63:user",
+          "recordTimestampMs": 1791702413425,
+          "transcriptPosition": {
+            "source": "pBBiSZcpugxfc-kv9MNp7J9dlPwYYYMkv7ofi2_dvGA",
+            "rawSeq": 1
+          },
+          "seq": 1,
+          "importedFrom": "claude-cli",
+          "externalId": "935f5a13-8514-4f4d-8e84-4996be5e0276",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_012pBVfd3RJHQLQmHdsVuuuJ",
+            "name": "Glob",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "pattern": "**/{hello.py,README.md}"
+            }
+          },
+          {
+            "tool_use_id": "toolu_012pBVfd3RJHQLQmHdsVuuuJ",
+            "type": "tool_result",
+            "content": "README.md\nhello.py",
+            "name": "Glob"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 81,
+          "cacheRead": 0,
+          "cacheWrite": 76793
+        },
+        "timestamp": 1791702418368,
+        "__openclaw": {
+          "id": "ca83d7c0-0dae-4b67-af38-e1c664a60553",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "ca83d7c0-0dae-4b67-af38-e1c664a60553"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "hello.py と README.md を確認します。"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 150,
+          "cacheRead": 76793,
+          "cacheWrite": 134
+        },
+        "timestamp": 1791702420350,
+        "__openclaw": {
+          "id": "56abbda6-abd9-478f-b411-3bf898ef5737",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "56abbda6-abd9-478f-b411-3bf898ef5737"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_01Ng5h8YEgqUs1XtNAXY4ysr",
+            "name": "Read",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "file_path": "/home/user/v03/work/openclaw/scratch/hello.py"
+            }
+          },
+          {
+            "tool_use_id": "toolu_01Ng5h8YEgqUs1XtNAXY4ysr",
+            "type": "tool_result",
+            "content": "1\tprint(\"hello\")\n2\t",
+            "name": "Read"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 150,
+          "cacheRead": 76793,
+          "cacheWrite": 134
+        },
+        "timestamp": 1791702420650,
+        "__openclaw": {
+          "id": "3ad100bc-fb51-4a74-b00c-0a8572a40997",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "3ad100bc-fb51-4a74-b00c-0a8572a40997"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_01Deg6aW5gztne29GFm4E1G7",
+            "name": "Read",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "file_path": "/home/user/v03/work/openclaw/scratch/README.md"
+            }
+          },
+          {
+            "tool_use_id": "toolu_01Deg6aW5gztne29GFm4E1G7",
+            "type": "tool_result",
+            "content": "1\t# scratch\n2\t",
+            "name": "Read"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 150,
+          "cacheRead": 76793,
+          "cacheWrite": 134
+        },
+        "timestamp": 1791702420971,
+        "__openclaw": {
+          "id": "a3e9e16d-f7b6-40ea-aa24-d75114f580d8",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "a3e9e16d-f7b6-40ea-aa24-d75114f580d8"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "hello.py に名前を受け取る関数を追加し、README.md に使い方を1行足します。"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 333,
+          "cacheRead": 76927,
+          "cacheWrite": 263
+        },
+        "timestamp": 1791702423080,
+        "__openclaw": {
+          "id": "779ccce6-a4be-49df-83e2-a521a15b8cc6",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "779ccce6-a4be-49df-83e2-a521a15b8cc6"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_01TkRCf2WynevVp9SjeyeZe3",
+            "name": "Write",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "file_path": "/home/user/v03/work/openclaw/scratch/hello.py",
+              "content": "def greet(name):\n    return f\"こんにちは、{name}さん\"\n\n\nif __name__ == \"__main__\":\n    print(\"hello\")\n"
+            }
+          },
+          {
+            "tool_use_id": "toolu_01TkRCf2WynevVp9SjeyeZe3",
+            "type": "tool_result",
+            "content": "The file /home/user/v03/work/openclaw/scratch/hello.py has been updated successfully. (file state is current in your context — no need to Read it back)",
+            "name": "Write"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 333,
+          "cacheRead": 76927,
+          "cacheWrite": 263
+        },
+        "timestamp": 1791702424042,
+        "__openclaw": {
+          "id": "c935b74f-dc48-46f3-aa31-2e6baa7da0fe",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "c935b74f-dc48-46f3-aa31-2e6baa7da0fe"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_01P5huUTDPtr8Xu28GPEr6KE",
+            "name": "Edit",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "replace_all": false,
+              "file_path": "/home/user/v03/work/openclaw/scratch/README.md",
+              "old_string": "# scratch\n",
+              "new_string": "# scratch\n\n使い方: `python -c \"from hello import greet; print(greet('太郎'))\"` で名前を渡して挨拶を取得できます。\n"
+            }
+          },
+          {
+            "tool_use_id": "toolu_01P5huUTDPtr8Xu28GPEr6KE",
+            "type": "tool_result",
+            "content": "The file /home/user/v03/work/openclaw/scratch/README.md has been updated successfully. (file state is current in your context — no need to Read it back)",
+            "name": "Edit"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 333,
+          "cacheRead": 76927,
+          "cacheWrite": 263
+        },
+        "timestamp": 1791702425196,
+        "__openclaw": {
+          "id": "9523ffca-4b77-46f9-ab6d-118f78639780",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "9523ffca-4b77-46f9-ab6d-118f78639780"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "動作確認します。"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 135,
+          "cacheRead": 77190,
+          "cacheWrite": 527
+        },
+        "timestamp": 1791702427064,
+        "__openclaw": {
+          "id": "2d9246d5-c953-415a-ac22-9a3bf196f154",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "2d9246d5-c953-415a-ac22-9a3bf196f154"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "toolcall",
+            "id": "toolu_017Wr8vr3QUnAPSbZMG248BC",
+            "name": "mcp__openclaw__exec",
+            "caller": {
+              "type": "direct"
+            },
+            "arguments": {
+              "command": "cd /home/user/v03/work/openclaw/scratch && python3 -c \"from hello import greet; print(greet('太郎'))\"",
+              "title": "greet関数の動作確認"
+            }
+          },
+          {
+            "tool_use_id": "toolu_017Wr8vr3QUnAPSbZMG248BC",
+            "type": "tool_result",
+            "content": [
+              {
+                "type": "text",
+                "text": "こんにちは、太郎さん"
+              }
+            ],
+            "name": "mcp__openclaw__exec"
+          }
+        ],
+        "api": "anthropic-messages",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "stopReason": "tool_use",
+        "usage": {
+          "input": 2,
+          "output": 135,
+          "cacheRead": 77190,
+          "cacheWrite": 527
+        },
+        "timestamp": 1791702427792,
+        "__openclaw": {
+          "id": "3f76d0fe-d99b-4ba2-93d9-e09cb251cd8f",
+          "importedFrom": "claude-cli",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3",
+          "externalId": "3f76d0fe-d99b-4ba2-93d9-e09cb251cd8f"
+        }
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "動作確認OK。hello.py に `greet(name)` 関数を追加し、README.md に使い方を1行追記しました。"
+          }
+        ],
+        "stopReason": "stop",
+        "api": "cli",
+        "provider": "claude-cli",
+        "model": "claude-sonnet-5",
+        "usage": {
+          "input": 2,
+          "output": 1,
+          "totalTokens": 77911,
+          "cacheRead": 77717,
+          "cacheWrite": 191,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0,
+            "total": 0
+          }
+        },
+        "timestamp": 1791702430429,
+        "idempotencyKey": "cli-assistant:487a55e6-ad9c-41f3-916d-45969e40dd63",
+        "__openclaw": {
+          "runId": "487a55e6-ad9c-41f3-916d-45969e40dd63",
+          "id": "3005515c-443b-4dd3-b2bc-ef8bb1c15baf",
+          "idempotencyKey": "cli-assistant:487a55e6-ad9c-41f3-916d-45969e40dd63",
+          "recordTimestampMs": 1791702430440,
+          "transcriptPosition": {
+            "source": "pBBiSZcpugxfc-kv9MNp7J9dlPwYYYMkv7ofi2_dvGA",
+            "rawSeq": 2
+          },
+          "seq": 2,
+          "importedFrom": "claude-cli",
+          "externalId": "262487ec-4b37-45de-aca0-d300d8981de1",
+          "cliSessionId": "21d704f4-3a75-45bd-b460-2224e05fdcc3"
+        }
+      }
+    ],
+    "activity": [
+      {
+        "messageId": "ca83d7c0-0dae-4b67-af38-e1c664a60553",
+        "items": [
+          {
+            "itemId": "tool:toolu_012pBVfd3RJHQLQmHdsVuuuJ",
+            "toolCallId": "toolu_012pBVfd3RJHQLQmHdsVuuuJ",
+            "name": "Glob",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Glob — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      },
+      {
+        "messageId": "3ad100bc-fb51-4a74-b00c-0a8572a40997",
+        "items": [
+          {
+            "itemId": "tool:toolu_01Ng5h8YEgqUs1XtNAXY4ysr",
+            "toolCallId": "toolu_01Ng5h8YEgqUs1XtNAXY4ysr",
+            "name": "Read",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Read — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      },
+      {
+        "messageId": "a3e9e16d-f7b6-40ea-aa24-d75114f580d8",
+        "items": [
+          {
+            "itemId": "tool:toolu_01Deg6aW5gztne29GFm4E1G7",
+            "toolCallId": "toolu_01Deg6aW5gztne29GFm4E1G7",
+            "name": "Read",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Read — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      },
+      {
+        "messageId": "c935b74f-dc48-46f3-aa31-2e6baa7da0fe",
+        "items": [
+          {
+            "itemId": "tool:toolu_01TkRCf2WynevVp9SjeyeZe3",
+            "toolCallId": "toolu_01TkRCf2WynevVp9SjeyeZe3",
+            "name": "Write",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Write — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      },
+      {
+        "messageId": "9523ffca-4b77-46f9-ab6d-118f78639780",
+        "items": [
+          {
+            "itemId": "tool:toolu_01P5huUTDPtr8Xu28GPEr6KE",
+            "toolCallId": "toolu_01P5huUTDPtr8Xu28GPEr6KE",
+            "name": "Edit",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Edit — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      },
+      {
+        "messageId": "3f76d0fe-d99b-4ba2-93d9-e09cb251cd8f",
+        "items": [
+          {
+            "itemId": "tool:toolu_017Wr8vr3QUnAPSbZMG248BC",
+            "toolCallId": "toolu_017Wr8vr3QUnAPSbZMG248BC",
+            "name": "mcp__openclaw__exec",
+            "kind": "tool",
+            "phase": "end",
+            "title": "Mcp Openclaw Exec — outcome unknown",
+            "summary": "Outcome unknown",
+            "commandBearing": false
+          }
+        ]
+      }
+    ],
+    "hasMore": false,
+    "totalMessages": 12,
+    "pendingInputs": {
+      "items": [],
+      "total": 0,
+      "queuedCount": 0
+    },
+    "defaults": {
+      "modelProvider": "anthropic",
+      "model": "claude-sonnet-5",
+      "contextTokens": 1000000,
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "modelSelectionTarget": "session"
+    },
+    "sessionInfo": {
+      "key": "agent:claude:update-claude-1791702413147",
+      "visibility": "shared",
+      "permissionModePending": false,
+      "createdVia": "operator",
+      "participants": [
+        {
+          "identity": {
+            "type": "observation",
+            "pluginId": null,
+            "accountId": null,
+            "senderKind": "unknown",
+            "id": "cli"
+          }
+        }
+      ],
+      "expandedParticipants": [
+        {
+          "identity": {
+            "type": "observation",
+            "pluginId": null,
+            "accountId": null,
+            "senderKind": "unknown",
+            "id": "cli"
+          }
+        }
+      ],
+      "participantCount": 1,
+      "createdAt": 1791702413213,
+      "kind": "direct",
+      "classification": "direct",
+      "agentId": "claude",
+      "isMain": false,
+      "isBackground": false,
+      "chatType": "direct",
+      "updatedAt": 1791702430534,
+      "archived": false,
+      "pinned": false,
+      "unread": true,
+      "lastInteractionAt": 1791702413352,
+      "lastActivityAt": 1791702430466,
+      "sessionId": "3a1e4bf8-726c-4550-aab9-4d2148746e51",
+      "systemSent": true,
+      "abortedLastRun": false,
+      "contextWindow": "1m",
+      "contextWindows": [
+        {
+          "id": "200k",
+          "label": "200K",
+          "contextWindow": 200000
+        },
+        {
+          "id": "1m",
+          "label": "1M",
+          "contextWindow": 1000000
+        }
+      ],
+      "contextWindowDefault": "1m",
+      "effectiveFastMode": false,
+      "effectiveFastModeSource": "default",
+      "fastAutoOnSeconds": 60,
+      "verboseLevel": "on",
+      "inputTokens": 2,
+      "outputTokens": 1,
+      "totalTokens": 77910,
+      "totalTokensFresh": true,
+      "estimatedCostUsd": 0.0160349,
+      "status": "done",
+      "startedAt": 1791702413443,
+      "endedAt": 1791702430466,
+      "runtimeMs": 17023,
+      "lastRunId": "487a55e6-ad9c-41f3-916d-45969e40dd63",
+      "effectiveResponseUsage": "off",
+      "effectiveQueueMode": "steer",
+      "modelProvider": "anthropic",
+      "model": "claude-sonnet-5",
+      "modelOverrideSource": null,
+      "runtimeSelectionLocked": false,
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "contextTokens": 1000000,
+      "snapshotAt": 1791702432753,
+      "placement": {
+        "state": "local",
+        "generation": 0,
+        "createdAtMs": 1791702413449,
+        "updatedAtMs": 1791702430463,
+        "stateChangedAtMs": 1791702413449
+      },
+      "activitySummary": {
+        "state": "unavailable",
+        "canEnsure": true
+      },
+      "sharingRole": "admin",
+      "sendDisabledReason": null,
+      "hasActiveRun": false,
+      "activeRunIds": [],
+      "activeLeafEntryId": "3005515c-443b-4dd3-b2bc-ef8bb1c15baf"
+    },
+    "verboseLevel": "on"
+  },
+  "status": [
+    {
+      "key": "agent:claude:update-claude-1791702413147",
+      "visibility": "shared",
+      "permissionModePending": false,
+      "createdVia": "operator",
+      "participants": [
+        {
+          "identity": {
+            "type": "observation",
+            "pluginId": null,
+            "accountId": null,
+            "senderKind": "unknown",
+            "id": "cli"
+          }
+        }
+      ],
+      "expandedParticipants": [
+        {
+          "identity": {
+            "type": "observation",
+            "pluginId": null,
+            "accountId": null,
+            "senderKind": "unknown",
+            "id": "cli"
+          }
+        }
+      ],
+      "participantCount": 1,
+      "createdAt": 1791702413213,
+      "kind": "direct",
+      "classification": "direct",
+      "agentId": "claude",
+      "isMain": false,
+      "isBackground": false,
+      "chatType": "direct",
+      "updatedAt": 1791702430534,
+      "archived": false,
+      "pinned": false,
+      "unread": true,
+      "lastInteractionAt": 1791702413352,
+      "lastActivityAt": 1791702430466,
+      "sessionId": "3a1e4bf8-726c-4550-aab9-4d2148746e51",
+      "systemSent": true,
+      "abortedLastRun": false,
+      "contextWindow": "1m",
+      "contextWindows": [
+        {
+          "id": "200k",
+          "label": "200K",
+          "contextWindow": 200000
+        },
+        {
+          "id": "1m",
+          "label": "1M",
+          "contextWindow": 1000000
+        }
+      ],
+      "contextWindowDefault": "1m",
+      "thinkingLevels": [
+        {
+          "id": "off",
+          "label": "off"
+        },
+        {
+          "id": "minimal",
+          "label": "minimal"
+        },
+        {
+          "id": "low",
+          "label": "low"
+        },
+        {
+          "id": "medium",
+          "label": "medium"
+        },
+        {
+          "id": "adaptive",
+          "label": "adaptive"
+        },
+        {
+          "id": "high",
+          "label": "high"
+        },
+        {
+          "id": "xhigh",
+          "label": "xhigh"
+        },
+        {
+          "id": "max",
+          "label": "max"
+        },
+        {
+          "id": "ultra",
+          "label": "ultra"
+        }
+      ],
+      "thinkingOptions": [
+        "off",
+        "minimal",
+        "low",
+        "medium",
+        "adaptive",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "thinkingDefault": "high",
+      "effectiveFastMode": false,
+      "effectiveFastModeSource": "default",
+      "fastAutoOnSeconds": 60,
+      "verboseLevel": "on",
+      "inputTokens": 2,
+      "outputTokens": 1,
+      "totalTokens": 77910,
+      "totalTokensFresh": true,
+      "estimatedCostUsd": 0.0160349,
+      "status": "done",
+      "startedAt": 1791702413443,
+      "endedAt": 1791702430466,
+      "runtimeMs": 17023,
+      "lastRunId": "487a55e6-ad9c-41f3-916d-45969e40dd63",
+      "effectiveResponseUsage": "off",
+      "effectiveQueueMode": "steer",
+      "modelProvider": "anthropic",
+      "model": "claude-sonnet-5",
+      "modelOverrideSource": null,
+      "runtimeSelectionLocked": false,
+      "agentRuntime": {
+        "id": "claude-cli",
+        "cloudPlacementSupported": false,
+        "devicePlacementSupported": false,
+        "source": "model"
+      },
+      "contextTokens": 1000000,
+      "snapshotAt": 1791702432757,
+      "placement": {
+        "state": "local",
+        "generation": 0,
+        "createdAtMs": 1791702413449,
+        "updatedAtMs": 1791702430463,
+        "stateChangedAtMs": 1791702413449
+      },
+      "hasActiveRun": false,
+      "activeRunIds": [],
+      "sharingRole": "admin",
+      "sendDisabledReason": null
+    }
+  ],
+  "statusAt": "2026-10-11T07:07:12.771Z",
+  "closedAt": "2026-10-11T07:07:12.793Z",
+  "endedAt": "2026-10-11T07:07:12.793Z"
+}

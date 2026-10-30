@@ -1,0 +1,32 @@
+{
+  "id": "pda-icon",
+  "name": "PDA Icon",
+  "description": "Control UI のホーム画面アイコン (iOS) とタブのアイコンを、PDA の X1 門に差し替える。",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "uiCapabilities": [],
+  "themes": [
+    {
+      "id": "pda-x1",
+      "name": "PDA X1",
+      "description": "X1 門の深い青緑とアイボリー。ロブスターを出さず、ロゴを X1 にする。",
+      "source": "themes/pda-x1.json",
+      "icons": {
+        "x1-gate": "assets/theme-art/x1-gate.svg"
+      }
+    }
+  ],
+  "controlUi": {
+    "entry": "dist/control-ui/0368e8ce89d5d0a483ffa07073a25d4a72497bb66a69ab97387808ac5e741005/index.js"
+  },
+  "contracts": {
+    "tools": []
+  }
+}

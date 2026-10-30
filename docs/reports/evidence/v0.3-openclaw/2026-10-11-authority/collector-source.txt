@@ -1,0 +1,484 @@
+===== client.mjs =====
+import {generateKeyPairSync, createHash, sign, randomUUID} from 'node:crypto';
+import {readFileSync, writeFileSync, existsSync} from 'node:fs';
+
+export const root='/home/user/v03/openclaw/authority-check/';
+export const evidence='/home/user/pda-v03a/docs/reports/evidence/v0.3-openclaw/2026-10-11-authority/';
+export const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const aliases=JSON.parse(readFileSync(root+'device-aliases.json','utf8'));
+const secrets=new Set();
+const scopes=['operator.read','operator.write','operator.admin','operator.approvals','operator.pairing'];
+function register(id,alias){aliases[id]=alias;writeFileSync(root+'device-aliases.json',JSON.stringify(aliases,null,2),{mode:0o600});}
+export function safe(v){
+  if(Array.isArray(v))return v.map(safe);
+  if(v&&typeof v==='object')return Object.fromEntries(Object.entries(v).map(([k,x])=>[k,/^(deviceTokens?|tokens?|access_token|refresh_token|id_token|password|secret|apiKey|authorization|signature|nonce|publicKey|privateKey(?:Pem)?|recoveryScope)$/i.test(k)?'[REDACTED]':safe(x)]));
+  if(typeof v==='string'){
+    for(const [id,alias] of Object.entries(aliases))v=v.replaceAll(id,alias);
+    for(const x of secrets)if(x)v=v.replaceAll(x,'[REDACTED]');
+    return v.replace(/\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g,'[REDACTED]').replace(/(Bearer\s+)\S+/gi,'$1[REDACTED]');
+  }
+  return v;
+}
+export function identity(alias,persist){
+  const path=root+'persistent-identity.json';let d;
+  if(persist&&existsSync(path))d=JSON.parse(readFileSync(path,'utf8'));
+  else{
+    const keys=generateKeyPairSync('ed25519');const pub=keys.publicKey.export({type:'spki',format:'der'}).subarray(-32);
+    d={id:createHash('sha256').update(pub).digest('hex'),publicKey:pub.toString('base64url'),privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'}),scopes};
+    if(persist)writeFileSync(path,JSON.stringify(d),{mode:0o600,flag:'wx'});
+  }
+  secrets.add(d.publicKey);secrets.add(d.privateKey);register(d.id,alias);
+  d.alias=alias;d.persist=persist;
+  if(persist&&existsSync(root+'persistent-token.json'))Object.assign(d,JSON.parse(readFileSync(root+'persistent-token.json','utf8')));
+  if(d.token)secrets.add(d.token);
+  return d;
+}
+export class Client{
+  constructor(d,label,log){this.identity=d;this.label=label;this.log=log;this.pending=new Map();this.handlers=[];this.closed=false;}
+  async connect(){
+    const d=this.identity;this.openedAt=new Date().toISOString();this.ws=new WebSocket('ws://127.0.0.1:5114/');
+    this.log('socket-opening',{connection:this.label,deviceAlias:d.alias,openedAt:this.openedAt});
+    const challenge=await new Promise((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error('challenge timeout')),15000);
+      this.ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('websocket error'));});
+      this.ws.addEventListener('close',ev=>{
+        this.closed=true;this.closedAt=new Date().toISOString();this.log('socket-closed',{connection:this.label,connId:this.hello?.server?.connId,deviceAlias:d.alias,closedAt:this.closedAt,code:ev.code,reason:ev.reason,wasClean:ev.wasClean});
+        for(const p of this.pending.values()){clearTimeout(p.timer);p.reject(new Error(p.method+' socket closed'));}this.pending.clear();
+      });
+      this.ws.addEventListener('message',ev=>{
+        const m=JSON.parse(ev.data);
+        if(m.event==='connect.challenge'){clearTimeout(timer);resolve(m.payload);return;}
+        if(m.type==='res'){
+          const p=this.pending.get(m.id);
+          if(p){clearTimeout(p.timer);this.pending.delete(m.id);m.ok?p.resolve(m.payload):p.reject(new Error(p.method+': '+JSON.stringify(m.error)));}
+          if(m.payload?.type==='hello-ok')return;
+          if(m.payload?.sessions)return;
+        }
+        this.log('receive',{connection:this.label,frame:m});for(const h of this.handlers)h(m);
+      });
+    });
+    const grant=d.scopes??scopes;const token=d.token??'';
+    const payload=['v3',d.id,'cli','cli','operator',grant.join(','),String(challenge.ts),token,challenge.nonce,'linux',''].join('|');
+    const params={minProtocol:4,maxProtocol:4,client:{id:'cli',version:'v03-authority-2026-10-11',platform:'linux',mode:'cli',displayName:'PDA authority check 2026-10-11'},role:'operator',scopes:grant,caps:['tool-events'],device:{id:d.id,publicKey:d.publicKey,signature:sign(null,Buffer.from(payload),d.privateKey).toString('base64url'),signedAt:challenge.ts,nonce:challenge.nonce},...(token?{auth:{token}}:{})};
+    const h=await this.request('connect',params);this.hello=h;this.connectedAt=new Date().toISOString();
+    this.log('connected',{connection:this.label,deviceAlias:d.alias,protocol:h.protocol,server:h.server,scopes:h.auth?.scopes,usedStoredToken:Boolean(token),connectedAt:this.connectedAt,client:params.client});
+    if(h.auth?.deviceToken){
+      secrets.add(h.auth.deviceToken);
+      const newToken=h.auth.deviceToken!==d.token;d.token=h.auth.deviceToken;
+      if(newToken)d.scopes=h.auth.scopes;
+      if(d.persist)writeFileSync(root+'persistent-token.json',JSON.stringify({token:d.token,scopes:d.scopes}),{mode:0o600});
+    }
+    return h;
+  }
+  request(method,params={}){
+    const id=randomUUID();
+    if(method==='connect')this.log('send',{connection:this.label,frame:{type:'req',id,method,params:{client:params.client,role:params.role,scopes:params.scopes,deviceAlias:this.identity.alias,usedStoredToken:Boolean(params.auth?.token)}}});
+    else if(method!=='sessions.list')this.log('send',{connection:this.label,frame:{type:'req',id,method,params}});
+    return new Promise((resolve,reject)=>{
+      if(this.ws.readyState!==WebSocket.OPEN){reject(new Error(method+' socket not open'));return;}
+      const timer=setTimeout(()=>{this.pending.delete(id);reject(new Error(method+' timeout'));},30000);
+      this.pending.set(id,{resolve,reject,timer,method});this.ws.send(JSON.stringify({type:'req',id,method,params}));
+    });
+  }
+  async close(reason){
+    if(this.closed)return;
+    this.log('socket-close-requested',{connection:this.label,connId:this.hello?.server?.connId,reason});
+    await new Promise(resolve=>{const t=setTimeout(resolve,3000);this.ws.addEventListener('close',()=>{clearTimeout(t);resolve();},{once:true});this.ws.close(1000,reason);});
+  }
+}
+
+===== trial.mjs =====
+import {Client,identity,safe,sleep,evidence} from './client.mjs';
+import {appendFileSync,writeFileSync,existsSync} from 'node:fs';
+import {randomUUID} from 'node:crypto';
+
+const label=process.argv[2];if(!/^(A[123]|B|C)(-retry)?$/.test(label))throw new Error('invalid trial label');
+const mode=label[0];const file=evidence+label+'.jsonl';if(existsSync(file))throw new Error('trial evidence already exists; do not overwrite');
+const prompt='r3-worker に sessions_spawn で「7 と 8 を足した答えだけを 1 行で返して」と頼み、子の完了の通知を待ってから、子の答えをそのまま引用して私に報告して。';
+const key=`agent:r3-leader:authority-${label.toLowerCase()}-${Date.now()}`;const keys=new Set([key]);const children=new Set();
+const summary={label,mode,key,prompt,startedAt:new Date().toISOString(),connections:[],histories:[],spawnEvents:[],terminalEvents:[],polls:[],failures:[]};
+let c;let disconnectStarted=false;let disconnectTask;let lastRelevant=Date.now();let sendTime;let deadline;
+function log(type,data){
+  if(type==='receive'){
+    const m=data.frame;
+    if(m.type==='event'&&!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+    if(m.payload?.session){m.payload={...m.payload};delete m.payload.session;}
+  }
+  appendFileSync(file,JSON.stringify({utc:new Date().toISOString(),type,data:safe(data)})+'\n');
+}
+function attach(client){
+  client.handlers.push(m=>{
+    if(m.type!=='event'||!keys.has(m.payload?.sessionKey??m.payload?.key))return;
+    const p=m.payload;
+    if(['agent','chat','sessions.messages'].includes(m.event))lastRelevant=Date.now();
+    const t=p.data;
+    if(p.sessionKey===key&&m.event==='agent'&&p.stream==='tool'&&t?.name?.endsWith('sessions_spawn')){
+      const spawn={utc:new Date().toISOString(),eventTs:p.ts,runId:p.runId,...t};summary.spawnEvents.push(spawn);log('spawn-observed',spawn);
+      if(mode!=='A'&&!disconnectStarted){
+        disconnectStarted=true;summary.disconnectTriggeredBy=spawn;
+        disconnectTask=client.close('spawn observed').then(()=>{summary.disconnectedAt=client.closedAt;log('disconnected-wait-start',{waitMs:120000,disconnectedAt:client.closedAt});});
+      }
+    }
+    for(const child of JSON.stringify(p).match(/agent:r3-worker:subagent:[A-Za-z0-9-]+/g)??[]){keys.add(child);children.add(child);}
+    if(m.event==='chat'&&['final','error','aborted'].includes(p.state)){
+      const e={utc:new Date().toISOString(),eventTs:p.ts,key:p.sessionKey,runId:p.runId,state:p.state,message:p.message,error:p.error};summary.terminalEvents.push(e);log('terminal',e);
+    }
+  });
+}
+async function open(d,suffix){const usedStoredToken=Boolean(d.token);const client=new Client(d,label+'-'+suffix,log);attach(client);await client.connect();summary.connections.push({label:client.label,deviceAlias:d.alias,openedAt:client.openedAt,connectedAt:client.connectedAt,connId:client.hello.server?.connId,usedStoredToken});return client;}
+async function poll(){
+  const ss=await c.request('sessions.list',{});
+  for(const s of ss.sessions??[])if(s.spawnedBy===key){keys.add(s.key);children.add(s.key);}
+  const statuses=(ss.sessions??[]).filter(s=>keys.has(s.key)).map(s=>({key:s.key,sessionId:s.sessionId,status:s.status,hasActiveRun:s.hasActiveRun,activeRunIds:s.activeRunIds,lastRunError:s.lastRunError,spawnedBy:s.spawnedBy}));
+  const p={utc:new Date().toISOString(),statuses};summary.polls.push(p);log('status',p);return statuses;
+}
+async function histories(){
+  summary.histories=[];
+  for(const k of keys){const h=await c.request('chat.history',{sessionKey:k,limit:100});summary.histories.push({key:k,retrievedAt:new Date().toISOString(),history:h});log('history',{key:k,history:h});}
+}
+try{
+  log('trial-start',{label,key,prompt,mode,maximumWaitMs:300000});
+  c=await open(identity('authority-persistent',true),'initial');
+  await c.request('sessions.patch',{key,verboseLevel:'on'});
+  await c.request('sessions.messages.subscribe',{key,includeApprovals:true});
+  sendTime=Date.now();deadline=sendTime+300000;summary.sentAt=new Date(sendTime).toISOString();
+  summary.sendResult=await c.request('chat.send',{sessionKey:key,message:prompt,idempotencyKey:randomUUID()});
+  let lastPoll=0;
+  while(Date.now()<deadline){
+    if(disconnectStarted){
+      await disconnectTask;
+      if(!summary.reconnectedAt){
+        const reconnectAt=Date.parse(summary.disconnectedAt)+120000;
+        while(Date.now()<reconnectAt)await sleep(Math.min(1000,reconnectAt-Date.now()));
+        const previous=c;summary.connections.at(-1).closedAt=previous.closedAt;
+        c=await open(identity(mode==='C'?'authority-ephemeral':'authority-persistent',mode!=='C'),'reconnect');
+        summary.reconnectedAt=c.connectedAt;summary.disconnectedMs=Date.parse(c.openedAt)-Date.parse(summary.disconnectedAt);
+        await c.request('sessions.messages.subscribe',{key,includeApprovals:true});
+        await poll();await histories();
+      }
+    }
+    if(c.closed)throw new Error('unexpected socket closure');
+    if(Date.now()-lastPoll>=2500){
+      const statuses=await poll();lastPoll=Date.now();
+      const final=summary.terminalEvents.some(x=>x.key===key&&x.state==='final');
+      if(statuses.length&&statuses.every(x=>!x.hasActiveRun)&&((mode==='A'&&final&&Date.now()-lastRelevant>10000)||(mode!=='A'&&summary.reconnectedAt))){summary.stopReason=children.size?'parent-and-child-idle':'parent-idle-no-child';break;}
+    }
+    await sleep(100);
+  }
+  if(Date.now()>=deadline){summary.stopReason='five-minute-limit';log('wait-limit',{deadline:new Date(deadline).toISOString()});}
+  if(!c.closed){await poll();await histories();}
+}catch(e){summary.failures.push({utc:new Date().toISOString(),error:e.message});log('collector-error',{error:e.stack});process.exitCode=1;}
+finally{
+  if(c){await c.close('trial complete');if(summary.connections.length)summary.connections.at(-1).closedAt=c.closedAt;}
+  summary.children=[...children];summary.endedAt=new Date().toISOString();
+  writeFileSync(evidence+label+'-summary.json',JSON.stringify(safe(summary),null,2)+'\n');
+  console.log(JSON.stringify(safe({label,key,startedAt:summary.startedAt,endedAt:summary.endedAt,stopReason:summary.stopReason,children:summary.children,spawnEvents:summary.spawnEvents.length,terminals:summary.terminalEvents.map(x=>({key:x.key,state:x.state,utc:x.utc})),failures:summary.failures})));
+}
+
+===== manage.py =====
+from pathlib import Path
+import datetime, hashlib, json, os, re, subprocess, sys
+
+ROOT = Path('/home/user/v03/openclaw')
+RUN = ROOT / 'authority-check'
+REPO = Path('/home/user/pda-v03a')
+EV = REPO / 'docs/reports/evidence/v0.3-openclaw/2026-10-11-authority'
+DIST = ROOT / 'lib/node_modules/openclaw/dist'
+REG = RUN / 'device-aliases.json'
+SECRET = re.compile(r'^(?:deviceTokens?|tokens?|access_token|refresh_token|id_token|password|secret|apiKey|authorization|signature|nonce|publicKey|privateKey(?:Pem)?|recoveryScope)$', re.I)
+
+def now(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
+def registry(): return json.loads(REG.read_text()) if REG.exists() else {}
+def private_write(p, value):
+    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f: json.dump(value, f, ensure_ascii=False, indent=2)
+def scrub_text(s):
+    for key, alias in registry().items(): s = s.replace(key, alias)
+    s = re.sub(r'\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+', '[REDACTED]', s)
+    s = re.sub(r'(Bearer\s+)\S+', r'\1[REDACTED]', s, flags=re.I)
+    s = re.sub(r'((?:device(?:Id)?)[=:]\s*)[0-9a-f]{64}', r'\1[REDACTED]', s, flags=re.I)
+    s = re.sub(r'((?:publicKey|privateKey|deviceToken|signature|nonce)[=:]\s*)[A-Za-z0-9_+/=-]{16,}', r'\1[REDACTED]', s, flags=re.I)
+    return s
+def safe(v):
+    if isinstance(v, dict): return {k: '[REDACTED]' if SECRET.fullmatch(k) else safe(x) for k, x in v.items()}
+    if isinstance(v, list): return [safe(x) for x in v]
+    if isinstance(v, str): return scrub_text(v)
+    return v
+def write(name, value): (EV / name).write_text(json.dumps(safe(value), ensure_ascii=False, indent=2) + '\n')
+def execute(args):
+    p = subprocess.run(args, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return {'utc': now(), 'command': args, 'exitCode': p.returncode, 'stdout': p.stdout, 'stderr': p.stderr}
+def devices(label):
+    r = execute([str(ROOT/'oc'), 'devices', 'list', '--json'])
+    if r['exitCode']: raise RuntimeError(scrub_text(r['stderr']))
+    d = json.loads(r.pop('stdout'))
+    aliases = registry()
+    for group in ('paired','pending'):
+        for row in d.get(group, []):
+            key = row.get('deviceId')
+            if key and key not in aliases: aliases[key] = 'preexisting-' + str(1 + sum(x.startswith('preexisting-') for x in aliases.values())) if label == 'before' else 'unrelated-new-' + str(len(aliases)+1)
+    private_write(REG, aliases)
+    r['result'] = d
+    write('devices-' + label + '.json', r)
+    return d
+def inventory():
+    paths = [ROOT/'openclaw.json', ROOT/'oc', Path('/home/user/.config/systemd/user/v03-openclaw.service')]
+    for role in ('leader','worker','auditor'):
+        p = Path('/home/user/v03/work/openclaw/scratch/r3-'+role)
+        paths += list(p.glob('*.md')) + list(p.glob('skills/**/*'))
+    plugin = ROOT/'state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe'
+    paths += [p for p in plugin.rglob('*') if p.is_file() and 'node_modules' not in p.relative_to(plugin).parts]
+    return {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(set(paths)) if p.is_file()}
+def preflight():
+    assert not (EV/'baseline.json').exists(), 'baseline must not be overwritten'
+    d = devices('before')
+    assert not any(x.get('displayName') == 'PDA authority check 2026-10-11' for x in d['paired'])
+    cfg = json.loads((ROOT/'openclaw.json').read_text())
+    commands = [[str(ROOT/'oc'),'--version'],['/home/user/.local/bin/claude','--version'],['/home/user/.local/bin/codex','--version'],['systemctl','--user','list-units','v03-*.service','--all','--no-pager'],['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState','-p','ActiveEnterTimestamp'],['git','rev-parse','main'],['git','branch','--show-current']]
+    out = {'utc':now(), 'commands':[execute(c) for c in commands], 'unchangedFiles':inventory(), 'agents':cfg['agents'], 'gateway':{k:cfg['gateway'].get(k) for k in ['mode','bind','port']}, 'gatewayAuthMode':cfg['gateway'].get('auth',{}).get('mode'), 'typesafe':cfg.get('plugins',{}).get('entries',{}).get('typesafe'), 'initialDeviceAliases':[registry()[x['deviceId']] for x in d['paired']]}
+    write('baseline.json',out)
+    print(json.dumps({'utc':out['utc'],'version':out['commands'][0]['stdout'].strip(),'devicesBefore':len(d['paired']),'filesHashed':len(out['unchangedFiles'])}))
+def logs(label):
+    s=json.loads((EV/(label+'-summary.json')).read_text())
+    start,end=s['startedAt'],s['endedAt']
+    r=execute(['journalctl','--user','-u','v03-openclaw.service','--since',start,'--until',end,'--utc','-o','short-iso-precise','--no-pager'])
+    (EV/(label+'-journal.txt')).write_text(scrub_text('UTC window: '+start+' .. '+end+'\n'+r['stdout']+r['stderr']))
+    source=Path('/tmp/openclaw/openclaw-2026-10-11.log')
+    matched=[]; bad=0
+    lo=datetime.datetime.fromisoformat(start.replace('Z','+00:00')); hi=datetime.datetime.fromisoformat(end.replace('Z','+00:00'))
+    with source.open() as f:
+        for i,line in enumerate(f,1):
+            try:
+                row=json.loads(line); ts=row.get('time') or row.get('_meta',{}).get('date'); t=datetime.datetime.fromisoformat(ts.replace('Z','+00:00'))
+            except (ValueError,TypeError,AttributeError): bad+=1; continue
+            if lo<=t<=hi: matched.append({'sourceLine':i,'entry':safe(row)})
+    (EV/(label+'-gateway-log.jsonl')).write_text(''.join(json.dumps(x,ensure_ascii=False)+'\n' for x in matched))
+    write(label+'-log-window.json',{'source':str(source),'startedAt':start,'endedAt':end,'journalExitCode':r['exitCode'],'fileMatchingRows':len(matched),'unparseableFileRows':bad,'selection':'All journal and file-log rows in the trial window; identity/token values redacted.'})
+    print(json.dumps({'trial':label,'journalRows':len(r['stdout'].splitlines()),'fileRows':len(matched)}))
+if __name__=='__main__':
+    if sys.argv[1]=='preflight': preflight()
+    elif sys.argv[1]=='devices':
+        d=devices(sys.argv[2]); print(json.dumps({'paired':len(d['paired']),'pending':len(d['pending'])}))
+    elif sys.argv[1]=='logs': logs(sys.argv[2])
+
+===== diagnostic.mjs =====
+import {Client,identity,safe,evidence} from './client.mjs';
+import {writeFileSync} from 'node:fs';
+const label=process.argv[2]??'diagnostic';const out={utc:new Date().toISOString(),label,connections:[]};
+const c=new Client(identity('authority-persistent',true),label,(type,data)=>{if(['connected','socket-closed'].includes(type))out.connections.push({type,...data});});
+try{
+  await c.connect();const ss=await c.request('sessions.list',{});
+  out.activeSessions=(ss.sessions??[]).filter(s=>s.hasActiveRun).map(s=>({key:s.key,status:s.status,hasActiveRun:s.hasActiveRun}));
+  out.trialSessions=(ss.sessions??[]).filter(s=>s.key?.includes(':authority-')||s.spawnedBy?.includes(':authority-')).map(s=>({key:s.key,status:s.status,hasActiveRun:s.hasActiveRun,spawnedBy:s.spawnedBy}));
+  out.models=await c.request('models.list',{agentId:'r3-worker'});
+}finally{await c.close('diagnosis finished');writeFileSync(evidence+label+'.json',JSON.stringify(safe(out),null,2)+'\n');}
+console.log(JSON.stringify(safe({label,activeSessions:out.activeSessions,trialSessions:out.trialSessions,models:out.models.models?.filter(m=>m.provider==='openai'||m.id==='gpt-6-astra')})));
+
+===== recover.py =====
+from manage import *
+import time
+label=sys.argv[1]
+target=EV/('restart-'+label+'.json')
+assert not target.exists(), 'one restart recovery per failed trial'
+diagnosis_label=sys.argv[2] if len(sys.argv)>2 else label+'-pre-retry'
+diagnosis=json.loads((EV/(diagnosis_label+'.json')).read_text())
+assert not diagnosis['activeSessions']
+assert inventory()==json.loads((EV/'baseline.json').read_text())['unchangedFiles']
+log={'requestedAt':now(),'trial':label,'reason':'The trial could not start r3-worker because sessions_spawn reported model/account/native runtime unavailable. Same failure signature as A2, whose one restart allowed its retry to spawn. All sessions idle. One restart before the one permitted retry; no configuration changes.','before':execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveEnterTimestamp','-p','ActiveState'])}
+if label.startswith('before-'):
+    assert any(m.get('id')=='gpt-6-astra' and m.get('available') is False for m in diagnosis['models']['models'])
+    log['reason']='Preflight models.list reports worker model available=false after prior successful child run, matching the A2/A3 pre-spawn failures. All sessions idle. Restart once before '+label.removeprefix('before-')+' so that the requested disconnect trial can reach child creation; no extra task sent and no configuration changes.'
+write(target.name,log)
+log['restart']=execute(['systemctl','--user','restart','v03-openclaw.service']);log['completedAt']=now();write(target.name,log)
+assert log['restart']['exitCode']==0
+log['readiness']=[]
+for i in range(40):
+    r=execute(['curl','-sS','-o','/dev/null','-w','%{http_code}','http://127.0.0.1:5114/readyz']);log['readiness'].append(r)
+    if r['stdout']=='200':break
+    time.sleep(1)
+log['after']=execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveEnterTimestamp','-p','ActiveState','-p','SubState'])
+write(target.name,log)
+assert log['readiness'][-1]['stdout']=='200'
+j=execute(['journalctl','--user','-u','v03-openclaw.service','--since',log['requestedAt'],'--until',now(),'--utc','-o','short-iso-precise','--no-pager'])
+(EV/('restart-'+label+'-journal.txt')).write_text(scrub_text(j['stdout']))
+print(json.dumps({'trial':label,'requestedAt':log['requestedAt'],'completedAt':log['completedAt'],'after':log['after']['stdout']}))
+
+===== analyze.py =====
+from manage import *
+
+TARGETS=['Gateway client authority closed','Gateway caller authority is no longer active','Subagent terminal signal owner changed before commit']
+def iso(ms): return datetime.datetime.fromtimestamp(ms/1000,datetime.timezone.utc).isoformat() if isinstance(ms,(int,float)) else ms
+def content(m):
+    c=m.get('content',[])
+    return c if isinstance(c,str) else '\n'.join(b.get('text','') for b in c if b.get('type')=='text')
+def records(name): return [json.loads(x) for x in (EV/name).read_text().splitlines()]
+def analyze(label):
+    s=json.loads((EV/(label+'-summary.json')).read_text()); events=records(label+'.jsonl')
+    answers=[]; tool_errors=[]; calls={}; hist_targets=[]
+    for h in s['histories']:
+        for m in h['history'].get('messages',[]):
+            text=content(m)
+            if m.get('role')=='assistant' and text: answers.append({'key':h['key'],'timestamp':iso(m.get('timestamp')),'text':text})
+            blocks=m.get('content',[])
+            if isinstance(blocks,list):
+                for b in blocks:
+                    if b.get('type') in ['toolcall','tool_use']: calls[b.get('id')]={'name':b.get('name'),'arguments':b.get('arguments',b.get('input'))}
+                for b in blocks:
+                    if b.get('type') in ['tool_result','toolResult'] and (b.get('is_error') or b.get('isError') or any(t in json.dumps(b) for t in TARGETS)):
+                        tool_errors.append({'source':'history','key':h['key'],'timestamp':iso(m.get('timestamp')),'toolCallId':b.get('tool_use_id',b.get('toolCallId')),**calls.get(b.get('tool_use_id',b.get('toolCallId')),{}),'result':b})
+            if any(t in json.dumps(m,ensure_ascii=False) for t in TARGETS): hist_targets.append({'key':h['key'],'timestamp':iso(m.get('timestamp')),'message':m})
+    event_errors=[]
+    for i,r in enumerate(events,1):
+        f=r['data'].get('frame',{}); p=f.get('payload',{}); d=p.get('data',{})
+        if f.get('event')=='agent' and p.get('stream')=='tool' and d.get('phase')=='result' and (d.get('isError') or any(t in json.dumps(d) for t in TARGETS)):
+            event_errors.append({'sourceFile':label+'.jsonl','sourceLine':i,'utc':r['utc'],'eventTs':p.get('ts'),'key':p.get('sessionKey'),'runId':p.get('runId'),**d})
+    source_rows={}
+    for name in [label+'.jsonl',label+'-journal.txt',label+'-gateway-log.jsonl']:
+        if not (EV/name).exists():continue
+        source_rows[name]={t:[{'line':i,'text':line} for i,line in enumerate((EV/name).read_text().splitlines(),1) if t in line] for t in TARGETS}
+    child_answers=[a for a in answers if a['key']!=s['key']]; parents=[a for a in answers if a['key']==s['key']]
+    numeric=[a for a in parents if child_answers and re.search(r'(?<!\d)15(?!\d)',a['text'])]
+    full=[]
+    if child_answers:
+        raw=child_answers[-1]['text']
+        for a in parents:
+            normalized=re.sub(r'^\s*>\s?','',a['text'],flags=re.M)
+            if raw in normalized: full.append(a)
+    target_tool_errors=[e for e in tool_errors if any(t in json.dumps(e,ensure_ascii=False) for t in TARGETS)]
+    rpcs=sorted(set(re.findall(r'Gateway client authority closed before dispatching ([\w.]+)',json.dumps(source_rows,ensure_ascii=False))))
+    result={'label':label,'key':s['key'],'startedAt':s['startedAt'],'sentAt':s.get('sentAt'),'endedAt':s['endedAt'],'connections':s['connections'],'disconnectedAt':s.get('disconnectedAt'),'reconnectedAt':s.get('reconnectedAt'),'disconnectedMs':s.get('disconnectedMs'),'children':s['children'],'answers':answers,'numericAnswerQuoted':bool(numeric),'entireChildMessageQuoted':bool(full),'firstNumericQuoteAt':numeric[0]['timestamp'] if numeric else None,'firstWholeQuoteAt':full[0]['timestamp'] if full else None,'secondsToNumericQuote':(datetime.datetime.fromisoformat(numeric[0]['timestamp'])-datetime.datetime.fromisoformat(s['sentAt'].replace('Z','+00:00'))).total_seconds() if numeric else None,'toolErrorsInHistory':tool_errors,'toolErrorsInEvents':event_errors,'historyMessagesWithTargetErrors':hist_targets,'targetErrorOccurrencesBySource':source_rows,'failedRPCs':rpcs,'stopReason':s.get('stopReason'),'collectorFailures':s['failures']}
+    write(label+'-analysis.json',result)
+    compact={k:result[k] for k in ['label','numericAnswerQuoted','entireChildMessageQuoted','firstNumericQuoteAt','secondsToNumericQuote','failedRPCs','stopReason']}
+    compact['targetCountsInJournal']={t:len(x) for t,x in source_rows.get(label+'-journal.txt',{}).items()}
+    compact['historyToolErrorCount']=len(tool_errors)
+    return compact
+if __name__=='__main__':
+    labels=sys.argv[1:] or [p.name.removesuffix('-summary.json') for p in sorted(EV.glob('*-summary.json'))]
+    results=[analyze(label) for label in labels]
+    print(json.dumps(results,ensure_ascii=False,indent=2))
+
+===== cleanup.py =====
+from manage import *
+
+assert not (EV/'cleanup.json').exists(), 'cleanup already recorded'
+before=json.loads((EV/'devices-before.json').read_text())['result']
+before_aliases={d['deviceId'] for d in before['paired']}
+current=devices('after-trials')
+aliases=registry(); own={key:alias for key,alias in aliases.items() if alias.startswith('authority-')}
+assert own and not set(own.values())&before_aliases
+current_ids={d['deviceId'] for d in current['paired']}
+out={'utc':now(),'removals':[],'preexistingAliases':sorted(before_aliases),'ownAliases':sorted(own.values())}
+for key,alias in own.items():
+    if key not in current_ids:
+        out['removals'].append({'deviceAlias':alias,'action':'already absent; no removal command','possibleReason':'Gateway silent-pairing pruning; correlate C journal'})
+        continue
+    r=execute([str(ROOT/'oc'),'devices','remove',key,'--json'])
+    out['removals'].append({'deviceAlias':alias,'action':'oc devices remove','result':r})
+    if r['exitCode']:
+        write('cleanup.json',out);raise RuntimeError('device removal failed; investigate before a single retry')
+after=devices('after-cleanup')
+remaining={d['deviceId'] for d in after['paired']}
+out['allOwnAbsent']=not remaining&set(own)
+out['allPreexistingPreserved']=before_aliases<={aliases[d] for d in remaining if d in aliases}
+out['fileChecks']=inventory()
+out['unchangedFilesMatch']=out['fileChecks']==json.loads((EV/'baseline.json').read_text())['unchangedFiles']
+out['service']=execute(['systemctl','--user','show','v03-openclaw.service','-p','MainPID','-p','ActiveState','-p','SubState','-p','ActiveEnterTimestamp'])
+out['allProductUnits']=execute(['systemctl','--user','list-units','v03-*.service','--all','--no-pager'])
+out['http']=[execute(['curl','-sS','-o','/dev/null','-w','%{http_code}','http://127.0.0.1:5114'+p]) for p in ['/','/readyz']]
+out['localIdentityFiles']=[{'path':str(p),'mode':oct(p.stat().st_mode&0o777),'location':'outside repository; retained collector identity, Gateway registration removed'} for p in [RUN/'persistent-identity.json',RUN/'persistent-token.json'] if p.exists()]
+write('cleanup.json',out)
+assert out['allOwnAbsent'] and out['allPreexistingPreserved'] and out['unchangedFilesMatch']
+print(json.dumps({'removed':[r['deviceAlias'] for r in out['removals'] if r['action']=='oc devices remove'],'alreadyAbsent':[r['deviceAlias'] for r in out['removals'] if r['action']!='oc devices remove'],'existingPreserved':out['allPreexistingPreserved'],'unchanged':out['unchangedFilesMatch'],'service':out['service']['stdout']}))
+
+===== verify.py =====
+from manage import *
+
+checks=[]
+def check(name, value):
+    checks.append({'name':name,'pass':bool(value)})
+    if not value: raise AssertionError(name)
+def read(name): return json.loads((EV/name).read_text())
+def rows(name): return [json.loads(x) for x in (EV/name).read_text().splitlines()]
+def timestamp(s): return datetime.datetime.fromisoformat(s.replace('Z','+00:00'))
+
+try:
+    labels=['A1','A2','A2-retry','A3','A3-retry','B','C']
+    summaries={label:read(label+'-summary.json') for label in labels}
+    prompt='r3-worker に sessions_spawn で「7 と 8 を足した答えだけを 1 行で返して」と頼み、子の完了の通知を待ってから、子の答えをそのまま引用して私に報告して。'
+    check('All attempts use exactly the requested prompt',all(s['prompt']==prompt for s in summaries.values()))
+    check('Every attempt has its own new r3-leader session',len({s['key'] for s in summaries.values()})==len(labels) and all(s['key'].startswith('agent:r3-leader:authority-') for s in summaries.values()))
+    check('Only A2 and A3 retried, once each',sorted(p.name for p in EV.glob('*-summary.json'))==sorted(label+'-summary.json' for label in labels))
+    for label,s in summaries.items():
+        r=rows(label+'.jsonl')
+        sends=[x for x in r if x['type']=='send' and x['data'].get('frame',{}).get('method')=='chat.send']
+        check(label+' has exactly one chat.send',len(sends)==1)
+        check(label+' collector completed without transport/RPC failure',not s['failures'])
+        check(label+' parent history obtained',any(h['key']==s['key'] for h in s['histories']))
+        check(label+' journal and file log collected',read(label+'-log-window.json')['journalExitCode']==0 and (EV/(label+'-journal.txt')).exists() and (EV/(label+'-gateway-log.jsonl')).exists())
+        check(label+' all own sessions idle at end',s['polls'] and all(not x.get('hasActiveRun') for x in s['polls'][-1]['statuses']))
+        check(label+' initial connection uses saved identity',s['connections'][0]['deviceAlias']=='authority-persistent')
+    for label in ['A1','A2','A2-retry','A3','A3-retry']:
+        s=summaries[label]
+        check(label+' one uninterrupted socket',len(s['connections'])==1 and len([x for x in rows(label+'.jsonl') if x['type']=='socket-closed'])==1)
+        finals=[x for x in s['terminalEvents'] if x['key']==s['key'] and x['state']=='final']
+        check(label+' connected until final reply',bool(finals) and timestamp(s['connections'][0]['closedAt'])>=max(timestamp(x['utc']) for x in finals))
+        check(label+' final reply arrived within five minutes',max(timestamp(x['utc']) for x in finals)-timestamp(s['sentAt'])<=datetime.timedelta(minutes=5))
+    for label in ['A1','A2-retry','A3-retry']:
+        s=summaries[label]; a=read(label+'-analysis.json')
+        check(label+' actual worker completion and numeric quote recorded',len(s['children'])==1 and a['numericAnswerQuoted'])
+    for label in ['A2','A3']:
+        a=read(label+'-analysis.json')
+        check(label+' initial model-unavailable failure retained',not summaries[label]['children'] and 'The selected account or native runtime is unavailable' in json.dumps(a['toolErrorsInHistory']))
+    for label in ['B','C']:
+        s=summaries[label];c=s['connections'];r=rows(label+'.jsonl')
+        check(label+' exactly one disconnect and one reconnect',len(c)==2 and c[0]['connId']!=c[1]['connId'])
+        check(label+' disconnect triggered by observed sessions_spawn',s['disconnectTriggeredBy']['name'].endswith('sessions_spawn') and timestamp(c[0]['closedAt'])>=timestamp(s['disconnectTriggeredBy']['utc']))
+        check(label+' waited at least 120 seconds before reconnect',s['disconnectedMs']>=120000)
+        check(label+' reads history after reconnect',all(timestamp(h['retrievedAt'])>=timestamp(s['reconnectedAt']) for h in s['histories']))
+        check(label+' one initial task; no resend on reconnect',sum(x['type']=='send' and x['data'].get('frame',{}).get('method')=='chat.send' for x in r)==1)
+    check('B reconnect uses same saved identity and token',summaries['B']['connections'][1]['deviceAlias']=='authority-persistent' and summaries['B']['connections'][1]['usedStoredToken'])
+    check('C reconnect uses new in-memory identity without saved token',summaries['C']['connections'][1]['deviceAlias']=='authority-ephemeral' and summaries['C']['connections'][1]['usedStoredToken'] is False)
+    check('Identity files are outside repository with mode 0600',all((RUN/n).stat().st_mode&0o777==0o600 for n in ['persistent-identity.json','persistent-token.json']))
+    check('No ephemeral keypair file',not any('ephemeral' in p.name for p in RUN.iterdir()))
+    check('Exactly one saved identity reused and one new C identity',list(registry().values()).count('authority-persistent')==1 and list(registry().values()).count('authority-ephemeral')==1)
+    check('Configuration, agent instructions, plugin, TypeSafe unchanged',inventory()==read('baseline.json')['unchangedFiles'])
+    cleanup=read('cleanup.json')
+    check('Only run-created devices targeted for removal',all(r['deviceAlias'].startswith('authority-') for r in cleanup['removals']))
+    check('All run devices removed; existing devices retained',cleanup['allOwnAbsent'] and cleanup['allPreexistingPreserved'])
+    before={d['deviceId'] for d in read('devices-before.json')['result']['paired']};after={d['deviceId'] for d in read('devices-after-cleanup.json')['result']['paired']}
+    check('Final paired device list equals initial list',before==after)
+    check('OpenClaw active/running, preview and readyz HTTP 200','ActiveState=active' in cleanup['service']['stdout'] and 'SubState=running' in cleanup['service']['stdout'] and all(r['stdout']=='200' for r in cleanup['http']))
+    check('No other v03 service running',all('v03-openclaw.service' in line for line in cleanup['allProductUnits']['stdout'].splitlines() if re.search(r'\bactive\s+running\b',line)))
+    for p in sorted(EV.glob('restart*.json')):
+        r=json.loads(p.read_text())
+        check(p.name+' records reason, time, successful restart',bool(r['reason']) and bool(r['requestedAt']) and r['restart']['exitCode']==0 and 'ActiveState=active' in r['after']['stdout'])
+    old=subprocess.check_output(['git','show','0dd6db0d976f4a58d8f21cd45d3cab1a39298134:docs/reports/v0.3-openclaw-codex.md'],cwd=REPO)
+    report=(REPO/'docs/reports/v0.3-openclaw-codex.md').read_bytes()
+    check('Prior report sections 1-10 byte-for-byte unchanged',report.startswith(old))
+    tail=report[len(old):].decode()
+    check('Exactly the requested section 11 appended',tail.count('## 11. 子の結果を受け取る段の誤りの確認 (2026-10-11)')==1)
+    headings=re.findall(r'^### 11\.[1-6] (.+)$',tail,re.M)
+    check('Requested report order',headings==['結論','版','試し A〜C の結果','出る条件','後片付け','分からなかったこと'])
+    check('Report discloses model failures and recovery restarts',all(t in tail for t in ['A2','A3','再起動','available=false']))
+    check('Report distinguishes answer quote from full child message',all(t in tail for t in ['[ROLE:worker]','全文','15']))
+    check('Evidence links resolve; verification.json is this run output',all((REPO/'docs/reports'/x).exists() or REPO/'docs/reports'/x==EV/'verification.json' for x in re.findall(r'\]\((evidence/v0\.3-openclaw/2026-10-11-authority/[^)]+)\)',tail)))
+    check('Collector scripts remain outside repository',not any(p.suffix in ['.py','.mjs','.js'] for p in EV.iterdir()))
+    alltext='\n'.join(p.read_text(errors='replace') for p in EV.iterdir() if p.is_file())+'\n'+tail
+    secrets=list(registry())
+    ident=json.loads((RUN/'persistent-identity.json').read_text());token=json.loads((RUN/'persistent-token.json').read_text())
+    secrets += [ident['publicKey'],ident['privateKey'],''.join(ident['privateKey'].splitlines()[1:-1]),token['token']]
+    check('Actual device IDs, keys and saved token absent from evidence/report',all(v not in alltext for v in secrets if v))
+    check('No credential-looking values',not re.search(r'\bsk-[A-Za-z0-9_-]{15,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----',alltext))
+    check('Correct branch',subprocess.check_output(['git','branch','--show-current'],cwd=REPO,text=True).strip()=='v0.3/authority-openclaw')
+    check('Started from requested main base',subprocess.run(['git','merge-base','--is-ancestor','0dd6db0d976f4a58d8f21cd45d3cab1a39298134','HEAD'],cwd=REPO).returncode==0)
+    check('git diff --check',subprocess.run(['git','diff','--check'],cwd=REPO).returncode==0)
+    for p in EV.iterdir():
+        if p.suffix=='.json':json.loads(p.read_text())
+        elif p.suffix=='.jsonl':rows(p.name)
+    check('All JSON/JSONL evidence parses',True)
+except Exception as e:
+    checks.append({'name':'ERROR '+str(e),'pass':False})
+finally:
+    write('verification.json',{'utc':now(),'meaning':'Completion of requested experiment and faithful reporting, including product errors and explicitly recorded recoveries; not a product correctness claim.','checks':checks,'passed':all(c['pass'] for c in checks)})
+    print('\n'.join(('PASS ' if c['pass'] else 'FAIL ')+c['name'] for c in checks))
+    if not all(c['pass'] for c in checks):raise SystemExit(1)

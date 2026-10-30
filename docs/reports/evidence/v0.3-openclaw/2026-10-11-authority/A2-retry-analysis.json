@@ -1,0 +1,89 @@
+{
+  "label": "A2-retry",
+  "key": "agent:r3-leader:authority-a2-retry-1791695403066",
+  "startedAt": "2026-10-11T05:10:03.066Z",
+  "sentAt": "2026-10-11T05:10:03.887Z",
+  "endedAt": "2026-10-11T05:10:57.280Z",
+  "connections": [
+    {
+      "label": "A2-retry-initial",
+      "deviceAlias": "authority-persistent",
+      "openedAt": "2026-10-11T05:10:03.067Z",
+      "connectedAt": "2026-10-11T05:10:03.114Z",
+      "connId": "92668eeb-44a3-4538-a88d-2640376f3958",
+      "usedStoredToken": true,
+      "closedAt": "2026-10-11T05:10:57.280Z"
+    }
+  ],
+  "disconnectedAt": null,
+  "reconnectedAt": null,
+  "disconnectedMs": null,
+  "children": [
+    "agent:r3-worker:subagent:a43f9d9c-1cd9-4c1d-8554-ec993e4cc963"
+  ],
+  "answers": [
+    {
+      "key": "agent:r3-leader:authority-a2-retry-1791695403066",
+      "timestamp": "2026-10-11T05:10:12.730000+00:00",
+      "text": "[ROLE:leader]\nr3-worker に依頼を送ります。"
+    },
+    {
+      "key": "agent:r3-leader:authority-a2-retry-1791695403066",
+      "timestamp": "2026-10-11T05:10:16.179000+00:00",
+      "text": "子の完了を待ちます。"
+    },
+    {
+      "key": "agent:r3-leader:authority-a2-retry-1791695403066",
+      "timestamp": "2026-10-11T05:10:41.832000+00:00",
+      "text": "[ROLE:leader]\n子（r3-worker）の回答: 「15」"
+    },
+    {
+      "key": "agent:r3-leader:authority-a2-retry-1791695403066",
+      "timestamp": "2026-10-11T05:10:47.090000+00:00",
+      "text": "[ROLE:leader]\nr3-worker の回答: 「15」"
+    },
+    {
+      "key": "agent:r3-worker:subagent:a43f9d9c-1cd9-4c1d-8554-ec993e4cc963",
+      "timestamp": "2026-10-11T05:10:34.657000+00:00",
+      "text": "[ROLE:worker]\n15"
+    }
+  ],
+  "numericAnswerQuoted": true,
+  "entireChildMessageQuoted": false,
+  "firstNumericQuoteAt": "2026-10-11T05:10:41.832000+00:00",
+  "firstWholeQuoteAt": null,
+  "secondsToNumericQuote": 37.945,
+  "toolErrorsInHistory": [],
+  "toolErrorsInEvents": [],
+  "historyMessagesWithTargetErrors": [],
+  "targetErrorOccurrencesBySource": {
+    "A2-retry.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    },
+    "A2-retry-journal.txt": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 15,
+          "text": "2026-10-11T05:10:34.852705+00:00 agent-node openclaw[531874]: 2026-10-11T14:10:34.852+09:00 [sessions/state-events] failed to record session state event: Error: Subagent terminal signal owner changed before commit"
+        }
+      ]
+    },
+    "A2-retry-gateway-log.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 13,
+          "text": "{\"sourceLine\": 1189, \"entry\": {\"0\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"1\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"_meta\": {\"runtime\": \"node\", \"runtimeVersion\": \"24.18.0\", \"hostname\": \"agent-node\", \"date\": \"2026-10-11T05:10:34.852Z\", \"logLevelId\": 4, \"logLevelName\": \"WARN\", \"name\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"parentNames\": [\"openclaw\"]}, \"time\": \"2026-10-11T14:10:34.852+09:00\", \"hostname\": \"agent-node\", \"message\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"traceId\": \"f4bd5129bdbe9644ae432a575a84c1b1\", \"spanId\": \"a0a2d9ff3be8af62\", \"parentSpanId\": \"900b2d1cb25f26f6\", \"traceFlags\": \"01\"}}"
+        }
+      ]
+    }
+  },
+  "failedRPCs": [],
+  "stopReason": "parent-and-child-idle",
+  "collectorFailures": []
+}

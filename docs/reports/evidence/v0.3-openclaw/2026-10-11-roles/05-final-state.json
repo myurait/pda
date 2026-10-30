@@ -1,0 +1,100 @@
+[
+  {
+    "startedAt": "2026-10-11T07:55:24.123173+00:00",
+    "endedAt": "2026-10-11T07:55:24.128157+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "-p",
+      "ActiveEnterTimestamp",
+      "-p",
+      "ExecMainStartTimestamp"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=552759\nExecMainStartTimestamp=Sun 2026-10-11 16:14:32 JST\nActiveState=active\nSubState=running\nActiveEnterTimestamp=Sun 2026-10-11 16:14:32 JST\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:55:24.128162+00:00",
+    "endedAt": "2026-10-11T07:55:24.132255+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "list-units",
+      "v03-*.service",
+      "--all",
+      "--no-pager"
+    ],
+    "exitCode": 0,
+    "stdout": "  UNIT                 LOAD   ACTIVE SUB     DESCRIPTION\n  v03-openclaw.service loaded active running PDA v0.3 OpenClaw trial\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n1 loaded units listed.\nTo show all installed unit files use 'systemctl list-unit-files'.\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:55:24.132265+00:00",
+    "endedAt": "2026-10-11T07:55:24.141405+00:00",
+    "command": [
+      "curl",
+      "--silent",
+      "--show-error",
+      "--output",
+      "/dev/null",
+      "--write-out",
+      "%{http_code}",
+      "http://127.0.0.1:5114/"
+    ],
+    "exitCode": 0,
+    "stdout": "200",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:55:24.141419+00:00",
+    "endedAt": "2026-10-11T07:55:24.148929+00:00",
+    "command": [
+      "curl",
+      "--silent",
+      "--show-error",
+      "--output",
+      "/dev/null",
+      "--write-out",
+      "%{http_code}",
+      "http://127.0.0.1:5114/readyz"
+    ],
+    "exitCode": 0,
+    "stdout": "200",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:55:24.148942+00:00",
+    "endedAt": "2026-10-11T07:55:24.172310+00:00",
+    "command": [
+      "docker",
+      "ps",
+      "--format",
+      "{{.Names}} {{.Status}} {{.Ports}}"
+    ],
+    "exitCode": 0,
+    "stdout": "pda-otel-collector-1 Up 2 weeks 4317-4318/tcp, 55679/tcp\npda-openobserve-1 Up 2 weeks 0.0.0.0:5080->5080/tcp, [::]:5080->5080/tcp\n",
+    "stderr": ""
+  },
+  {
+    "startedAt": "2026-10-11T07:55:24.172330+00:00",
+    "endedAt": "2026-10-11T07:55:24.180523+00:00",
+    "command": [
+      "/home/user/.local/bin/tailscale-pda",
+      "serve",
+      "status",
+      "--json"
+    ],
+    "exitCode": 0,
+    "stdout": "{\n  \"TCP\": {\n    \"18443\": {\n      \"HTTPS\": true\n    },\n    \"18444\": {\n      \"HTTPS\": true\n    },\n    \"18445\": {\n      \"HTTPS\": true\n    },\n    \"19114\": {\n      \"HTTPS\": true\n    },\n    \"443\": {\n      \"HTTPS\": true\n    }\n  },\n  \"Web\": {\n    \"pda-web.tailaff53a.ts.net:18443\": {\n      \"Handlers\": {\n        \"/\": {\n          \"Proxy\": \"http://127.0.0.1:18501\"\n        }\n      }\n    },\n    \"pda-web.tailaff53a.ts.net:18444\": {\n      \"Handlers\": {\n        \"/\": {\n          \"Proxy\": \"http://127.0.0.1:18502\"\n        }\n      }\n    },\n    \"pda-web.tailaff53a.ts.net:18445\": {\n      \"Handlers\": {\n        \"/\": {\n          \"Proxy\": \"http://127.0.0.1:18504\"\n        }\n      }\n    },\n    \"pda-web.tailaff53a.ts.net:19114\": {\n      \"Handlers\": {\n        \"/\": {\n          \"Proxy\": \"http://127.0.0.1:5114\"\n        }\n      }\n    },\n    \"pda-web.tailaff53a.ts.net:443\": {\n      \"Handlers\": {\n        \"/\": {\n          \"Proxy\": \"http://127.0.0.1:5081\"\n        },\n        \"/beauty-passport-comparison\": {\n          \"Proxy\": \"http://127.0.0.1:18503\"\n        },\n        \"/hermes\": {\n          \"Proxy\": \"http://127.0.0.1:9121/hermes\"\n        },\n        \"/pda-push-test\": {\n          \"Proxy\": \"http://127.0.0.1:9122/pda-push-test\"\n        }\n      }\n    }\n  }\n}\n",
+    "stderr": ""
+  }
+]

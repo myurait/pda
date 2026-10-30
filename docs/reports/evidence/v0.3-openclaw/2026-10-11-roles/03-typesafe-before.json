@@ -1,0 +1,188 @@
+{
+  "startedAt": "2026-10-11T07:44:33.752570+00:00",
+  "endedAt": "2026-10-11T07:44:38.709612+00:00",
+  "command": [
+    "/home/user/v03/openclaw/oc",
+    "plugins",
+    "inspect",
+    "typesafe",
+    "--runtime",
+    "--json"
+  ],
+  "exitCode": 0,
+  "stderr": "WARN: Workspace plugin discovery was skipped because multiple explicit agents are configured without agents.defaults.systemAgent.agentId. This partial result includes bundled, managed, and global plugins only; set agents.defaults.systemAgent.agentId to include that owner's workspace plugins.\n",
+  "result": {
+    "plugin": {
+      "id": "typesafe",
+      "name": "TypeSafe AI",
+      "description": "Typed decision provider for hosted Jev and local System One models.",
+      "packageVersion": "2026.10.1",
+      "version": "2026.10.1",
+      "builtWithOpenClawVersion": "2026.10.1",
+      "packageName": "@openclaw/typesafe",
+      "format": "openclaw",
+      "source": "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7__openclaw-generation__g-a6e256cd99db64ab/node_modules/@openclaw/typesafe/dist/index.js",
+      "rootDir": "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7__openclaw-generation__g-a6e256cd99db64ab/node_modules/@openclaw/typesafe",
+      "origin": "global",
+      "trustedOfficialInstall": true,
+      "trust": {
+        "reason": "trusted-official",
+        "registryPath": "/home/user/v03/openclaw/state/state/openclaw.sqlite",
+        "origin": "global",
+        "installSource": "npm",
+        "installSpec": "@openclaw/typesafe@2026.10.1"
+      },
+      "enabled": true,
+      "compat": [],
+      "explicitlyEnabled": true,
+      "activated": true,
+      "activationSource": "explicit",
+      "activationReason": "enabled in config",
+      "syntheticAuthRefs": [],
+      "status": "loaded",
+      "toolNames": [],
+      "hookNames": [],
+      "channelIds": [],
+      "cliBackendIds": [],
+      "providerIds": [],
+      "embeddingProviderIds": [],
+      "speechProviderIds": [],
+      "realtimeTranscriptionProviderIds": [],
+      "realtimeVoiceProviderIds": [],
+      "mediaUnderstandingProviderIds": [],
+      "transcriptSourceProviderIds": [],
+      "imageGenerationProviderIds": [],
+      "videoGenerationProviderIds": [],
+      "musicGenerationProviderIds": [],
+      "webFetchProviderIds": [],
+      "webSearchProviderIds": [],
+      "migrationProviderIds": [],
+      "contextEngineIds": [],
+      "agentHarnessIds": [],
+      "cliCommands": [],
+      "services": [
+        "decisions:typesafe"
+      ],
+      "gatewayDiscoveryServiceIds": [],
+      "commands": [],
+      "httpRoutes": 0,
+      "hookCount": 0,
+      "configSchema": true,
+      "configUiHints": {
+        "apiKey": "[REDACTED]",
+        "timeoutMs": {
+          "label": "Request timeout (ms)",
+          "advanced": true
+        },
+        "baseUrl": {
+          "label": "Local System One origin",
+          "help": "Optional loopback origin, such as http://127.0.0.1:8009, for a running Kev server. Omit for hosted Jev. Local requests do not use the TypeSafe credential; the server chooses the loaded checkpoint."
+        }
+      },
+      "configJsonSchema": {
+        "type": "object",
+        "properties": {
+          "apiKey": "[REDACTED]",
+          "timeoutMs": {
+            "type": "integer",
+            "minimum": 1000,
+            "maximum": 60000,
+            "default": 30000
+          },
+          "baseUrl": {
+            "type": "string",
+            "maxLength": 128,
+            "pattern": "^https?://(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::[0-9]{1,5})?/?$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "contracts": {
+        "decisionProviders": [
+          "typesafe"
+        ]
+      },
+      "imported": true,
+      "dependencyStatus": {
+        "hasDependencies": true,
+        "installed": true,
+        "requiredInstalled": true,
+        "optionalInstalled": true,
+        "missing": [],
+        "missingOptional": [],
+        "dependencies": [
+          {
+            "name": "typebox",
+            "spec": "1.3.34",
+            "installed": true,
+            "optional": false,
+            "resolvedPath": "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7__openclaw-generation__g-a6e256cd99db64ab/node_modules/@openclaw/typesafe/node_modules/typebox"
+          }
+        ],
+        "optionalDependencies": []
+      }
+    },
+    "shape": "plain-capability",
+    "capabilityMode": "plain",
+    "capabilityCount": 1,
+    "capabilities": [
+      {
+        "kind": "decision",
+        "ids": [
+          "typesafe"
+        ]
+      }
+    ],
+    "typedHooks": [],
+    "customHooks": [],
+    "tools": [],
+    "commands": [],
+    "cliCommands": [],
+    "services": [
+      "decisions:typesafe"
+    ],
+    "decisions": [
+      {
+        "providerId": "typesafe",
+        "pluginId": "typesafe",
+        "configured": true,
+        "credentialReady": false,
+        "callable": false,
+        "runtimeGeneration": "a0174b55-3831-4502-8fe1-519cb5346c9f",
+        "activeRequests": 0,
+        "successCount": 0,
+        "totalLatencyMs": 0,
+        "usage": {
+          "inputTokens": 0,
+          "outputTokens": 0
+        },
+        "reasons": {}
+      }
+    ],
+    "gatewayDiscoveryServices": [],
+    "gatewayMethods": [],
+    "mcpServers": [],
+    "lspServers": [],
+    "httpRouteCount": 0,
+    "bundleCapabilities": [],
+    "diagnostics": [],
+    "policy": {
+      "allowedModels": [],
+      "hasAllowedModelsConfig": false
+    },
+    "compatibility": [],
+    "install": {
+      "source": "npm",
+      "spec": "@openclaw/typesafe@2026.10.1",
+      "installPath": "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7__openclaw-generation__g-a6e256cd99db64ab/node_modules/@openclaw/typesafe",
+      "version": "2026.10.1",
+      "resolvedName": "@openclaw/typesafe",
+      "resolvedVersion": "2026.10.1",
+      "resolvedSpec": "@openclaw/typesafe@2026.10.1",
+      "integrity": "sha512-Vi7TJlLRiqlhHbL8lJYPPeLT8zPEcRVtMpg8LUMo3wDzcp+xEkdNZmzx0Rny1v2ntzH8ErKMJ/XYKyqmM0Ryjg==",
+      "shasum": "749b331059726b62654d5a3dfd2a909bf9bb5db3",
+      "resolvedAt": "2026-10-11T06:57:33.846Z",
+      "installedAt": "2026-10-11T06:57:43.084Z"
+    }
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "utc": "2026-10-11T05:20:31.171618+00:00",
+  "removals": [
+    {
+      "deviceAlias": "authority-persistent",
+      "action": "already absent; no removal command",
+      "possibleReason": "Gateway silent-pairing pruning; correlate C journal"
+    },
+    {
+      "deviceAlias": "authority-ephemeral",
+      "action": "oc devices remove",
+      "result": {
+        "utc": "2026-10-11T05:20:32.077756+00:00",
+        "command": [
+          "/home/user/v03/openclaw/oc",
+          "devices",
+          "remove",
+          "authority-ephemeral",
+          "--json"
+        ],
+        "exitCode": 0,
+        "stdout": "{\n  \"deviceId\": \"authority-ephemeral\"\n}\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "preexistingAliases": [
+    "preexisting-1",
+    "preexisting-2"
+  ],
+  "ownAliases": [
+    "authority-ephemeral",
+    "authority-persistent"
+  ],
+  "allOwnAbsent": true,
+  "allPreexistingPreserved": true,
+  "fileChecks": {
+    "/home/user/.config/systemd/user/v03-openclaw.service": "0392c495024853d081713fe5512c56fc369531d25325093163fda5aac67b05d7",
+    "/home/user/v03/openclaw/oc": "31d4e8c862da01a5a3030c2c7134963da1d8bc0b88d8611e537507f46cac3d24",
+    "/home/user/v03/openclaw/openclaw.json": "4d0cd839ccccdb468eb794bbc14de0cd59aaec1f5fd10dd263621cc41b118f40",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/LICENSE": "73571b25326281d369087f469842c02444fe39faaecebda4d82ed21ff3a1c29d",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/README.md": "bcb3e6300b02501de92672c1d76567710358962653d2a96dbccf1c866242781e",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/assets/activity.svg": "096753acb0686b2007217cd7b4296430a48076da5b0088994b2dbdad0d11751d",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/assets/icon.png": "ce6543cffad8100cd91ab74be438053c83403e1cf3539326bf33973cd9577b86",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/dist/.setup/client-CRLm45hB.mjs": "0189bc5f9fc17e6ce7cbd2693c2413988d650e1017f09b706a5c0921b726edc3",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/dist/.setup/errors-BdIwQubl.mjs": "5c920f94645226beec86dbaf8bcadd6049f3519f3fc33c40ea86a4b81cf693fa",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/dist/index.js": "7e09c9c4ed7959a21c06e9915ba077f70e8a7f9edd89336a29e671939684b2ad",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/openclaw.plugin.json": "5bff7be2427de22e89b4fc4780f2b5d878c84acb55776e5abe0c2e1cf78f44a1",
+    "/home/user/v03/openclaw/state/npm/projects/openclaw-typesafe-6e958b2ab7/node_modules/@openclaw/typesafe/package.json": "7ca49ab8f20ed04105475dc3d2195a8c598d9539d7a4fbb7b3674acabc0af1d0",
+    "/home/user/v03/work/openclaw/scratch/r3-auditor/AGENTS.md": "7a93840a0225bc33ed21269d3aa52e03c133644d0331801f62819f97783afe6a",
+    "/home/user/v03/work/openclaw/scratch/r3-leader/AGENTS.md": "8ff94c8d34bda660e377dcc44afe01e352a282bbb3065a454589af24320750cc",
+    "/home/user/v03/work/openclaw/scratch/r3-worker/AGENTS.md": "e6b001694277ee449198bbef6a9cdd39e766fd1cea42d9e31426a149bebaec47"
+  },
+  "unchangedFilesMatch": true,
+  "service": {
+    "utc": "2026-10-11T05:20:33.071022+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "show",
+      "v03-openclaw.service",
+      "-p",
+      "MainPID",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "-p",
+      "ActiveEnterTimestamp"
+    ],
+    "exitCode": 0,
+    "stdout": "MainPID=535731\nActiveState=active\nSubState=running\nActiveEnterTimestamp=Sun 2026-10-11 14:17:28 JST\n",
+    "stderr": ""
+  },
+  "allProductUnits": {
+    "utc": "2026-10-11T05:20:33.074325+00:00",
+    "command": [
+      "systemctl",
+      "--user",
+      "list-units",
+      "v03-*.service",
+      "--all",
+      "--no-pager"
+    ],
+    "exitCode": 0,
+    "stdout": "  UNIT                 LOAD   ACTIVE   SUB     DESCRIPTION\n  v03-cccc.service     loaded inactive dead    PDA v0.3 CCCC trial\n  v03-cezar.service    loaded inactive dead    PDA v0.3 cezar trial\n  v03-happier.service  loaded inactive dead    PDA v0.3 Happier relay, web and daemon trial\n  v03-luvus.service    loaded inactive dead    PDA v0.3 Luvus trial\n  v03-multica.service  loaded inactive dead    PDA v0.3 Multica trial\n  v03-openclaw.service loaded active   running PDA v0.3 OpenClaw trial\n\nLegend: LOAD   → Reflects whether the unit definition was properly loaded.\n        ACTIVE → The high-level unit activation state, i.e. generalization of SUB.\n        SUB    → The low-level unit activation state, values depend on unit type.\n\n6 loaded units listed.\nTo show all installed unit files use 'systemctl list-unit-files'.\n",
+    "stderr": ""
+  },
+  "http": [
+    {
+      "utc": "2026-10-11T05:20:33.231073+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    },
+    {
+      "utc": "2026-10-11T05:20:33.238693+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    }
+  ],
+  "localIdentityFiles": [
+    {
+      "path": "/home/user/v03/openclaw/authority-check/persistent-identity.json",
+      "mode": "0o600",
+      "location": "outside repository; retained collector identity, Gateway registration removed"
+    },
+    {
+      "path": "/home/user/v03/openclaw/authority-check/persistent-token.json",
+      "mode": "0o600",
+      "location": "outside repository; retained collector identity, Gateway registration removed"
+    }
+  ]
+}

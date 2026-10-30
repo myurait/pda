@@ -1,0 +1,63 @@
+{
+  "checks": [
+    {
+      "startedAt": "2026-10-11T07:15:53.356476+00:00",
+      "endedAt": "2026-10-11T07:15:53.516234+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "20",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    },
+    {
+      "startedAt": "2026-10-11T07:15:53.516255+00:00",
+      "endedAt": "2026-10-11T07:15:53.523266+00:00",
+      "command": [
+        "curl",
+        "-sS",
+        "--max-time",
+        "20",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "http://127.0.0.1:5114/readyz"
+      ],
+      "exitCode": 0,
+      "stdout": "200",
+      "stderr": ""
+    }
+  ],
+  "listeners": {
+    "startedAt": "2026-10-11T07:15:53.523282+00:00",
+    "endedAt": "2026-10-11T07:15:53.536028+00:00",
+    "command": [
+      "ss",
+      "-ltnp"
+    ],
+    "exitCode": 0,
+    "stdout": "LISTEN 0      511        127.0.0.1:5114       0.0.0.0:*    users:((\"openclaw-gatewa\",pid=552759,fd=114))\nLISTEN 0      511            [::1]:5114          [::]:*    users:((\"openclaw-gatewa\",pid=552759,fd=115))",
+    "stderr": ""
+  },
+  "serve": {
+    "startedAt": "2026-10-11T07:15:53.536055+00:00",
+    "endedAt": "2026-10-11T07:15:53.549130+00:00",
+    "command": [
+      "/home/user/.local/bin/tailscale-pda",
+      "serve",
+      "status"
+    ],
+    "exitCode": 0,
+    "stdout": "https://pda-web.tailaff53a.ts.net:18443 (tailnet only)\n|-- / proxy http://127.0.0.1:18501\n\nhttps://pda-web.tailaff53a.ts.net:18444 (tailnet only)\n|-- / proxy http://127.0.0.1:18502\n\nhttps://pda-web.tailaff53a.ts.net:18445 (tailnet only)\n|-- / proxy http://127.0.0.1:18504\n\nhttps://pda-web.tailaff53a.ts.net:19114 (tailnet only)\n|-- / proxy http://127.0.0.1:5114\n\nhttps://pda-web.tailaff53a.ts.net (tailnet only)\n|-- /                           proxy http://127.0.0.1:5081\n|-- /hermes                     proxy http://127.0.0.1:9121/hermes\n|-- /pda-push-test              proxy http://127.0.0.1:9122/pda-push-test\n|-- /beauty-passport-comparison proxy http://127.0.0.1:18503\n\n",
+    "stderr": ""
+  }
+}

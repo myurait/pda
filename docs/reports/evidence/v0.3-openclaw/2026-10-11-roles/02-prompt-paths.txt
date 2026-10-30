@@ -1,0 +1,118 @@
+docs/plugins/hooks/prompt-and-session.md
+29: Use the phase-specific hooks for new plugins:
+30:
+31: - `before_model_resolve`: receives only the current prompt and attachment
+32:   metadata. Return `providerOverride` or `modelOverride`.
+33: - `agent_turn_prepare`: receives the current prompt, prepared session
+34:   messages, and queued injections consumed for this session.
+35:   Return `prependContext` or `appendContext`.
+36: - `before_prompt_build`: receives the prepared prompt and session messages.
+37:   Harnesses may also supply `currentUserMessage`, the current request before
+38:   history/context projection, and `currentUserMessageId`, its native admission
+39:   identity. The ID stays stable across rebuilds and retries of one admitted
+40:   request and differs between admissions. Use the explicit request for intent
+41:   detection when available; `prompt` may contain reconstructed history. Do not
+42:   parse envelope markers to recover request boundaries. An explicit empty string
+43:   means no textual request, including image-only input or a continuation without
+44:   a retained request. It must not fall back to history. Codex runtime refresh
+45:   retains the original recorder's text and identity. Without a recorder, Codex
+46:   supplies current text but no admission ID; equal text and a correlation run ID
+47:   alone do not identify an admission. Omitted fields preserve existing harness
+48:   behavior.
+49:   Return `prependContext`, `appendContext`, `systemPrompt`,
+50:   `prependSystemContext`, `appendSystemContext`, or `toolsAllow`. `toolsAllow`
+51:   can only narrow the host-resolved tool surface for the current turn; `[]`
+52:   submits no optional tools, while omitting it leaves the existing surface unchanged.
+53:   Restrictions returned by multiple hooks are intersected. The embedded runner
+54:   and Copilot harness apply this field to their turn-scoped submitted tool
+55:   surfaces. The Codex app-server harness rejects restrictive values because its
+
+docs/plugins/hooks.md
+115: channel context. The example matches a distinctive marker instead of assuming
+116: the field is only the sender's raw text.
+117:
+118: ### Permissions and scope
+119:
+120: Hook registration does not bypass plugin loading rules. The plugin must be
+121: loaded and enabled; `plugins.enabled`, `plugins.allow`, and `plugins.deny` still
+122: apply. Run `openclaw plugins reload <id>` after changing plugin code. With the default hybrid
+123: reload mode, hook policy changes hot-reload the existing plugin runtime.
+124:
+125: - Non-bundled plugins need explicit
+126:   `plugins.entries.<id>.hooks.allowConversationAccess: true` for
+127:   `before_model_resolve`, `agent_turn_prepare`, `before_prompt_build`,
+128:   `before_agent_reply`, `llm_input`, `llm_output`, `before_agent_finalize`,
+129:   `agent_end`, and `before_agent_run`. Bundled plugins are allowed unless this
+130:   option is explicitly `false`.
+131: - `session_end` remains available as a metadata-only lifecycle hook without
+132:   that grant. Its bounded `ctx.endedTranscript` reader is available only when
+133:   the effective conversation-access policy allows it; see the
+134:   [session lifecycle contract](/plugins/hooks/reference#sessions-and-compaction).
+135: - `allowPromptInjection: false` blocks `agent_turn_prepare`,
+136:   `before_prompt_build`, `heartbeat_prompt_contribution`, and durable next-turn
+137:   injections. It defaults to allowed, but does not grant conversation access.
+138:   The first two hooks therefore need both permissions.
+139: - These are specific registration gates, not a sandbox or a universal filter
+140:   for every hook that can see message data. Install only plugins you trust.
+141:
+142: Incognito sessions do not dispatch `llm_input` or `llm_output` observations.
+143: Their `agent_end` hooks still receive run identity, success, and duration for
+144: cleanup and settlement, but receive empty `messages` and no `error` text.
+
+dist/agent-harness-runtime-pFfWmfFE.mjs
+290: 		activeToolNames: toolAuthority.activeToolNames(),
+291: 		assertHostActive: toolAuthority.assertActive
+292: 	}).catch((error) => {
+293: 		log$1.warn(`authorized before_prompt_build hook failed: ${String(error)}`);
+294: 	}) : void 0;
+295: 	const systemPrompt = typeof promptBuildResult?.systemPrompt === "string" ? promptBuildResult.systemPrompt : developerInstructions;
+296: 	const promptPrefix = joinPresentTextSegments([
+297: 		heartbeatResult?.prependContext,
+298: 		promptBuildResult?.prependContext,
+299: 		authorizedPromptBuildResult?.prependContext
+300: 	]);
+301: 	const promptSuffix = joinPresentTextSegments([
+302: 		heartbeatResult?.appendContext,
+303: 		promptBuildResult?.appendContext,
+304: 		authorizedPromptBuildResult?.appendContext
+305: 	]);
+306: 	const prompt = joinPresentTextSegments([
+307: 		promptPrefix,
+308: 		inputPrompt,
+309: 		promptSuffix
+310: 	]) ?? inputPrompt;
+311: 	const promptInputStart = inputPrompt.length === 0 ? promptPrefix?.length ?? 0 : promptPrefix ? promptPrefix.length + 2 : 0;
+312: 	return {
+313: 		prompt,
+314: 		...promptBuildResult?.toolsAllow !== void 0 ? { toolsAllow: promptBuildResult.toolsAllow } : {},
+315: 		developerInstructions: joinPresentTextSegments([
+316: 			wrapPluginSystemContextSection(promptBuildResult?.prependSystemContext),
+317: 			systemPrompt,
+318: 			wrapPluginSystemContextSection(promptBuildResult?.appendSystemContext)
+319: 		]) ?? systemPrompt,
+320: 		promptInputRange: {
+321: 			start: promptInputStart,
+322: 			end: promptInputStart + inputPrompt.length
+323: 		}
+
+dist/attempt-thread-helpers-BIKdt5IH.mjs
+6: const ATTEMPT_CACHE_TTL_CUSTOM_TYPE = "openclaw.cache-ttl";
+7: /**
+8: * Combines hook-provided system context with the base prompt while preserving
+9: * stable structured-section bytes. Returning undefined when hooks add nothing
+10: * lets callers avoid rewriting the original prompt.
+11: */
+12: function composeSystemPromptWithHookContext(params) {
+13: 	const prependSystem = typeof params.prependSystemContext === "string" ? normalizeStructuredPromptSection(params.prependSystemContext) : "";
+14: 	const appendSystem = typeof params.appendSystemContext === "string" ? normalizeStructuredPromptSection(params.appendSystemContext) : "";
+15: 	if (!prependSystem && !appendSystem) return;
+16: 	return joinPresentTextSegments([
+17: 		prependSystem,
+18: 		params.baseSystemPrompt,
+19: 		appendSystem
+20: 	], { trim: true });
+21: }
+22: /**
+23: * Returns the workspace path that must be mounted for sandboxed spawn attempts.
+24: * Read-only sandbox modes need the resolved workspace explicitly; full rw
+25: * access uses the normal workspace wiring.

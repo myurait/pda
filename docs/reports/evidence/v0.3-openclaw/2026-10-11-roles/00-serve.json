@@ -1,0 +1,66 @@
+{"startedAt": "2026-10-11T07:35:39.837960+00:00", "endedAt": "2026-10-11T07:35:39.845232+00:00", "args": ["/home/user/.local/bin/tailscale-pda", "serve", "status", "--json"], "exit": 0}
+{
+  "TCP": {
+    "18443": {
+      "HTTPS": true
+    },
+    "18444": {
+      "HTTPS": true
+    },
+    "18445": {
+      "HTTPS": true
+    },
+    "19114": {
+      "HTTPS": true
+    },
+    "443": {
+      "HTTPS": true
+    }
+  },
+  "Web": {
+    "pda-web.tailaff53a.ts.net:18443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:18501"
+        }
+      }
+    },
+    "pda-web.tailaff53a.ts.net:18444": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:18502"
+        }
+      }
+    },
+    "pda-web.tailaff53a.ts.net:18445": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:18504"
+        }
+      }
+    },
+    "pda-web.tailaff53a.ts.net:19114": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:5114"
+        }
+      }
+    },
+    "pda-web.tailaff53a.ts.net:443": {
+      "Handlers": {
+        "/": {
+          "Proxy": "http://127.0.0.1:5081"
+        },
+        "/beauty-passport-comparison": {
+          "Proxy": "http://127.0.0.1:18503"
+        },
+        "/hermes": {
+          "Proxy": "http://127.0.0.1:9121/hermes"
+        },
+        "/pda-push-test": {
+          "Proxy": "http://127.0.0.1:9122/pda-push-test"
+        }
+      }
+    }
+  }
+}

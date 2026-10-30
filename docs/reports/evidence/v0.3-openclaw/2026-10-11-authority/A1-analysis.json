@@ -1,0 +1,84 @@
+{
+  "label": "A1",
+  "key": "agent:r3-leader:authority-a1-1791694983505",
+  "startedAt": "2026-10-11T05:03:03.505Z",
+  "sentAt": "2026-10-11T05:03:04.301Z",
+  "endedAt": "2026-10-11T05:03:58.509Z",
+  "connections": [
+    {
+      "label": "A1-initial",
+      "deviceAlias": "authority-persistent",
+      "openedAt": "2026-10-11T05:03:03.508Z",
+      "connectedAt": "2026-10-11T05:03:03.556Z",
+      "connId": "cf1eee1f-2ec5-4623-9fb8-8fec4bbd10be",
+      "usedStoredToken": false,
+      "closedAt": "2026-10-11T05:03:58.509Z"
+    }
+  ],
+  "disconnectedAt": null,
+  "reconnectedAt": null,
+  "disconnectedMs": null,
+  "children": [
+    "agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3"
+  ],
+  "answers": [
+    {
+      "key": "agent:r3-leader:authority-a1-1791694983505",
+      "timestamp": "2026-10-11T05:03:18.554000+00:00",
+      "text": "子エージェント r3-worker を起動し、完了通知を待ちます。"
+    },
+    {
+      "key": "agent:r3-leader:authority-a1-1791694983505",
+      "timestamp": "2026-10-11T05:03:38.034000+00:00",
+      "text": "[ROLE:leader]\nr3-worker の回答: 「15」"
+    },
+    {
+      "key": "agent:r3-leader:authority-a1-1791694983505",
+      "timestamp": "2026-10-11T05:03:46.400000+00:00",
+      "text": "[ROLE:leader]\nr3-worker の回答: 「15」"
+    },
+    {
+      "key": "agent:r3-worker:subagent:a8fc2bb5-53f2-4fec-816c-3c29553529b3",
+      "timestamp": "2026-10-11T05:03:32.900000+00:00",
+      "text": "[ROLE:worker]\n15"
+    }
+  ],
+  "numericAnswerQuoted": true,
+  "entireChildMessageQuoted": false,
+  "firstNumericQuoteAt": "2026-10-11T05:03:38.034000+00:00",
+  "firstWholeQuoteAt": null,
+  "secondsToNumericQuote": 33.733,
+  "toolErrorsInHistory": [],
+  "toolErrorsInEvents": [],
+  "historyMessagesWithTargetErrors": [],
+  "targetErrorOccurrencesBySource": {
+    "A1.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": []
+    },
+    "A1-journal.txt": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 19,
+          "text": "2026-10-11T05:03:33.161126+00:00 agent-node openclaw[524204]: 2026-10-11T14:03:33.161+09:00 [sessions/state-events] failed to record session state event: Error: Subagent terminal signal owner changed before commit"
+        }
+      ]
+    },
+    "A1-gateway-log.jsonl": {
+      "Gateway client authority closed": [],
+      "Gateway caller authority is no longer active": [],
+      "Subagent terminal signal owner changed before commit": [
+        {
+          "line": 17,
+          "text": "{\"sourceLine\": 1111, \"entry\": {\"0\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"1\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"_meta\": {\"runtime\": \"node\", \"runtimeVersion\": \"24.18.0\", \"hostname\": \"agent-node\", \"date\": \"2026-10-11T05:03:33.160Z\", \"logLevelId\": 4, \"logLevelName\": \"WARN\", \"name\": \"{\\\"subsystem\\\":\\\"sessions/state-events\\\"}\", \"parentNames\": [\"openclaw\"]}, \"time\": \"2026-10-11T14:03:33.160+09:00\", \"hostname\": \"agent-node\", \"message\": \"failed to record session state event: Error: Subagent terminal signal owner changed before commit\", \"traceId\": \"0123e1be88668aad6ebc5aedadd3a14f\", \"spanId\": \"82a2d6cd02dc5607\", \"parentSpanId\": \"80fd7da1ed70e1cf\", \"traceFlags\": \"01\"}}"
+        }
+      ]
+    }
+  },
+  "failedRPCs": [],
+  "stopReason": "parent-and-child-idle",
+  "collectorFailures": []
+}
