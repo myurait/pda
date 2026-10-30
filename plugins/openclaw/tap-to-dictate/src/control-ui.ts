@@ -1,5 +1,6 @@
 import { defineControlUiPlugin } from "openclaw/plugin-sdk/control-ui";
 import { contract } from "./contract.js";
+import { HOLD_MINUTES_KEY, installMicKeeper, parseHoldMinutes } from "./mic-keeper.js";
 
 /**
  * The built-in composer starts dictation only from a press-and-hold gesture:
@@ -13,6 +14,11 @@ import { contract } from "./contract.js";
  * that happens before recording would start is swallowed, so the controller
  * carries on as if the button were still held. After the controller has started
  * recording, a later tap stops dictation through the built-in click handler.
+ *
+ * The microphone permission prompt is a separate problem: the host calls
+ * getUserMedia for every dictation and stops the tracks afterwards, so a Home
+ * Screen web app on iOS asks again each time. mic-keeper.ts keeps one stream
+ * open between dictations (see there for the side effects).
  */
 
 // Matches the microphone button only while the built-in hold gesture is wired.
@@ -38,6 +44,17 @@ function isMicButton(event: Event): boolean {
 export default defineControlUiPlugin({
   id: contract.pluginId,
   activate(host) {
+    const readHoldMinutes = () => {
+      try {
+        return parseHoldMinutes(localStorage.getItem(HOLD_MINUTES_KEY));
+      } catch {
+        return parseHoldMinutes(null);
+      }
+    };
+    const micKeeper = typeof navigator.mediaDevices?.getUserMedia === "function"
+      ? installMicKeeper(navigator.mediaDevices, readHoldMinutes)
+      : null;
+
     let press: Press | null = null;
     let settleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -95,6 +112,7 @@ export default defineControlUiPlugin({
     window.addEventListener("pointermove", swallowWhileArming, options);
 
     return () => {
+      micKeeper?.dispose();
       clearSettleTimer();
       press = null;
       window.removeEventListener("pointerdown", onPointerDown, options);
