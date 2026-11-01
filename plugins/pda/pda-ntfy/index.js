@@ -37,7 +37,12 @@ function blocks(message) {
 // 待機に入った回の返事は中間の返事なので通知しない。実行器によって道具の名前に接頭辞 (mcp__openclaw__ など) が付き、
 // 型の名前も toolCall / toolcall / tool_use と揺れるので、名前の末尾と大文字小文字を無視した型で見る。
 const TOOL_CALL_TYPE = /^(toolcall|tool_use|tooluse)$/i;
-const isYieldCall = (part) => TOOL_CALL_TYPE.test(part?.type ?? "") && typeof part.name === "string" && /(^|__)sessions_yield$/.test(part.name);
+const isYieldCall = (part) => TOOL_CALL_TYPE.test(part?.type ?? "") && isYieldToolName(part.name);
+
+// claude-cli (MCP 経由) の実行では agent_end の messages に道具の呼び出しが載らない (履歴 + 今回の入力 + 本文だけの assistant 1 件)。
+// そこで before_tool_call で sessions_yield の呼び出しを覚えておき、同じセッションの次の agent_end で使う。
+export const isYieldToolName = (name) => typeof name === "string" && /(^|__)sessions_yield$/.test(name);
+const YIELDED_MAX = 200;
 
 export function lastAssistantReply(messages) {
   const list = messages ?? [];
@@ -71,6 +76,8 @@ export function createPlugin({ fetchImpl } = {}) {
       // clickUrl を指定すると、どの通知もタップでその URL を開く (例: 公式 iOS アプリの openclaw://dashboard)。
       const clickUrl = typeof config.clickUrl === "string" && config.clickUrl.length > 0 ? config.clickUrl : undefined;
       const seenApprovals = new Set();
+      // sessions_yield を呼んだセッション。その回の agent_end で取り出して消す (同じセッションの回は並ばない)。
+      const yieldedSessions = new Set();
 
       // ログにはトピックも本文も出さない。出すのは出来事の種類、エージェント、セッション、結果だけ。
       async function notify(kind, ids, { title, message, click, priority }) {
@@ -91,6 +98,7 @@ export function createPlugin({ fetchImpl } = {}) {
         // オーナーとの会話 (main、dashboard) の返事が届いたとき。子のエージェントや cron の返事では通知しない。
         api.on("agent_end", async (event, ctx) => {
           const ids = { agentId: ctx.agentId, sessionKey: ctx.sessionKey, runId: event.runId ?? ctx.runId };
+          const yieldedByTool = yieldedSessions.delete(ctx.sessionKey);
           const parsed = parseSessionKey(ctx.sessionKey);
           if (sessionKeys) {
             if (!parsed || !sessionKeys.has(ctx.sessionKey)) return skip("reply", ids, "session-key");
@@ -103,7 +111,11 @@ export function createPlugin({ fetchImpl } = {}) {
           }
           const reply = lastAssistantReply(event.messages);
           if (!reply?.text || SILENT_REPLIES.has(reply.text)) return skip("reply", ids, "no-text");
-          if (reply.yielded) return skip("reply", ids, "yield");
+          if (reply.yielded || yieldedByTool) {
+            // 待機に入った回は中間の返事。通知しなかったことを確かめられるよう、本文なしで info に残す。
+            api.logger.info(`[pda-ntfy] ${JSON.stringify({ kind: "reply", agentId: ids.agentId, sessionKey: ids.sessionKey, runId: ids.runId, outcome: "skipped", reason: "yield", via: yieldedByTool ? "tool-hook" : "messages" })}`);
+            return;
+          }
           return notify("reply", ids, { title: `[${where}] 返事が届きました`, message: excerpt(reply.text, excerptChars), click });
         });
       }
@@ -140,10 +152,16 @@ export function createPlugin({ fetchImpl } = {}) {
         });
       }
 
-      if (events.has("question")) {
-        // ask_user でオーナーへの質問が出たとき。ツールの実行は止めないので、待たずに送る。
+      if (events.has("reply") || events.has("question")) {
+        // 戻り値は返さない (道具の呼び出しを変えない、止めない)。
         api.on("before_tool_call", (event, ctx) => {
-          if (event.toolName !== "ask_user") return;
+          if (events.has("reply") && isYieldToolName(event.toolName) && ctx.sessionKey) {
+            yieldedSessions.add(ctx.sessionKey);
+            if (yieldedSessions.size > YIELDED_MAX) yieldedSessions.delete(yieldedSessions.values().next().value);
+            return;
+          }
+          // ask_user でオーナーへの質問が出たとき。ツールの実行は止めないので、待たずに送る。
+          if (!events.has("question") || event.toolName !== "ask_user") return;
           const parsed = parseSessionKey(ctx.sessionKey);
           const ids = { agentId: ctx.agentId ?? parsed?.agentId, sessionKey: ctx.sessionKey, runId: event.runId ?? ctx.runId };
           if (!allowedKey(ctx.sessionKey)) return skip("question", ids, "session-key");

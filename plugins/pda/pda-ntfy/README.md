@@ -15,7 +15,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | `ask_user` の質問 | 設定でオンにしたとき (Agent question)。題「OpenClaw needs an answer」、本文「An agent has a question for you.」。タップで質問の画面 | 質問の先頭 100 字 |
 | 実行の失敗 | 該当する分類が無い | エラーの先頭 100 字 |
 
-通知しないもの: 子のエージェント (`subagent`)、cron などの返事、本文が空・`NO_REPLY`・`HEARTBEAT_OK` の返事、`sessions_yield` で待機に入った回の返事 (この回の途中で待機に入っていれば、最後の本文が後に続いても通知しない。道具の名前の接頭辞は問わない)。
+通知しないもの: 子のエージェント (`subagent`)、cron などの返事、本文が空・`NO_REPLY`・`HEARTBEAT_OK` の返事、`sessions_yield` で待機に入った回の返事 (この回の途中で待機に入っていれば、最後の本文が後に続いても通知しない。道具の名前の接頭辞は問わない。claude-cli の実行では `agent_end` の `messages` に道具の呼び出しが載らないので、`before_tool_call` で `sessions_yield` の呼び出しをセッションごとに覚え、次の `agent_end` で使う。見送ったときは `reason: "yield"` を info に残す)。
 
 ## 設定 (`plugins.entries.pda-ntfy.config`)
 
