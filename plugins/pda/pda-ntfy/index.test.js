@@ -162,3 +162,20 @@ test("clickUrl sends every notification to the fixed URL, ahead of clickLinks", 
     assert.equal(t.sent[0].body.click, "openclaw://dashboard");
   } finally { await t.cleanup(); }
 });
+
+test("a run that yielded earlier does not notify, whatever the tool name prefix or type spelling", async () => {
+  const t = await setup();
+  try {
+    const messages = [
+      { role: "user", content: "やって" },
+      assistant("", [{ type: "toolcall", name: "mcp__openclaw__sessions_spawn" }]),
+      assistant("", [{ type: "toolcall", name: "mcp__openclaw__sessions_yield" }]),
+      assistant("作業者に渡しました。待っています。"),
+    ];
+    await t.hooks.agent_end({ runId: "r1", success: true, messages }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    assert.equal(t.sent.length, 0);
+    const later = [...messages, { role: "user", content: "完了の知らせ" }, assistant("終わりました。")];
+    await t.hooks.agent_end({ runId: "r2", success: true, messages: later }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    assert.equal(t.sent.length, 1);
+  } finally { await t.cleanup(); }
+});

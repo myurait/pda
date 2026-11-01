@@ -33,13 +33,21 @@ function blocks(message) {
   return Array.isArray(content) ? content : [];
 }
 
-// 最後の assistant の message から、本文と「sessions_yield で待機に入ったか」を取る。
+// 最後の assistant の message から本文を取り、この回 (最後の user の message より後) に sessions_yield で待機に入ったかを見る。
+// 待機に入った回の返事は中間の返事なので通知しない。実行器によって道具の名前に接頭辞 (mcp__openclaw__ など) が付き、
+// 型の名前も toolCall / toolcall / tool_use と揺れるので、名前の末尾と大文字小文字を無視した型で見る。
+const TOOL_CALL_TYPE = /^(toolcall|tool_use|tooluse)$/i;
+const isYieldCall = (part) => TOOL_CALL_TYPE.test(part?.type ?? "") && typeof part.name === "string" && /(^|__)sessions_yield$/.test(part.name);
+
 export function lastAssistantReply(messages) {
-  const last = [...(messages ?? [])].reverse().find((message) => message?.role === "assistant");
+  const list = messages ?? [];
+  const last = [...list].reverse().find((message) => message?.role === "assistant");
   if (!last) return undefined;
   const parts = blocks(last);
   const text = parts.filter((part) => part?.type === "text" && typeof part.text === "string").map((part) => part.text).join("\n").trim();
-  const yielded = parts.some((part) => /^(toolCall|tool_use|toolUse)$/.test(part?.type) && part.name === "sessions_yield");
+  let start = 0;
+  list.forEach((message, index) => { if (message?.role === "user") start = index + 1; });
+  const yielded = list.slice(start).some((message) => message?.role === "assistant" && blocks(message).some(isYieldCall));
   return { text, yielded };
 }
 
