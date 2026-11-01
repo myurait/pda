@@ -1,0 +1,97 @@
+#!/usr/bin/python3
+"""OpenClaw の常駐が起動する `claude` の入口。
+
+`--mcp-config` で渡された設定のうち、openclaw サーバーの接続先 (http://127.0.0.1:<port>/mcp) を
+中継 (http://127.0.0.1:<中継のポート>/p/<port>/mcp) に向けた写しを作り、本物の Claude Code を起動する。
+中継が応答しないときや、形が想定と違うときは、何も書き換えずに起動する。
+"""
+import json
+import os
+import re
+import socket
+import sys
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+RELAY_PORT = int(os.environ.get("TOOL_DEFER_PORT", "37191"))
+LOG_FILE = os.environ.get("TOOL_DEFER_WRAPPER_LOG", "")
+URL_RE = re.compile(r"^http://127\.0\.0\.1:(\d{2,5})(/mcp.*)$")
+
+
+def find_real_claude():
+    for d in os.environ.get("PATH", "").split(os.pathsep):
+        if not d or os.path.abspath(d) == HERE:
+            continue
+        cand = os.path.join(d, "claude")
+        if os.path.isfile(cand) and os.access(cand, os.X_OK) and os.path.realpath(cand) != os.path.realpath(__file__):
+            return cand
+    return None
+
+
+def relay_alive():
+    try:
+        with socket.create_connection(("127.0.0.1", RELAY_PORT), timeout=0.3):
+            return True
+    except OSError:
+        return False
+
+
+def rewrite(cfg):
+    server = (cfg.get("mcpServers") or {}).get("openclaw")
+    if not isinstance(server, dict):
+        return False
+    m = URL_RE.match(str(server.get("url", "")))
+    if not m:
+        return False
+    server["url"] = f"http://127.0.0.1:{RELAY_PORT}/p/{m.group(1)}{m.group(2)}"
+    return True
+
+
+def note(msg):
+    if not LOG_FILE:
+        return
+    try:
+        with open(LOG_FILE, "a") as fh:
+            fh.write(f"{time.strftime('%Y-%m-%dT%H:%M:%S')} pid={os.getpid()} {msg}\n")
+    except OSError:
+        pass
+
+
+def main():
+    real = find_real_claude()
+    if real is None:
+        sys.stderr.write("tool-defer: claude was not found on PATH\n")
+        sys.exit(127)
+    args = sys.argv[1:]
+    status = "no-mcp-config"
+    if "--mcp-config" in args:
+        i = args.index("--mcp-config")
+        status = "unchanged"
+        try:
+            if i + 1 < len(args) and relay_alive():
+                val = args[i + 1]
+                if val.lstrip().startswith("{"):
+                    cfg = json.loads(val)
+                    if rewrite(cfg):
+                        args[i + 1] = json.dumps(cfg)
+                        status = "relayed-inline"
+                else:
+                    with open(val) as fh:
+                        cfg = json.load(fh)
+                    if rewrite(cfg):
+                        out = val + ".tool-defer.json"
+                        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                        with os.fdopen(fd, "w") as fh:
+                            json.dump(cfg, fh)
+                        args[i + 1] = out
+                        status = "relayed-file"
+            elif i + 1 < len(args):
+                status = "relay-down"
+        except (OSError, ValueError) as e:
+            status = f"error-{type(e).__name__}"
+    note(status)
+    os.execv(real, [real] + args)
+
+
+if __name__ == "__main__":
+    main()
