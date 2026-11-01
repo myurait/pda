@@ -23,7 +23,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | --- | --- | --- |
 | `ntfyEnvFile` | `/home/user/.config/claude-login-notify/ntfy.env` | `NTFY_TOPIC`、`NTFY_SERVER` を持つファイルのパス。送るたびに読む。トピックはここにしか書かない (コミット、ログ、設定に値を置かない) |
 | `clickLinks` | `false` | `true` で ntfy の Click に Control UI の URL を付ける (タップで Safari が開く) |
-| `clickUrl` | なし | 指定すると、どの通知も Click にこの URL を付ける。`clickLinks` より優先。公式 iOS アプリを使うなら `openclaw://dashboard` (タップでアプリの Dashboard が開く。セッションは指定できない) |
+| `clickUrl` | なし | 指定すると、どの通知も Click にこの URL を付ける。`clickLinks` より優先。公式 iOS アプリ (2026.10.70) を使うなら `openclaw://chat` (下の「公式 iOS アプリのリンク」を読む)。`openclaw://dashboard` は概要ページへ飛ぶので勧めない |
 | `controlUiUrl` | `gateway.publicOrigin` | `clickLinks` が `true` のときの URL の土台 |
 | `sessionKinds` | `["main","dashboard"]` | 返事を通知するセッションの種類 |
 | `events` | `["reply","question"]` | 有効にする出来事 (`reply`、`question`、`approval`) |
@@ -41,3 +41,17 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 ```sh
 cd plugins/pda/pda-ntfy && npm test
 ```
+
+## 公式 iOS アプリのリンク
+
+公式 iOS アプリ (App Store 2026.10.70 = ソース v2026.10.7。最新の main も同じ) の URL スキーム `openclaw://` は、特定のエージェントやセッションのチャットを開けない。ソース (`apps/shared/OpenClawKit/Sources/OpenClawKit/DeepLinks.swift`) の `DeepLinkParser.parse` が受けるホストは次の 3 つだけ。
+
+| URL | 動き |
+| --- | --- |
+| `openclaw://dashboard` | 概要 (Overview) を開く (`NodeAppModel.handleDeepLink` → `RootTabs.handleDashboardNavigationRequest` → `.overview`)。セッションの指定は無い |
+| `openclaw://agent?message=…&sessionKey=…` | エージェントへメッセージを送る。端末での確認ダイアログが出て (端末ごとの `key` を付ければ省ける)、送った後にチャットの画面へ移るが、開くのは既に選んでいるセッションで、`sessionKey` は送信先にしか効かない。通知のリンクには使えない |
+| `openclaw://gateway?…` / `openclaw://gateway/add?…` | Gateway の接続設定 (設定の画面へ) |
+
+ほかに、ユニバーサルリンク (associated-domains の権限なし)、Handoff (`NSUserActivity` なし)、通知の userInfo による遷移 (APNs の承認通知とウォッチの通知だけ) は無く、App Intents は `StartLiveVoiceIntent` (現在のチャットで音声会話を始める。Shortcuts 専用) だけ。起動引数 `--openclaw-initial-destination`、`--openclaw-chat-session` は URL からは渡せない。
+
+そこで、概要のような別の画面へ飛ばさないため、`clickUrl` には解釈されないホスト `openclaw://chat` を使う。`parse` が `nil` を返してアプリは何もせず、iOS がアプリを前面に出すだけなので、**最後に開いていた画面のまま** 戻れる (起動し直したときは Chat。選ばれるセッションはアプリの既定のもので、通知の元のセッションではない)。アプリが新しく `chat` のようなホストを持ったときは、この URL の意味が変わる。
