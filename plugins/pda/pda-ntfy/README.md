@@ -15,7 +15,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | `ask_user` の質問 | 設定でオンにしたとき (Agent question)。題「OpenClaw needs an answer」、本文「An agent has a question for you.」。タップで質問の画面 | 質問の先頭 100 字 |
 | 実行の失敗 | 該当する分類が無い | エラーの先頭 100 字 |
 
-通知しないもの: 子のエージェント (`subagent`)、cron などの返事、本文が空・`NO_REPLY`・`HEARTBEAT_OK` の返事、`sessions_yield` で待機に入った回の返事 (この回の途中で待機に入っていれば、最後の本文が後に続いても通知しない。道具の名前の接頭辞は問わない)。
+通知しないもの: 子のエージェント (`subagent`)、cron などの返事、本文が空・`NO_REPLY`・`HEARTBEAT_OK` の返事、`sessions_yield` で待機に入った回の返事 (この回の途中で待機に入っていれば、最後の本文が後に続いても通知しない。道具の名前の接頭辞は問わない。claude-cli の実行では `agent_end` の `messages` に道具の呼び出しが載らないので、`before_tool_call` で `sessions_yield` の呼び出しをセッションごとに覚え、次の `agent_end` で使う。見送ったときは `reason: "yield"` を info に残す)。
 
 ## 設定 (`plugins.entries.pda-ntfy.config`)
 
@@ -26,6 +26,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | `clickUrl` | なし | 指定すると、どの通知も Click にこの URL を付ける。`clickLinks` より優先。公式 iOS アプリ (2026.10.70) を使うなら `openclaw://chat` (下の「公式 iOS アプリのリンク」を読む)。`openclaw://dashboard` は概要ページへ飛ぶので勧めない |
 | `controlUiUrl` | `gateway.publicOrigin` | `clickLinks` が `true` のときの URL の土台 |
 | `sessionKinds` | `["main","dashboard"]` | 返事を通知するセッションの種類 |
+| `sessionKeys` | なし | 通知してよいセッションのキーの一覧 (例: `["agent:leader:main"]`)。指定すると、この一覧に完全に一致するセッションだけを、返事・質問・承認のどれでも通知する。返事では `sessionKinds` の代わりになる。指定が無ければ従来どおり (返事は `sessionKinds`、質問と承認はどのセッションでも) |
 | `events` | `["reply","question"]` | 有効にする出来事 (`reply`、`question`、`approval`) |
 | `excerptChars` | `100` | 本文に載せる文字数 |
 | `timeoutMs` | `5000` | 送信の待ち時間 |
