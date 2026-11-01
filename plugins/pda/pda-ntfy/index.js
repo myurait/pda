@@ -61,6 +61,9 @@ export function createPlugin({ fetchImpl } = {}) {
       const timeoutMs = config.timeoutMs ?? 5000;
       const excerptChars = config.excerptChars ?? 100;
       const sessionKinds = new Set(config.sessionKinds ?? ["main", "dashboard"]);
+      // 指定したときは、この一覧に完全に一致するセッションだけを、どの出来事でも通知する (reply では sessionKinds の代わりになる)。
+      const sessionKeys = Array.isArray(config.sessionKeys) ? new Set(config.sessionKeys) : undefined;
+      const allowedKey = (sessionKey) => !sessionKeys || sessionKeys.has(sessionKey);
       const events = new Set(config.events ?? DEFAULT_EVENTS);
       const base = config.controlUiUrl ?? api.config?.gateway?.publicOrigin;
       // ntfy の iOS アプリは Click の https を Safari で開く。ホーム画面の Web アプリは外から開けないので、既定では付けない。
@@ -89,7 +92,9 @@ export function createPlugin({ fetchImpl } = {}) {
         api.on("agent_end", async (event, ctx) => {
           const ids = { agentId: ctx.agentId, sessionKey: ctx.sessionKey, runId: event.runId ?? ctx.runId };
           const parsed = parseSessionKey(ctx.sessionKey);
-          if (!parsed || !sessionKinds.has(parsed.kind)) return skip("reply", ids, "session-kind");
+          if (sessionKeys) {
+            if (!parsed || !sessionKeys.has(ctx.sessionKey)) return skip("reply", ids, "session-key");
+          } else if (!parsed || !sessionKinds.has(parsed.kind)) return skip("reply", ids, "session-kind");
           const agentId = ctx.agentId ?? parsed.agentId;
           const click = sessionUrl(base, parsed);
           const where = parsed.kind === "main" ? agentId : `${agentId} / ${parsed.kind} ${parsed.rest.split(":")[1]?.slice(0, 8) ?? ""}`.trim();
@@ -115,6 +120,7 @@ export function createPlugin({ fetchImpl } = {}) {
             const data = event.data ?? {};
             const ids = { agentId: event.agentId, sessionKey: event.sessionKey, runId: event.runId };
             if (data.status !== "pending") return skip("approval", ids, `status-${data.status}`);
+            if (!allowedKey(event.sessionKey)) return skip("approval", ids, "session-key");
             const approvalId = typeof data.approvalId === "string" ? data.approvalId : undefined;
             if (approvalId) {
               if (seenApprovals.has(approvalId)) return skip("approval", ids, "duplicate");
@@ -140,6 +146,7 @@ export function createPlugin({ fetchImpl } = {}) {
           if (event.toolName !== "ask_user") return;
           const parsed = parseSessionKey(ctx.sessionKey);
           const ids = { agentId: ctx.agentId ?? parsed?.agentId, sessionKey: ctx.sessionKey, runId: event.runId ?? ctx.runId };
+          if (!allowedKey(ctx.sessionKey)) return skip("question", ids, "session-key");
           const question = typeof event.params?.question === "string" ? excerpt(event.params.question, excerptChars) : "";
           void notify("question", ids, {
             title: `[${ids.agentId ?? "?"}] 質問が来ています`,

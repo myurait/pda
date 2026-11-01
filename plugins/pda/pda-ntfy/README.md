@@ -26,6 +26,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | `clickUrl` | なし | 指定すると、どの通知も Click にこの URL を付ける。`clickLinks` より優先。公式 iOS アプリ (2026.10.70) を使うなら `openclaw://chat` (下の「公式 iOS アプリのリンク」を読む)。`openclaw://dashboard` は概要ページへ飛ぶので勧めない |
 | `controlUiUrl` | `gateway.publicOrigin` | `clickLinks` が `true` のときの URL の土台 |
 | `sessionKinds` | `["main","dashboard"]` | 返事を通知するセッションの種類 |
+| `sessionKeys` | なし | 通知してよいセッションのキーの一覧 (例: `["agent:leader:main"]`)。指定すると、この一覧に完全に一致するセッションだけを、返事・質問・承認のどれでも通知する。返事では `sessionKinds` の代わりになる。指定が無ければ従来どおり (返事は `sessionKinds`、質問と承認はどのセッションでも) |
 | `events` | `["reply","question"]` | 有効にする出来事 (`reply`、`question`、`approval`) |
 | `excerptChars` | `100` | 本文に載せる文字数 |
 | `timeoutMs` | `5000` | 送信の待ち時間 |

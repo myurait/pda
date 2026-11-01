@@ -163,6 +163,57 @@ test("clickUrl sends every notification to the fixed URL, ahead of clickLinks", 
   } finally { await t.cleanup(); }
 });
 
+test("sessionKeys limits reply, question and approval to the exact listed sessions", async () => {
+  const t = await setup({ sessionKeys: ["agent:leader:main"], events: ["reply", "question", "approval"], sessionKinds: ["main", "dashboard"] });
+  try {
+    const reply = (agentId, sessionKey) => t.hooks.agent_end({ runId: "r", success: true, messages: [assistant("やあ")] }, { agentId, sessionKey });
+    await reply("leader", "agent:leader:main");
+    assert.equal(t.sent.length, 1);
+    await reply("worker", "agent:worker:main");
+    await reply("auditor", "agent:auditor:main");
+    await reply("leader", "agent:leader:dashboard:32052b81-0e13");
+    await reply("worker", "agent:worker:subagent:abc");
+    assert.equal(t.sent.length, 1);
+
+    t.hooks.before_tool_call({ toolName: "ask_user", params: { question: "q" } }, { agentId: "worker", sessionKey: "agent:worker:main" });
+    t.hooks.before_tool_call({ toolName: "ask_user", params: { question: "q" } }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    for (let i = 0; i < 100 && t.sent.length < 2; i++) await new Promise((resolve) => setTimeout(resolve, 5));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    assert.equal(t.sent.length, 2);
+    assert.equal(t.sent[1].body.title, "[leader] 質問が来ています");
+
+    const approval = (id, sessionKey, agentId) => ({ runId: "r", sessionKey, agentId, data: { phase: "requested", status: "pending", approvalId: id } });
+    await t.subscription.handle(approval("ap-1", "agent:worker:subagent:abc", "worker"));
+    await t.subscription.handle(approval("ap-2", "agent:auditor:main", "auditor"));
+    assert.equal(t.sent.length, 2);
+    await t.subscription.handle(approval("ap-3", "agent:leader:main", "leader"));
+    assert.equal(t.sent.length, 3);
+    assert.equal(t.sent[2].body.title, "[leader] 承認待ちです");
+  } finally { await t.cleanup(); }
+});
+
+test("sessionKeys can list a dashboard session, which sessionKinds alone would not allow", async () => {
+  const t = await setup({ sessionKeys: ["agent:leader:dashboard:abc"], sessionKinds: ["main"] });
+  try {
+    await t.hooks.agent_end({ success: true, messages: [assistant("やあ")] }, { agentId: "leader", sessionKey: "agent:leader:dashboard:abc" });
+    await t.hooks.agent_end({ success: true, messages: [assistant("やあ")] }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    assert.equal(t.sent.length, 1);
+  } finally { await t.cleanup(); }
+});
+
+test("without sessionKeys, other agents' main sessions notify as before and questions come from any session", async () => {
+  const t = await setup();
+  try {
+    await t.hooks.agent_end({ success: true, messages: [assistant("やあ")] }, { agentId: "worker", sessionKey: "agent:worker:main" });
+    await t.hooks.agent_end({ success: true, messages: [assistant("やあ")] }, { agentId: "leader", sessionKey: "agent:leader:dashboard:abc" });
+    await t.hooks.agent_end({ success: true, messages: [assistant("やあ")] }, { agentId: "worker", sessionKey: "agent:worker:subagent:abc" });
+    assert.equal(t.sent.length, 2);
+    t.hooks.before_tool_call({ toolName: "ask_user", params: { question: "q" } }, { agentId: "worker", sessionKey: "agent:worker:subagent:abc" });
+    for (let i = 0; i < 100 && t.sent.length < 3; i++) await new Promise((resolve) => setTimeout(resolve, 5));
+    assert.equal(t.sent.length, 3);
+  } finally { await t.cleanup(); }
+});
+
 test("a run that yielded earlier does not notify, whatever the tool name prefix or type spelling", async () => {
   const t = await setup();
   try {
