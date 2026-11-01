@@ -23,6 +23,7 @@ ntfy の Click に https の URL を渡すと、iOS では既定のブラウザ 
 | --- | --- | --- |
 | `ntfyEnvFile` | `/home/user/.config/claude-login-notify/ntfy.env` | `NTFY_TOPIC`、`NTFY_SERVER` を持つファイルのパス。送るたびに読む。トピックはここにしか書かない (コミット、ログ、設定に値を置かない) |
 | `clickLinks` | `false` | `true` で ntfy の Click に Control UI の URL を付ける (タップで Safari が開く) |
+| `clickUrl` | なし | 指定すると、どの通知も Click にこの URL を付ける。`clickLinks` より優先。公式 iOS アプリを使うなら `openclaw://dashboard` (タップでアプリの Dashboard が開く。セッションは指定できない) |
 | `controlUiUrl` | `gateway.publicOrigin` | `clickLinks` が `true` のときの URL の土台 |
 | `sessionKinds` | `["main","dashboard"]` | 返事を通知するセッションの種類 |
 | `events` | `["reply","question"]` | 有効にする出来事 (`reply`、`question`、`approval`) |

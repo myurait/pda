@@ -153,3 +153,12 @@ test("events config limits which hooks register", async () => {
     assert.ok(t.subscription);
   } finally { await t.cleanup(); }
 });
+
+test("clickUrl sends every notification to the fixed URL, ahead of clickLinks", async () => {
+  const t = await setup({ clickUrl: "openclaw://dashboard", clickLinks: true });
+  try {
+    await t.hooks.agent_end({ runId: "r1", success: true, messages: [assistant("やあ")] }, { agentId: "leader", sessionKey: "agent:leader:main" });
+    assert.equal(t.sent.length, 1);
+    assert.equal(t.sent[0].body.click, "openclaw://dashboard");
+  } finally { await t.cleanup(); }
+});

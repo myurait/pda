@@ -57,13 +57,15 @@ export function createPlugin({ fetchImpl } = {}) {
       const base = config.controlUiUrl ?? api.config?.gateway?.publicOrigin;
       // ntfy の iOS アプリは Click の https を Safari で開く。ホーム画面の Web アプリは外から開けないので、既定では付けない。
       const clickLinks = config.clickLinks === true;
+      // clickUrl を指定すると、どの通知もタップでその URL を開く (例: 公式 iOS アプリの openclaw://dashboard)。
+      const clickUrl = typeof config.clickUrl === "string" && config.clickUrl.length > 0 ? config.clickUrl : undefined;
       const seenApprovals = new Set();
 
       // ログにはトピックも本文も出さない。出すのは出来事の種類、エージェント、セッション、結果だけ。
       async function notify(kind, ids, { title, message, click, priority }) {
         const record = { kind, agentId: ids.agentId, sessionKey: ids.sessionKey, runId: ids.runId };
         try {
-          await sendNtfy({ envFile, timeoutMs, title, message, click: clickLinks ? click : undefined, priority, fetchImpl });
+          await sendNtfy({ envFile, timeoutMs, title, message, click: clickUrl ?? (clickLinks ? click : undefined), priority, fetchImpl });
           api.logger.info(`[pda-ntfy] ${JSON.stringify({ ...record, outcome: "sent" })}`);
         } catch (error) {
           api.logger.warn(`[pda-ntfy] ${JSON.stringify({ ...record, outcome: "failed", code: error.code ?? error.name ?? "SEND_FAILED" })}`);
