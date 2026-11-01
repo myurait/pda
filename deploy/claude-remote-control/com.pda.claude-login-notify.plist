@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.pda.claude-login-notify</string>
+    <key>Comment</key>
+    <string>開発 PC の Claude のログインの期限が近づいたらスマホへ通知する</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/python3</string>
+      <string>/Users/fox4foofighter/.local/bin/claude-login-expiry-notify</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>CLAUDE_LOGIN_NOTIFY_ENV</key>
+      <string>/Users/fox4foofighter/.claude/notify-ntfy.env</string>
+      <key>CLAUDE_LOGIN_NOTIFY_LABEL</key>
+      <string>dev-pc</string>
+      <key>CLAUDE_LOGIN_NOTIFY_SUBJECT</key>
+      <string>ミニ PC から開発 PC の Claude を呼ぶ経路</string>
+      <key>CLAUDE_LOGIN_NOTIFY_RELOGIN</key>
+      <string>開発 PC の端末で claude auth login</string>
+    </dict>
+    <key>StartCalendarInterval</key>
+    <dict>
+      <key>Hour</key>
+      <integer>10</integer>
+      <key>Minute</key>
+      <integer>30</integer>
+    </dict>
+    <key>StandardInPath</key>
+    <string>/dev/null</string>
+    <key>StandardOutPath</key>
+    <string>/Users/fox4foofighter/Library/Logs/claude-login-notify.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/fox4foofighter/Library/Logs/claude-login-notify.log</string>
+  </dict>
+</plist>

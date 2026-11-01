@@ -1,6 +1,6 @@
 # Claude Code の Remote Control の常駐
 
-ミニ PC で `claude remote-control` を常駐させ、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選んでセッションを始められるようにする。あわせて、常駐が止まる原因になる claude.ai のログインの期限が近づいたら、スマホへ ntfy で通知する。
+ミニ PC で `claude remote-control` を常駐させ、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選んでセッションを始められるようにする。あわせて、常駐が止まる原因になる claude.ai のログインの期限が近づいたら、スマホへ ntfy で通知する。開発 PC の CLI のログインにも同じ通知を入れる (末尾の節)。
 
 | ファイル | 置き場所 (ミニ PC) | 役目 |
 | --- | --- | --- |
@@ -56,3 +56,25 @@ python3 -m unittest deploy/claude-remote-control/test_claude_login_expiry_notify
 ```
 
 使い捨てのトピックへ実際に送って確かめるときは、`CLAUDE_LOGIN_NOTIFY_ENV` に別の env ファイルを、`CLAUDE_LOGIN_NOTIFY_DAYS` に大きい日数を指定して実行し、`https://ntfy.sh/<トピック>/json?poll=1` で読み戻す。
+
+## 開発 PC のログインの期限の通知
+
+ミニ PC の OpenClaw は、node `dev-pc` を通して開発 PC の `claude -p` を呼ぶ。開発 PC の CLI のログイン (会社のアカウント) の期限が切れると、この呼び出しは失敗する。同じスクリプトを開発 PC でも毎日 10:30 に動かし、期限が近づいたら同じトピックへ通知する。
+
+| ファイル | 置き場所 (開発 PC) | 役目 |
+| --- | --- | --- |
+| `claude-login-expiry-notify` | `~/.local/bin/` | ミニ PC と同じもの。macOS で `CLAUDE_CONFIG_DIR` を指定しないときは、キーチェーンの項目 `Claude Code-credentials` から期限を読む |
+| `com.pda.claude-login-notify.plist` | `~/Library/LaunchAgents/` | 上のスクリプトを毎日 10:30 に動かす。スリープしていた日は、起きたときに動かす。タイトルの先頭は `[dev-pc]` |
+
+- 通知先は、開発 PC の Claude Code の通知と同じ `~/.claude/notify-ntfy.env` を読む。
+- 再ログインは、開発 PC の端末で `claude auth login` を実行する。node から呼ばれる `claude` も同じキーチェーンの項目を使う。
+- 動いた結果は `~/Library/Logs/claude-login-notify.log` に残る。
+
+開発 PC に入れるときは、リポジトリのフォルダで次を実行する。
+
+```sh
+install -m 755 deploy/claude-remote-control/claude-login-expiry-notify ~/.local/bin/
+install -m 644 deploy/claude-remote-control/com.pda.claude-login-notify.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.pda.claude-login-notify.plist
+launchctl kickstart gui/501/com.pda.claude-login-notify   # 一度動かしてログに結果を出す
+```

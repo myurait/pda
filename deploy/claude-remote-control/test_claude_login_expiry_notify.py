@@ -11,6 +11,7 @@ import os
 import pathlib
 import tempfile
 import unittest
+import unittest.mock
 
 SCRIPT = pathlib.Path(__file__).with_name("claude-login-expiry-notify")
 _loader = importlib.machinery.SourceFileLoader("claude_login_expiry_notify", str(SCRIPT))
@@ -26,6 +27,7 @@ class BuildNoticeTest(unittest.TestCase):
         self._dir = tempfile.TemporaryDirectory()
         self._saved = os.environ.get("CLAUDE_CONFIG_DIR")
         os.environ["CLAUDE_CONFIG_DIR"] = self._dir.name
+        # CLAUDE_CONFIG_DIR を指定したときはファイルを読む (キーチェーンは見ない)
 
     def tearDown(self):
         if self._saved is None:
@@ -67,6 +69,32 @@ class BuildNoticeTest(unittest.TestCase):
     def test_missing_credentials_still_notifies(self):
         title, _ = notify.build_notice(NOW)
         self.assertIn("確認できません", title)
+
+    def test_title_carries_machine_label(self):
+        self.write_credentials(NOW + datetime.timedelta(days=1, hours=1))
+        title, _ = notify.build_notice(NOW)
+        self.assertTrue(title.startswith(f"[{notify.LABEL}] "))
+
+
+class KeychainTest(unittest.TestCase):
+    """macOS ではキーチェーンの項目から期限を読む。"""
+
+    def run_security(self, returncode, stdout=""):
+        result = unittest.mock.Mock(returncode=returncode, stdout=stdout)
+        with unittest.mock.patch.object(notify.subprocess, "run", return_value=result):
+            return notify.read_keychain_expiry()
+
+    def test_reads_expiry_from_keychain_item(self):
+        expiry = NOW + datetime.timedelta(days=10)
+        item = {"claudeAiOauth": {"refreshToken": "rt", "refreshTokenExpiresAt": int(expiry.timestamp() * 1000)}}
+        self.assertEqual(self.run_security(0, json.dumps(item) + "\n"), expiry)
+
+    def test_missing_keychain_item_means_logged_out(self):
+        self.assertIsNone(self.run_security(44))
+
+    def test_other_security_failure_raises(self):
+        with self.assertRaises(OSError):
+            self.run_security(51)
 
 
 if __name__ == "__main__":
