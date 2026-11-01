@@ -19,7 +19,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LISTEN_PORT = int(os.environ.get("TOOL_DEFER_PORT", "37191"))
 KEEP_FILE = os.environ.get("TOOL_DEFER_KEEP", os.path.join(HERE, "keep-tools.txt"))
 LOG_FILE = os.environ.get("TOOL_DEFER_LOG", "")
-PATH_RE = re.compile(r"^/p/(\d{2,5})(/.*)$")
+PATH_RE = re.compile(r"^/p/(\d{2,5})(/mcp)$")
+# ブラウザからの要求 (DNS rebinding を含む) を通さないよう、Host は中継自身だけを受け、Origin の付いた要求は断る
+ALLOWED_HOSTS = {f"127.0.0.1:{LISTEN_PORT}", f"localhost:{LISTEN_PORT}"}
 # 要求と応答のうち、中継が付け直すもの
 HOP_HEADERS = {"connection", "keep-alive", "transfer-encoding", "te", "trailer", "upgrade", "proxy-connection", "host", "content-length"}
 
@@ -108,6 +110,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
     def _forward(self):
+        if self.headers.get("Host") not in ALLOWED_HOSTS or self.headers.get("Origin") is not None:
+            self.send_error(403)
+            return
         m = PATH_RE.match(self.path)
         if not m:
             self.send_error(404)

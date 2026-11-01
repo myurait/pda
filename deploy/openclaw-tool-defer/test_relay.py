@@ -61,11 +61,15 @@ class T(unittest.TestCase):
             fh.write("# comment\nexec\n")
         os.environ["TOOL_DEFER_KEEP"] = keep
         os.environ["TOOL_DEFER_LOG"] = os.path.join(cls.tmp, "relay.log")
+        import socket
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            os.environ["TOOL_DEFER_PORT"] = str(s.getsockname()[1])
         import importlib.util
         spec = importlib.util.spec_from_file_location("relay", os.path.join(HERE, "relay.py"))
         cls.relay = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.relay)
-        cls.srv = cls.relay.Server(("127.0.0.1", 0), cls.relay.Handler)
+        cls.srv = cls.relay.Server(("127.0.0.1", cls.relay.LISTEN_PORT), cls.relay.Handler)
         threading.Thread(target=cls.srv.serve_forever, daemon=True).start()
         time.sleep(0.1)
 
@@ -101,10 +105,23 @@ class T(unittest.TestCase):
         self.assertIn(b'"text": "ok"', body)
         self.assertEqual(FakeUpstream.seen_headers[-1]["Authorization"], "Bearer t")
 
-    def test_only_loopback_ports_paths(self):
+    def status(self, path, headers=None):
         c = http.client.HTTPConnection("127.0.0.1", self.srv.server_address[1])
-        c.request("POST", "/elsewhere/mcp", body="{}")
-        self.assertEqual(c.getresponse().status, 404)
+        c.request("POST", path, body="{}", headers=headers or {})
+        r = c.getresponse()
+        r.read()
+        return r.status
+
+    def test_only_mcp_path(self):
+        up = self.up.server_address[1]
+        self.assertEqual(self.status("/elsewhere/mcp"), 404)
+        self.assertEqual(self.status(f"/p/{up}/admin"), 404)
+        self.assertEqual(self.status(f"/p/{up}/mcp/../admin"), 404)
+
+    def test_rejects_browser_requests(self):
+        up = self.up.server_address[1]
+        self.assertEqual(self.status(f"/p/{up}/mcp", {"Host": f"attacker.example:{self.srv.server_address[1]}"}), 403)
+        self.assertEqual(self.status(f"/p/{up}/mcp", {"Origin": "http://attacker.example"}), 403)
 
     def test_wrapper_rewrite(self):
         import importlib.machinery, importlib.util
