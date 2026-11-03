@@ -38,8 +38,8 @@
 
 ### V1 入口への到達
 
-- Remote Control ([remote-control](https://code.claude.com/docs/en/remote-control)): 会話と、サブエージェントと dynamic workflow の進み具合が、つないだすべての端末でそろい、端末・ブラウザ・スマホから交互に送れる。権限の確認と質問は、答えるまで端末に出たまま待つ。server mode (`claude remote-control`) は 1 つのプロセスで既定 32 までのセッションを持ち、アプリや claude.ai/code から始めたセッションも受ける。Pro・Max・Ultra・Team・Enterprise で使え、Team と Enterprise は Owner が有効にする。ネットワークが約 10 分切れるとプロセスが終わり、止まったセッションは約 4 時間以内なら戻せる。
-- Projects ([claude-projects](https://code.claude.com/docs/en/claude-projects)): 「1 つの続く会話で、Claude が関連する作業の流れを取りまとめる。頼んだ作業ごとにスレッドを始める」。claude.ai/code、Desktop の Code タブ、モバイルアプリで使え、CLI では使えない。Pro・Max・Ultra の公開ベータで順に提供中、Team と Enterprise には無い。スレッドは既定でクラウドのセッションで、頼めば Remote Control を通して自分の機械のフォルダで動かせる (Work locally。その機械に 2.1.280 以上が要り、起きている間だけ動く)。クラウドのスレッドは、機械にだけ入れた skill・MCP・plugin を持たない。
+- Remote Control ([remote-control](https://code.claude.com/docs/en/remote-control)): 会話と、サブエージェントと dynamic workflow の進み具合が、つないだすべての端末でそろい、端末・ブラウザ・スマホから交互に送れる。権限の確認と質問は、答えるまで端末に出たまま待つ。server mode (`claude remote-control`) は 1 つのプロセスで既定 32 までのセッションを持ち、アプリや claude.ai/code から始めたセッションも受ける。Pro・Max・Ultra・Team・Enterprise で使え、Team と Enterprise は Owner が有効にする。ネットワークが約 10 分切れるとプロセスが終わり、止まったセッションは約 4 時間以内なら戻せる。server mode は起動時に、そのフォルダで 1 つのセッションを作っておく (`--create-session-in-dir`、既定で有効)。`--continue` を付けて起動すると、新しく作らず、前の server が最初に作ったセッションを戻す。`--settings` などの起動オプションは server が作るセッションに引き継がれず、付けて起動すると断られる (`--verbose`、`--model` など、引き継がなくても動きが変わらないものだけ通る)。server が作るセッションの設定は、設定ファイルと定義のファイルから読まれる。
+- Projects ([claude-projects](https://code.claude.com/docs/en/claude-projects)): 「1 つの続く会話で、Claude が関連する作業の流れを取りまとめる。頼んだ作業ごとにスレッドを始める」。claude.ai/code、Desktop の Code タブ、モバイルアプリで使え、CLI では使えない。Pro・Max・Ultra の公開ベータで順に提供中、Team と Enterprise には無い。スレッドは既定でクラウドのセッションで、頼めば Remote Control を通して自分の機械のフォルダで動かせる (Work locally。その機械に 2.1.280 以上が要り、起きている間だけ動く)。クラウドのスレッドは、機械にだけ入れた skill・MCP・plugin を持たない。機械で動かすスレッドは、その機械に入れたものを使う。
 - Dispatch ([desktop](https://code.claude.com/docs/en/desktop)): スマホから頼んだ仕事を Desktop のセッションにする機能。限定ベータで新しい利用者は使えず、Team と Enterprise には無い。
 - 開発 PC の Desktop は会社のアカウントで動いている (3 節)。ミニ PC の Remote Control は個人のアカウントで動いている。
 
