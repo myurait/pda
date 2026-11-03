@@ -10,4 +10,5 @@
 - 実装の報告と評価: [docs/reports/](docs/reports/)。実装側の報告、証拠、設計側の評価を増分ごとに置く
 - 調査記録: [docs/research/README.md](docs/research/README.md)。既存の抽象と実装が要件をどこまで満たすかの調査。未実施分の引き継ぎは [docs/research/core-2026-09-20/HANDOVER.md](docs/research/core-2026-09-20/HANDOVER.md)
 - ミニ PC の環境: [docs/environment/mini-pc.md](docs/environment/mini-pc.md)。接続方法、動いているもの、入っているツールと認証
+- Claude 一本化の検討: [docs/claude-unification/README.md](docs/claude-unification/README.md)。OpenClaw と Codex をやめて Claude Code に一本化できるかの、求めるものと決定
 - 旧 PDA（v0.1 系）は tag `v0.1-archive` に保存し、全破棄した。ミニ PC にだけあったブランチは tag `v0.1-minipc/<ブランチ名>` にある。継承の前提にしない。
