@@ -5,7 +5,7 @@
 ## ファイルと配り先
 
 - `common.md`: 全エージェントに共通の指示。プラグイン `pda-common` が、各エージェントのプロンプトを組む段 (`before_prompt_build`) でこのファイルを読み、文脈に足す。配り先は無く、`plugins.entries.pda-common.config.commonFile` が `/home/user/pda/deploy/openclaw/common.md` (反映用の取り出しの中のこのファイル) を直接指す。
-- `agents/leader.md`: 統率役 (`leader`) の作業フォルダーの `AGENTS.md`。仕事の分け方、結果の受け取り、報告の前の確かめ。
+- `agents/leader.md`: 統率役 (`leader`) の作業フォルダーの `AGENTS.md`。応答と計画、仕事の分け方、結果の受け取り、報告の前の確かめ。
 - `agents/worker.md`: 作業者 (`worker`) の作業フォルダーの `AGENTS.md`。作業中の振る舞いの規約を含む。
 - `agents/auditor.md`: 監査役 (`auditor`) の作業フォルダーの `AGENTS.md`。伝え方の規約を含む。
 
