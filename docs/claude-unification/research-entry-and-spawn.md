@@ -33,8 +33,8 @@
 ### V0 規約
 
 - [法令と規約](https://code.claude.com/docs/en/legal-and-compliance): 定額のログイン (OAuth) は「Claude Code と Anthropic のネイティブのアプリの通常の利用」のためのもの ("designed to support ordinary use of Claude Code and other native Anthropic applications")。Pro・Max・Ultra の上限は「Claude Code と Agent SDK の通常の、個人の利用」を前提にする ("assume ordinary, individual usage of Claude Code and the Agent SDK")。禁じているのは、第三者の開発者が自分のアプリで claude.ai のログインを提供すること、利用者に代わって定額の資格情報で要求を通すこと。手を加えていない Claude Code に、利用者が自分の契約でログインすることは妨げない。
-- Agent SDK をオーナーが自分のためだけに定額のログインで動かす形を、名指しで認める文も禁じる文も、上のページには無い。サポートの記事 ([Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)) には、2026-10-07 の更新として「Claude のプランでログインしているとき、Agent SDK と `claude -p` は定額の上限から引かれる」とある (調査の担当が抜き出した文で、原文の一字一句は確かめていない)。
-- 手を加えていない `claude` を `-p` や Remote Control で動かす形は、上のどの文にも当たらず認められている。
+- Agent SDK をオーナーが自分のためだけに定額のログインで動かす形を、名指しで認める文も禁じる文も、上のページには無い。サポートの記事 ([Use the Claude Agent SDK with your Claude plan](https://support.claude.com/en/articles/15036540-use-the-claude-agent-sdk-with-your-claude-plan)) は、Agent SDK と `claude -p` の利用を定額の上限の扱いとして書いている ("when you’re signed in with your Claude plan, the Claude Agent SDK and claude -p still draw from your subscription limits")。
+- 手を加えていない `claude` を自分の契約で `-p` や Remote Control で動かす形について、上のページが明記しているのは「通常の利用」のためのログインであること、手を加えていない Claude Code に自分の契約でログインすることを妨げないことまでである。`-p` で動かす使い方がこれに含まれるというのは、この 2 つの文と上のサポートの記事からの推論である。
 
 ### V1 入口への到達
 
@@ -45,7 +45,7 @@
 
 ### V2 spawn と文脈の注入
 
-- サブエージェント ([sub-agents](https://code.claude.com/docs/en/sub-agents)): 定義のファイルに、`hooks` (そのサブエージェントが動いている間だけ働く)、`memory` (役ごとの記憶のディレクトリ。`~/.claude/agent-memory/<名前>/` など)、`skills` (起動時に中身ごと読み込む)、`mcpServers`、`model`、`tools` を書ける。plugin に入れたサブエージェントでは `hooks`、`mcpServers`、`permissionMode` が無視される。設定ファイルの hook もサブエージェントの中で働き、入力にエージェントの種類が付く。サブエージェントはさらに 3 段までサブエージェントを起こせ、結果は起こした会話に返る。
+- サブエージェント ([sub-agents](https://code.claude.com/docs/en/sub-agents)): 定義のファイルに、`hooks` (そのサブエージェントが動いている間だけ働く)、`memory` (役ごとの記憶のディレクトリ。`~/.claude/agent-memory/<名前>/` など)、`skills` (起動時に中身ごと読み込む)、`mcpServers`、`model`、`tools` を書ける。plugin に入れたサブエージェントでは `hooks`、`mcpServers`、`permissionMode` が無視される。プロジェクトの `.claude/agents/` に置いたサブエージェントの `hooks` は、そのフォルダを信頼するまで働かず、`-p` のセッションは信頼した扱いにならない。ユーザーの `~/.claude/agents/` に置いたものと、`--agents` で渡したものの `hooks` は、この手順なしで働く。設定ファイルの hook もサブエージェントの中で働き、入力にエージェントの種類が付く。サブエージェントはさらに 3 段までサブエージェントを起こせ、結果は起こした会話に返る。
 - `claude -p`: 入口のセッションから Bash で起動できる (3 節)。役ごとに `--append-system-prompt`、`--settings`、`--plugin-dir`、`--mcp-config`、`--agents` で文脈を分けられ、記憶の置き場は `--settings` の `autoMemoryDirectory` で分けられる ([memory](https://code.claude.com/docs/en/memory))。起動した `-p` のセッションは、`crossSessionInbound` を `accept` にしておけば、入口から `SendMessage` で追加の指示を受けられる ([cross-session-messaging](https://code.claude.com/docs/en/cross-session-messaging))。`--bare` で起動すると受けられない。
 - バックグラウンドのセッション (`claude --bg`、`claude agents`。[agent-view](https://code.claude.com/docs/en/agent-view)): 起動は人の操作 (agent view の入力、`--bg`、`/bg`、`/fork`) で、結果は人にだけ報告され、起こしたセッションには返らない。
 - モデルが道具として別のセッションを丸ごと起動する仕組みは、公式資料に見当たらない ([tools-reference](https://code.claude.com/docs/en/tools-reference) の道具の一覧に無い)。
