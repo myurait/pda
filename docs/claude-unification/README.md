@@ -12,13 +12,12 @@ Claude Code Desktop をフロントドアにし、PDA で実現したかった�
 
 PDA の既存の書き方で、オーナーが求めているもの、それに対する決定の順に整理する。[AI-DLC Workflows](https://github.com/awslabs/aidlc-workflows) は同じ順序の先行例で、道具は入れない。
 
-- オーナーが求めているもの: このディレクトリの `requirements.md` に置く。
+- オーナーが求めているもの: [requirements.md](requirements.md) に置く。調査と設計は、この要件を物差しにする。
 - 決定: 本文書の「オーナーの判断の記録」に日付ごとに書く。
 
 ## 決まっていないこと
 
-- 入口になる常駐のセッションと、そこからのセッションの spawn を、どの部品で作るか (ベンダーの機能、先行事例、自作)。スマホと PC から届くこと、spawn した先の見渡しを含む ([docs/plan-v0.3.md](../plan-v0.3.md) の 2.1 節、R4、R5)。
-- 入口のセッションと、spawn したセッションで、規約をどこに効かせるか。
+要件の未確定事項は [requirements.md](requirements.md) の 5 節にある。要件が固まってから、入口のセッションと spawn をどの部品で作るかを決める。
 
 ## オーナーの判断の記録
 
@@ -29,3 +28,6 @@ PDA の既存の書き方で、オーナーが求めているもの、それに�
 - 入口は 1 つにする。OpenAI の [Dots](https://techcrunch.com/2026/09/29/openai-launches-dots-its-bubbly-agentic-avatar/) のように、リモートに常駐するフロントドアのエージェントに複数の端末から話しかけ、そのエージェントが別のセッションを立ち上げて作業を移す形をとる。
 - Claude Code での一本化もこの形にする。ミニ PC 上で長く動き続ける 1 つのセッションを、リモートのセッションか Claude Desktop から使い、そのセッションがセッションを spawn する道具で、作業と役を割り当てた別のセッションを起こす。spawn を `claude -p` のセッションの起動で行い、作業をうまく移せれば、役ごとの文脈を個別に注入できる。
 - 発想は「Claude Code をどう有効に使うか」ではなく、「Claude の上に Dots のようなパーソナルエージェントを作り、1 つの入口として使い、そこにセッションを spawn する機能を持たせる」である。先行事例を含めて幅広く調べる。
+- 先行事例は、公式の機能や OSS の製品ではなく、Claude でパーソナルエージェントやセカンドブレインを作った実践者の記事と実装を指す ([research-prior-art.md](research-prior-art.md))。
+- 入口の画面は Claude Desktop と Claude アプリのリモートのセッションとする。
+- 調査と設計の前に要件を固める。要件の正本は [requirements.md](requirements.md) とする。
