@@ -17,7 +17,7 @@
 - 情報源: Hacker News の投稿とコメント、英語の個人ブログ・Substack・Dev.to、Zenn・Qiita・note。各事例は人が書いた記事か投稿から入り、リポジトリはそこからのリンクで辿った。GitHub の topic と awesome 系の一覧は使っていない。
 - 除いたもの: [入口と spawn の調査](research-entry-and-spawn.md) の V5 にある製品 (OpenClaw、Hermes Agent、Paperclip、NanoClaw ほか) の紹介そのもの。それらを使って自分の構成を書いた記事は入れた。
 - 引用: 原文のページを取得して照合した文だけを載せた。
-- 性質の判定: 出典に書かれているときだけ満たすとした。様子は見えるが止め方の記載が無い、のように一部だけ書かれているものは満たさないとし、その旨を添えた。
+- 性質の判定: 出典に書かれているときだけ満たすとした。様子は見えるが止め方の記載が無い、のように一部だけ書かれているものは満たさないとし、その旨を添えた。公式の機能 (Remote Control、Channels) の振る舞いは公式の資料で補い、その場合は項目にそう書いた。
 - 順位: 満たす性質の数が多い順、同じ数なら新しい順 (日付は記事の公開日。HN はその投稿の日時)。記述の厚さは順位に入れていないため、短いコメントが長い記事より上に来ることがある。
 - 【SDK】: Claude Agent SDK で作った事例。定額ログインで Agent SDK を使う形を候補に戻すかはオーナーが決めていないため、外さずに印を付けた。
 
@@ -275,7 +275,7 @@
 ### 4.5 役ごとの文脈は、ディレクトリと起動の引数で分ける
 
 - ディレクトリごとの `CLAUDE.md`: van Deth ("an agent is a directory with a CLAUDE.md file")、broomva (`--workdir` で読む `CLAUDE.md` を変える)、claude-hub (`CHANNEL_MAP`)、BridgeBoard。MCP もディレクトリごとに分ける例がある (van Deth)。
-- 起動の引数: `--append-system-prompt-file` (Neutron)、`--append-system-prompt` (コキエ)、`--settings` で役ごとの hook を入れる (Neutron の Stop hook)。
+- 起動の引数: `--append-system-prompt-file` (Neutron)、`--append-system-prompt` (コキエ)、`--settings` で hook を入れる (Neutron の話題のセッションの Stop hook)。
 - サブエージェントの定義 (`~/.claude/agents/`、`.claude/agents/`): mager、Okapi 2.0。
 - 人格・規則・事実を別のファイルに分ける: Monica (`Claude.md`・`Identity.md`・`Soul.md`・`Tools.md`・`Agents.md`)、Kai (規則・事実・会話の履歴)。OpenClaw の SOUL.md などの分け方を写した例が多い。
 
