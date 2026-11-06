@@ -32,7 +32,7 @@
 - userspace networking の `tailscaled` は、tailnet から来た接続を `127.0.0.1` への接続としてミニ PC に渡す。`127.0.0.1` だけで待ち受けるもの（OpenClaw 本体の 5114、逆向きトンネルの 22037 など）にも tailnet から届くため、tailnet の規則で通す通信を次の 2 つに限っている。規則は Tailscale の管理画面（Access controls）にあり、IP で書いている。
   - 開発 PC から、ミニ PC の 22（SSH）と 19114（OpenClaw）
   - iPhone と Windows の PC から、ミニ PC の 19114
-- 個人の todo とスクラップ（`~/todo-scrap`）の画面と受け口を、18800 と 18700 で公開している。開発 PC、iPhone、Windows の PC から届くよう、上の規則に 18800 と 18700 を足す。
+- 個人の todo とスクラップ（`~/todo-scrap`）の画面と受け口を 18800 と 18700 で、MCP サーバーを 18900 で公開している。開発 PC、iPhone、Windows の PC から 18800 と 18700 に、開発 PC から 18900 に届くよう、上の規則に足す。
 - 公開設定（Serve）には v0.1 のサービスへの転送が残っている。転送先（`127.0.0.1` の 9120、9121、9122、18501〜18504）は撤去済みで、どの URL も応答しない。転送は `tailscale-pda serve` で変更する。
 
 ### 2.3 逆向きの SSH トンネル
@@ -50,8 +50,8 @@
 ## 3. 動いているもの
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
-- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`、`todo-scrap-receiver.service`（どれも自動起動が有効）。
-- 個人の todo とスクラップは、Git のリポジトリ（正本 `~/todo-scrap.git`、作業クローン `~/todo-scrap`）に Markdown で置く。画面は SilverBullet のコンテナ `todo-scrap-sb`、iPhone の共有シートから URL を受け取る受け口は `todo-scrap-receiver.service`、編集を 5 分ごとにコミットするのはタイマー `todo-scrap-autocommit.timer`。PDA に付随する仕組みで、定義と手順は `deploy/todo-scrap/` にある。
+- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`、`todo-scrap-receiver.service`、`todo-scrap-mcp.service`（どれも自動起動が有効）。
+- 個人の todo とスクラップは、Git のリポジトリ（正本 `~/todo-scrap.git`、作業クローン `~/todo-scrap`）に Markdown で置く。画面は SilverBullet のコンテナ `todo-scrap-sb`、iPhone の共有シートから URL を受け取る受け口は `todo-scrap-receiver.service`、編集を 5 分ごとにコミットするのはタイマー `todo-scrap-autocommit.timer`、AI が読み書きするための MCP サーバーは `todo-scrap-mcp.service`。PDA に付随する仕組みで、定義と手順は `deploy/todo-scrap/` にある。
 - `claude-remote-control.service` は Claude Code の Remote Control の常駐で、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選ぶとミニ PC の `/home/user` でセッションが始まる。個人契約の claude.ai のログインを使い、ログインの期限（ログインから約 29 日）が切れると止まる。
 - 定期実行はユーザーのタイマー `claude-login-notify.timer` と `todo-scrap-autocommit.timer`。前者は毎日 10:30 に上のログインの期限を確かめ、残りが 3 日以下ならスマホへ ntfy で通知する。cron は使っていない。
 - Remote Control の常駐とログインの期限の通知の定義、再ログインの手順は `deploy/claude-remote-control/` にある。
@@ -65,6 +65,7 @@
   - 5114: OpenClaw 本体（tailnet へは Serve の 19114 で公開）
   - 18700: todo とスクラップの受け口（tailnet へは Serve の 18700 で公開）
   - 18800: todo とスクラップの画面 SilverBullet（tailnet へは Serve の 18800 で公開）
+  - 18900: todo とスクラップの MCP サーバー（tailnet へは Serve の 18900 で公開）
   - 18600: 音声認識サーバー（`~/v03/asr`。常駐の設定は無く、再起動後は手で起動する）
   - 44105: Tailscale の通信
   - `127.0.0.1:22037`: 逆向きの SSH トンネル

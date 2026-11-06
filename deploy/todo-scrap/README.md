@@ -8,6 +8,7 @@ PDA に付随してミニ PC で動く仕組み。個人の todo と、ネット
 - 画面: SilverBullet のコンテナ `todo-scrap-sb`。作業クローンをそのまま割り当て、`127.0.0.1:18800` で待ち受ける。tailnet へは `https://pda-web.tailaff53a.ts.net:18800/` で公開する。
 - 受け口: `todo-scrap-receiver.service`。iPhone のショートカットから届いた URL やテキストを `scrap.md` に 1 行足してコミットする。`127.0.0.1:18700` で待ち受け、tailnet へは `https://pda-web.tailaff53a.ts.net:18700/` で公開する。
 - 自動コミット: `todo-scrap-autocommit.timer` が 5 分ごとに、画面と Claude での編集をコミットし、正本とそろえる。
+- MCP サーバー: `todo-scrap-mcp.service`。ミニ PC の Claude (PDA の入口) と開発 PC の Claude が、todo とスクラップを道具で読み書きする。`127.0.0.1:18900/mcp` で待ち受け、tailnet へは `https://pda-web.tailaff53a.ts.net:18900/mcp` で公開する。
 
 | ファイル | 置き場所 (ミニ PC) | 役目 |
 | --- | --- | --- |
@@ -15,7 +16,10 @@ PDA に付随してミニ PC で動く仕組み。個人の todo と、ネット
 | `todo-scrap-receiver.service` | `~/.config/systemd/user/` | 受け口の常駐。落ちたら起動し直す |
 | `todo-scrap-autocommit` | `~/.local/bin/` | 自動コミットの本体 |
 | `todo-scrap-autocommit.service` / `.timer` | `~/.config/systemd/user/` | 上を 5 分ごとに動かす |
+| `todo-scrap-mcp` | `~/.local/bin/` | MCP サーバーの本体。受け口を同じフォルダから読み込み、同じ書き方で書く |
+| `todo-scrap-mcp.service` | `~/.config/systemd/user/` | MCP サーバーの常駐。`~/.local/share/todo-scrap-mcp/venv` の Python で動かす |
 | `test_todo_scrap_receiver.py` | (置かない) | 受け口の、届いた本文から 1 行を作る処理の試験 |
+| `test_todo_scrap_mcp.py` | (置かない) | MCP サーバーの、todo.md と scrap.md を読み書きする処理の試験 |
 
 ## 決まり
 
@@ -54,6 +58,30 @@ TODO_SCRAP_REPO=~/todo-scrap python3 ~/.local/bin/todo-scrap-receiver --refresh-
 - 受け口と同じロック (`.git/todo-scrap-commit.lock`) を取ってから git を動かす。
 - 編集をコミットしたあと、正本に先に入ったコミット (手元の PC から正本へ送った変更など) を `git pull --rebase --autostash` で取り込んでから push する。取り込みが衝突したら元に戻し、次の回にもう一度試す。
 
+## MCP サーバー
+
+MCP の公式の Python SDK (`mcp` 2.3.0。1.x の FastMCP は 2.x で `MCPServer` に名前が変わった) で、関数を道具として公開する。streamable HTTP で、状態を持たない形 (stateless) で動く。tailnet の中だけに公開するので認証は付けない。SDK の Host の確認は、`127.0.0.1:18900`・`localhost:18900`・`pda-web.tailaff53a.ts.net(:18900)` だけを通す。
+
+| 道具 | すること |
+| --- | --- |
+| `list_todos` | todo の一覧 (節・本文・完了か)。既定は未完了だけ |
+| `add_todo` | todo を節の先頭に足す。節を省くと最初の節 |
+| `complete_todo` | 本文に指定の文を含む todo を 1 件、完了 (か未完了) にする。複数に当たると失敗する |
+| `list_scraps` | スクラップの一覧 (届いた日時・見出し・URL・添えた文・既読か) を新しい順に。既定は未読だけ |
+| `add_scrap` | スクラップを一覧の先頭に足す。受け口と同じく追跡用のパラメーターを外し、見出しを付ける |
+| `mark_scrap_read` | URL のスクラップを既読 (か未読) にする |
+
+Claude への登録:
+
+```sh
+# ミニ PC の PDA の入口 (Remote Control の常駐と同じ設定の場所)
+HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude claude mcp add --scope user --transport http todo-scrap http://127.0.0.1:18900/mcp
+# 開発 PC
+claude mcp add --scope user --transport http todo-scrap https://pda-web.tailaff53a.ts.net:18900/mcp
+```
+
+開発 PC から届くよう、Tailscale の管理画面の規則で、開発 PC からミニ PC の 18900 を通す。
+
 ## 新しい環境に入れる
 
 ミニ PC で行う。データのリポジトリは、正本の bare から作業クローンを作る。
@@ -71,6 +99,18 @@ install -m 755 deploy/todo-scrap/todo-scrap-receiver deploy/todo-scrap/todo-scra
 cp deploy/todo-scrap/todo-scrap-receiver.service deploy/todo-scrap/todo-scrap-autocommit.service deploy/todo-scrap/todo-scrap-autocommit.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now todo-scrap-receiver.service todo-scrap-autocommit.timer
+```
+
+MCP サーバーは、Python の環境を作ってから入れる。
+
+```sh
+uv venv --python 3.12 ~/.local/share/todo-scrap-mcp/venv
+uv pip install --python ~/.local/share/todo-scrap-mcp/venv/bin/python 'mcp==2.3.0'
+install -m 755 deploy/todo-scrap/todo-scrap-mcp ~/.local/bin/
+cp deploy/todo-scrap/todo-scrap-mcp.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now todo-scrap-mcp.service
+tailscale-pda serve --bg --https=18900 http://127.0.0.1:18900
 ```
 
 画面は Docker で立てる。`SB_FOLDER` を付けると、アカウントの無い 1 スペースの形で動く (tailnet の中だけに公開するので認証は付けない)。
@@ -112,5 +152,6 @@ systemctl --user status todo-scrap-receiver.service todo-scrap-autocommit.timer
 journalctl --user -u todo-scrap-receiver.service -n 20
 docker logs todo-scrap-sb
 curl -s http://127.0.0.1:18700/                                       # 「todo-scrap の受け口は動いています」
-python3 -m unittest deploy/todo-scrap/test_todo_scrap_receiver.py    # 受け口の試験 (pda で)
+python3 -m unittest deploy/todo-scrap/test_todo_scrap_receiver.py deploy/todo-scrap/test_todo_scrap_mcp.py    # 受け口と MCP サーバーの試験 (pda で)
+systemctl --user status todo-scrap-mcp.service
 ```
