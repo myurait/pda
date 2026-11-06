@@ -49,6 +49,22 @@ class ParseTest(unittest.TestCase):
         self.assertIsNone(parse({}))
 
 
+class AddToTopTest(unittest.TestCase):
+    HEAD = "# スクラップ\n\n説明。\n\n"
+
+    def test_new_line_goes_above_existing_entries(self):
+        text = self.HEAD + "- [ ] 2026-11-06 20:07 old\n- [x] 2026-11-05 10:00 older\n"
+        out = receiver.add_to_top(text, "- [ ] 2026-11-07 09:00 new")
+        self.assertEqual(
+            out,
+            self.HEAD + "- [ ] 2026-11-07 09:00 new\n- [ ] 2026-11-06 20:07 old\n- [x] 2026-11-05 10:00 older\n",
+        )
+
+    def test_first_entry_goes_after_header(self):
+        out = receiver.add_to_top(self.HEAD, "- [ ] 2026-11-07 09:00 new")
+        self.assertEqual(out, self.HEAD + "- [ ] 2026-11-07 09:00 new\n")
+
+
 class ShortenTest(unittest.TestCase):
     def width(self, text):
         return sum(receiver.char_width(c) for c in text)

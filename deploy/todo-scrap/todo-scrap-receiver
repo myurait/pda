@@ -61,12 +61,18 @@ def update_scrap(change, message):
 def append(entry):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
-    def add_line(text):
-        if text and not text.endswith("\n"):
-            text += "\n"
-        return text + f"- [ ] {now} {entry}\n"
+    update_scrap(lambda text: add_to_top(text, f"- [ ] {now} {entry}"), f"スクラップを足す: {entry[:80]}")
 
-    update_scrap(add_line, f"スクラップを足す: {entry[:80]}")
+
+def add_to_top(text, line):
+    """一覧の先頭 (最初の `- [` の行の前) に line を足す。一覧が無ければ末尾に足す。新しいものが上に来る。"""
+    lines = text.splitlines(keepends=True)
+    for i, current in enumerate(lines):
+        if current.startswith("- ["):
+            return "".join(lines[:i] + [line + "\n"] + lines[i:])
+    if text and not text.endswith("\n"):
+        text += "\n"
+    return text + line + "\n"
 
 
 # 受け口はまず仮の見出し (label() の結果) で足し、あとで読んだ見出しに置き換える。
