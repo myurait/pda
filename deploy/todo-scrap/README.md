@@ -31,6 +31,7 @@ PDA に付随してミニ PC で動く仕組み。個人の todo と、ネット
 - `下書き/`: 文章の下書き。
 - `設定/見た目.md`: 画面の文字・色 (Space Style) と、ホームの一覧の行の形 (Space Lua の `templates.listTask`)。
 - `設定/ボタン.md`: 上部のバーの再読み込みのボタン (Space Lua の `actionButtons`)。ホーム画面に追加して単体のアプリとして開くと、ブラウザーの再読み込みが使えないため。
+- `設定/日本語入力.md`: iPhone で日本語の変換を確定する Enter を押すと入力中の文字が消える、SilverBullet 2.12 の不具合への手当て。確定の Enter (`isComposing` が真か `keyCode` が 229) を、SilverBullet の iOS の Enter の処理より先に受け止める。SilverBullet が直したら消す。
 
 ## 受け口の動き
 
