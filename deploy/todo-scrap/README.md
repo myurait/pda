@@ -1,46 +1,46 @@
 # todo とスクラップ (todo-scrap)
 
-PDA に付随してミニ PC で動く仕組み。個人の todo と、ネットで拾った記事のスクラップ (AI に後で読ませる URL のリスト) を、ミニ PC の Git のリポジトリに Markdown で置く。画面は SilverBullet、iPhone の共有シートからはショートカットと受け口で足す。PDA の入口の Claude はこのリポジトリのファイルを直接読み書きする。
+PDA に付随してミニ PC で動く仕組み。個人の todo と、ネットで拾った記事のスクラップ (AI に後で読ませる URL のリスト) を、ミニ PC の Git のリポジトリに Markdown で置く。画面は SilverBullet、iPhone の共有シートからはショートカットと受け口で足し、AI (ミニ PC の PDA の入口の Claude と、開発 PC の Claude) は MCP で読み書きする。
 
 ## 構成
 
-- データ: ミニ PC の Git のリポジトリ。正本は bare の `~/todo-scrap.git`、作業クローンは `~/todo-scrap`。SilverBullet・受け口・Claude は、作業クローンのファイルを直接読み書きする。データは個人の情報なので、このリポジトリ (pda) には置かない。
+- データ: ミニ PC の Git のリポジトリ。正本は bare の `~/todo-scrap.git`、作業クローンは `~/todo-scrap`。画面・受け口・MCP は、作業クローンのファイルを直接読み書きする。データは個人の情報なので、このリポジトリ (pda) には置かない。
 - 画面: SilverBullet のコンテナ `todo-scrap-sb`。作業クローンをそのまま割り当て、`127.0.0.1:18800` で待ち受ける。tailnet へは `https://pda-web.tailaff53a.ts.net:18800/` で公開する。
-- 受け口: `todo-scrap-receiver.service`。iPhone のショートカットから届いた URL やテキストを `scrap.md` に 1 行足してコミットする。`127.0.0.1:18700` で待ち受け、tailnet へは `https://pda-web.tailaff53a.ts.net:18700/` で公開する。
+- サーバー: `todo-scrap-mcp.service`。1 つの常駐・1 つのポートで、次の 2 つの口を持つ。`127.0.0.1:18700` で待ち受け、tailnet へは `https://pda-web.tailaff53a.ts.net:18700/` で公開する。
+  - 受け口 (`/` への POST): iPhone のショートカットから届いた URL やテキストを `scrap.md` の先頭に足してコミットする。`/` への GET は動いているかの確認。
+  - MCP (`/mcp`): AI が todo とスクラップを道具で読み書きする。
 - 自動コミット: `todo-scrap-autocommit.timer` が 5 分ごとに、画面と Claude での編集をコミットし、正本とそろえる。
-- MCP サーバー: `todo-scrap-mcp.service`。ミニ PC の Claude (PDA の入口) と開発 PC の Claude が、todo とスクラップを道具で読み書きする。`127.0.0.1:18900/mcp` で待ち受け、tailnet へは `https://pda-web.tailaff53a.ts.net:18900/mcp` で公開する。
 
 | ファイル | 置き場所 (ミニ PC) | 役目 |
 | --- | --- | --- |
-| `todo-scrap-receiver` | `~/.local/bin/` | 受け口の本体 (Python の標準ライブラリだけで動く) |
-| `todo-scrap-receiver.service` | `~/.config/systemd/user/` | 受け口の常駐。落ちたら起動し直す |
+| `todo-scrap-mcp` | `~/.local/bin/` | サーバーの本体 (受け口と MCP)。ファイルの書き方は `todo-scrap-receiver` を同じフォルダから読み込んで使う |
+| `todo-scrap-mcp.service` | `~/.config/systemd/user/` | サーバーの常駐。`~/.local/share/todo-scrap-mcp/venv` の Python で動かす |
+| `todo-scrap-receiver` | `~/.local/bin/` | 届いた本文から 1 行を作る処理、見出しの付け方、`scrap.md` への書き足し (サーバーが読み込む)。単体で動かすと見出しの読み直しができる |
 | `todo-scrap-autocommit` | `~/.local/bin/` | 自動コミットの本体 |
 | `todo-scrap-autocommit.service` / `.timer` | `~/.config/systemd/user/` | 上を 5 分ごとに動かす |
-| `todo-scrap-mcp` | `~/.local/bin/` | MCP サーバーの本体。受け口を同じフォルダから読み込み、同じ書き方で書く |
-| `todo-scrap-mcp.service` | `~/.config/systemd/user/` | MCP サーバーの常駐。`~/.local/share/todo-scrap-mcp/venv` の Python で動かす |
-| `test_todo_scrap_receiver.py` | (置かない) | 受け口の、届いた本文から 1 行を作る処理の試験 |
-| `test_todo_scrap_mcp.py` | (置かない) | MCP サーバーの、todo.md と scrap.md を読み書きする処理の試験 |
+| `test_todo_scrap_receiver.py` | (置かない) | 届いた本文から 1 行を作る処理の試験 |
+| `test_todo_scrap_mcp.py` | (置かない) | todo.md と scrap.md を読み書きする処理の試験 |
 
 ## 決まり
 
 - 直すときは、ここを直してコミットし、ミニ PC へ写す。ミニ PC の写しだけを直さない。
 - 画面の見た目やホームの一覧は、データのリポジトリのページ (`index.md`、`設定/見た目.md`、`設定/ボタン.md`) にある。SilverBullet の画面から直せるので、データと一緒にデータのリポジトリで管理する。
-- アプリは用途ごとに別のポートで公開する。
+- アプリは用途ごとに別のポートで公開する。受け口と MCP は、どちらもこのリポジトリで作るもので書き方も共通なので、1 つのサーバーにまとめている。
 
 ## データのページ
 
 - `index.md`: ホーム。未完了の todo と未読のスクラップを、ページの並びのまま一覧で出す (どちらも新しいものが上)。
-- `todo.md`: todo。仕事・PDA の開発・自分のことに分ける。1 行 1 件で `- [ ] ` から始め、新しいものは節の先頭に足す (上部のバーの ＋ のボタンがそうする)。todo には日時が無いので、節をまたいだ新しさの順にはならない。
-- `scrap.md`: 後で読む記事。1 行 1 件で `- [ ] <届いた日時> [<見出し>](<URL>)` の形 (URL でないものはテキストのまま)。新しいものが上になるように、受け口が一覧の先頭に足す。読んだものは `[x]` にする。
+- `todo.md`: todo。仕事・PDA の開発・自分のことに分ける。1 行 1 件で `- [ ] ` から始め、新しいものは節の先頭に足す (上部のバーの ＋ のボタンと MCP の `add_todo` がそうする)。todo には日時が無いので、節をまたいだ新しさの順にはならない。
+- `scrap.md`: 後で読む記事。1 行 1 件で `- [ ] <届いた日時> [<見出し>](<URL>)` の形 (URL でないものはテキストのまま)。新しいものが上になるように、一覧の先頭に足す。読んだものは `[x]` にする。
 - `下書き/`: 文章の下書き。
 - `設定/見た目.md`: 画面の文字・色 (Space Style) と、ホームの一覧の行の形 (Space Lua の `templates.listTask`)。
 - `設定/ボタン.md`: 上部のバーに足すボタン (Space Lua の `actionButtons`)。todo を足す ＋ のボタン (todo のページではカーソルのある節、ほかのページからは最初の節の先頭に `- [ ] ` の行を差し込む)、todo とスクラップのページへ飛ぶボタン、再読み込みのボタン。再読み込みは、ホーム画面に追加して単体のアプリとして開くと、ブラウザーの再読み込みが使えないため。
 - `設定/日本語入力.md`: iPhone で日本語の変換を確定する Enter を押すと入力中の文字が消える、SilverBullet 2.12 の不具合への手当て。確定の Enter (`isComposing` が真か `keyCode` が 229) を、SilverBullet の iOS の Enter の処理より先に受け止める。原因の処理 (SilverBullet の `client/codemirror/editing/ios_enter.ts`) は iPhone・iPad でだけ動くので、手当ても iPhone・iPad に限る。SilverBullet が直したら消す。
 
-## 受け口の動き
+## スクラップの足し方 (受け口と MCP の `add_scrap` で共通)
 
 - URL の追跡用のパラメーター (`utm_*`、`fbclid`、X の `s` と `t` など) を外す。
-- まず仮の見出し (X なら `X: <アカウント> の投稿`、ほかはサイト名とパス) で足して iPhone へ返し、続けて読んだ見出しに置き換えてコミットする。
+- まず仮の見出し (X なら `X: <アカウント> の投稿`、ほかはサイト名とパス) で足して返事をし、続けて読んだ見出しに置き換えてコミットする。
   - X の投稿: X の埋め込み用の窓口 (`https://publish.x.com/oembed`、認証なし) で読んだ投稿の文の頭。
   - ほかのページ: ページを直接読んだ `og:title` か `<title>`。直接読めないときだけ jina (`https://r.jina.ai/<URL>`) で読む。
   - 見出しの長さは表示の幅で数え (全角 2、半角 1)、32 を超えたら切って「…」を付ける。
@@ -55,12 +55,12 @@ TODO_SCRAP_REPO=~/todo-scrap python3 ~/.local/bin/todo-scrap-receiver --refresh-
 
 ## 自動コミットの動き
 
-- 受け口と同じロック (`.git/todo-scrap-commit.lock`) を取ってから git を動かす。
+- サーバーと同じロック (`.git/todo-scrap-commit.lock`) を取ってから git を動かす。
 - 編集をコミットしたあと、正本に先に入ったコミット (手元の PC から正本へ送った変更など) を `git pull --rebase --autostash` で取り込んでから push する。取り込みが衝突したら元に戻し、次の回にもう一度試す。
 
-## MCP サーバー
+## MCP
 
-MCP の公式の Python SDK (`mcp` 2.3.0。1.x の FastMCP は 2.x で `MCPServer` に名前が変わった) で、関数を道具として公開する。streamable HTTP で、状態を持たない形 (stateless) で動く。tailnet の中だけに公開するので認証は付けない。SDK の Host の確認は、`127.0.0.1:18900`・`localhost:18900`・`pda-web.tailaff53a.ts.net(:18900)` だけを通す。
+MCP の公式の Python SDK (`mcp` 2.3.0。1.x の FastMCP は 2.x で `MCPServer` に名前が変わった) で、関数を道具として公開する。受け口の口は SDK の `custom_route` で足している。streamable HTTP で、状態を持たない形 (stateless) で動く。tailnet の中だけに公開するので認証は付けない。SDK の Host の確認は、`127.0.0.1:18700`・`localhost:18700`・`pda-web.tailaff53a.ts.net(:18700)` だけを通す。
 
 | 道具 | すること |
 | --- | --- |
@@ -75,12 +75,10 @@ Claude への登録:
 
 ```sh
 # ミニ PC の PDA の入口 (Remote Control の常駐と同じ設定の場所)
-HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude claude mcp add --scope user --transport http todo-scrap http://127.0.0.1:18900/mcp
+HOME=/home/user/v03/agent-home CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude claude mcp add --scope user --transport http todo-scrap http://127.0.0.1:18700/mcp
 # 開発 PC
-claude mcp add --scope user --transport http todo-scrap https://pda-web.tailaff53a.ts.net:18900/mcp
+claude mcp add --scope user --transport http todo-scrap https://pda-web.tailaff53a.ts.net:18700/mcp
 ```
-
-開発 PC から届くよう、Tailscale の管理画面の規則で、開発 PC からミニ PC の 18900 を通す。
 
 ## 新しい環境に入れる
 
@@ -92,25 +90,15 @@ git -C ~/todo-scrap config user.name todo-scrap
 git -C ~/todo-scrap config user.email todo-scrap@pda-web
 ```
 
-受け口と自動コミットは、ミニ PC の `~/pda` で入れる。
-
-```sh
-install -m 755 deploy/todo-scrap/todo-scrap-receiver deploy/todo-scrap/todo-scrap-autocommit ~/.local/bin/
-cp deploy/todo-scrap/todo-scrap-receiver.service deploy/todo-scrap/todo-scrap-autocommit.service deploy/todo-scrap/todo-scrap-autocommit.timer ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now todo-scrap-receiver.service todo-scrap-autocommit.timer
-```
-
-MCP サーバーは、Python の環境を作ってから入れる。
+サーバーと自動コミットは、ミニ PC の `~/pda` で入れる。サーバーは Python の環境を作ってから入れる。
 
 ```sh
 uv venv --python 3.12 ~/.local/share/todo-scrap-mcp/venv
 uv pip install --python ~/.local/share/todo-scrap-mcp/venv/bin/python 'mcp==2.3.0'
-install -m 755 deploy/todo-scrap/todo-scrap-mcp ~/.local/bin/
-cp deploy/todo-scrap/todo-scrap-mcp.service ~/.config/systemd/user/
+install -m 755 deploy/todo-scrap/todo-scrap-mcp deploy/todo-scrap/todo-scrap-receiver deploy/todo-scrap/todo-scrap-autocommit ~/.local/bin/
+cp deploy/todo-scrap/todo-scrap-mcp.service deploy/todo-scrap/todo-scrap-autocommit.service deploy/todo-scrap/todo-scrap-autocommit.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now todo-scrap-mcp.service
-tailscale-pda serve --bg --https=18900 http://127.0.0.1:18900
+systemctl --user enable --now todo-scrap-mcp.service todo-scrap-autocommit.timer
 ```
 
 画面は Docker で立てる。`SB_FOLDER` を付けると、アカウントの無い 1 スペースの形で動く (tailnet の中だけに公開するので認証は付けない)。
@@ -148,10 +136,9 @@ Tailscale の管理画面 (Access controls) の規則で、開発 PC・iPhone・
 ## 確かめ方
 
 ```sh
-systemctl --user status todo-scrap-receiver.service todo-scrap-autocommit.timer
-journalctl --user -u todo-scrap-receiver.service -n 20
+systemctl --user status todo-scrap-mcp.service todo-scrap-autocommit.timer
+journalctl --user -u todo-scrap-mcp.service -n 20
 docker logs todo-scrap-sb
 curl -s http://127.0.0.1:18700/                                       # 「todo-scrap の受け口は動いています」
-python3 -m unittest deploy/todo-scrap/test_todo_scrap_receiver.py deploy/todo-scrap/test_todo_scrap_mcp.py    # 受け口と MCP サーバーの試験 (pda で)
-systemctl --user status todo-scrap-mcp.service
+python3 -m unittest deploy/todo-scrap/test_todo_scrap_receiver.py deploy/todo-scrap/test_todo_scrap_mcp.py    # 試験 (pda で)
 ```
