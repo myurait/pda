@@ -30,8 +30,8 @@ PDA に付随してミニ PC で動く仕組み。個人の todo と、ネット
 - `scrap.md`: 後で読む記事。1 行 1 件で `- [ ] <届いた日時> [<見出し>](<URL>)` の形 (URL でないものはテキストのまま)。新しいものが上になるように、受け口が一覧の先頭に足す。読んだものは `[x]` にする。
 - `下書き/`: 文章の下書き。
 - `設定/見た目.md`: 画面の文字・色 (Space Style) と、ホームの一覧の行の形 (Space Lua の `templates.listTask`)。
-- `設定/ボタン.md`: 上部のバーの再読み込みのボタン (Space Lua の `actionButtons`)。ホーム画面に追加して単体のアプリとして開くと、ブラウザーの再読み込みが使えないため。
-- `設定/日本語入力.md`: iPhone で日本語の変換を確定する Enter を押すと入力中の文字が消える、SilverBullet 2.12 の不具合への手当て。確定の Enter (`isComposing` が真か `keyCode` が 229) を、SilverBullet の iOS の Enter の処理より先に受け止める。SilverBullet が直したら消す。
+- `設定/ボタン.md`: 上部のバーに足すボタン (Space Lua の `actionButtons`)。todo とスクラップのページへ飛ぶボタンと、再読み込みのボタン。再読み込みは、ホーム画面に追加して単体のアプリとして開くと、ブラウザーの再読み込みが使えないため。
+- `設定/日本語入力.md`: iPhone で日本語の変換を確定する Enter を押すと入力中の文字が消える、SilverBullet 2.12 の不具合への手当て。確定の Enter (`isComposing` が真か `keyCode` が 229) を、SilverBullet の iOS の Enter の処理より先に受け止める。原因の処理 (SilverBullet の `client/codemirror/editing/ios_enter.ts`) は iPhone・iPad でだけ動くので、手当ても iPhone・iPad に限る。SilverBullet が直したら消す。
 
 ## 受け口の動き
 
