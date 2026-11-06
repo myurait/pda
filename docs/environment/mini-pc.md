@@ -1,6 +1,6 @@
 # ミニ PC の環境
 
-- 更新: 2026-10-30 JST
+- 更新: 2026-11-06 JST
 - 種別: 実行環境の現状。v0.2 の Conductor、ログストア、実行器を置くホストの構成、接続方法、入っているもの。
 - v0.1 の常駐、データ、コンテナは撤去した。v0.1 のコードは tag `v0.1-archive` にあり、ミニ PC にだけあったブランチは tag `v0.1-minipc/<ブランチ名>` にある。
 
@@ -32,6 +32,7 @@
 - userspace networking の `tailscaled` は、tailnet から来た接続を `127.0.0.1` への接続としてミニ PC に渡す。`127.0.0.1` だけで待ち受けるもの（OpenClaw 本体の 5114、逆向きトンネルの 22037 など）にも tailnet から届くため、tailnet の規則で通す通信を次の 2 つに限っている。規則は Tailscale の管理画面（Access controls）にあり、IP で書いている。
   - 開発 PC から、ミニ PC の 22（SSH）と 19114（OpenClaw）
   - iPhone と Windows の PC から、ミニ PC の 19114
+- 個人のトゥードゥとスクラップ（`~/todo-scrap`）の画面と受け口を、18800 と 18700 で公開している。iPhone と Windows の PC から届くよう、上の規則に 18800 と 18700 を足す。
 - 公開設定（Serve）には v0.1 のサービスへの転送が残っている。転送先（`127.0.0.1` の 9120、9121、9122、18501〜18504）は撤去済みで、どの URL も応答しない。転送は `tailscale-pda serve` で変更する。
 
 ### 2.3 逆向きの SSH トンネル
@@ -49,11 +50,12 @@
 ## 3. 動いているもの
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
-- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`（どれも自動起動が有効）。
+- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`、`todo-scrap-receiver.service`（どれも自動起動が有効）。
+- 個人のトゥードゥとスクラップは、Git のリポジトリ（正本 `~/todo-scrap.git`、作業クローン `~/todo-scrap`）に Markdown で置く。画面は SilverBullet のコンテナ `todo-scrap-sb`、iPhone の共有シートから URL を受け取る受け口は `todo-scrap-receiver.service`、編集を 5 分ごとにコミットするのはタイマー `todo-scrap-autocommit.timer`。定義と手順はそのリポジトリの README にある。
 - `claude-remote-control.service` は Claude Code の Remote Control の常駐で、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選ぶとミニ PC の `/home/user` でセッションが始まる。個人契約の claude.ai のログインを使い、ログインの期限（ログインから約 29 日）が切れると止まる。
-- 定期実行はユーザーのタイマー `claude-login-notify.timer` だけ。毎日 10:30 に上のログインの期限を確かめ、残りが 3 日以下ならスマホへ ntfy で通知する。cron は使っていない。
-- この 2 つの定義と再ログインの手順は `deploy/claude-remote-control/` にある。
-- コンテナは v0.2 のものだけ。`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda`（2026-09-23 に `pda-increment-2` から改めた）。
+- 定期実行はユーザーのタイマー `claude-login-notify.timer` と `todo-scrap-autocommit.timer`。前者は毎日 10:30 に上のログインの期限を確かめ、残りが 3 日以下ならスマホへ ntfy で通知する。cron は使っていない。
+- Remote Control の常駐とログインの期限の通知の定義、再ログインの手順は `deploy/claude-remote-control/` にある。
+- コンテナは、SilverBullet の `todo-scrap-sb`（`--restart unless-stopped` で常駐）と v0.2 のもの。v0.2 のものは`~/pda/deploy/docker-compose.yaml` から立てる。Compose のプロジェクト名は `pda`（2026-09-23 に `pda-increment-2` から改めた）。
 - 待ち受けるポートは次のとおり。22 以外は `127.0.0.1` だけで待ち受ける。
   - 22: SSH
   - 5000: Conductor UI（v0.2 の構成を立てているとき）
@@ -61,6 +63,8 @@
   - 5081: 可視化の画面 `pda-view`（同上。認証なし）
   - 8080: Conductor API（同上）
   - 5114: OpenClaw 本体（tailnet へは Serve の 19114 で公開）
+  - 18700: トゥードゥとスクラップの受け口（tailnet へは Serve の 18700 で公開）
+  - 18800: トゥードゥとスクラップの画面 SilverBullet（tailnet へは Serve の 18800 で公開）
   - 18600: 音声認識サーバー（`~/v03/asr`。常駐の設定は無く、再起動後は手で起動する）
   - 44105: Tailscale の通信
   - `127.0.0.1:22037`: 逆向きの SSH トンネル
