@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""todo とスクラップを扱う MCP サーバー。
+"""todo とスクラップを扱うサーバー。MCP の口と、iPhone の共有シートから URL を受け取る口を 1 つのポートで持つ。
 
-MCP の公式の Python SDK (2.x の MCPServer。1.x では FastMCP と呼ばれていたもの) で、関数を道具として公開する。
-127.0.0.1 の streamable HTTP (`/mcp`) で待ち受け、tailnet へは Tailscale Serve で公開する。
-ファイルの書き方 (todo を節の先頭に足す、スクラップを一覧の先頭に足す、見出しの付け方) は受け口と同じにするため、
-受け口 (`todo-scrap-receiver`) を同じフォルダから読み込んで使う。
+- `/mcp`: MCP (streamable HTTP)。MCP の公式の Python SDK (2.x の MCPServer。1.x では FastMCP と呼ばれていたもの) で、関数を道具として公開する。
+- `/` (POST): 受け口。iPhone のショートカットから届いた URL やテキストを scrap.md の先頭に足してコミットし、続けて見出しを付ける。
+- `/` (GET): 動いているかの確認。
+
+127.0.0.1 で待ち受け、tailnet へは Tailscale Serve で公開する。
+ファイルの書き方 (todo を節の先頭に足す、スクラップを一覧の先頭に足す、見出しの付け方) は、
+`todo-scrap-receiver` を同じフォルダから読み込んで使う。
 """
 
 import importlib.machinery
@@ -22,7 +25,7 @@ _loader.exec_module(receiver)
 
 TODO = os.path.join(receiver.REPO, "todo.md")
 HOST = "127.0.0.1"
-PORT = int(os.environ.get("TODO_SCRAP_MCP_PORT", "18900"))
+PORT = int(os.environ.get("TODO_SCRAP_PORT", "18700"))
 # tailnet から届くときの Host。これ以外の Host の要求は SDK が断る。
 PUBLIC_HOST = os.environ.get("TODO_SCRAP_MCP_PUBLIC_HOST", "pda-web.tailaff53a.ts.net")
 
@@ -194,6 +197,34 @@ def build_server():
             f"スクラップを{'既読' if read else '未読'}にする: {url}",
         )
         return f"{'既読' if read else '未読'}にしました: {url}"
+
+    # ---- iPhone の共有シートからの受け口 ----
+    from starlette.responses import PlainTextResponse
+    import anyio
+
+    @server.custom_route("/", methods=["GET"], include_in_schema=False)
+    async def alive(request):
+        return PlainTextResponse("todo-scrap の受け口は動いています")
+
+    @server.custom_route("/", methods=["POST"], include_in_schema=False)
+    async def receive(request):
+        body = await request.body()
+        if not body or len(body) > receiver.MAX_BODY:
+            return PlainTextResponse("本文が空か、大きすぎます", status_code=400)
+        try:
+            entry = receiver.parse(body.decode("utf-8", errors="replace"), request.headers.get("content-type", ""))
+        except receiver.json.JSONDecodeError:
+            return PlainTextResponse("JSON を読めませんでした", status_code=400)
+        if not entry:
+            return PlainTextResponse("url か text がありません", status_code=400)
+        try:
+            await anyio.to_thread.run_sync(receiver.append, entry)
+        except receiver.subprocess.CalledProcessError as e:
+            detail = e.stderr.decode(errors="replace")[:200] if e.stderr else ""
+            return PlainTextResponse(f"保存はしましたが、コミットに失敗しました: {detail}", status_code=500)
+        # 見出しは返事のあとで付ける (iPhone を待たせない)
+        receiver.retitle_later(entry)
+        return PlainTextResponse(f"スクラップに足しました: {entry[:60]}")
 
     return server
 
