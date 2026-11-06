@@ -1,0 +1,7 @@
+[Unit]
+Description=todo-scrap の自動コミット (画面と Claude での編集をコミットし、正本とそろえる)
+
+[Service]
+Type=oneshot
+Environment=TODO_SCRAP_REPO=/home/user/todo-scrap
+ExecStart=/bin/sh /home/user/.local/bin/todo-scrap-autocommit

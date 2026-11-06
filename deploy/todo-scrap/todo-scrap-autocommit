@@ -1,0 +1,20 @@
+#!/bin/sh
+# SilverBullet の画面や Claude での編集をまとめてコミットし、正本の bare リポジトリとそろえる。
+# 受け口と同時に git を動かさないよう、同じロックを取る。
+set -eu
+# todo とスクラップの作業クローン。常駐の定義が TODO_SCRAP_REPO で渡す。
+REPO="${TODO_SCRAP_REPO:-$HOME/todo-scrap}"
+exec 9>"$REPO/.git/todo-scrap-commit.lock"
+flock 9
+cd "$REPO"
+git add -A
+if ! git diff --cached --quiet; then
+  git commit -q -m "画面と Claude での編集をまとめる"
+fi
+# 正本に先に入ったコミット (手元の PC から送った変更など) を取り込んでから送る。
+# 取り込みが衝突したら元に戻して止める (次の回にもう一度試す)。
+if ! git pull -q --rebase --autostash origin main; then
+  git rebase --abort 2>/dev/null || true
+  exit 1
+fi
+git push -q origin HEAD || true

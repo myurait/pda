@@ -1,0 +1,377 @@
+#!/usr/bin/env python3
+"""iPhone のショートカットから届いた URL やテキストを scrap.md に足し、Git にコミットする受け口。
+
+POST の本文は JSON で、`url` か `text` のどちらかを持つ。`title` は任意。
+本文が JSON でなければ、本文全体を `text` として扱う。
+127.0.0.1 だけで待ち受け、tailnet へは Tailscale Serve で公開する。
+"""
+
+import datetime
+import fcntl
+import html
+import ipaddress
+import json
+import os
+import re
+import socket
+import subprocess
+import sys
+import threading
+import unicodedata
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
+
+# todo とスクラップの作業クローン。常駐の定義が TODO_SCRAP_REPO で渡す。
+REPO = os.environ.get("TODO_SCRAP_REPO", os.path.expanduser("~/todo-scrap"))
+SCRAP = os.path.join(REPO, "scrap.md")
+LOCK = os.path.join(REPO, ".git", "todo-scrap-commit.lock")
+HOST = "127.0.0.1"
+PORT = int(os.environ.get("TODO_SCRAP_PORT", "18700"))
+MAX_BODY = 64 * 1024
+
+
+def one_line(value):
+    return " ".join(str(value).split())
+
+
+def git(*args):
+    return subprocess.run(["git", "-C", REPO, *args], check=True, capture_output=True)
+
+
+def update_scrap(change, message):
+    """scrap.md を change(旧本文) -> 新本文 で書き換えてコミットする。変化が無ければ何もしない。"""
+    # 自動コミットと同時に git を動かさないよう、同じロックを取る。
+    with open(LOCK, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        with open(SCRAP, encoding="utf-8") as f:
+            old = f.read()
+        new = change(old)
+        if new == old:
+            return
+        with open(SCRAP, "w", encoding="utf-8") as f:
+            f.write(new)
+        git("add", "scrap.md")
+        git("commit", "-q", "-m", message)
+        # 正本の bare リポジトリへ送る。失敗しても保存とコミットは済んでいる。
+        subprocess.run(["git", "-C", REPO, "push", "-q", "origin", "HEAD"], capture_output=True)
+
+
+def append(entry):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    def add_line(text):
+        if text and not text.endswith("\n"):
+            text += "\n"
+        return text + f"- [ ] {now} {entry}\n"
+
+    update_scrap(add_line, f"スクラップを足す: {entry[:80]}")
+
+
+# 受け口はまず仮の見出し (label() の結果) で足し、あとで読んだ見出しに置き換える。
+# 見出しは、X の投稿なら本文の頭、ほかのページならページのタイトル。
+# 長さは表示の幅で数え (全角 2、半角 1)、HEADING_WIDTH を超えたら切って「…」を付ける。
+LINK = re.compile(r"\[([^\]\n]+)\]\((https?://[^)\s]+)\)")
+JINA = "https://r.jina.ai/"
+HEADING_WIDTH = 32
+ELLIPSIS = "…"
+
+
+MAX_PAGE = 512 * 1024
+# 外のページから来た見出しに残すと、SilverBullet が Space Lua の式 (${...}) や
+# リンク・HTML として解釈しうる文字。取り除く。
+UNSAFE_CHARS = re.compile(r"[`$\{\}<>|\\\[\]!#*_~]")
+
+
+def char_width(ch):
+    return 2 if unicodedata.east_asian_width(ch) in ("F", "W", "A") else 1
+
+
+def shorten(text, width=HEADING_WIDTH):
+    """表示の幅が width を超えたら切り、「…」を含めて width に収める。"""
+    text = one_line(UNSAFE_CHARS.sub(" ", text))
+    if sum(char_width(c) for c in text) <= width:
+        return text
+    room = width - char_width(ELLIPSIS)
+    out, used = "", 0
+    for c in text:
+        w = char_width(c)
+        if used + w > room:
+            break
+        out += c
+        used += w
+    return out.rstrip() + ELLIPSIS
+
+
+# X の投稿は、X の埋め込み用の窓口 (oEmbed。認証なし・回数の制限なし) で投稿の文を読む。
+X_OEMBED = "https://publish.x.com/oembed?omit_script=true&url="
+# X 以外のページは、ページを直接読んで og:title か <title> を使う。
+# 直接読めないとき (中身を JavaScript で作るページ、機械からの読み込みを断るサイトなど) だけ jina で読む。
+BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
+HEAD_SCAN = 64 * 1024
+OG_TITLE = re.compile(
+    r"<meta\s+[^>]{0,500}?(?:property|name)\s*=\s*[\"'](?:og:title|twitter:title)[\"'][^>]{0,2000}>", re.I
+)
+CONTENT_ATTR = re.compile(r"content\s*=\s*([\"'])(.*?)\1", re.I | re.S)
+TITLE_TAG = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+CHARSET = re.compile(rb"<meta[^>]+charset\s*=\s*[\"']?([\w-]+)", re.I)
+
+
+class PublicOnlyRedirect(urllib.request.HTTPRedirectHandler):
+    """転送先がミニ PC の中や tailnet・LAN のアドレスなら、転送に従わない。"""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not is_public_host(newurl):
+            raise urllib.error.HTTPError(newurl, code, "非公開のアドレスへの転送", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+OPENER = urllib.request.build_opener(PublicOnlyRedirect)
+
+
+def http_get(url, headers=None, timeout=20):
+    req = urllib.request.Request(url, headers={"User-Agent": BROWSER_UA, **(headers or {})})
+    with OPENER.open(req, timeout=timeout) as res:
+        raw = res.read(MAX_PAGE)
+        charset = res.headers.get_content_charset()
+    if not charset:
+        m = CHARSET.search(raw[:4096])
+        charset = m.group(1).decode() if m else "utf-8"
+    try:
+        return raw.decode(charset, errors="replace")
+    except LookupError:
+        return raw.decode("utf-8", errors="replace")
+
+
+def is_public_host(url):
+    """ミニ PC の中や tailnet・LAN のアドレスを指す URL は読みに行かない。"""
+    host = urlsplit(url).hostname
+    if not host:
+        return False
+    try:
+        addrs = {info[4][0] for info in socket.getaddrinfo(host, None)}
+    except OSError:
+        return False
+    return all(ipaddress.ip_address(a.split("%")[0]).is_global for a in addrs)
+
+
+def x_post_text(url):
+    """埋め込み用の窓口で X の投稿の文を読む。取れなければ None。"""
+    data = json.loads(http_get(X_OEMBED + quote(url, safe="")))
+    m = re.search(r"<p[^>]*>(.*?)</p>", data.get("html", ""), re.S)
+    if not m:
+        return None
+    text = re.sub(r"<br\s*/?>", " ", m.group(1))
+    return html.unescape(re.sub(r"<[^>]+>", "", text))
+
+
+def page_title(url):
+    """ページを直接読んでタイトルを取る。取れなければ None。"""
+    if not is_public_host(url):
+        return None
+    # タイトルはページの頭 (<head>) にあるので、正規表現を当てる範囲を先頭に限る
+    page = http_get(url)[:HEAD_SCAN]
+    meta = OG_TITLE.search(page)
+    if meta:
+        m = CONTENT_ATTR.search(meta.group(0))
+        if m and m.group(2).strip():
+            return html.unescape(m.group(2))
+    m = TITLE_TAG.search(page)
+    return html.unescape(m.group(1)) if m and m.group(1).strip() else None
+
+
+def jina_title(url):
+    head = http_get(JINA + url, timeout=40).partition("Markdown Content:")[0]
+    m = re.search(r"^Title:\s*(.+)$", head, re.MULTILINE)
+    return m.group(1) if m else None
+
+
+def fetch_heading(url):
+    """見出しを返す。取れなければ None。"""
+    if urlsplit(url).netloc.lower() in X_HOSTS:
+        text = x_post_text(url)
+    else:
+        try:
+            text = page_title(url)
+        except Exception as e:
+            print(f"ページを直接読めませんでした: {url}: {e}", flush=True)
+            text = None
+        if not (text and text.strip()) and is_public_host(url):
+            try:
+                text = jina_title(url)
+            except Exception as e:
+                print(f"jina でも読めませんでした: {url}: {e}", flush=True)
+                text = None
+    return (shorten(text) or None) if text and text.strip() else None
+
+
+def retitle(current, url):
+    """見出し current のリンクを、読んだ見出しのリンクに置き換える。"""
+    try:
+        heading = fetch_heading(url)
+    except Exception as e:  # 読めなければ今の見出しのまま残す
+        print(f"見出しを読めませんでした: {url}: {e}", flush=True)
+        return
+    if not heading or heading == current:
+        return
+    old = f"[{current}]({url})"
+    new = f"[{heading}]({url})"
+    update_scrap(lambda text: text.replace(old, new, 1), f"スクラップの見出しを付ける: {url}")
+
+
+def placeholder_link(entry):
+    """entry が仮の見出しのリンクなら (見出し, URL) を返す。"""
+    m = LINK.fullmatch(entry)
+    if m and m.group(1) == label(m.group(2)):
+        return m.group(1), m.group(2)
+    return None
+
+
+def retitle_later(entry):
+    found = placeholder_link(entry)
+    if found:
+        threading.Thread(target=retitle, args=found, daemon=True).start()
+
+
+def parse(body, content_type):
+    if "application/json" in content_type:
+        data = json.loads(body or "{}")
+        if not isinstance(data, dict):
+            return None
+    else:
+        data = {"text": body}
+    url = one_line(data.get("url", ""))
+    text = one_line(data.get("text", ""))
+    title = one_line(data.get("title", ""))
+    if is_url(url):
+        return link(url, title)
+    # ショートカットは共有されたテキストも url の欄に入れて送る。
+    text = text or url
+    if is_url(text):
+        return link(text, title)
+    return plain(text) or None
+
+
+X_HOSTS = {"x.com", "twitter.com", "mobile.twitter.com", "mobile.x.com"}
+# どのサイトでも外す追跡用のパラメーター
+TRACKING_KEYS = {"fbclid", "gclid", "igshid", "si", "ref_src", "ref_url"}
+# X の共有に付く追跡用のパラメーター
+X_TRACKING_KEYS = {"s", "t"}
+
+
+def is_url(value):
+    return value.startswith(("http://", "https://")) and " " not in value
+
+
+def clean_url(url):
+    p = urlsplit(url)
+    host = p.netloc.lower()
+    query = [
+        (k, v)
+        for k, v in parse_qsl(p.query, keep_blank_values=True)
+        if not k.startswith("utm_")
+        and k not in TRACKING_KEYS
+        and not (host in X_HOSTS and k in X_TRACKING_KEYS)
+    ]
+    return urlunsplit((p.scheme, p.netloc, p.path, urlencode(query), p.fragment))
+
+
+def label(url):
+    p = urlsplit(url)
+    host = p.netloc.lower().removeprefix("www.")
+    parts = [s for s in p.path.split("/") if s]
+    if host in X_HOSTS and parts:
+        # 先頭に @ を付けると SilverBullet がメンションとして装飾するので付けない
+        return f"X: {parts[0]} の投稿" if "status" in parts else f"X: {parts[0]}"
+    return shorten(host + ("/" + "/".join(parts) if parts else ""))
+
+
+# URL のうち、Markdown のリンクや Space Lua の式として読まれうる文字はパーセントエンコードする
+URL_SAFE = ":/?#[]@!&'*+,;=%-._~"
+
+
+def link(url, title=""):
+    url = quote(clean_url(url), safe=URL_SAFE).replace("[", "%5B").replace("]", "%5D")
+    text = one_line(UNSAFE_CHARS.sub(" ", title)) if title else ""
+    return f"[{text or label(url)}]({url})"
+
+
+def plain(text):
+    # 共有されたテキストはそのまま残し、Space Lua の式の始まりだけを崩す
+    return text.replace("${", "$ {")
+
+
+class Handler(BaseHTTPRequestHandler):
+    def reply(self, status, message):
+        data = message.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        self.reply(200, "todo-scrap の受け口は動いています")
+
+    def do_POST(self):
+        length = int(self.headers.get("Content-Length") or 0)
+        if length <= 0 or length > MAX_BODY:
+            self.reply(400, "本文が空か、大きすぎます")
+            return
+        body = self.rfile.read(length).decode("utf-8", errors="replace")
+        try:
+            entry = parse(body, self.headers.get("Content-Type", ""))
+        except json.JSONDecodeError:
+            self.reply(400, "JSON を読めませんでした")
+            return
+        if not entry:
+            self.reply(400, "url か text がありません")
+            return
+        try:
+            append(entry)
+        except subprocess.CalledProcessError as e:
+            detail = e.stderr.decode(errors="replace")[:200] if e.stderr else ""
+            self.reply(500, f"保存はしましたが、コミットに失敗しました: {detail}")
+            return
+        self.reply(200, f"スクラップに足しました: {entry[:60]}")
+        retitle_later(entry)
+
+    def log_message(self, fmt, *args):
+        print(f"{self.address_string()} {fmt % args}", flush=True)
+
+
+def retitle_all():
+    """scrap.md に残っている仮の見出しのリンクを、まとめて置き換える。"""
+    with open(SCRAP, encoding="utf-8") as f:
+        links = LINK.findall(f.read())
+    for text, url in links:
+        if text == label(url):
+            retitle(text, url)
+
+
+def refresh_x():
+    """X の行の見出しをすべて読み直す。投稿の文が取れなければ仮の見出しに戻す。"""
+    with open(SCRAP, encoding="utf-8") as f:
+        links = LINK.findall(f.read())
+    for text, url in links:
+        if urlsplit(url).netloc.lower() not in X_HOSTS:
+            continue
+        try:
+            heading = fetch_heading(url) or label(url)
+        except Exception as e:
+            print(f"見出しを読めませんでした: {url}: {e}", flush=True)
+            heading = label(url)
+        if heading != text:
+            old, new = f"[{text}]({url})", f"[{heading}]({url})"
+            update_scrap(lambda t: t.replace(old, new, 1), f"スクラップの見出しを付け直す: {url}")
+        print(f"{heading}  {url}", flush=True)
+
+
+if __name__ == "__main__":
+    if sys.argv[1:] == ["--retitle"]:
+        retitle_all()
+    elif sys.argv[1:] == ["--refresh-x"]:
+        refresh_x()
+    else:
+        HTTPServer((HOST, PORT), Handler).serve_forever()

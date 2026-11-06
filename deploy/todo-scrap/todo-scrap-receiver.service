@@ -1,0 +1,12 @@
+[Unit]
+Description=todo-scrap の受け口 (iPhone の共有から scrap.md に足す)
+After=network-online.target
+
+[Service]
+Environment=TODO_SCRAP_REPO=/home/user/todo-scrap
+ExecStart=/usr/bin/python3 /home/user/.local/bin/todo-scrap-receiver
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
