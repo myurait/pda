@@ -10,6 +10,7 @@
 `todo-scrap-receiver` を同じフォルダから読み込んで使う。
 """
 
+import datetime
 import importlib.machinery
 import importlib.util
 import os
@@ -33,6 +34,86 @@ TASK = re.compile(r"^- \[( |x|X)\] (.*)$")
 SECTION = re.compile(r"^## (.+)$")
 SCRAP = re.compile(r"^- \[( |x|X)\] (\d{4}-\d\d-\d\d \d\d:\d\d) (.*)$")
 
+# ---- 属性 ----
+# 行の末尾の `[名前: 値]` は SilverBullet の属性で、画面のクエリから項目として引ける。
+# 名前は英字・数字・_ (SilverBullet が属性として読むのはこの名前だけ)、値は日本語。
+# 書かない属性は「値なし」(todo の status なら未着手、スクラップの aicheck なら未チェック)。
+ATTR_TAIL = re.compile(r"\s*\[([A-Za-z0-9_$]+)::?\s*([^\[\]\n]*)\]\s*$")
+TODO_ATTRS = ("project", "due", "status", "weight")
+SCRAP_ATTRS = ("topic", "aicheck")
+CHOICES = {
+    "status": ("進行中", "待ち"),
+    "weight": ("1", "2", "3"),
+    "topic": ("AI", "ゲーム", "開発ツール"),
+    "aicheck": ("チェック済み", "反映待ち"),
+}
+NOT_CHECKED = "未チェック"
+
+
+def split_attrs(body):
+    """行の本文を (属性を除いた本文, {名前: 値}) に分ける。属性は末尾に並んだものだけを読む。"""
+    attrs = {}
+    while True:
+        m = ATTR_TAIL.search(body)
+        if not m:
+            return body.strip(), attrs
+        attrs = {m.group(1): m.group(2).strip(), **attrs}
+        body = body[: m.start()]
+
+
+def join_attrs(body, attrs, order):
+    """本文の後ろに属性を足す。order の名前を先に、その順で並べ、ほかの名前は元の順で後ろに置く。"""
+    names = [n for n in order if n in attrs] + [n for n in attrs if n not in order]
+    tail = "".join(f" [{n}: {attrs[n]}]" for n in names if attrs[n] not in (None, ""))
+    return body + tail
+
+
+def check_attr(name, value):
+    """属性の値を確かめて、書く形にして返す。空文字は「属性を消す」。"""
+    value = receiver.one_line(value)
+    if value == "":
+        return ""
+    if name == "due":
+        try:
+            datetime.date.fromisoformat(value)
+        except ValueError:
+            raise ValueError(f"due は 2026-11-15 の形の日付で渡してください: {value}") from None
+        if len(value) != 10:
+            raise ValueError(f"due は 2026-11-15 の形の日付で渡してください: {value}")
+        return value
+    if name in CHOICES:
+        if value not in CHOICES[name]:
+            raise ValueError(f"{name} に使える値は {'・'.join(CHOICES[name])} です: {value}")
+        return value
+    # project など自由に書く値。属性の書き方を壊す文字と Space Lua の式の始まりを取り除く。
+    return receiver.one_line(value.replace("[", " ").replace("]", " ").replace("${", "$ {"))
+
+
+def apply_attrs(attrs, changes):
+    """changes の値が None の名前はそのまま、空文字なら消し、ほかは確かめて書き換える。"""
+    out = dict(attrs)
+    for name, value in changes.items():
+        if value is None:
+            continue
+        value = check_attr(name, str(value))
+        if value == "":
+            out.pop(name, None)
+        else:
+            out[name] = value
+    return out
+
+
+def todo_fields(body):
+    rest, attrs = split_attrs(body)
+    weight = attrs.get("weight")
+    return {
+        "text": rest,
+        "project": attrs.get("project"),
+        "due": attrs.get("due"),
+        "status": attrs.get("status"),
+        "weight": int(weight) if weight and weight.isdigit() else None,
+    }
+
 
 # ---- ファイルを読み書きする部分 (MCP に依らない。試験はここに当てる) ----
 
@@ -47,8 +128,13 @@ def todo_items(text):
             continue
         m = TASK.match(line)
         if m:
-            items.append({"section": section, "text": m.group(2).strip(), "done": m.group(1) != " "})
+            items.append({"section": section, **todo_fields(m.group(2)), "done": m.group(1) != " "})
     return items
+
+
+def sort_by_due(items):
+    """期限の近い順に並べる。期限の無いものは後ろに、元の並びのまま置く。"""
+    return sorted(items, key=lambda i: (i["due"] is None, i["due"] or ""))
 
 
 def todo_sections(text):
@@ -56,7 +142,7 @@ def todo_sections(text):
 
 
 def add_todo_text(text, item, section=None):
-    """節の見出しのすぐ下 (節の先頭) に `- [ ] item` を足す。section が無ければ最初の節。"""
+    """節の見出しのすぐ下 (節の先頭) に `- [ ] item` を足す。section が無ければ最初の節。item は属性を含んでよい。"""
     lines = text.splitlines(keepends=True)
     for i, line in enumerate(lines):
         m = SECTION.match(line.rstrip("\n"))
@@ -82,44 +168,95 @@ def set_task_done(text, match, done=True, pattern=TASK):
     return "".join(lines)
 
 
-def edit_todo_text(text, match, new_item=None):
-    """本文に match を含む項目を 1 件、本文を new_item に書き換える (None なら行を消す)。
-    完了したものも対象。節と完了かどうかはそのまま。0 件か 2 件以上ならエラー。(新しい本文, 元の本文) を返す。"""
-    lines = text.splitlines(keepends=True)
+def find_one_todo(lines, match):
+    """属性を除いた本文に match を含む todo の行を 1 件探す。0 件か 2 件以上ならエラー。(行の位置, 一致) を返す。"""
     hits = []
     for i, line in enumerate(lines):
         m = TASK.match(line.rstrip("\n"))
-        if m and match in m.group(2):
+        if m and match in split_attrs(m.group(2))[0]:
             hits.append((i, m))
     if len(hits) != 1:
         raise ValueError(f"当てはまる項目が {len(hits)} 件あります。1 件に絞れる文を渡してください。")
-    i, m = hits[0]
+    return hits[0]
+
+
+def edit_todo_text(text, match, new_item=None):
+    """本文に match を含む項目を 1 件、本文を new_item に書き換える (None なら行を消す)。
+    属性は残し、new_item に属性が書いてあればその属性だけ書き換える。
+    完了したものも対象。節と完了かどうかはそのまま。0 件か 2 件以上ならエラー。(新しい本文, 元の本文) を返す。"""
+    lines = text.splitlines(keepends=True)
+    i, m = find_one_todo(lines, match)
+    old_body, attrs = split_attrs(m.group(2))
     if new_item is None:
         del lines[i]
     else:
-        lines[i] = f"- [{m.group(1)}] {new_item}" + ("\n" if lines[i].endswith("\n") else "")
-    return "".join(lines), m.group(2).strip()
+        new_body, new_attrs = split_attrs(new_item)
+        attrs = apply_attrs(attrs, new_attrs)
+        item = join_attrs(new_body, attrs, TODO_ATTRS)
+        lines[i] = f"- [{m.group(1)}] {item}" + ("\n" if lines[i].endswith("\n") else "")
+    return "".join(lines), old_body
+
+
+def set_todo_attrs_text(text, match, changes):
+    """本文に match を含む todo を 1 件探し、属性を changes で書き換える。(新しい本文, その行の本文) を返す。"""
+    lines = text.splitlines(keepends=True)
+    i, m = find_one_todo(lines, match)
+    body, attrs = split_attrs(m.group(2))
+    item = join_attrs(body, apply_attrs(attrs, changes), TODO_ATTRS)
+    lines[i] = f"- [{m.group(1)}] {item}" + ("\n" if lines[i].endswith("\n") else "")
+    return "".join(lines), body
 
 
 def scrap_items(text):
-    """scrap.md の行を、日時・見出し・URL・既読の一覧にする (ファイルの並び = 新しい順)。"""
+    """scrap.md の行を、日時・見出し・URL・属性・片付いたかの一覧にする (ファイルの並び = 新しい順)。"""
     items = []
     for line in text.splitlines():
         m = SCRAP.match(line)
         if not m:
             continue
-        rest = m.group(3)
+        rest, attrs = split_attrs(m.group(3))
         link = receiver.LINK.search(rest)
         items.append(
             {
-                "read": m.group(1) != " ",
+                "done": m.group(1) != " ",
                 "added": m.group(2),
                 "title": link.group(1) if link else rest,
                 "url": link.group(2) if link else None,
                 "note": receiver.LINK.sub("", rest).strip() if link else "",
+                "topic": attrs.get("topic"),
+                "aicheck": attrs.get("aicheck") or NOT_CHECKED,
             }
         )
     return items
+
+
+def find_one_scrap(lines, url):
+    hits = [i for i, line in enumerate(lines) if SCRAP.match(line.rstrip("\n")) and f"({url})" in line]
+    if len(hits) != 1:
+        raise ValueError(f"URL に当てはまるスクラップが {len(hits)} 件あります: {url}")
+    return hits[0]
+
+
+def set_scrap_text(text, url, changes, done=None):
+    """URL のスクラップを 1 件探し、属性を changes で書き換える。done が真偽値ならチェック欄も書き換える。"""
+    lines = text.splitlines(keepends=True)
+    i = find_one_scrap(lines, url)
+    m = SCRAP.match(lines[i].rstrip("\n"))
+    body, attrs = split_attrs(m.group(3))
+    state = m.group(1) if done is None else ("x" if done else " ")
+    item = join_attrs(body, apply_attrs(attrs, changes), SCRAP_ATTRS)
+    lines[i] = f"- [{state}] {m.group(2)} {item}" + ("\n" if lines[i].endswith("\n") else "")
+    return "".join(lines)
+
+
+def complete_scrap_text(text, url, done=True):
+    """URL のスクラップを片付いた (done=True) か、まだ (done=False) にする。
+    片付けるとき、AI チェックが反映待ちならチェック済みに戻す (反映が済んだため)。"""
+    lines = text.splitlines(keepends=True)
+    m = SCRAP.match(lines[find_one_scrap(lines, url)].rstrip("\n"))
+    _, attrs = split_attrs(m.group(3))
+    changes = {"aicheck": "チェック済み"} if done and attrs.get("aicheck") == "反映待ち" else {}
+    return set_scrap_text(text, url, changes, done)
 
 
 def update_page(path, change, message):
@@ -156,42 +293,93 @@ def build_server():
         name="todo-scrap",
         instructions=(
             "オーナーの個人の todo と、後で読む記事のスクラップを扱う。"
-            "オーナーの todo の管理 (一覧・追加・完了・書き換え・削除) とスクラップの管理 (一覧・追加・既読) は、このサーバーの道具で行う。"
+            "オーナーの todo の管理 (一覧・追加・完了・属性・書き換え・削除) とスクラップの管理 (一覧・追加・属性・片付け) は、このサーバーの道具で行う。"
             "ミニ PC の ~/todo-scrap のファイルを直接書き換えない (画面と受け口と同じ書き方を保つため)。"
             "todo は節 (仕事・PDA の開発・自分のこと など) に分かれ、新しいものは節の先頭に足す。"
-            "スクラップは新しいものが先頭。記事の中身を読むときは、X の投稿は https://publish.x.com/oembed、"
-            "ほかは https://r.jina.ai/<URL> で読む。"
+            "todo の属性: project (案件名)、due (期限日 2026-11-15 の形)、status (進行中・待ち。無ければ未着手)、"
+            "weight (重さ 1 = 1 時間以内、2 = 半日以内、3 = それ以上)。"
+            "スクラップは新しいものが先頭。スクラップの属性: topic (話題 AI・ゲーム・開発ツール。ゲームはゲーム開発を含む。"
+            "どれにも当たらなければ付けない)、aicheck (AI チェック。無ければ未チェック、読んだらチェック済み、"
+            "開発物に取り込むものは反映待ち)。未チェックのスクラップは AI が中身を読んで topic と aicheck を付ける。"
+            "スクラップのチェック欄は、オーナーが片付いたと判断した印 (価値が無かった・オーナーの知識に吸収した・反映が済んだ)。"
+            "AI は自分の判断だけでチェック欄を付けず、オーナーとの棚卸しで片付いたものにだけ complete_scrap を使う。"
+            "記事の中身を読むときは、X の投稿は https://publish.x.com/oembed、ほかは https://r.jina.ai/<URL> で読む。"
         ),
     )
 
     @server.tool()
-    def list_todos(include_done: bool = False) -> list[dict]:
-        """todo の一覧を返す。各項目は section (節)・text (本文)・done (完了か)。並びはページの順 (節の中では上が新しい)。"""
+    def list_todos(
+        include_done: bool = False,
+        project: str | None = None,
+        status: str | None = None,
+        order: str = "page",
+    ) -> list[dict]:
+        """todo の一覧を返す。各項目は section (節)・text (属性を除いた本文)・project・due・status・weight・done (完了か)。
+        値の無い属性は null (status なら未着手)。project・status で絞れる (status に「未着手」を渡すと status の無いもの)。
+        order="page" はページの順 (節の中では上が新しい)、order="due" は期限の近い順 (期限の無いものは後ろ)。"""
         items = todo_items(read_text(TODO))
-        return items if include_done else [i for i in items if not i["done"]]
+        if not include_done:
+            items = [i for i in items if not i["done"]]
+        if project is not None:
+            items = [i for i in items if i["project"] == project]
+        if status is not None:
+            items = [i for i in items if (i["status"] or "未着手") == status]
+        return sort_by_due(items) if order == "due" else items
 
     @server.tool()
-    def add_todo(text: str, section: str | None = None) -> str:
-        """todo を節の先頭に足す。section を省くと最初の節。節の名前は list_todos の section か、ページの `## ` の見出し。"""
+    def add_todo(
+        text: str,
+        section: str | None = None,
+        project: str | None = None,
+        due: str | None = None,
+        status: str | None = None,
+        weight: int | None = None,
+    ) -> str:
+        """todo を節の先頭に足す。section を省くと最初の節。節の名前は list_todos の section か、ページの `## ` の見出し。
+        属性は省けば付けない。due は 2026-11-15 の形、status は 進行中・待ち、weight は 1・2・3。"""
         text = receiver.one_line(text)
         if not text:
             raise ValueError("text が空です")
-        update_page(TODO, lambda t: add_todo_text(t, text, section), f"todo を足す: {text[:80]}")
-        return f"足しました: {text}"
+        attrs = apply_attrs({}, {"project": project, "due": due, "status": status, "weight": weight})
+        item = join_attrs(text, attrs, TODO_ATTRS)
+        update_page(TODO, lambda t: add_todo_text(t, item, section), f"todo を足す: {item[:80]}")
+        return f"足しました: {item}"
 
     @server.tool()
     def complete_todo(text: str, done: bool = True) -> str:
         """本文に text を含む todo を 1 件、完了 (done=True) か未完了 (done=False) にする。複数に当たるときは失敗する。"""
         update_page(
             TODO,
-            lambda t: set_task_done(t, lambda line: text in line, done),
+            lambda t: set_task_done(t, lambda line: text in split_attrs(TASK.match(line.rstrip("\n")).group(2))[0], done),
             f"todo を{'完了' if done else '未完了'}にする: {text[:80]}",
         )
         return f"{'完了' if done else '未完了'}にしました: {text}"
 
     @server.tool()
+    def set_todo_attributes(
+        text: str,
+        project: str | None = None,
+        due: str | None = None,
+        status: str | None = None,
+        weight: int | str | None = None,
+    ) -> str:
+        """本文に text を含む todo を 1 件探し、属性を書き換える。省いた属性はそのまま、空文字 "" を渡すと消す
+        (status を消すと未着手)。due は 2026-11-15 の形、status は 進行中・待ち、weight は 1・2・3。複数に当たるときは失敗する。"""
+        changes = {"project": project, "due": due, "status": status, "weight": weight}
+        found = {}
+
+        def change(t):
+            out, found["body"] = set_todo_attrs_text(t, text, changes)
+            return out
+
+        given = {k: v for k, v in changes.items() if v is not None}
+        update_page(TODO, change, f"todo の属性を変える: {text[:60]} {given}")
+        return f"属性を変えました: {found['body']} {given}"
+
+    @server.tool()
     def replace_todo(text: str, new_text: str) -> str:
-        """本文に text を含む todo を 1 件、本文を new_text に書き換える。節と完了かどうかはそのまま。複数に当たるときは失敗する。"""
+        """本文に text を含む todo を 1 件、本文を new_text に書き換える。節と完了かどうかと属性はそのまま。
+        new_text の末尾に `[名前: 値]` を書くと、その属性も書き換える。複数に当たるときは失敗する。"""
         new_text = receiver.one_line(new_text)
         if not new_text:
             raise ValueError("new_text が空です")
@@ -217,34 +405,64 @@ def build_server():
         return f"消しました: {found['old']}"
 
     @server.tool()
-    def list_scraps(include_read: bool = False, limit: int = 50) -> list[dict]:
-        """スクラップの一覧を新しい順に返す。各項目は added (届いた日時)・title (見出し)・url・note (添えた文)・read (既読か)。"""
+    def list_scraps(
+        include_done: bool = False,
+        aicheck: str | None = None,
+        topic: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        """スクラップの一覧を新しい順に返す。各項目は added (届いた日時)・title (見出し)・url・note (添えた文)・
+        topic (話題。無ければ null)・aicheck (未チェック・チェック済み・反映待ち)・done (オーナーが片付けたか)。
+        既定は片付いていないものだけ。aicheck・topic で絞れる。"""
         items = scrap_items(read_text(receiver.SCRAP))
-        if not include_read:
-            items = [i for i in items if not i["read"]]
+        if not include_done:
+            items = [i for i in items if not i["done"]]
+        if aicheck is not None:
+            items = [i for i in items if i["aicheck"] == aicheck]
+        if topic is not None:
+            items = [i for i in items if i["topic"] == topic]
         return items[:limit]
 
     @server.tool()
-    def add_scrap(url_or_text: str, title: str | None = None) -> str:
-        """スクラップを一覧の先頭に足す。URL なら追跡用のパラメーターを外し、見出し (X は投稿の文の頭、ほかはページのタイトル) を付ける。"""
+    def add_scrap(url_or_text: str, title: str | None = None, topic: str | None = None) -> str:
+        """スクラップを一覧の先頭に足す。URL なら追跡用のパラメーターを外し、見出し (X は投稿の文の頭、ほかはページのタイトル) を付ける。
+        topic (AI・ゲーム・開発ツール) を渡すと話題も付ける。"""
         entry = receiver.parse(receiver.json.dumps({"url": url_or_text, "title": title or ""}), "application/json")
         if not entry:
             raise ValueError("url_or_text が空です")
-        receiver.append(entry)
+        attrs = apply_attrs({}, {"topic": topic})
+        receiver.append(join_attrs(entry, attrs, SCRAP_ATTRS))
         found = receiver.placeholder_link(entry)
         if found:
             receiver.retitle(*found)
         return f"足しました: {entry}"
 
     @server.tool()
-    def mark_scrap_read(url: str, read: bool = True) -> str:
-        """URL のスクラップを既読 (read=True) か未読 (read=False) にする。"""
+    def set_scrap_attributes(url: str, topic: str | None = None, aicheck: str | None = None) -> str:
+        """URL のスクラップの属性を書き換える。省いた属性はそのまま、空文字 "" を渡すと消す。
+        topic は AI・ゲーム・開発ツール (どれにも当たらなければ付けない)。
+        aicheck は チェック済み・反映待ち ("" か「未チェック」で未チェックに戻す)。チェック欄は変えない。"""
+        if aicheck == NOT_CHECKED:
+            aicheck = ""
+        changes = {"topic": topic, "aicheck": aicheck}
         update_page(
             receiver.SCRAP,
-            lambda t: set_task_done(t, lambda line: f"({url})" in line, read, SCRAP),
-            f"スクラップを{'既読' if read else '未読'}にする: {url}",
+            lambda t: set_scrap_text(t, url, changes),
+            f"スクラップの属性を変える: {url} {({k: v for k, v in changes.items() if v is not None})}",
         )
-        return f"{'既読' if read else '未読'}にしました: {url}"
+        return f"属性を変えました: {url}"
+
+    @server.tool()
+    def complete_scrap(url: str, done: bool = True) -> str:
+        """URL のスクラップのチェック欄を付ける (done=True) か外す (done=False)。チェック欄はオーナーが片付いたと判断した印なので、
+        オーナーとの棚卸しで片付いたもの (価値が無かった・オーナーの知識に吸収した・反映が済んだ) にだけ使う。
+        反映待ちのものを片付けると、AI チェックはチェック済みに戻る。"""
+        update_page(
+            receiver.SCRAP,
+            lambda t: complete_scrap_text(t, url, done),
+            f"スクラップを{'片付ける' if done else '片付けを戻す'}: {url}",
+        )
+        return f"{'片付けました' if done else '片付けを戻しました'}: {url}"
 
     # ---- iPhone の共有シートからの受け口 ----
     from starlette.responses import PlainTextResponse
