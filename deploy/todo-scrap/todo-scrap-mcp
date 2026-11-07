@@ -6,7 +6,7 @@
 - `/` (GET): 動いているかの確認。
 
 127.0.0.1 で待ち受け、tailnet へは Tailscale Serve で公開する。
-ファイルの書き方 (todo を節の先頭に足す、スクラップを一覧の先頭に足す、見出しの付け方) は、
+ファイルの書き方 (todo を一覧の先頭に足す、スクラップを一覧の先頭に足す、見出しの付け方) は、
 `todo-scrap-receiver` を同じフォルダから読み込んで使う。
 """
 
@@ -42,7 +42,7 @@ ATTR_TAIL = re.compile(r"\s*\[([A-Za-z0-9_$]+)::?\s*([^\[\]\n]*)\]\s*$")
 TODO_ATTRS = ("category", "project", "due", "status", "weight")
 SCRAP_ATTRS = ("topic", "aicheck")
 CHOICES = {
-    "category": ("仕事", "改善", "個人開発", "プライベート"),
+    "category": ("仕事", "個人開発", "プライベート"),
     "status": ("進行中", "待ち"),
     "weight": ("1", "2", "3"),
     "topic": ("AI", "ゲーム", "開発ツール"),
@@ -194,7 +194,7 @@ def find_one_todo(lines, match):
 def edit_todo_text(text, match, new_item=None):
     """本文に match を含む項目を 1 件、本文を new_item に書き換える (None なら行を消す)。
     属性は残し、new_item に属性が書いてあればその属性だけ書き換える。
-    完了したものも対象。節と完了かどうかはそのまま。0 件か 2 件以上ならエラー。(新しい本文, 元の本文) を返す。"""
+    完了したものも対象。完了かどうかはそのまま。0 件か 2 件以上ならエラー。(新しい本文, 元の本文) を返す。"""
     lines = text.splitlines(keepends=True)
     i, m = find_one_todo(lines, match)
     old_body, attrs = split_attrs(m.group(2))
@@ -307,7 +307,7 @@ def build_server():
             "オーナーの todo の管理 (一覧・追加・完了・属性・書き換え・削除) とスクラップの管理 (一覧・追加・属性・片付け) は、このサーバーの道具で行う。"
             "ミニ PC の ~/todo-scrap のファイルを直接書き換えない (画面と受け口と同じ書き方を保つため)。"
             "todo は見出しの無い 1 つの一覧で、新しいものを先頭に足す。"
-            "todo の属性: category (カテゴリ 仕事・改善・個人開発・プライベート。足すときは必ず付ける)、"
+            "todo の属性: category (カテゴリ 仕事・個人開発・プライベート。足すときは必ず付ける)、"
             "project (案件名)、due (期限日 2026-11-15 の形)、status (進行中・待ち。無ければ未着手)、"
             "weight (重さ 1 = 1 時間以内、2 = 半日以内、3 = それ以上)。"
             "スクラップは新しいものが先頭。スクラップの属性: topic (話題 AI・ゲーム・開発ツール。ゲームはゲーム開発を含む。"
@@ -350,13 +350,13 @@ def build_server():
         status: str | None = None,
         weight: int | None = None,
     ) -> str:
-        """todo を一覧の先頭に足す。category (仕事・改善・個人開発・プライベート) は必ず渡す。
+        """todo を一覧の先頭に足す。category (仕事・個人開発・プライベート) は必ず渡す。
         ほかの属性は省けば付けない。due は 2026-11-15 の形、status は 進行中・待ち、weight は 1・2・3。"""
         text = receiver.one_line(text)
         if not text:
             raise ValueError("text が空です")
         if not category:
-            raise ValueError("category を渡してください (仕事・改善・個人開発・プライベート)")
+            raise ValueError("category を渡してください (仕事・個人開発・プライベート)")
         attrs = apply_attrs(
             {}, {"category": category, "project": project, "due": due, "status": status, "weight": weight}
         )
@@ -384,7 +384,7 @@ def build_server():
         weight: int | str | None = None,
     ) -> str:
         """本文に text を含む todo を 1 件探し、属性を書き換える。省いた属性はそのまま、空文字 "" を渡すと消す
-        (status を消すと未着手)。category は 仕事・改善・個人開発・プライベート、due は 2026-11-15 の形、
+        (status を消すと未着手)。category は 仕事・個人開発・プライベート、due は 2026-11-15 の形、
         status は 進行中・待ち、weight は 1・2・3。複数に当たるときは失敗する。"""
         changes = {"category": category, "project": project, "due": due, "status": status, "weight": weight}
         found = {}
@@ -399,7 +399,7 @@ def build_server():
 
     @server.tool()
     def replace_todo(text: str, new_text: str) -> str:
-        """本文に text を含む todo を 1 件、本文を new_text に書き換える。節と完了かどうかと属性はそのまま。
+        """本文に text を含む todo を 1 件、本文を new_text に書き換える。完了かどうかと属性はそのまま。
         new_text の末尾に `[名前: 値]` を書くと、その属性も書き換える。複数に当たるときは失敗する。"""
         new_text = receiver.one_line(new_text)
         if not new_text:
