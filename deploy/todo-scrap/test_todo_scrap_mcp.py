@@ -16,9 +16,16 @@ _loader.exec_module(mcp)
 
 TODO = """# todo
 
+- [ ] 報告を書く [category: 仕事]
+- [x] レビューに返事する [category: 仕事]
+- [ ] 部屋を片付ける [category: プライベート]
+"""
+
+OLD_TODO = """# todo
+
 ## 仕事
 - [ ] 報告を書く
-- [x] レビューに返事する
+- [x] レビューに返事する [project: 案件A]
 
 ## PDA の開発
 
@@ -37,30 +44,36 @@ SCRAP = """# スクラップ
 
 
 class TodoTest(unittest.TestCase):
-    def test_items_keep_section_and_state(self):
+    def test_items_keep_category_and_state(self):
         items = mcp.todo_items(TODO)
         self.assertEqual(
             items[0],
-            {"section": "仕事", "text": "報告を書く", "project": None, "due": None, "status": None, "weight": None, "done": False},
+            {"text": "報告を書く", "category": "仕事", "project": None, "due": None, "status": None, "weight": None,
+             "done": False},
         )
         self.assertEqual(items[1]["done"], True)
-        self.assertEqual(items[2]["section"], "自分のこと")
+        self.assertEqual(items[2]["category"], "プライベート")
 
-    def test_add_goes_to_top_of_named_section(self):
-        out = mcp.add_todo_text(TODO, "歯医者", "自分のこと")
-        self.assertIn("## 自分のこと\n- [ ] 歯医者\n- [ ] 部屋を片付ける\n", out)
+    def test_add_goes_to_top_of_list(self):
+        out = mcp.add_todo_text(TODO, "歯医者 [category: プライベート]")
+        self.assertTrue(out.startswith("# todo\n\n- [ ] 歯医者 [category: プライベート]\n- [ ] 報告を書く"))
 
-    def test_add_without_section_goes_to_first_section(self):
-        out = mcp.add_todo_text(TODO, "新しい仕事")
-        self.assertIn("## 仕事\n- [ ] 新しい仕事\n- [ ] 報告を書く\n", out)
+    def test_add_to_empty_list(self):
+        self.assertEqual(mcp.add_todo_text("# todo\n", "歯医者"), "# todo\n- [ ] 歯医者\n")
 
-    def test_add_to_empty_section(self):
-        out = mcp.add_todo_text(TODO, "MCP を作る", "PDA の開発")
-        self.assertIn("## PDA の開発\n- [ ] MCP を作る\n", out)
+    def test_sections_become_categories(self):
+        out = mcp.sections_to_categories(OLD_TODO, {"仕事": "仕事", "PDA の開発": "個人開発", "自分のこと": "プライベート"})
+        self.assertEqual(
+            out,
+            "# todo\n\n"
+            "- [ ] 報告を書く [category: 仕事]\n"
+            "- [x] レビューに返事する [category: 仕事] [project: 案件A]\n"
+            "- [ ] 部屋を片付ける [category: プライベート]\n",
+        )
 
-    def test_add_to_unknown_section_fails(self):
+    def test_sections_without_mapping_fail(self):
         with self.assertRaises(ValueError):
-            mcp.add_todo_text(TODO, "x", "無い節")
+            mcp.sections_to_categories(OLD_TODO, {"仕事": "仕事"})
 
     def test_complete_one_matching_item(self):
         out = mcp.set_task_done(TODO, lambda line: "部屋" in line)
@@ -74,24 +87,24 @@ class TodoTest(unittest.TestCase):
         out = mcp.set_task_done(TODO, lambda line: "レビュー" in line, done=False)
         self.assertIn("- [ ] レビューに返事する", out)
 
-    def test_replace_keeps_section_and_state(self):
+    def test_replace_keeps_category_and_state(self):
         out, old = mcp.edit_todo_text(TODO, "部屋", "部屋と台所を片付ける")
         self.assertEqual(old, "部屋を片付ける")
-        self.assertIn("## 自分のこと\n- [ ] 部屋と台所を片付ける\n", out)
+        self.assertIn("- [ ] 部屋と台所を片付ける [category: プライベート]\n", out)
         self.assertNotIn("部屋を片付ける", out)
 
     def test_replace_done_item_stays_done(self):
         out, _ = mcp.edit_todo_text(TODO, "レビュー", "レビューに返事した")
-        self.assertIn("- [ ] 報告を書く\n- [x] レビューに返事した\n\n## PDA", out)
+        self.assertIn("- [ ] 報告を書く [category: 仕事]\n- [x] レビューに返事した [category: 仕事]\n", out)
 
     def test_delete_one_item(self):
         out, old = mcp.edit_todo_text(TODO, "報告")
         self.assertEqual(old, "報告を書く")
-        self.assertIn("## 仕事\n- [x] レビューに返事する\n\n", out)
+        self.assertIn("# todo\n\n- [x] レビューに返事する", out)
 
     def test_delete_last_line_without_newline(self):
         out, _ = mcp.edit_todo_text(TODO.rstrip("\n"), "部屋")
-        self.assertTrue(out.endswith("## 自分のこと\n"))
+        self.assertTrue(out.endswith("- [x] レビューに返事する [category: 仕事]\n"))
 
     def test_edit_matches_body_only(self):
         with self.assertRaises(ValueError):
@@ -105,8 +118,9 @@ class TodoTest(unittest.TestCase):
 
 
 class TodoAttrTest(unittest.TestCase):
-    TEXT = """## 仕事
-- [ ] 設計書を直す [project: 案件A] [due: 2026-11-15] [status: 進行中] [weight: 2]
+    TEXT = """# todo
+
+- [ ] 設計書を直す [category: 仕事] [project: 案件A] [due: 2026-11-15] [status: 進行中] [weight: 2]
 - [ ] 報告を書く
 - [x] 期限の近いもの [due:: 2026-11-10]
 """
@@ -115,7 +129,7 @@ class TodoAttrTest(unittest.TestCase):
         items = mcp.todo_items(self.TEXT)
         self.assertEqual(
             items[0],
-            {"section": "仕事", "text": "設計書を直す", "project": "案件A", "due": "2026-11-15",
+            {"text": "設計書を直す", "category": "仕事", "project": "案件A", "due": "2026-11-15",
              "status": "進行中", "weight": 2, "done": False},
         )
         self.assertIsNone(items[1]["status"])
@@ -132,7 +146,7 @@ class TodoAttrTest(unittest.TestCase):
 
     def test_set_attrs_empty_removes_and_none_keeps(self):
         out, _ = mcp.set_todo_attrs_text(self.TEXT, "設計書", {"status": "", "due": None})
-        self.assertIn("- [ ] 設計書を直す [project: 案件A] [due: 2026-11-15] [weight: 2]\n", out)
+        self.assertIn("- [ ] 設計書を直す [category: 仕事] [project: 案件A] [due: 2026-11-15] [weight: 2]\n", out)
 
     def test_set_attrs_rejects_values_out_of_range(self):
         for changes in ({"status": "完了"}, {"weight": 4}, {"due": "11/15"}, {"due": "20261115"}):
@@ -150,7 +164,7 @@ class TodoAttrTest(unittest.TestCase):
     def test_replace_keeps_attributes(self):
         out, old = mcp.edit_todo_text(self.TEXT, "設計書", "設計書を最新化する")
         self.assertEqual(old, "設計書を直す")
-        self.assertIn("- [ ] 設計書を最新化する [project: 案件A] [due: 2026-11-15] [status: 進行中] [weight: 2]\n", out)
+        self.assertIn("- [ ] 設計書を最新化する [category: 仕事] [project: 案件A] [due: 2026-11-15] [status: 進行中] [weight: 2]\n", out)
 
     def test_replace_moves_prefix_to_project(self):
         out, _ = mcp.edit_todo_text(self.TEXT, "報告", "報告を書く [project: 案件B]")
@@ -158,13 +172,13 @@ class TodoAttrTest(unittest.TestCase):
 
     def test_add_with_attributes(self):
         item = mcp.join_attrs("歯医者", mcp.apply_attrs({}, {"due": "2026-11-20", "weight": None}), mcp.TODO_ATTRS)
-        self.assertIn("## 仕事\n- [ ] 歯医者 [due: 2026-11-20]\n", mcp.add_todo_text(self.TEXT, item))
+        self.assertIn("# todo\n\n- [ ] 歯医者 [due: 2026-11-20]\n- [ ] 設計書を直す", mcp.add_todo_text(self.TEXT, item))
 
     def test_complete_matches_body_with_attributes(self):
         out = mcp.set_task_done(
             self.TEXT, lambda line: "設計書" in mcp.split_attrs(mcp.TASK.match(line.rstrip("\n")).group(2))[0]
         )
-        self.assertIn("- [x] 設計書を直す [project: 案件A]", out)
+        self.assertIn("- [x] 設計書を直す [category: 仕事] [project: 案件A]", out)
 
 
 class ScrapTest(unittest.TestCase):
