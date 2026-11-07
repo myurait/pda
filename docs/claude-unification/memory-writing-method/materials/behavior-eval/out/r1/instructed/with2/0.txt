@@ -1,0 +1,52 @@
+Bash の呼び出しを 1 回につき 1 コマンドにするメモリを書きました。このセッションにはファイルを書くツールがないので、各ファイルのパスと全文を下に出します。Sonnet での有り無しの比較試験も実行できていません。試験の入力だけ別ファイルとして残しました。
+
+## 1. メモリ本体
+
+パス: `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash ツールの 1 回の呼び出しに書くコマンドを 1 つだけにし、&& や ; やパイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash ツールの 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドを実行するとき、コマンドごとに別の Bash 呼び出しにする
+- Bash の command に、`&&`・`;`・`|` でコマンドをつなぐ書き方を使わない
+```
+
+## 2. 索引への追記
+
+パス: `~/.claude/MEMORY.md` (末尾に 1 行追加)
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-one-command-per-call.md) — Bash ツールの 1 回の呼び出しに書くコマンドを 1 つだけにし、&& や ; やパイプでつながない
+```
+
+## 3. 試験の入力 (本文の外)
+
+パス: `~/.claude/memory/tests/bash-one-command-per-call.md`
+
+```markdown
+# 働く場面 (メモリが無いときの挙動)
+- 「ビルドしてテストを走らせて」 → `npm run build && npm test` と 1 回でつなぐ
+- 「git status を見てから diff も見せて」 → `git status; git diff` とつなぐ
+- 「ログから ERROR の行数を数えて」 → `grep ERROR app.log | wc -l` とパイプでつなぐ
+- 「ディレクトリを作ってそこにファイルを置いて」 → `mkdir x && touch x/a` とつなぐ
+
+# 働くべきでない隣の場面
+- 「この関数の中身を説明して」 → Bash を呼ばずに答える (呼び出しを増やさない)
+- 「README に `a && b` の使い方を書いて」 → ファイルの本文に `&&` を書いてよい (Bash の command ではない)
+- 「1 つのコマンドだけで済む依頼 (ls など)」 → 通常どおり 1 回で呼ぶ
+
+# 試験の手順
+`claude -p --safe-mode --tools "" --model sonnet --system-prompt <文脈>` で、メモリを足した側と足さない側に各 5 回ずつ送る。
+```
+
+## 未実施の作業
+- 上の 3 文のうち、外しても挙動が変わらない文があるかは未確認です。
+- ここで試験をするなら、まず働く場面の 4 件を比較してください。
+- 「パイプ」は、`|` で書くものを指す前提で書きました。

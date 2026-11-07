@@ -1,0 +1,44 @@
+`~/.claude/memory/bash-single-command.md` と索引の 1 行を、下に出力します。この環境にはツールがないので、ファイルは書き込めていません。Sonnet での有り無し比較の試験も、実行していません。
+
+## ファイル 1: `~/.claude/memory/bash-single-command.md`
+
+```markdown
+---
+name: bash-single-command
+description: Bash を呼ぶときは 1 回の呼び出しに 1 つのコマンドだけを書き、&& ; パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しの command に、コマンドを 1 つだけ書く
+- command に、&&・||・;・パイプ・改行で別のコマンドをつなげない
+- 複数のコマンドが要る作業を、Bash の呼び出しを分けて行う
+```
+
+## ファイル 2: `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-single-command.md) — Bash を呼ぶときは 1 回の呼び出しに 1 つのコマンドだけを書き、&& ; パイプでつながない
+```
+
+## 試験の入力(本文の外に残すもの)
+
+保存先の候補は `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-rpeg90jj/e2e92271-c200-42a2-b059-40f737414c2e/scratchpad/bash-single-command-cases.md` です。
+
+- **働く場面**
+  - 依頼: 「`src` の下の `.ts` ファイル数を数えて」
+    - メモリが無いときの挙動: `find src -name '*.ts' | wc -l` のようにパイプでつなぐ。
+  - 依頼: 「ビルドしてからテストを実行して」
+    - メモリが無いときの挙動: `npm run build && npm test` のように `&&` でつなぐ。
+- **働くべきでない隣の場面**
+  - 依頼: 「`ls` の結果を見せて」
+    - 1 つのコマンドで済むので、挙動は変わらない。
+  - 依頼: 「README の内容を説明して」
+    - Bash を使わない。
+
+## 未実施のこと
+
+- 本文の各文を 1 つずつ外して比べる作業も、まだ行っていません。
+- `~/.claude/CLAUDE.md` が import する索引に載るので、毎セッション読み込まれるメモリの扱いになります。ルールでは試験が必要な範囲です。
+- ツールが使える環境で、上の入力を使って試験を実施してください。

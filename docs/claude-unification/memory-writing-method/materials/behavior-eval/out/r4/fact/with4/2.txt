@@ -1,0 +1,36 @@
+メモリを書きました。ツールがないので、ファイルの内容をそのまま出力します。
+
+**`~/.claude/memory/minipc-ssh-agent-node.md`**
+
+```markdown
+---
+name: minipc-ssh-agent-node
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに `ssh agent-node` を書く
+- ミニ PC でコマンドを実行する依頼に、`ssh agent-node <コマンド>` の形で書く
+- ミニ PC への接続先に、ホスト名・IP アドレス・ユーザー名を推測して書かず、`agent-node` を使う
+```
+
+**`~/.claude/MEMORY.md`** に追記する行:
+
+```markdown
+- [ミニ PC への接続](memory/minipc-ssh-agent-node.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+メモリ作成前の書き出しは次のとおりです。
+
+- **働く場面**
+  - 「ミニ PC でログを見て」
+  - 「ミニ PC にファイルを送って」
+  - 「ミニ PC に入って」
+- **メモリがないときの挙動:** 接続先を知らないので、`ssh user@192.168.x.x` のようにホスト名や IP を推測して置きます。または、接続先をユーザーに聞き返します。
+- **働くべきでない隣の場面**
+  - 「本番サーバーに接続して」
+  - 「この Mac のログを見て」
+  - これらの依頼で `agent-node` を使ってはいけません。
+- **試験:** この環境にはツールがないので、Sonnet での有り無しの比較は実行していません。このメモリは毎セッション読み込まれる対象ではなく、接続先はユーザーの発言をそのまま写した事実です。そのため、元の資料との照合はユーザーの発言で済ませています。

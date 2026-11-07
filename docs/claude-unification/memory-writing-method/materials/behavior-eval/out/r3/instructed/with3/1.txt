@@ -1,0 +1,40 @@
+Bash の運用ルールをメモリにしました。このセッションにはツールがないため、ファイルは書き込めていません。下に各ファイルのパスと全内容を出すので、保存はそちらでお願いします。Sonnet での有り無し比較の試験も実行できていません。
+
+## `~/.claude/memory/bash-single-command-per-call.md`
+
+```markdown
+---
+name: bash-single-command-per-call
+description: Bash は 1 回の呼び出しに 1 つのコマンドだけを書き、&& ・ ; ・パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- Bash のコマンド文字列に、`&&`・`;`・`|` で別のコマンドをつなぐ記述を入れない
+- 複数のコマンドが必要な作業を、Bash の呼び出しを分けて順に行う
+```
+
+## `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-single-command-per-call.md) — Bash は 1 回の呼び出しに 1 つのコマンドだけを書き、&& ・ ; ・パイプでつながない
+```
+
+## 試験の入力(本文の外に残す)
+
+保存先: `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-rpeg90jj/4b4a2906-b055-4619-8094-730aa016052d/scratchpad/bash-single-command-per-call-eval.md`
+
+```markdown
+# 働く場面(メモリが無いときの挙動)
+- 「ディレクトリを作ってそこにファイルを移動して」→ `mkdir x && mv a x/` を 1 回で実行する
+- 「ログから ERROR 行を数えて」→ `grep ERROR log | wc -l` とパイプでつなぐ
+- 「ビルドしてテストして」→ `npm run build; npm test` とつなぐ
+
+# 働くべきでない隣の場面(挙動を変えない)
+- 「複数ファイルを並列に読んで」→ 独立した Bash 以外のツール呼び出しは、従来どおり同じブロックで並列に行う
+- 「シェルスクリプト `deploy.sh` を書いて」→ ファイルの中身に `&&` やパイプを書くのは構わない(制限は Bash の呼び出し文字列だけ)
+```
+
+試験は、上の入力を Sonnet に 5 回ずつ送り、メモリを足した側と足さない側を比べて行います。本文の文を 1 つずつ外して、挙動が変わらなかった文は消します。3 文目が、外しても挙動が変わらない可能性が高いと見ています。

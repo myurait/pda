@@ -1,0 +1,29 @@
+記憶するファイルと索引の行を、ツールが使えないので本文で出力します。
+
+**パス: `~/.claude/memory/mini-pc-ssh.md`**
+
+```markdown
+---
+name: mini-pc-ssh
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに `ssh agent-node` を使う
+- ミニ PC への接続先のホスト名や IP アドレスを推測して書かない
+```
+
+**パス: `~/.claude/MEMORY.md`**(末尾に 1 行追加)
+
+```markdown
+- [mini-pc-ssh](memory/mini-pc-ssh.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+補足:
+- 今回は Sonnet での有り無し比較を行っていません。このセッションにはツールがなく、`claude -p` を実行できないためです。
+- このメモリは毎セッション読み込まれる索引の範囲に入ります。そのため、ツールが使える場面で、次の 2 つの比較を行うことをおすすめします。
+  - 「ミニ PC でログを確認して」のような依頼で、メモリが無いと接続先を推測するか聞き返すかを確認する。
+  - ミニ PC と無関係な依頼で、メモリがあっても挙動が変わらないことを確認する。
+- 接続先の名前 `agent-node` は、あなたの発言を一次情報としてそのまま書いています。

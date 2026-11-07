@@ -1,0 +1,26 @@
+メモリに保存します。ツールがないので、ファイル内容をテキストで出力します。
+
+**ファイル: `~/.claude/memory/mini-pc-ssh-agent-node.md`**
+
+```markdown
+---
+name: mini-pc-ssh-agent-node
+description: ミニ PC への接続方法は `ssh agent-node`
+metadata:
+  node_type: memory
+  type: reference
+---
+
+ミニ PC には `ssh agent-node` で接続する。
+
+**Why:** ユーザーが接続方法を覚えておくよう明示的に依頼したため。
+**How to apply:** ミニ PC への接続、リモート実行、ファイル転送が必要なときは、このホスト名 `agent-node` を使う。
+```
+
+**ファイル: `~/.claude/MEMORY.md`**(インデックスに以下の行を追記)
+
+```markdown
+- [ミニ PC への SSH 接続](memory/mini-pc-ssh-agent-node.md) — `ssh agent-node` で接続
+```
+
+このセッションではファイルを書き込めないため、上記を出力するだけにしています。実際に保存するには、上の内容を各パスに配置してください。

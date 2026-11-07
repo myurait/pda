@@ -1,0 +1,27 @@
+メモリに残します。ツールが使えないため、ファイルの内容をテキストで出力します。
+
+**ファイル 1:** `~/.claude/memory/bash-single-command-per-call.md`
+
+```markdown
+---
+name: bash-single-command-per-call
+description: Bash ツールは 1 回の呼び出しにつきコマンドを 1 つだけ書く。&&・;・パイプで連結しない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+Bash を呼ぶときは、1 回の呼び出しに 1 つのコマンドだけを書く。`&&`、`;`、パイプ (`|`) でコマンドをつながない。
+
+**Why:** ユーザーから明示的に指示された。
+
+**How to apply:** 複数のコマンドが必要なときは、Bash 呼び出しを分ける。互いに依存しない呼び出しは同じブロックで並列に実行し、前の結果に依存する呼び出しは、その結果を待ってから実行する。
+```
+
+**ファイル 2:** `~/.claude/MEMORY.md`(index に次の 1 行を追記)
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-single-command-per-call.md) — &&・;・パイプで連結せず、コマンドごとに呼び出しを分ける
+```
+
+今後 Bash を使うときは、この方針に従います。

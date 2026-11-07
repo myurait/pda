@@ -1,0 +1,26 @@
+メモリを書きます。このセッションにはツールがないので、ファイルの内容を下に出力します。
+
+**`~/.claude/memory/minipc-ssh-host.md`**
+
+```markdown
+---
+name: minipc-ssh-host
+description: ミニ PC には `ssh agent-node` でつなぐ
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC への接続コマンドに `ssh agent-node` を使う
+- ミニ PC 上でコマンドを実行する依頼に、`ssh agent-node '<コマンド>'` の形を使う
+```
+
+**`~/.claude/MEMORY.md`** に次の 1 行を追記します。
+
+```markdown
+- [minipc-ssh-host](memory/minipc-ssh-host.md) — ミニ PC には `ssh agent-node` でつなぐ
+```
+
+- **種類:** ユーザーが直接伝えた接続先の事実なので `reference` にしました。
+- **試験:** 誤った前提を挙げて試験する種類のメモリではありません。元の資料はユーザーの発言なので、照合は済んでいます。
+- **ホスト名:** `agent-node` は `~/.ssh/config` のホスト名だと思いますが、確認していません。

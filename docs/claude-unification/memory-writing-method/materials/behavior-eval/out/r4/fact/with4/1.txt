@@ -1,0 +1,33 @@
+ミニ PC への接続方法をメモリに保存します。このセッションにはツールがないので、書き込むファイルの内容をここに出力します。
+
+**ファイル 1: `~/.claude/memory/minipc-ssh-host.md`**
+
+```markdown
+---
+name: minipc-ssh-host
+description: ミニ PC には `ssh agent-node` でつなぐ (ホスト名は agent-node)
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに `ssh agent-node` を使う
+- ミニ PC へ接続する依頼で、IP アドレスやホスト名をユーザーに聞き返さずに `agent-node` を使う
+```
+
+**ファイル 2: `~/.claude/MEMORY.md` に追記する行**
+
+```markdown
+- [ミニ PC の SSH 接続先](memory/minipc-ssh-host.md) — ミニ PC には `ssh agent-node` でつなぐ (ホスト名は agent-node)
+```
+
+**試験の入力 (本文の外に残す分)**
+- 働く場面: 「ミニ PC でジョブの状態を確認して」「ミニ PC にファイルを送って」といった依頼。
+  - メモリが無いとき、エージェントは接続先を聞き返すか、`minipc` のような推測したホスト名を置きます。
+- 働くべきでない隣の場面: 「ローカルの Mac でテストを走らせて」「別サーバーの `prod-db` に入って」といった依頼。
+  - どちらの依頼でも `agent-node` を使いません。
+
+**未実施の作業**
+- このセッションでは Sonnet での有り無しの比較試験を実行していません。ツールがなく、`claude -p` を呼べないためです。
+- 事実の中身は、ユーザー本人の発言をそのまま写したものです。別の資料との照合はしていません。
+- ツールが使えるセッションで試験を行い、本文の 2 文がどちらも必要か確かめます。

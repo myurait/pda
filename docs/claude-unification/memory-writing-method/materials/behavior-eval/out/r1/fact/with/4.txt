@@ -1,0 +1,27 @@
+ミニ PC の接続先をメモリに保存します。このセッションにはツールがないので、ファイルの内容をテキストで出します。
+
+**ファイル 1: `~/.claude/memory/minipc-ssh-host.md`**
+
+```markdown
+---
+name: minipc-ssh-host
+description: ミニ PC には `ssh agent-node` でつなぐ
+metadata:
+  node_type: memory
+  type: reference
+---
+
+ミニ PC への接続コマンドは `ssh agent-node` を使う。`agent-node` は ssh のホスト名で、ユーザー名・IP・ポートを別に指定しない。
+```
+
+**ファイル 2: `~/.claude/MEMORY.md` に追記する 1 行**
+
+```markdown
+- [minipc-ssh-host](memory/minipc-ssh-host.md) — ミニ PC には `ssh agent-node` でつなぐ
+```
+
+**試験について**
+- メモリの有無で Sonnet の出力を比べる試験は、ツールがないので行っていません。
+- このメモリは、ユーザーが直接伝えた接続先をそのまま書いた事実のメモリです。
+- 本文は 1 文に絞りました。
+- 次にツールが使えるセッションで、`ssh agent-node` が実際につながるかを確認すると確実です。

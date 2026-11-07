@@ -1,0 +1,25 @@
+メモリを保存します。このセッションにはファイルを書くツールがないので、書き込む内容を下に出力します。
+
+**`~/.claude/memory/mini-pc-ssh-host.md`**
+
+```markdown
+---
+name: mini-pc-ssh-host
+description: ミニ PC への接続は `ssh agent-node` で行う
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに、`ssh agent-node` を使う
+- ミニ PC のホスト名・IP アドレス・ユーザー名を、ユーザーに聞かずに `agent-node` の名前だけで接続する
+```
+
+**`~/.claude/MEMORY.md`** に追記する行:
+
+```markdown
+- [ミニ PC への SSH 接続](memory/mini-pc-ssh-host.md) — ミニ PC への接続は `ssh agent-node` で行う
+```
+
+- **試験は未実施:** この記憶は事実のメモリです。メモリ規約の試験は、毎セッション読み込まれるメモリとこのメモリの書き換えが対象なので、この記憶は対象外です。
+- **元の資料との照合は未実施:** `agent-node` が `~/.ssh/config` に実在するかは、今回は確認していません。ツールが使えるセッションで `ssh -G agent-node` を実行すれば確認できます。

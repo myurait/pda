@@ -1,0 +1,29 @@
+ミニ PC への接続方法を覚えました。ツールが使えないため、ファイルは書き込まずに内容を以下に出力します。
+
+**`~/.claude/memory/mini-pc-ssh.md`**
+
+```markdown
+---
+name: mini-pc-ssh
+description: ミニ PC には `ssh agent-node` でつなぐ
+metadata:
+  node_type: memory
+  type: reference
+---
+
+ミニ PC への接続は `ssh agent-node` を使う。ホスト名・ユーザー名・IP を推測せず、このエイリアスをそのまま指定する。
+
+**Why:** ユーザーが接続先の呼び名として `agent-node` を指定した。これを知らないと、IP やユーザー名を聞き返すか、誤ったホスト名を置く。
+**How to apply:** ミニ PC でコマンドを実行する依頼、ミニ PC へファイルを送る依頼、ミニ PC の状態を確認する依頼では、`ssh agent-node` を使う (`scp`・`rsync` も同じ名前を使う)。
+```
+
+**`~/.claude/MEMORY.md`** に追記する行:
+
+```markdown
+- [mini-pc-ssh](memory/mini-pc-ssh.md) — ミニ PC には `ssh agent-node` でつなぐ
+```
+
+補足:
+- `agent-node` は `~/.ssh/config` のエイリアスだと考えて書きましたが、確認はしていません。
+- 事実のメモリなので、元の資料と照らす確認が必要です。今回はユーザーの発言以外に資料がなく、実際の接続も試せていません。
+- 試験(Sonnet での有り無し比較)は、毎セッション読み込まれる範囲の外なので行っていません。同じ失敗が 2 回目に起きた直後に行います。

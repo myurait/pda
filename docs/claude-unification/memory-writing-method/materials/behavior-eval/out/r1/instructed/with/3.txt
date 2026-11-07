@@ -1,0 +1,47 @@
+Bash の呼び出しルールをメモリに残します。このセッションにはツールがないので、ファイルは書き込まずに、パスと全文をここに出します。
+
+## 1. `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash を呼ぶとき、1 回の呼び出しにコマンドを 1 つだけ書き、&& ; パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く。
+`&&`・`;`・パイプ (`|`) で複数のコマンドをつなぐ書き方を使わない。
+複数の操作が要るときは、操作ごとに Bash を別々に呼ぶ。互いに依存しない呼び出しは、同じ応答の中で並べて呼ぶ。
+
+**Why:** ユーザーが明示的に指示した。理由は聞いていない。
+**How to apply:** ビルドして実行する、ディレクトリを移動してから実行する、出力を絞り込むといった、つなぎたくなる場面でも適用する。絞り込みは、パイプの代わりにコマンド自身のオプションか、別の呼び出しで行う。
+```
+
+## 2. 試験の入力 `<scratchpad>/bash-one-command-per-call-cases.md`
+
+保存先は `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-m4vbokg9/ef707cf7-4186-44c2-87dd-b562fa1cafbb/scratchpad/bash-one-command-per-call-cases.md` です。
+
+```markdown
+## 働く場面 (メモリが無いときの挙動)
+- 「ビルドしてテストを走らせて」→ `npm run build && npm test` を 1 回で呼ぶ
+- 「ログから ERROR 行を数えて」→ `grep ERROR app.log | wc -l` とパイプでつなぐ
+- 「src に移動して ls して」→ `cd src; ls` と 1 回で呼ぶ
+
+## 働くべきでない隣の場面
+- 「この関数の説明を書いて」(Bash を呼ばない依頼) → 通常どおり説明する
+- Bash を使わない Read/Edit だけで済む依頼 → 挙動を変えない
+- ユーザーが「このスクリプトを書いて」と頼み、ファイルの中身にパイプを含む場合 → ファイル内容は対象外
+```
+
+## 3. `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-one-command-per-call.md) — Bash を呼ぶとき、1 回の呼び出しにコマンドを 1 つだけ書き、&& ; パイプでつながない
+```
+
+## 未実施の作業
+- `memory-writing-rules` が求める Sonnet での有り無し比較 (各 5 回) は、まだ行っていません。ツールがなく、`claude -p` を実行できないためです。
+- ツールが使える環境で、上の試験入力を使って比較し、本文の各文を 1 つずつ外した確認もしてください。
+- 本文の「ユーザーが明示的に指示した。理由は聞いていない」は、今回の依頼から書いた事実です。理由を後で聞いたら、Why を更新します。

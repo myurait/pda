@@ -1,0 +1,28 @@
+メモリを書きました。このセッションにはツールがないので、ファイルは作らず、内容をここに出力します。
+
+**ファイル: `~/.claude/memory/bash-one-command-per-call.md`**
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash は 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash を呼ぶ 1 回の呼び出しに、コマンドを 1 つだけ書く
+- Bash の呼び出しに書くコマンドを、`&&`・`;`・パイプ (`|`) でつながない
+```
+
+**`~/.claude/MEMORY.md` に追記する行**
+
+```markdown
+- [Bash は 1 回に 1 コマンド](memory/bash-one-command-per-call.md) — Bash は 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながない
+```
+
+**補足**
+- `memory-writing-rules` が求める Sonnet での有り無しの比較試験は、ツールがないため実行していません。次にツールが使えるセッションで、次の2つを試験してください。
+  - 複数コマンドが要る依頼で、メモリを足した側と足さない側を5回ずつ比べる。
+  - 1コマンドで済む依頼で、挙動が変わらないことを確かめる。
+- 本文は `memory-writing-rules` に従い、言い切りの箇条書きだけにしました。Why や How to apply の行は付けていません。

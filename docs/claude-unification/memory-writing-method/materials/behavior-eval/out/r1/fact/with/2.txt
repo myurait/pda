@@ -1,0 +1,28 @@
+ミニ PC への接続方法をメモリに書きます。このセッションにはツールがないので、ファイルの内容を下に出力します。
+
+**ファイル 1: `~/.claude/memory/minipc-ssh-agent-node.md`**
+
+```markdown
+---
+name: minipc-ssh-agent-node
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+ミニ PC への接続は `ssh agent-node` で行う。ホスト名・IP・ユーザー名を別に指定しない。
+```
+
+**ファイル 2: `~/.claude/MEMORY.md` に追記する 1 行**
+
+```markdown
+- [ミニ PC への接続](memory/minipc-ssh-agent-node.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+**メモリ書き込みルールに沿った確認状況**
+- 働く場面は「ミニ PC で作業して」「ミニ PC にファイルを送って」といった依頼です。
+- メモリが無いときは、IP やホスト名をユーザーに聞き返すか、推測した接続先を置くと想定しています。
+- 隣の場面は「別のサーバーに接続して」といった依頼です。ここでは `agent-node` を使いません。
+- 今回は事実のメモリで、ユーザーの発言をそのまま書いています。`~/.ssh/config` に `agent-node` があるかは、ツールがなく確認できていません。
+- このメモリは毎セッション読み込まれる範囲の外なので、Sonnet での有り無しの比較試験は行っていません。同じ失敗が 2 回目に起きたら行います。

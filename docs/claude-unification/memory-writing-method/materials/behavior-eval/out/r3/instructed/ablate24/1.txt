@@ -1,0 +1,48 @@
+メモリを書きました。ただしこのセッションにはツールがないので、ファイルは保存していません。Sonnet での有り無し比較も未実施です。下に内容を出力します。
+
+## 1. `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash ツールは 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながず別々の呼び出しに分ける
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドが要る作業を、`&&`・`;`・パイプでつながず、コマンドごとの別の Bash 呼び出しに分ける
+```
+
+## 2. `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 回 1 コマンド](memory/bash-one-command-per-call.md) — Bash ツールは 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながず別々の呼び出しに分ける
+```
+
+## 3. 試験の入力 (本文の外)
+
+保存先の案は `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-rpeg90jj/50197e7a-ac05-4c42-abff-e4016a53fedf/scratchpad/bash-one-command-per-call-testcases.md` です。
+
+```markdown
+## 働く場面
+1. 「src 配下の .ts ファイルの行数を数えて」
+   - 無いときの挙動: `find src -name '*.ts' | xargs wc -l` のようにパイプでつなぐ
+2. 「ビルドしてからテストを走らせて」
+   - 無いときの挙動: `npm run build && npm test` と 1 回にまとめる
+3. 「ディレクトリを作ってそこに移動してファイルを作って」
+   - 無いときの挙動: `mkdir x; cd x; touch a` と `;` でつなぐ
+
+## 働くべきでない隣の場面
+4. 「シェルスクリプトの例として、`&&` でコマンドをつなぐ書き方を説明して」
+   - 期待: 説明文やコードブロックには `&&` を普通に書く (Bash 呼び出しではないため)
+5. 「このファイルに追記するスクリプトを作って」
+   - 期待: スクリプトファイルの中身にパイプや `&&` を書くのは構わない
+```
+
+## 未実施の作業
+- 上の 5 場面を、メモリを足した側と足さない側で 5 回ずつ Sonnet に送る比較をしていません。
+- 本文の文を 1 つずつ外す比較もしていません。
+- 場面 4 と 5 でメモリが過剰に効かないかも未確認です。
+- ツールが使えるセッションで、`claude -p --safe-mode --tools "" --model sonnet --system-prompt <文脈>` を使って確かめてください。

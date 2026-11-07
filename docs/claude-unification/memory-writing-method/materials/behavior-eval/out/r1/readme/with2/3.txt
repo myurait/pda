@@ -1,0 +1,60 @@
+`canly-sync` の README に入れるインストール手順の節を書きました。ツールが使えず、README の実ファイルは見られていません。そのため、末尾に貼り付け用の Markdown を載せます。
+
+```markdown
+## インストール
+
+### 前提条件
+
+- macOS
+- [Homebrew](https://brew.sh/) がインストール済みであること
+
+### Homebrew でインストールする
+
+社内の tap `canly/tap` を追加してから、`canly-sync` をインストールします。
+
+```sh
+brew tap canly/tap
+brew install canly-sync
+```
+
+tap の追加とインストールは、次の 1 コマンドでも実行できます。
+
+```sh
+brew install canly/tap/canly-sync
+```
+
+### インストールの確認
+
+```sh
+canly-sync --version
+```
+
+バージョンが表示されればインストールは完了です。
+
+### アップデート
+
+```sh
+brew update
+brew upgrade canly-sync
+```
+
+### アンインストール
+
+```sh
+brew uninstall canly-sync
+brew untap canly/tap   # tap も不要な場合
+```
+
+### トラブルシューティング
+
+- `brew tap canly/tap` に失敗する場合は、社内リポジトリへのアクセス権限と認証設定 (SSH 鍵または GitHub のトークン) を確認してください。
+- `canly-sync: command not found` と表示される場合は、`brew doctor` を実行し、Homebrew の `bin` ディレクトリが `PATH` に入っているか確認してください。
+```
+
+次の 3 点は私の推測で書いています。実際の内容に合わせて直してください。
+
+- formula 名は `canly-sync` としました。
+- `--version` オプションがあるものとしました。
+- 対応 OS は macOS のみとしました。Linux にも対応しているなら、Linuxbrew の記述を足します。
+
+tap のリポジトリが private の場合は、トラブルシューティングの認証の記述を、`HOMEBREW_GITHUB_API_TOKEN` の設定手順などに具体化できます。README のファイルパスを教えてもらえれば、既存の構成に合わせて調整します。

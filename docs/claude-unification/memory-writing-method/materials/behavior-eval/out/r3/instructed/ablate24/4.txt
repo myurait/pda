@@ -1,0 +1,36 @@
+メモリを2ファイル分、下に出力します。この環境にはファイルを書くツールも Sonnet を呼ぶツールもありません。そのため、実際のファイル作成と、メモリ有り無しの Sonnet での比較試験はまだ行っていません。
+
+## ファイル 1: `~/.claude/memory/bash-single-command-per-call.md`
+
+```markdown
+---
+name: bash-single-command-per-call
+description: Bash の 1 回の呼び出しにコマンドを 1 つだけ書き、&& ; | でつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドが要るとき、&& ・ ; ・パイプ (|) でつながず、コマンドごとに Bash を別の呼び出しに分ける
+```
+
+## ファイル 2: `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出しに 1 コマンド](memory/bash-single-command-per-call.md) — Bash の 1 回の呼び出しにコマンドを 1 つだけ書き、&& ; | でつながない
+```
+
+## 試験の入力（本文の外に残す分）
+
+- **働く場面:** 「ファイルを一覧して、その中から `foo` を含む行を探して」のように、複数のコマンドを使う依頼。
+  - メモリが無いときの挙動: `ls && grep foo ...` や `cmd1 | cmd2` を 1 回の Bash 呼び出しに書く。
+- **働くべきでない隣の場面:** 「`git status` を実行して」のように、コマンドが 1 つで済む依頼。
+  - この場面では、メモリの有り無しで挙動が変わらないことを確かめる。
+
+## 未実施の作業
+
+- 上の入力で、メモリ有り無しを 5 回ずつ Sonnet に送る比較（`claude -p --safe-mode --tools "" --model sonnet --system-prompt ...`）。
+- 本文の各文を 1 つずつ外した比較。
+
+ツールのある環境で、この 2 点を行ってください。

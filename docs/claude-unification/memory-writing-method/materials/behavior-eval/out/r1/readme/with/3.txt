@@ -1,0 +1,59 @@
+README のインストール手順の節を書きました。ファイルを書き込むツールがこのセッションにないため、本文をここに載せます。`README.md` の好きな位置に貼ってください。
+
+```markdown
+## インストール
+
+### 必要環境
+
+- macOS
+- [Homebrew](https://brew.sh/)
+
+### Homebrew でインストールする
+
+社内 tap `canly/tap` を追加してインストールします。
+
+```sh
+brew tap canly/tap
+brew install canly-sync
+```
+
+tap の追加を省いて、次の 1 コマンドでインストールすることもできます。
+
+```sh
+brew install canly/tap/canly-sync
+```
+
+### インストールの確認
+
+```sh
+canly-sync --version
+```
+
+バージョンが表示されれば完了です。
+
+### アップデート
+
+```sh
+brew update
+brew upgrade canly-sync
+```
+
+### アンインストール
+
+```sh
+brew uninstall canly-sync
+brew untap canly/tap   # tap も不要な場合
+```
+
+### トラブルシューティング
+
+- `brew tap canly/tap` に失敗する場合は、`canly/tap` リポジトリへのアクセス権があるか確認してください。社内の private リポジトリの場合は、GitHub への認証 (`gh auth login` など) が必要です。
+- `command not found: canly-sync` と表示される場合は、`brew --prefix`/bin が `PATH` に含まれているか確認してください。
+```
+
+次の点は推測で書いたので、実際と違えば直してください。
+
+- Homebrew の formula 名は `canly-sync` と仮定しました。
+- `--version` オプションがあると仮定しました。
+- tap のリポジトリが private で、認証が必要になる場合があると仮定しました。
+- 対応 OS は macOS のみと仮定しました。Linux でも使う場合は、Linuxbrew の案内を足します。

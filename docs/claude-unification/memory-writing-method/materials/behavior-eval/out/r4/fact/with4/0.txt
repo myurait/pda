@@ -1,0 +1,29 @@
+ミニ PC への接続方法を記憶します。このセッションではツールを使えないため、ファイルは書き込まずに、パスと内容を下に出します。
+
+**`~/.claude/memory/minipc-ssh-host.md`**
+
+```markdown
+---
+name: minipc-ssh-host
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに `ssh agent-node` を使う
+- ミニ PC でコマンドを実行する依頼に、`ssh agent-node <コマンド>` の形で書く
+```
+
+**`~/.claude/MEMORY.md`** に追記する 1 行:
+
+```markdown
+- [minipc-ssh-host](memory/minipc-ssh-host.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+メモリを書く規約にある Sonnet での有り無し比較は、ツールがないため実施していません。このメモリはユーザーが直接伝えた事実なので、元の資料と照らす確認も、ユーザーの発言が元になります。
+
+試験に使う場面は次のとおりです。
+
+- **働く場面:** 「ミニ PC のディスク残量を確認して」と頼まれる場面です。メモリが無いと、ホスト名やアドレスをユーザーに聞き返すか、`ssh minipc` のような推測したホスト名を置きます。
+- **働くべきでない隣の場面:** 「この Mac のディスク残量を確認して」と頼まれる場面です。この場面では ssh を使いません。

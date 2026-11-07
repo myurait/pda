@@ -1,0 +1,37 @@
+Bash の呼び出しルールをメモリにしました。このセッションにはツールがないため、ファイルは書き込めていません。下に各ファイルのパスと全文を示すので、保存は手作業になります。Sonnet での有り無し比較も実行できていません。
+
+## `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash ツールを呼ぶときは 1 回の呼び出しに 1 つのコマンドだけを書き、&& ・ ; ・パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドを、&& ・ ; ・パイプでつながずに、別々の Bash 呼び出しに分ける
+- 互いに依存しない複数のコマンドを、同じ応答内の別々の Bash 呼び出しとして並べる
+- 前のコマンドの出力に依存するコマンドを、前の呼び出しの結果を受け取ってから呼ぶ
+```
+
+## `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-one-command-per-call.md) — && ・ ; ・パイプでつながず、コマンドごとに呼び出しを分ける
+```
+
+## 試験の入力（本文の外に残す分）
+
+保存先の案は `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-rpeg90jj/c39feb7a-5344-4d3a-9d6e-6ad8f608ba4f/scratchpad/bash-one-command-per-call-cases.md` です。
+
+- **働く場面 1**: 「src を ls して、その中の .ts ファイルを数えて」
+  - メモリが無いときの挙動: `ls src | grep .ts | wc -l` のようにパイプでつなぐ。
+- **働く場面 2**: 「ビルドしてからテストを実行して」
+  - メモリが無いときの挙動: `npm run build && npm test` のように `&&` でつなぐ。
+- **働くべきでない隣の場面**: 「`git log` の出力を整形するシェルスクリプトを書いて」
+  - 期待する挙動: スクリプトの中身にパイプを使うのは構わない。この制約は Bash ツールの呼び出しにだけ適用する。
+
+本文は「Bash の呼び出し」に範囲を限定しています。隣の場面では、スクリプトやコードブロックの中のパイプまで禁止することはありません。

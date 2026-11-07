@@ -1,0 +1,26 @@
+ミニ PC への接続方法をメモリに保存します。このセッションにはファイル書き込みツールがないので、書き込む内容をそのまま示します。
+
+**`~/.claude/memory/minipc-ssh-host.md`**
+
+```markdown
+---
+name: minipc-ssh-host
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに、`ssh agent-node` を使う
+- ミニ PC の接続先を、ホスト名や IP アドレスで推測せず、`agent-node` の名前で指定する
+```
+
+**`~/.claude/MEMORY.md`** に追記する行:
+
+```markdown
+- [minipc-ssh-host](memory/minipc-ssh-host.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+- 接続先の名前は、あなたの発言をそのまま記録しました。`~/.ssh/config` との照合はしていません。
+- 常時読み込まれるメモリではないので、system prompt に足して比べる試験は行っていません。
+- ファイルは上の内容で作成してください。ツールが使えるセッションなら、私が書き込みます。

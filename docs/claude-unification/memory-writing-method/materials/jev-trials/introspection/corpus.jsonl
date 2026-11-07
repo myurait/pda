@@ -1,0 +1,44 @@
+{"id": 0, "line": 9, "sentence": "あとから自分が読んで従う文書 (メモリ・skill の SKILL.md と description・CLAUDE.md・規約文書) は、次の形で書く。", "gold": "observable"}
+{"id": 1, "line": 13, "sentence": "各ルールを、する操作を言い切る命令文 1 文で書く。", "gold": "observable"}
+{"id": 2, "line": 13, "sentence": "例: 「ユーザーに見せる文はすべて日本語で書く」", "gold": "not_a_rule"}
+{"id": 3, "line": 14, "sentence": "適用範囲は目的語の名詞句に入れる。", "gold": "observable"}
+{"id": 4, "line": 14, "sentence": "例: 「書き換えたすべてのメモリの索引行を、同じ操作で書き換える」", "gold": "not_a_rule"}
+{"id": 5, "line": 15, "sentence": "適用範囲は、成果物・実行結果・ファイルの状態など、書いた後に目で見える物で名指す", "gold": "observable"}
+{"id": 6, "line": 16, "sentence": "避けたい行動は、代わりに取る行動を言い切る文で書く", "gold": "judgment"}
+{"id": 7, "line": 17, "sentence": "各文の動詞は、成果物を生む操作 (書く・消す・置き換える・出す・送る・実行する) にする。", "gold": "observable"}
+{"id": 8, "line": 17, "sentence": "「確認する」「検討する」を使う文には、確認の結果として出す物まで書く", "gold": "observable"}
+{"id": 9, "line": 18, "sentence": "本文はルールの文だけで構成し、理由・背景・経緯・出典は変更のコミットメッセージに書く", "gold": "observable"}
+{"id": 10, "line": 19, "sentence": "ルールの文は平叙の命令文で書く", "gold": "observable"}
+{"id": 11, "line": 21, "sentence": "既存の文は次の対応で書き換える。", "gold": "not_a_rule"}
+{"id": 12, "line": 23, "sentence": "「X したとき (場合・なら・たら) Y する」 → 「X したすべての Z に Y する」または「Z は Y の形で書く」", "gold": "not_a_rule"}
+{"id": 13, "line": 24, "sentence": "「X しない」「X 禁止」「NEVER X」 → 「W する」 (W は X の代わりに取る操作)", "gold": "not_a_rule"}
+{"id": 14, "line": 25, "sentence": "「X のため Y する」「Why: …」 → 「Y する」", "gold": "not_a_rule"}
+{"id": 15, "line": 26, "sentence": "「〜と感じたら」「迷ったら」「必要なら」「気づいたら」を含む文 → 成果物・実行結果で範囲を名指す文。", "gold": "not_a_rule"}
+{"id": 16, "line": 26, "sentence": "名指せない文は消す", "gold": "judgment"}
+{"id": 17, "line": 27, "sentence": "「発火する事象 | 実行する操作」の表 → ルールの文の箇条書き", "gold": "not_a_rule"}
+{"id": 18, "line": 31, "sentence": "本文は frontmatter の直後からルールの文の箇条書きで始め、この形式を Claude Code の既定のメモリ形式より優先する", "gold": "observable"}
+{"id": 19, "line": 32, "sentence": "1 ファイルに 1 つの失敗の型を書く", "gold": "judgment"}
+{"id": 20, "line": 33, "sentence": "各文は失敗の型の水準で書き、日付・チケット番号・やり取りの引用・計測値は本文から消す", "gold": "judgment"}
+{"id": 21, "line": 34, "sentence": "1 つのタスクで受けた個別の指示はそのタスクの成果物に反映し、メモリにはタスクを越えて当てはまる失敗の型だけを書く", "gold": "judgment"}
+{"id": 22, "line": 35, "sentence": "関連メモリは本文の末尾に `[[name]]` で並べる", "gold": "observable"}
+{"id": 23, "line": 39, "sentence": "skill の description は「<入力> を受けて <出力> を返す。", "gold": "observable"}
+{"id": 24, "line": 39, "sentence": "「<依頼文の例>」「<依頼文の例>」の依頼でこの skill を使う」の形で書く", "gold": "observable"}
+{"id": 25, "line": 40, "sentence": "コンポーネントスキルの description は「<入力> を受けて <出力> を返す」の 1 文で書く", "gold": "observable"}
+{"id": 26, "line": 44, "sentence": "相手への伝達の規則は `~/.claude/memory/` に置き、同ディレクトリの `communication-index.md` の「型 → メモリ」表に載せる", "gold": "judgment"}
+{"id": 27, "line": 45, "sentence": "プロジェクト横断の、成果物の正しさの規則は `~/.claude/memory/` に置き、`~/.claude/MEMORY.md` に載せる", "gold": "judgment"}
+{"id": 28, "line": 46, "sentence": "1 つのプロジェクトに固有の、成果物の正しさの規則は `~/.claude/projects/<プロジェクト>/memory/` に置き、同ディレクトリの `MEMORY.md` に載せる", "gold": "judgment"}
+{"id": 29, "line": 47, "sentence": "索引の各行は、メモリの規則を言い切りの命令文で要約して書く", "gold": "observable"}
+{"id": 30, "line": 48, "sentence": "新しい規則は、索引で同じ失敗の型を扱うメモリを探してそこへ追記する。", "gold": "judgment"}
+{"id": 31, "line": 48, "sentence": "新しいファイルは、索引に同じ型の無い規則にだけ作る", "gold": "judgment"}
+{"id": 32, "line": 49, "sentence": "メモリの新規作成・`name` の変更・本質の書き換えと同じ操作で索引を更新し、`name` を変えたメモリを指す `[[name]]` をすべて書き換える", "gold": "judgment"}
+{"id": 33, "line": 51, "sentence": "frontmatter は次の形で書く。", "gold": "observable"}
+{"id": 34, "line": 51, "sentence": "`description` には、そのメモリが扱う失敗の型と規則を 1 行で書く。", "gold": "judgment"}
+{"id": 35, "line": 63, "sentence": "関連: [[feedback-investigation-principles]] / [[feedback-no-process-narrative-in-human-docs]] / [[skill-orchestration-and-components]]", "gold": "not_a_rule"}
+{"id": 100, "line": 0, "sentence": "ユーザーに見せる文はすべて日本語で書く", "gold": "observable"}
+{"id": 101, "line": 0, "sentence": "Bash には 1 回の呼び出しで 1 つのコマンドだけを渡す", "gold": "observable"}
+{"id": 102, "line": 0, "sentence": "コミットメッセージは日本語の 1 文で書く", "gold": "observable"}
+{"id": 103, "line": 0, "sentence": "迷ったらユーザーに確認する", "gold": "judgment"}
+{"id": 104, "line": 0, "sentence": "必要なら索引を読む", "gold": "judgment"}
+{"id": 105, "line": 0, "sentence": "重要な事実だけを報告に書く", "gold": "judgment"}
+{"id": 106, "line": 0, "sentence": "相手が理解しやすい粒度で説明する", "gold": "judgment"}
+{"id": 107, "line": 0, "sentence": "本質を捉えた形でメモリを書く", "gold": "judgment"}

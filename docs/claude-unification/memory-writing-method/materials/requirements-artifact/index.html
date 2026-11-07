@@ -1,0 +1,200 @@
+<title>メモリを書く上での方針</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* 1 列で上から読む判断資料。先頭に構成の図、続けて項目を 1 つずつ */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#1c2330; --muted:#5b6474; --line:#d9dde4;
+  --accent:#2c5a86; --accent-soft:#e6eef6; --lint:#7a5b14; --lint-soft:#f6efdd; --rec:#1f6b4f; --rec-soft:#e3f2ea;
+  --f-display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13171e; --surface:#1b212b; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2f3744;
+  --accent:#8db6df; --accent-soft:#1f2c3b; --lint:#e0c27a; --lint-soft:#2c2618; --rec:#7fd0ac; --rec-soft:#17291f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13171e; --surface:#1b212b; --ink:#e4e8ef; --muted:#9aa3b2; --line:#2f3744;
+  --accent:#8db6df; --accent-soft:#1f2c3b; --lint:#e0c27a; --lint-soft:#2c2618; --rec:#7fd0ac; --rec-soft:#17291f; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.8;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 64px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-family:var(--f-display);font-size:1.75rem;margin:0;text-wrap:balance;line-height:1.4}
+h2{font-family:var(--f-display);font-size:1.2rem;margin:0;text-wrap:balance}
+h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:500;letter-spacing:.04em}
+p{margin:0}
+a{color:var(--accent)}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--accent-soft);padding:0 .3em;border-radius:3px;overflow-wrap:anywhere}
+.ask{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);padding:14px 16px;border-radius:4px}
+.label{font-size:.75rem;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.fig{display:flex;flex-direction:column;gap:12px}
+.policy{border:2px solid var(--accent);border-radius:6px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.policy>.cap{font-weight:700;color:var(--accent)}
+.layer{border:1px solid var(--line);border-radius:4px;padding:10px 12px;background:var(--bg);min-width:0}
+.layer b{display:block}
+.layer ul{margin:4px 0 0;padding-left:1.2em}
+.note{font-size:.88rem;color:var(--muted)}
+.paper{display:inline-block;margin-top:6px;font-size:.82rem;background:var(--rec-soft);color:var(--rec);padding:1px 8px;border-radius:10px;font-weight:500}
+.arrow{font-size:.82rem;color:var(--muted);padding-left:12px}
+.lint{border:1px dashed var(--lint);background:var(--lint-soft);border-radius:4px;padding:10px 12px}
+.lint b{color:var(--lint)}
+.figcap{font-size:.82rem;color:var(--muted)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{border-top:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{white-space:nowrap;color:var(--muted);font-weight:500;width:6.5em}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.item .q{font-weight:700}
+.opts{display:flex;flex-direction:column;gap:6px;padding-left:0;margin:0;list-style:none}
+.rec{background:var(--rec-soft);border-radius:4px;padding:8px 12px}
+.rec b{color:var(--rec)}
+.pick{display:flex;flex-wrap:wrap;gap:8px 18px;border-top:1px solid var(--line);padding-top:10px}
+.pick label{display:flex;gap:6px;align-items:center;cursor:pointer}
+textarea{width:100%;box-sizing:border-box;min-height:3.2em;font:inherit;font-size:.9rem;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:6px 8px}
+textarea:focus-visible,input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.later ul{margin:6px 0 0;padding-left:1.2em}
+pre{white-space:pre-wrap;font-family:var(--f-mono);font-size:.82rem;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:10px;margin:0;overflow-wrap:anywhere}
+button{font:inherit;background:var(--accent);color:var(--surface);border:0;border-radius:4px;padding:6px 14px;cursor:pointer}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+</style>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:12px">
+  <h1>メモリを書く上での方針</h1>
+  <div class="ask">
+    <div class="label">決めてほしいこと</div>
+    <p>ご指摘を受けて、方法論と評価基準を整理し直しました。この整理を土台にして <code>memory/feedback_memory_writing_rules.md</code> を書き直してよいかを、3 つの項目で決めてください。</p>
+  </div>
+</header>
+
+<section class="fig" aria-label="構成の図">
+  <div class="policy">
+    <div class="cap">方針 ― メモリを書く上での基準を定める</div>
+    <div class="layer"><b>方法論</b><span class="note">メモリには「どの範囲で、何をするか」を書く。範囲は元から取る。失敗への反省のメモリなら失敗の型、具体的に指示された方法のメモリなら指示された範囲。文は範囲を目的語に入れた言い切りにし、禁止の形でなく取る操作を書き、理由は付けない。</span><br><span class="paper">論文の結果が効くのは、この層の文の書き方</span></div>
+    <div class="arrow">↓ 方法論で書いた物を測る</div>
+    <div class="layer"><b>その水準の評価基準</b><span class="note">メモリの元が失敗でも指示でも、同じ 3 つで測る。</span>
+      <ul class="note">
+        <li>範囲の一致: 範囲が元と一致するか。1 つの事例や 1 つのタスクに狭めず、指示や観察を越えて広げない</li>
+        <li>行動が決まる: 読んだエージェントが取る行動が決まるか</li>
+        <li>見える物で範囲を書く: 範囲を、作業中に見える物 (依頼・操作・成果物・環境) で書いたか。自分の内面の点検に頼らないか</li>
+      </ul>
+    </div>
+    <div class="arrow">↓ 方法論と評価基準から決まる</div>
+    <div class="layer"><b>それに伴う規則</b><span class="note">置き場所と索引の決め方、同じ範囲を扱う既存メモリへの追記、frontmatter の形。</span></div>
+  </div>
+  <div class="lint"><b>方針の文書の外 ― リンター・検査フック</b><br><span class="note">本文の字面だけで決まる検査。frontmatter のキー、索引の行と description の一致、本文の日付、特定の語の有無。</span></div>
+  <p class="figcap">図　求められている物の構成 (私の読み)。論文 (<a href="https://arxiv.org/abs/2611.04367">arXiv:2611.04367</a>) の遵守率 (%) は、claude-opus-5 で言い切り 78.0 / 理由付き 77.2 / 条件付き 64.2 / 禁止 70.7、claude-sonnet-5 で 71.6 / 49.4 / 35.6 / 17.3。</p>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:8px">
+  <h2>元の版 (d25d5c3) の考え方の行き先</h2>
+  <div class="tbl"><table>
+    <tr><th>方法論へ</th><td>失敗の型で書く。失敗への反省のメモリの範囲の取り方として残す。</td></tr>
+    <tr><th>評価基準へ</th><td>「1 つのタスクで受けた個別の指示はメモリにしない」は範囲の一致の一例になる。「このプロジェクトでは」のように範囲が 1 タスクを越える指示はメモリにし、1 タスクに閉じる指示はしない。内省を発火条件にしない考え方は、見える物で範囲を書く基準になる。</td></tr>
+    <tr><th>規則へ</th><td>置き場所を、破られたときに損なわれる物 (伝達か、成果物の正しさか) で決める。既存メモリへ追記する。索引を同じ操作で更新する。</td></tr>
+    <tr><th>捨てる</th><td>何を取り違えると何が壊れるかを書く Why の節。「発火する事象 → 実行する操作」の表 (条件の形で、論文では条件付きが言い切りより低い)。</td></tr>
+    <tr><th>リンターへ</th><td>「感じたら」「迷ったら」などの語の検出、本文の日付・チケット番号の検出、frontmatter の形。</td></tr>
+  </table></div>
+</section>
+
+<section class="item" id="item1">
+  <h3>項目 1　方針が扱うメモリの範囲</h3>
+  <p class="q">「どの範囲で、何をするか」を書く方法論に、取る行動の無い事実や状態のメモリも含めるか。</p>
+  <p><span class="label">事実</span><br>既存メモリの type 欄は feedback 91 件、project 37 件、reference 10 件、user 1 件です。project と reference には、指示された方法 (例: docs リポジトリの作業では TypeSafe skill を使う) と、取る行動の無い事実や状態 (例: ミニ PC のサービス構成と接続方法) が混ざっています。</p>
+  <ul class="opts">
+    <li><b>A　含める</b>　事実や状態のメモリでは、範囲を「その事実が成り立つ環境と時点」とし、行動が決まる基準を「読んだエージェントが何を前提に作業するかが決まるか」と読み替える。</li>
+    <li><b>B　含めない</b>　この方針は失敗への反省と指示された方法のメモリだけを扱い、事実や状態のメモリには規則の層 (置き場所・索引・frontmatter) だけを当てる。</li>
+    <li><b>C　枠組みが違う</b>　自由回答の内容で整理し直す。</li>
+  </ul>
+  <div class="rec"><b>推奨: A</b>　project と reference の 47 件は同じ索引から読まれ、範囲の一致 (いつの時点の状態か) は事実のメモリにも当てはまります。</div>
+  <div class="pick">
+    <label><input type="radio" name="q1" value="A" id="q1a"> A</label>
+    <label><input type="radio" name="q1" value="B" id="q1b"> B</label>
+    <label><input type="radio" name="q1" value="C" id="q1c"> C</label>
+  </div>
+  <textarea id="q1note" aria-label="項目 1 の自由回答" placeholder="自由回答"></textarea>
+</section>
+
+<section class="item" id="item2">
+  <h3>項目 2　評価基準</h3>
+  <p class="q">メモリの水準を、範囲の一致・行動が決まる・見える物で範囲を書く、の 3 つで測るか。</p>
+  <p><span class="label">今の状態</span><br>前の資料にあった「何を取り違えると何が壊れるかを書いたか」の基準は外しました。</p>
+  <p><span class="label">事実</span><br>論文で理由を付けた書き方は、claude-opus-5 で言い切りと同じ (77.2 と 78.0)、claude-sonnet-5 で低い (49.4 と 71.6) 結果でした。外した基準は失敗への反省のメモリにしか当てはまりません。3 つの基準は、失敗への反省と指示された方法のどちらのメモリにも当てはまります。見える物で範囲を書く基準は、条件付きの書き方が見落とされる理由として論文の著者が挙げた「自分の行動が条件に当たるかをまず判断しなければならない」ことに対応します。</p>
+  <ul class="opts">
+    <li><b>A　3 つで測る</b>　書き直す版に、この 3 つを評価基準として書く。</li>
+    <li><b>B　足りない・違う</b>　自由回答の内容で基準を直す。</li>
+  </ul>
+  <div class="rec"><b>推奨: A</b>　3 つとも、メモリの元が失敗か指示かによらず当てはまり、理由を書かない方向と矛盾しません。</div>
+  <div class="pick">
+    <label><input type="radio" name="q2" value="A" id="q2a"> A</label>
+    <label><input type="radio" name="q2" value="B" id="q2b"> B</label>
+  </div>
+  <textarea id="q2note" aria-label="項目 2 の自由回答" placeholder="自由回答"></textarea>
+</section>
+
+<section class="item" id="item3">
+  <h3>項目 3　方針の文書とリンターの線引き</h3>
+  <p class="q">当てはめに判断が要るものを方針の文書に置き、本文の字面だけで決まるものはリンターと検査フックに任せるか。</p>
+  <p><span class="label">事実</span><br>baa27f7 の版の項目 (文末のかな、特定の語の有無、frontmatter のキー、索引の行と description の一致) は、どれも本文の字面だけで決まります。字面を検査するフック <code>memory-style-gate</code> はコミット済みで、settings.json には登録していません。</p>
+  <ul class="opts">
+    <li><b>A　この線で分ける</b>　baa27f7 の版の項目はメモリから外し、フックの検査項目の材料として残す。フックはこの作業では変えない。</li>
+    <li><b>B　字面の項目もメモリに残す</b>　方針の文書に、方法論と並んで検査の一覧が載る。</li>
+  </ul>
+  <div class="rec"><b>推奨: A</b>　字面の項目は、フックが書いた後のファイルから判定できます。方針の文書に並べると、方法論や評価基準の文と同じ重さで読まれます。</div>
+  <div class="pick">
+    <label><input type="radio" name="q3" value="A" id="q3a"> A</label>
+    <label><input type="radio" name="q3" value="B" id="q3b"> B</label>
+  </div>
+  <textarea id="q3note" aria-label="項目 3 の自由回答" placeholder="自由回答"></textarea>
+</section>
+
+<section class="later">
+  <h2>今回は決めない論点</h2>
+  <ul>
+    <li><code>feedback-postmortem</code> skill の手順が本文・Why・How to apply の 3 部を求めていて、この方針と食い違う点の直し方</li>
+    <li>ファイル名と <code>name</code> の「rules」を変えるか</li>
+    <li>索引の行と <code>description</code> の形</li>
+    <li><code>memory-style-gate</code> に何を検査させるか</li>
+    <li>他のメモリ・skill・CLAUDE.md の書き換えの範囲</li>
+  </ul>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:8px">
+  <h2>全体への自由回答</h2>
+  <textarea id="allnote" aria-label="全体への自由回答" placeholder="整理全体への意見"></textarea>
+  <h2 style="margin-top:12px">回答の写し</h2>
+  <pre id="out"></pre>
+  <div class="row"><button type="button" id="copy">回答を写す</button><span class="note" id="st"></span></div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var ids=["q1","q2","q3"];
+  var names={q1:"項目 1 方針が扱うメモリの範囲",q2:"項目 2 評価基準",q3:"項目 3 方針の文書とリンターの線引き"};
+  function build(){
+    var lines=[];
+    ids.forEach(function(id){
+      var c=document.querySelector('input[name="'+id+'"]:checked');
+      var v=c?c.value:"未選択";
+      var n=document.getElementById(id+"note").value.trim();
+      lines.push(names[id]+": "+v+(n?"\n  自由回答: "+n:""));
+    });
+    var a=document.getElementById("allnote").value.trim();
+    if(a) lines.push("全体: "+a);
+    document.getElementById("out").textContent=lines.join("\n");
+  }
+  document.addEventListener("input",build);
+  document.addEventListener("change",build);
+  build();
+  document.getElementById("copy").addEventListener("click",function(){
+    var t=document.getElementById("out").textContent, st=document.getElementById("st");
+    function sel(){var r=document.createRange();r.selectNodeContents(document.getElementById("out"));var s=getSelection();s.removeAllRanges();s.addRange(r);st.textContent="選択しました。手で写してください";}
+    try{ navigator.clipboard.writeText(t).then(function(){st.textContent="写しました";},sel); }catch(e){ sel(); }
+  });
+})();
+</script>

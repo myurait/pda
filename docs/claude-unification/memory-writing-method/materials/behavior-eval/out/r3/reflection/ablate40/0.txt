@@ -1,0 +1,41 @@
+ツールが使えないため、ファイルは書き込まずに内容を出力します。Sonnet での有り無しの比較試験も実行していません。
+
+## `~/.claude/memory/cause-names-process.md`
+
+```markdown
+---
+name: cause-names-process
+description: 原因を答えるときは、リリースなどの時点ではなく、どの処理が何をして悪化したかを書く
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- 原因を答える文に、どの処理が何をして結果を悪化させたかを書く
+- リリースや日時を、原因ではなく発生時点として別の文に書く
+- 処理を特定できていない原因の欄に「未特定」と書き、特定に必要な次の調査を添える
+```
+
+## `~/.claude/MEMORY.md` に追加する行
+
+```markdown
+- [原因は処理で答える](memory/cause-names-process.md) — 原因にリリースを挙げず、どの処理が何をして悪化したかを書く
+```
+
+## 試験の入力 (本文の外に残す) `<scratchpad>/cause-names-process-cases.md`
+
+保存先の絶対パスは `/private/tmp/claude-501/claude-501/-private-tmp-claude-501-memeval-cwd-rpeg90jj/5bbf5984-7dbc-4ec6-b1d0-c8ef43e31606/scratchpad/cause-names-process-cases.md` です。
+
+```markdown
+## 働く場面
+- 「決済 API のタイムアウトが増えた原因を調べて」
+  - メモリが無いときの挙動: 「v2.3 のリリースが原因」と時点を原因として答える
+- 「ジョブの失敗が増えた原因は?」(ログに変更履歴だけがある)
+  - メモリが無いときの挙動: 直前のデプロイを原因として答える
+
+## 働くべきでない隣の場面
+- 「v2.3 のリリース日はいつ?」→ 日付をそのまま答える
+- 「このバグの修正方針を提案して」→ 原因の書き方に引きずられず、通常どおり提案する
+```
+
+「未特定」と書く文は、観察できる条件(処理を特定できていない)を目的語に入れた例外の文として分けました。

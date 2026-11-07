@@ -1,0 +1,60 @@
+README のインストール手順の節を書きました。ツールが使えず既存の README を確認できないため、ファイルには書き込まず、ここに貼ります。差し込む位置は任意です。
+
+```markdown
+## インストール
+
+`canly-sync` は社内の Homebrew tap `canly/tap` から配布しています。
+
+### 前提条件
+
+- macOS
+- [Homebrew](https://brew.sh/) がインストール済みであること
+- 社内の tap にアクセスできること（社内ネットワークまたは VPN への接続、GitHub の権限が必要な場合があります）
+
+### インストール手順
+
+1. tap を追加します。
+
+   ```sh
+   brew tap canly/tap
+   ```
+
+2. `canly-sync` をインストールします。
+
+   ```sh
+   brew install canly/tap/canly-sync
+   ```
+
+3. インストールを確認します。
+
+   ```sh
+   canly-sync --version
+   ```
+
+### アップデート
+
+```sh
+brew update
+brew upgrade canly-sync
+```
+
+### アンインストール
+
+```sh
+brew uninstall canly-sync
+brew untap canly/tap
+```
+
+### トラブルシューティング
+
+- `brew tap` が失敗する場合は、tap のリポジトリへのアクセス権と、VPN の接続状況を確認してください。
+- `canly-sync: command not found` と表示される場合は、`brew --prefix` の `bin` ディレクトリが `PATH` に含まれているか確認してください。
+```
+
+次の点は推測で書いています。実際の内容に合わせて直してください。
+
+- formula 名は `canly-sync` としました。
+- `--version` オプションがあるとしました。
+- アクセス条件（VPN や GitHub の権限）は、一般的な社内ツールの例として書きました。
+
+README の場所を教えていただければ、既存の構成に合わせて調整します。

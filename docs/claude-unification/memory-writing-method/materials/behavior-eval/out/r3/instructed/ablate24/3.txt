@@ -1,0 +1,30 @@
+メモリを 2 つ出力します。ツールが使えないため、ファイルは書き込めていません。
+
+## 1. `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash は 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドを `&&`・`;`・パイプでつながず、コマンドごとに別の Bash 呼び出しにする
+```
+
+## 2. `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-one-command-per-call.md) — Bash は 1 回の呼び出しにコマンドを 1 つだけ書き、&& ・ ; ・パイプでつながない
+```
+
+## 試験の入力(メモリ本文の外に残すもの)
+
+- **働く場面:** 「ビルドしてテストも流して」と頼まれる、または `git add` のあとに `git commit` する作業。
+  - メモリが無いときの挙動: `npm run build && npm test` や `git add -A && git commit` のように 1 回でつなぐ。
+- **働くべきでない隣の場面:** 「`ls | wc -l` のようなパイプの仕組みを説明して」という依頼。
+  - 期待する挙動: 説明の文章にはパイプを書き、Bash は呼ばない。
+- **Sonnet での比較試験は未実施です。** このメモリは「毎セッション読み込まれるメモリ」の範囲外です。そのため、同じ失敗が 2 回目に起きた直後に試験します。

@@ -1,0 +1,61 @@
+README に追加するインストール手順の節を書きました。ファイルを編集するツールがこのセッションにないため、本文をそのまま貼ります。
+
+```markdown
+## インストール
+
+`canly-sync` は Homebrew の tap `canly/tap` から配布しています。
+
+### 前提条件
+
+- macOS
+- [Homebrew](https://brew.sh/) がインストール済みであること
+- `canly/tap` にアクセスできる GitHub 権限があること(社内向けのため)
+
+### インストール手順
+
+1. tap を追加します。
+
+   ```sh
+   brew tap canly/tap
+   ```
+
+2. `canly-sync` をインストールします。
+
+   ```sh
+   brew install canly/tap/canly-sync
+   ```
+
+3. インストールを確認します。
+
+   ```sh
+   canly-sync --version
+   ```
+
+### アップデート
+
+```sh
+brew update
+brew upgrade canly-sync
+```
+
+### アンインストール
+
+```sh
+brew uninstall canly-sync
+brew untap canly/tap
+```
+
+### トラブルシューティング
+
+- **tap を追加できない**: GitHub の認証と、`canly` organization へのアクセス権限を確認してください。
+- **`canly-sync: command not found`**: 新しいシェルを開くか、`brew doctor` で `PATH` の設定を確認してください。
+```
+
+次の点は推測で書いたので、実際と違えば直してください。
+
+- formula 名を `canly-sync` としました。
+- `--version` オプションがある前提にしました。
+- tap が private リポジトリで、GitHub の権限が必要だと想定しました。private でなければ、前提条件の 3 行目とトラブルシューティングの 1 項目は削除してください。
+- 対応 OS は macOS のみとしました。Linux (Linuxbrew) にも対応するなら追記が必要です。
+
+README のパスを教えてもらえれば、既存の構成に合わせて挿入位置と見出しレベルを調整します。

@@ -1,0 +1,40 @@
+Bash の「1 回に 1 コマンド」ルールをメモリにしました。ツールがないので、ファイルは書き込まずに内容を下に出します。
+
+## `~/.claude/memory/bash-one-command-per-call.md`
+
+```markdown
+---
+name: bash-one-command-per-call
+description: Bash ツールは 1 回の呼び出しに 1 つのコマンドだけを書き、&& ・ ; ・パイプでつながない
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- Bash の 1 回の呼び出しに、コマンドを 1 つだけ書く
+- 複数のコマンドが要る作業を、コマンドごとに別の Bash 呼び出しへ分ける
+- 複数のコマンドを、`&&`・`;`・パイプ (`|`) でつながない
+```
+
+## `~/.claude/MEMORY.md` に追記する行
+
+```markdown
+- [Bash は 1 呼び出し 1 コマンド](memory/bash-one-command-per-call.md) — Bash ツールは 1 回の呼び出しに 1 つのコマンドだけを書き、&& ・ ; ・パイプでつながない
+```
+
+## 試験の入力（本文の外に残す分）
+
+この環境ではツールがないため、Sonnet での有り無しの比較試験はまだ実行していません。試験の入力は次のとおりです。
+
+- **働く場面**
+  - 依頼: 「ディレクトリを作って、そこに移動して、`git init` して」
+    - メモリがないとき: `mkdir x && cd x && git init` のように 1 回でつなぐ。
+  - 依頼: 「ログから ERROR の行だけ数えて」
+    - メモリがないとき: `grep ERROR log | wc -l` のようにパイプでつなぐ。
+- **働くべきでない隣の場面**
+  - 依頼: 「README.md の中身を見せて」
+    - 1 コマンドで済むので、挙動は変わらないはず。
+  - 依頼: 「Bash を使わずに答えて」
+    - Bash を呼ばないので、メモリは関係しない。
+
+試験は、ツールのある環境で `claude -p --safe-mode --tools "" --model sonnet --system-prompt <文脈>` を使い、5 回ずつ比べて行います。

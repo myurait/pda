@@ -1,0 +1,27 @@
+`~/.claude/memory/cause-names-process-not-timing.md` と `~/.claude/MEMORY.md` に次の内容を書きます。ツールが使えないので、ファイルは作らず内容だけを示します。
+
+**ファイル: `~/.claude/memory/cause-names-process-not-timing.md`**
+
+```markdown
+---
+name: cause-names-process-not-timing
+description: 障害や性能劣化の原因を答えるとき、リリースや日付ではなく、どの処理が何をしてそうなったかを書く
+metadata:
+  node_type: memory
+  type: feedback
+---
+
+- 原因を答える文に、どの処理が何をして結果を起こしたかを書く
+- リリース・デプロイ・日付を、原因ではなく時点を示す文に書く
+- 処理を特定できていない原因の欄に「未特定」と書き、確認できた事実と次に調べる箇所を並べる
+```
+
+**索引に追加する行(`~/.claude/MEMORY.md`)**
+
+```markdown
+- [原因は処理で書く](memory/cause-names-process-not-timing.md) — 障害や性能劣化の原因を答えるとき、リリースや日付ではなく、どの処理が何をしてそうなったかを書く
+```
+
+補足:
+- 今回の決済 API のタイムアウトは、v2.3 で変わった処理をまだ調べていないので、原因は「未特定」です。時点は 11/3 の v2.3 リリース以降と確認できています。次は、v2.3 の差分と遅くなった呼び出しのトレースを突き合わせます。
+- メモリ作成の規約にある Sonnet での有り無しの比較は、このセッションにツールがなく実行していません。そのため、この本文は試験していない案です。

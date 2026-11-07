@@ -1,0 +1,30 @@
+ミニ PC への接続方法をメモリに保存します。このセッションにはツールがないので、書き込むファイルの内容をそのまま載せます。
+
+**`~/.claude/memory/mini-pc-ssh-host.md`**
+
+```markdown
+---
+name: mini-pc-ssh-host
+description: ミニ PC には `ssh agent-node` で接続する (ホスト名ではなく ssh の設定名)
+metadata:
+  node_type: memory
+  type: reference
+---
+
+ミニ PC に接続するコマンドは `ssh agent-node`。ユーザーが「ミニ PC」と言った作業では、この名前で接続する。
+
+別のサーバー (本番、他の VPS など) を指す依頼には、この接続先を使わない。
+```
+
+**`~/.claude/MEMORY.md`** に追記する行:
+
+```markdown
+- [mini-pc-ssh-host](memory/mini-pc-ssh-host.md) — ミニ PC には `ssh agent-node` で接続する (ホスト名ではなく ssh の設定名)
+```
+
+メモリの書き方ルールにある、Sonnet でメモリの有り無しを比べる試験は、ツールがないので実行していません。試験に使う場面は次のとおりです。
+
+- **働く場面:** 「ミニ PC でビルドを回して」と頼まれる場面です。メモリが無いと、ホスト名や IP をユーザーに聞き返すか、推測した接続先に ssh しようとします。
+- **働くべきでない隣の場面:** 「本番サーバーのログを見て」と頼まれる場面です。ここで `agent-node` に接続しないことを確かめます。
+
+事実のメモリなので、「`agent-node` が `~/.ssh/config` に実在するか」の確認も未実施です。ツールのあるセッションで `ssh -G agent-node` を実行して確かめてください。

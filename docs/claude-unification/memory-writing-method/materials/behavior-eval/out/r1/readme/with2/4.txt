@@ -1,0 +1,61 @@
+README に追加するインストール手順の節を書きました。この環境ではファイルを書けないため、下に貼ります。
+
+```markdown
+## インストール
+
+### 前提条件
+
+- macOS
+- [Homebrew](https://brew.sh/)
+
+### Homebrew でインストールする
+
+社内 tap `canly/tap` を追加してから、`canly-sync` をインストールします。
+
+```sh
+brew tap canly/tap
+brew install canly-sync
+```
+
+tap の追加とインストールは、次のように 1 コマンドでも実行できます。
+
+```sh
+brew install canly/tap/canly-sync
+```
+
+### インストールの確認
+
+```sh
+canly-sync --version
+```
+
+バージョンが表示されれば完了です。
+
+### アップデート
+
+```sh
+brew update
+brew upgrade canly-sync
+```
+
+### アンインストール
+
+```sh
+brew uninstall canly-sync
+brew untap canly/tap
+```
+
+### トラブルシューティング
+
+- `brew tap` が失敗する場合は、`canly/tap` リポジトリへのアクセス権限があるか確認してください。社内のプライベートリポジトリであれば、GitHub の認証設定が必要です。
+- `canly-sync: command not found` と表示される場合は、`brew doctor` を実行し、Homebrew の `bin` ディレクトリが `PATH` に含まれているか確認してください。
+```
+
+次の点は推測で書いているので、実際の内容と合わせて直してください。
+
+- formula 名は `canly-sync` だと仮定しています。
+- `--version` オプションがあると仮定しています。
+- tap がプライベートリポジトリかどうかは分かりません。そのため、トラブルシューティングの1つ目は条件付きの書き方にしています。
+- 対応 OS は macOS のみとしています。Linux にも対応するなら、前提条件を直してください。
+
+実際の README ファイルのパスを教えてもらえれば、既存の構成や文体に合わせて調整します。

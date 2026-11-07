@@ -1,0 +1,632 @@
+[
+{
+"id": 0,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.98,
+"s": "メモリは**失敗の型**で書く。"
+},
+{
+"id": 1,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.91,
+"s": "事例で書かない。"
+},
+{
+"id": 2,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.92,
+"s": "標語で書かない。"
+},
+{
+"id": 3,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.98,
+"s": "body は「ルール本文 / Why / How to apply」の 3 部に固定し、How to apply の発火条件は実行後に観測で"
+},
+{
+"id": 4,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.87,
+"s": "書いたら同じ操作で索引を更新する。"
+},
+{
+"id": 6,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.68,
+"s": "** skill / hook / 規約文書など、あとから自分が読んで従うルールを書く場面すべてに適用する。"
+},
+{
+"id": 8,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.68,
+"s": "事例を並べたメモリは事例集になり、読み手は「今の状況はこの事例と違う」と判断して適用を見送る。"
+},
+{
+"id": 9,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.98,
+"s": "逆に美徳の標語まで抽象化したメモリは、何を取り違えると何が壊れるのかを説明していないため、適用先を判断できない。"
+},
+{
+"id": 10,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.98,
+"s": "機能する抽象度はその中間、すなわち失敗の型を説明する水準にある。"
+},
+{
+"id": 11,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.69,
+"s": "How to apply を内省で書くと実行されない。"
+},
+{
+"id": 12,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.95,
+"s": "「〜と感じたら」「〜したくなったら」「〜で迷ったら」は、その感情や意図の発生を自分で検知できる前提に立っているが、検知自体が起きない。"
+},
+{
+"id": 13,
+"gold": "rationale",
+"label": "rationale",
+"conf": 1.0,
+"s": "書いた側は対策したつもりになり、同じ失敗が繰り返される。"
+},
+{
+"id": 14,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.89,
+"s": "内省を発火条件にした行は、書き手には「判断の余地を残した親切な但し書き」に見える。"
+},
+{
+"id": 15,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.84,
+"s": "この見え方があるため、観測できる事象で書く規則を知っていても、まとめの最後や前提の締めに再び現れる。"
+},
+{
+"id": 16,
+"gold": "rationale",
+"label": "prohibitive",
+"conf": 0.44,
+"s": "索引に載っていないメモリは読み込まれない。"
+},
+{
+"id": 17,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.99,
+"s": "ルールが存在するのに機能しない状態は、ルールが無い状態より悪い。"
+},
+{
+"id": 18,
+"gold": "rationale",
+"label": "rationale",
+"conf": 1.0,
+"s": "書いた本人が対策済みと認識するためである。"
+},
+{
+"id": 21,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.6,
+"s": "1 つのタスクについて受けた個別の指示（そのタスクの成果物に何を書く・書かないか）を、メモリとして**書いた** | そのメモリを書かない（"
+},
+{
+"id": 22,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.49,
+"s": "body に日付・チケット番号・ファイル名・やり取りの引用・計測値を**書いた** | 削除する。その事例が属する失敗の型を 1 文で書き直"
+},
+{
+"id": 23,
+"gold": "conditional",
+"label": "prescriptive",
+"conf": 0.55,
+"s": "ルール本文に、何が壊れるかを書かずに望ましい態度だけを**書いた** | 何を取り違えると何が壊れるのかを構造として書き足す"
+},
+{
+"id": 24,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.62,
+"s": "行に「感じたら」「したくなったら」「迷ったら」「気づいたら」「必要なら」「自問する」「先に読む」と**書いた** | その行を削除する。同じ"
+},
+{
+"id": 25,
+"gold": "conditional",
+"label": "prescriptive",
+"conf": 0.55,
+"s": "How to apply の操作を「検討する」「確認する」で**止めた** | 検討の結果どう分岐するかまで書く。次に打つ手が一意に決まる状"
+},
+{
+"id": 26,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.69,
+"s": "新しいメモリのファイルを**作成した** | 該当索引を読む。同じ Why を扱うメモリがあれば、新しいファイルを削除して既存メモリへ追記す"
+},
+{
+"id": 27,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.85,
+"s": "メモリを新規作成した / `name` を変えた / 本質を書き換えた | 該当索引を同じ操作で更新する。`name` を変えた場合は他メモ"
+},
+{
+"id": 28,
+"gold": "prescriptive",
+"label": "rationale",
+"conf": 0.37,
+"s": "配置先と索引は、そのルールが破られたときに損なわれるものが何かで決める。"
+},
+{
+"id": 35,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "frontmatter は次の形にする。"
+},
+{
+"id": 36,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.68,
+"s": "`description` は索引での選定に使われるので、適用される状況が判別できる粒度で書く。"
+},
+{
+"id": 37,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.99,
+"s": "関連メモリは `[[name]]` で参照し、既存の原則体系の運用例として位置付ける。"
+},
+{
+"id": 38,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.82,
+"s": "孤立した個別ルールとして置かない。"
+},
+{
+"id": 39,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.92,
+"s": "関連: [[feedback-investigation-principles]] (body 構造の出典) / [[feedback-no"
+},
+{
+"id": 41,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.9,
+"s": "あとから自分が読んで従う文書 (メモリ・skill の SKILL.md と description・CLAUDE.md・規約文書) は、次"
+},
+{
+"id": 42,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.98,
+"s": "各ルールを、する操作を言い切る命令文 1 文で書く。"
+},
+{
+"id": 43,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.98,
+"s": "例: 「ユーザーに見せる文はすべて日本語で書く」"
+},
+{
+"id": 44,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.95,
+"s": "適用範囲は目的語の名詞句に入れる。"
+},
+{
+"id": 45,
+"gold": "prescriptive",
+"label": "not_a_rule",
+"conf": 0.98,
+"s": "例: 「書き換えたすべてのメモリの索引行を、同じ操作で書き換える」"
+},
+{
+"id": 46,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.79,
+"s": "適用範囲は、成果物・実行結果・ファイルの状態など、書いた後に目で見える物で名指す"
+},
+{
+"id": 47,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.96,
+"s": "避けたい行動は、代わりに取る行動を言い切る文で書く"
+},
+{
+"id": 48,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.92,
+"s": "各文の動詞は、成果物を生む操作 (書く・消す・置き換える・出す・送る・実行する) にする。"
+},
+{
+"id": 49,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.51,
+"s": "「確認する」「検討する」を使う文には、確認の結果として出す物まで書く"
+},
+{
+"id": 50,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.92,
+"s": "本文はルールの文だけで構成し、理由・背景・経緯・出典は変更のコミットメッセージに書く"
+},
+{
+"id": 51,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.95,
+"s": "ルールの文は平叙の命令文で書く"
+},
+{
+"id": 52,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.95,
+"s": "既存の文は次の対応で書き換える。"
+},
+{
+"id": 53,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.69,
+"s": "「X したとき (場合・なら・たら) Y する」 → 「X したすべての Z に Y する」または「Z は Y の形で書く」"
+},
+{
+"id": 54,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.95,
+"s": "「X しない」「X 禁止」「NEVER X」 → 「W する」 (W は X の代わりに取る操作)"
+},
+{
+"id": 55,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.81,
+"s": "「X のため Y する」「Why: …」 → 「Y する」"
+},
+{
+"id": 56,
+"gold": "not_a_rule",
+"label": "conditional",
+"conf": 0.21,
+"s": "「〜と感じたら」「迷ったら」「必要なら」「気づいたら」を含む文 → 成果物・実行結果で範囲を名指す文。"
+},
+{
+"id": 57,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "名指せない文は消す"
+},
+{
+"id": 58,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 0.69,
+"s": "「発火する事象 | 実行する操作」の表 → ルールの文の箇条書き"
+},
+{
+"id": 59,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.91,
+"s": "本文は frontmatter の直後からルールの文の箇条書きで始め、この形式を Claude Code の既定のメモリ形式より優先する"
+},
+{
+"id": 60,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "1 ファイルに 1 つの失敗の型を書く"
+},
+{
+"id": 61,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.85,
+"s": "各文は失敗の型の水準で書き、日付・チケット番号・やり取りの引用・計測値は本文から消す"
+},
+{
+"id": 62,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.99,
+"s": "1 つのタスクで受けた個別の指示はそのタスクの成果物に反映し、メモリにはタスクを越えて当てはまる失敗の型だけを書く"
+},
+{
+"id": 63,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "関連メモリは本文の末尾に `[[name]]` で並べる"
+},
+{
+"id": 66,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.99,
+"s": "コンポーネントスキルの description は「<入力> を受けて <出力> を返す」の 1 文で書く"
+},
+{
+"id": 67,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "相手への伝達の規則は `~/.claude/memory/` に置き、同ディレクトリの `communication-index.md` の"
+},
+{
+"id": 68,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "プロジェクト横断の、成果物の正しさの規則は `~/.claude/memory/` に置き、`~/.claude/MEMORY.md` に載"
+},
+{
+"id": 69,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "1 つのプロジェクトに固有の、成果物の正しさの規則は `~/.claude/projects/<プロジェクト>/memory/` に置き、同"
+},
+{
+"id": 70,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.92,
+"s": "索引の各行は、メモリの規則を言い切りの命令文で要約して書く"
+},
+{
+"id": 71,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.84,
+"s": "新しい規則は、索引で同じ失敗の型を扱うメモリを探してそこへ追記する。"
+},
+{
+"id": 72,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.89,
+"s": "新しいファイルは、索引に同じ型の無い規則にだけ作る"
+},
+{
+"id": 73,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.95,
+"s": "メモリの新規作成・`name` の変更・本質の書き換えと同じ操作で索引を更新し、`name` を変えたメモリを指す `[[name]]` を"
+},
+{
+"id": 74,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.81,
+"s": "frontmatter は次の形で書く。"
+},
+{
+"id": 75,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.98,
+"s": "`description` には、そのメモリが扱う失敗の型と規則を 1 行で書く。"
+},
+{
+"id": 76,
+"gold": "not_a_rule",
+"label": "not_a_rule",
+"conf": 1.0,
+"s": "関連: [[feedback-investigation-principles]] / [[feedback-no-process-narr"
+},
+{
+"id": 77,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.99,
+"s": "AskUserQuestion ツールは **絶対利用禁止**。"
+},
+{
+"id": 78,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.95,
+"s": "試みても settings.json の `permissions.deny` に登録されているため機械的にブロックされる。"
+},
+{
+"id": 79,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.81,
+"s": "ユーザーへの分岐点提示・選択肢の確認・方針の合意形成はすべてテキスト応答で行う。"
+},
+{
+"id": 80,
+"gold": "rationale",
+"label": "rationale",
+"conf": 1.0,
+"s": "**Why**: 2026-07-16 の対話で、AskUserQuestion 使用が構造的に破綻していると確認された。"
+},
+{
+"id": 81,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.96,
+"s": "具体的には (a) 軸が確定していないまま反射的に選択肢化する癖、(b) テキスト応答責任を form に転嫁する癖、(c) 全選択肢を外さ"
+},
+{
+"id": 82,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.95,
+"s": "memory では無意味と判定されたため、`~/.claude/settings.json` の `permissions.deny: [\""
+},
+{
+"id": 84,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 1.0,
+"s": "分岐/選択肢/方針確認は全てテキストで書く。"
+},
+{
+"id": 86,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.45,
+"s": "「ユーザーに聞きたい」と感じた瞬間に AskUserQuestion を思い浮かべない。"
+},
+{
+"id": 87,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.92,
+"s": "テキスト応答の中で聞く"
+},
+{
+"id": 88,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.9,
+"s": "万一 tool 実行を試みても deny されるので、試みる時間自体が無駄。"
+},
+{
+"id": 89,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.87,
+"s": "設計段階から AskUserQuestion を選択肢から外す"
+},
+{
+"id": 90,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.64,
+"s": "関連の過去メモリは削除済み: feedback_ask_options_all_missed_is_critical_signal (削除)"
+},
+{
+"id": 92,
+"gold": "prescriptive",
+"label": "prescriptive",
+"conf": 0.98,
+"s": "**コミットは確認要求を挟まずに実行する。"
+},
+{
+"id": 93,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.81,
+"s": "** 「コミットしてよいか」を問う応答を書かない。"
+},
+{
+"id": 94,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.85,
+"s": "CLAUDE.md の Explore-Plan-Code-Commit において Commit は作業の一部であり、その実行は常設で許可さ"
+},
+{
+"id": 95,
+"gold": "prescriptive",
+"label": "rationale",
+"conf": 0.55,
+"s": "**許可の範囲はコミットに限る。"
+},
+{
+"id": 96,
+"gold": "prohibitive",
+"label": "prohibitive",
+"conf": 0.87,
+"s": "** `git push`・PR 作成・`commit --amend`・`rebase`・`reset --hard`・`clean -f"
+},
+{
+"id": 98,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.56,
+"s": "常設の許可が与えられている操作を、副作用があるという性質だけを見て確認要求へ変換すると、相手は既に済ませた意思決定をもう一度操作させられる。"
+},
+{
+"id": 99,
+"gold": "rationale",
+"label": "rationale",
+"conf": 1.0,
+"s": "確認を挟む側には安全側へ倒したように見えるが、判断の所在としては与えられた許可を無効化して相手へ差し戻しており、実質は責任転嫁である。"
+},
+{
+"id": 100,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.71,
+"s": "逆に、許可を範囲の明示なしに一般化すると反対側へ振れる。"
+},
+{
+"id": 101,
+"gold": "rationale",
+"label": "conditional",
+"conf": 0.79,
+"s": "「副作用のある git 操作は許可済み」と読み替えた瞬間、取り消しコストの高い push や履歴書き換えまで無断で実行する。"
+},
+{
+"id": 102,
+"gold": "rationale",
+"label": "rationale",
+"conf": 0.81,
+"s": "許可は明示された操作についてのみ有効で、隣接する操作へは及ばない。"
+},
+{
+"id": 105,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.82,
+"s": "応答本文に「コミットしますか」「コミットしてよいでしょうか」「問題なければコミットします」の類を**書いた** | その行を削除し、コミット"
+},
+{
+"id": 106,
+"gold": "conditional",
+"label": "conditional",
+"conf": 0.96,
+"s": "作業完了の報告を**書き始めた**時点で、作業対象のリポジトリに未コミットの変更が**残っている** | 報告より先にコミットする"
+},
+{
+"id": 107,
+"gold": "conditional",
+"label": "prescriptive",
+"conf": 0.36,
+"s": "ユーザーが停止点を指定した指示のもとで作業して**いる** | [[feedback-respect-turn-handover-instr"
+},
+{
+"id": 108,
+"gold": "conditional",
+"label": "rationale",
+"conf": 0.24,
+"s": "`git push` / PR 作成 / `commit --amend` / `rebase` / `reset --hard` / `c"
+}
+]

@@ -1,0 +1,26 @@
+ツールが使えないので、書き込むファイルの内容をテキストで出します。
+
+ユーザーが述べた接続コマンドをそのまま記録する事実のメモリです。毎セッション読み込まれるメモリの範囲の外なので、Sonnet での有り無しの比較試験は行いません。内容はユーザーの発言と照合済みです。
+
+**`~/.claude/memory/mini-pc-ssh.md`**
+
+```markdown
+---
+name: mini-pc-ssh
+description: ミニ PC には `ssh agent-node` で接続する
+metadata:
+  node_type: memory
+  type: reference
+---
+
+- ミニ PC に接続するコマンドに、`ssh agent-node` を使う
+- ミニ PC のホスト名や IP アドレスを、`agent-node` 以外の値に推測して置き換えない
+```
+
+**`~/.claude/MEMORY.md`** に追記する行
+
+```markdown
+- [ミニ PC への SSH 接続](memory/mini-pc-ssh.md) — ミニ PC には `ssh agent-node` で接続する
+```
+
+ミニ PC への接続は `ssh agent-node` で行う、と覚えました。
