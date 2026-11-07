@@ -82,6 +82,25 @@ def set_task_done(text, match, done=True, pattern=TASK):
     return "".join(lines)
 
 
+def edit_todo_text(text, match, new_item=None):
+    """本文に match を含む項目を 1 件、本文を new_item に書き換える (None なら行を消す)。
+    完了したものも対象。節と完了かどうかはそのまま。0 件か 2 件以上ならエラー。(新しい本文, 元の本文) を返す。"""
+    lines = text.splitlines(keepends=True)
+    hits = []
+    for i, line in enumerate(lines):
+        m = TASK.match(line.rstrip("\n"))
+        if m and match in m.group(2):
+            hits.append((i, m))
+    if len(hits) != 1:
+        raise ValueError(f"当てはまる項目が {len(hits)} 件あります。1 件に絞れる文を渡してください。")
+    i, m = hits[0]
+    if new_item is None:
+        del lines[i]
+    else:
+        lines[i] = f"- [{m.group(1)}] {new_item}" + ("\n" if lines[i].endswith("\n") else "")
+    return "".join(lines), m.group(2).strip()
+
+
 def scrap_items(text):
     """scrap.md の行を、日時・見出し・URL・既読の一覧にする (ファイルの並び = 新しい順)。"""
     items = []
@@ -137,7 +156,7 @@ def build_server():
         name="todo-scrap",
         instructions=(
             "オーナーの個人の todo と、後で読む記事のスクラップを扱う。"
-            "オーナーの todo の管理 (一覧・追加・完了) とスクラップの管理 (一覧・追加・既読) は、このサーバーの道具で行う。"
+            "オーナーの todo の管理 (一覧・追加・完了・書き換え・削除) とスクラップの管理 (一覧・追加・既読) は、このサーバーの道具で行う。"
             "ミニ PC の ~/todo-scrap のファイルを直接書き換えない (画面と受け口と同じ書き方を保つため)。"
             "todo は節 (仕事・PDA の開発・自分のこと など) に分かれ、新しいものは節の先頭に足す。"
             "スクラップは新しいものが先頭。記事の中身を読むときは、X の投稿は https://publish.x.com/oembed、"
@@ -169,6 +188,33 @@ def build_server():
             f"todo を{'完了' if done else '未完了'}にする: {text[:80]}",
         )
         return f"{'完了' if done else '未完了'}にしました: {text}"
+
+    @server.tool()
+    def replace_todo(text: str, new_text: str) -> str:
+        """本文に text を含む todo を 1 件、本文を new_text に書き換える。節と完了かどうかはそのまま。複数に当たるときは失敗する。"""
+        new_text = receiver.one_line(new_text)
+        if not new_text:
+            raise ValueError("new_text が空です")
+        found = {}
+
+        def change(t):
+            out, found["old"] = edit_todo_text(t, text, new_text)
+            return out
+
+        update_page(TODO, change, f"todo を書き換える: {text[:80]} → {new_text[:80]}")
+        return f"書き換えました: {found['old']} → {new_text}"
+
+    @server.tool()
+    def delete_todo(text: str) -> str:
+        """本文に text を含む todo を 1 件消す。完了したものも消せる。複数に当たるときは失敗する。"""
+        found = {}
+
+        def change(t):
+            out, found["old"] = edit_todo_text(t, text)
+            return out
+
+        update_page(TODO, change, f"todo を消す: {text[:80]}")
+        return f"消しました: {found['old']}"
 
     @server.tool()
     def list_scraps(include_read: bool = False, limit: int = 50) -> list[dict]:

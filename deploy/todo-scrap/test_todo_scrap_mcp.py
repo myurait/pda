@@ -71,6 +71,35 @@ class TodoTest(unittest.TestCase):
         out = mcp.set_task_done(TODO, lambda line: "レビュー" in line, done=False)
         self.assertIn("- [ ] レビューに返事する", out)
 
+    def test_replace_keeps_section_and_state(self):
+        out, old = mcp.edit_todo_text(TODO, "部屋", "部屋と台所を片付ける")
+        self.assertEqual(old, "部屋を片付ける")
+        self.assertIn("## 自分のこと\n- [ ] 部屋と台所を片付ける\n", out)
+        self.assertNotIn("部屋を片付ける", out)
+
+    def test_replace_done_item_stays_done(self):
+        out, _ = mcp.edit_todo_text(TODO, "レビュー", "レビューに返事した")
+        self.assertIn("- [ ] 報告を書く\n- [x] レビューに返事した\n\n## PDA", out)
+
+    def test_delete_one_item(self):
+        out, old = mcp.edit_todo_text(TODO, "報告")
+        self.assertEqual(old, "報告を書く")
+        self.assertIn("## 仕事\n- [x] レビューに返事する\n\n", out)
+
+    def test_delete_last_line_without_newline(self):
+        out, _ = mcp.edit_todo_text(TODO.rstrip("\n"), "部屋")
+        self.assertTrue(out.endswith("## 自分のこと\n"))
+
+    def test_edit_matches_body_only(self):
+        with self.assertRaises(ValueError):
+            mcp.edit_todo_text(TODO, "[ ]")
+
+    def test_edit_ambiguous_or_missing_fails(self):
+        with self.assertRaises(ValueError):
+            mcp.edit_todo_text(TODO, "る", "x")
+        with self.assertRaises(ValueError):
+            mcp.edit_todo_text(TODO, "無い項目")
+
 
 class ScrapTest(unittest.TestCase):
     def test_items_parse_link_and_note(self):
