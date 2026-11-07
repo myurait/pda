@@ -42,7 +42,7 @@ ATTR_TAIL = re.compile(r"\s*\[([A-Za-z0-9_$]+)::?\s*([^\[\]\n]*)\]\s*$")
 TODO_ATTRS = ("category", "project", "due", "status", "weight")
 SCRAP_ATTRS = ("topic", "aicheck")
 CHOICES = {
-    "category": ("仕事", "改善", "個人開発", "プライベート"),
+    "category": ("仕事", "個人開発", "プライベート"),
     "status": ("進行中", "待ち"),
     "weight": ("1", "2", "3"),
     "topic": ("AI", "ゲーム", "開発ツール"),
@@ -307,7 +307,7 @@ def build_server():
             "オーナーの todo の管理 (一覧・追加・完了・属性・書き換え・削除) とスクラップの管理 (一覧・追加・属性・片付け) は、このサーバーの道具で行う。"
             "ミニ PC の ~/todo-scrap のファイルを直接書き換えない (画面と受け口と同じ書き方を保つため)。"
             "todo は見出しの無い 1 つの一覧で、新しいものを先頭に足す。"
-            "todo の属性: category (カテゴリ 仕事・改善・個人開発・プライベート。足すときは必ず付ける)、"
+            "todo の属性: category (カテゴリ 仕事・個人開発・プライベート。足すときは必ず付ける)、"
             "project (案件名)、due (期限日 2026-11-15 の形)、status (進行中・待ち。無ければ未着手)、"
             "weight (重さ 1 = 1 時間以内、2 = 半日以内、3 = それ以上)。"
             "スクラップは新しいものが先頭。スクラップの属性: topic (話題 AI・ゲーム・開発ツール。ゲームはゲーム開発を含む。"
@@ -350,13 +350,13 @@ def build_server():
         status: str | None = None,
         weight: int | None = None,
     ) -> str:
-        """todo を一覧の先頭に足す。category (仕事・改善・個人開発・プライベート) は必ず渡す。
+        """todo を一覧の先頭に足す。category (仕事・個人開発・プライベート) は必ず渡す。
         ほかの属性は省けば付けない。due は 2026-11-15 の形、status は 進行中・待ち、weight は 1・2・3。"""
         text = receiver.one_line(text)
         if not text:
             raise ValueError("text が空です")
         if not category:
-            raise ValueError("category を渡してください (仕事・改善・個人開発・プライベート)")
+            raise ValueError("category を渡してください (仕事・個人開発・プライベート)")
         attrs = apply_attrs(
             {}, {"category": category, "project": project, "due": due, "status": status, "weight": weight}
         )
@@ -384,7 +384,7 @@ def build_server():
         weight: int | str | None = None,
     ) -> str:
         """本文に text を含む todo を 1 件探し、属性を書き換える。省いた属性はそのまま、空文字 "" を渡すと消す
-        (status を消すと未着手)。category は 仕事・改善・個人開発・プライベート、due は 2026-11-15 の形、
+        (status を消すと未着手)。category は 仕事・個人開発・プライベート、due は 2026-11-15 の形、
         status は 進行中・待ち、weight は 1・2・3。複数に当たるときは失敗する。"""
         changes = {"category": category, "project": project, "due": due, "status": status, "weight": weight}
         found = {}
