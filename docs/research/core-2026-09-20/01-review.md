@@ -1,6 +1,6 @@
 # 第 1 本の確認結果
 
-第 1 本（共通の input/output ストアとランタイム間のプロトコル）は独立に 2 版ある。それぞれの引用を一次資料と突き合わせた結果を記す。確認日は 2026-09-20。
+第 1 本（共通の input/output ストアとランタイム間のプロトコル）は独立に 2 つのバージョンがある。それぞれの引用を一次資料と突き合わせた結果を記す。確認日は 2026-09-20。
 
 ## v1 `01-store-and-protocol.v1.md`
 
@@ -21,7 +21,7 @@
 
 確認した範囲: 「本体確認」と書かれたコード引用 17 箇所と論文引用 14 箇所を、本文のコミット SHA と URL で再取得して突き合わせた。
 
-一致した主な箇所: Ptolemy の `hasToken()` が無条件に true を返す箇所、Akka の型付き `ActorRef` と `unsafeUpcast` の脱出口、Scribble の線形ソケットの再利用例外、JADE の `setPerformative` に範囲検査が無い箇所、Kafka の値が `ByteBuffer` のままである箇所、Temporal の `EventType` 61 値、Choral の射影がロール外の式を消す箇所、HasChor の `Empty`、LangGraph が未知ノードへの `Send` を警告だけで無視する箇所、OpenAI Agents SDK の実行中イベント 11 値、A2A の proto 812 行に費用を表す語が 0 件で `Message` と `Artifact` が別型である箇所、MCP の最新スキーマ版が `2026-07-28` である箇所。論文は Gelernter 1985 の「実行時型検査を不可能にする」、Nii 1986 の「概念であって計算仕様ではない」、van der Aalst 1998 の soundness 定理、Honda-Yoshida-Carbone JACM の「2 者間なら双対性検査で足りる」と「参加者情報は静的」がすべて逐語で一致。
+一致した主な箇所: Ptolemy の `hasToken()` が無条件に true を返す箇所、Akka の型付き `ActorRef` と `unsafeUpcast` の脱出口、Scribble の線形ソケットの再利用例外、JADE の `setPerformative` に範囲検査が無い箇所、Kafka の値が `ByteBuffer` のままである箇所、Temporal の `EventType` 61 値、Choral の射影がロール外の式を消す箇所、HasChor の `Empty`、LangGraph が未知ノードへの `Send` を警告だけで無視する箇所、OpenAI Agents SDK の実行中イベント 11 値、A2A の proto 812 行に費用を表す語が 0 件で `Message` と `Artifact` が別型である箇所、MCP のスキーマの最新バージョンが `2026-07-28` である箇所。論文は Gelernter 1985 の「実行時型検査を不可能にする」、Nii 1986 の「概念であって計算仕様ではない」、van der Aalst 1998 の soundness 定理、Honda-Yoshida-Carbone JACM の「2 者間なら双対性検査で足りる」と「参加者情報は静的」がすべて逐語で一致。
 
 見つかったずれ（結論に影響しない）:
 
@@ -31,7 +31,7 @@
 
 確認できなかった箇所: Kahn 1974 の逐語引用 2 件。配布 PDF がスキャン画像で文字層が無く、機械的に照合できない。
 
-## 2 版の関係
+## 2 つのバージョンの関係
 
 空白の判定は一致している。費用・到達資源・state を機械可読に宣言する語彙はどの抽象にも実装にも無く、event stream の形式にも抽象が無い。
 

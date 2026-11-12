@@ -19,7 +19,7 @@
 
 `docs/requirements.md`、`docs/design/`、`docs/research/`、`docs/process/` は変更していません。`main` の先端も変更していません。秘密情報用の `secrets/`、`*.credentials`、`.env` はGit対象外です。Dockerのビルドコンテキストからも除外しています。
 
-## 2. 使ったイメージと版、依存パッケージと版
+## 2. 使ったイメージとバージョン、依存パッケージとバージョン
 
 | 実行イメージ | 今回のアーキテクチャ |
 |---|---|
@@ -35,7 +35,7 @@ Conductor UIは公式のサーバイメージに同梱されたUIを、別サー
 
 ビルドに使用した固定イメージは `python:3.12.12-slim-bookworm`、`ghcr.io/astral-sh/uv:0.12.17`、real用の `node:22.22.2-bookworm-slim` です。real用イメージのビルドは成功しました。real profileの実行器は起動していません。e2eは環境の設定にかかわらずJEV_MODE=fixture、real profile無効を指定します。
 
-| Python直接依存 | 版 |
+| Python直接依存 | バージョン |
 |---|---|
 | conductor-python | 2.0.0 |
 | agent-client-protocol | 0.12.1 |
@@ -47,7 +47,7 @@ Conductor UIは公式のサーバイメージに同梱されたUIを、別サー
 | pytest | 9.1.1 |
 | ruff | 0.16.8 |
 
-ビルド依存は `hatchling==1.29.0`、uvは0.12.17です。推移依存は `uv.lock` に固定しています。npmのACPアダプタは指定どおりCodexが版指定なし、Claudeが `@preview` なので、その取得版は固定されていません。今回取得・起動していません。
+ビルド依存は `hatchling==1.29.0`、uvは0.12.17です。推移依存は `uv.lock` に固定しています。npmのACPアダプタは指定どおりCodexがバージョンの指定なし、Claudeが `@preview` なので、取得されるバージョンは固定されていません。今回取得・起動していません。
 
 ## 3. 確かめたこと
 
@@ -202,7 +202,7 @@ e55c1e143cef   pda-increment-1-openobserve-1               0.19%     349.8MiB / 
 9. 指定の3秒ポーリングでは、起動・終了の全体が取得間隔より短い仕事やプロセス停止中の仕事を見落とす場合があります。今回のe2eは実際に記録を取得できる時間のfixtureで確認しました。写しの終了時取得がHTTPエラーの場合は取得できるまで次回へ持ち越します。
 10. 停止処理の追加試験では、キャンセル後にSDKへ戻る旧ワーカーが再試行を受け取り得る問題を確認しました。再試行も時間切れになった [実記録](evidence/increment-1/recovery-failure-workflow.json) と [出来事](evidence/increment-1/recovery-failure-events.json) を保存しています。SIGTERM時はキャンセルと送出を終えてワーカープロセスを終了し、SDKのポーリングへ戻らないよう修正しました。子プロセスにSIGTERMを送る回帰試験を追加しました。
 11. Conductorの応答時間切れは再試行をキューに入れますが、稼働中のACP子プロセスを自動で停止しません。ラッパーは指定どおりSIGTERMでsession/cancelを送ります。試験では実行器の再作成で復旧させました。
-12. 入力でcontextを省略したときのConductorのnullを判定器で空オブジェクトへ正規化します。プロンプト版は1のみです。未検証の実API費用は宣言でnullにしています。実行器の権限、型選択、固定コマンド以外の割り振りや追加機能は実装していません。
+12. 入力でcontextを省略したときのConductorのnullを判定器で空オブジェクトへ正規化します。プロンプトのバージョンは1のみです。未検証の実API費用は宣言でnullにしています。実行器の権限、型選択、固定コマンド以外の割り振りや追加機能は実装していません。
 
 ## 9. 未実施のこと
 

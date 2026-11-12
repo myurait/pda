@@ -11,7 +11,7 @@
 - Agents 機能: [v3.32.0 リリースノート](https://github.com/conductor-oss/conductor/releases/tag/v3.32.0) "Agent / A2A / LLM support graduates to stable — hosted agents, A2A v0.2 compatibility"。[定義](https://conductor-oss.github.io/conductor/devguide/concepts/agents.html) "The definition names the model to use" (例 `model="openai/gpt-4o-mini"`)、"Conductor compiles the agent into a workflow graph and executes it"。[PR #1515](https://github.com/conductor-oss/conductor/pull/1515) "lazy sub-agent expansion"。Claude Code や Codex のセッションを包む機構ではない。
 - 会話 UI: 見つからなかった。Orkes の Assistant はワークフローを作る開発者向けで Orkes 限定。
 - 介入: [Orkes の文書](https://orkes.io/content/developer-guides/debugging-workflows) "Restart with Current Definitions, Restart with Latest Definitions, Rerun from a specific task, Retry - From failed task"。[Human Tasks](https://orkes.io/content/developer-guides/orchestrating-human-tasks) は Orkes の文書にあり、OSS の実機の画面には無い。
-- ソース ([conductor-oss/conductor の ui/](https://github.com/conductor-oss/conductor)) は Material-UI v4 と dagre-d3 で、ui/src 全 157 ファイルに `@media` や `useMediaQuery` の一致が無い。ただし配備版は「Orkes Platform Version」と表示され、読んだソースとメニュー構成が違うので、レスポンシブの所見は配備版には当てはめない。
+- ソース ([conductor-oss/conductor の ui/](https://github.com/conductor-oss/conductor)) は Material-UI v4 と dagre-d3 で、ui/src 全 157 ファイルに `@media` や `useMediaQuery` の一致が無い。ただし配備されているバージョンは「Orkes Platform Version」と表示され、読んだソースとメニュー構成が違うので、レスポンシブの所見は配備されているバージョンには当てはめない。
 - Temporal: Web UI はイベント履歴の可視化で、会話 UI やエージェント向けの可視化は無い。[AI cookbook](https://docs.temporal.io/ai-cookbook/openai-agents-sdk-python) は可視化に OpenAI の Traces を案内する。
 
 ## 2. B: ベンダー app の可視化と後付けの観測
@@ -117,11 +117,11 @@ Claude Code のセッション記録 (開発 PC) と Codex の走行記録 (ミ�
 
 **podium** ([repo](https://github.com/madeinorbit/podium)、[site](https://podium.do)): Claude Code、Codex、Grok、OpenCode、Cursor をまたぐ委譲と通信、既存の契約をそのまま。会話中のエージェントが統括役になれ、個々とも話せる。macOS 正式、Windows / Linux はプレビュー、Linux (x86_64 / ARM64) のヘッドレスサーバを VPS に置き、デスクトップ・ブラウザ・スマホのブラウザから接続。エージェントが Podium の CLI / MCP で自分でタスクを作る。ボード、チーム表示、会話への途中参加。Made in Orbit (2 名)。
 
-**claw-orchestrator** ([repo](https://github.com/Enderfga/claw-orchestrator)): Claude Code、Codex、Antigravity、Grok Build、OpenCode を "persistent programmable sessions" として包む。`clawo serve` でダッシュボードと HTTP (18796)、Web 3 タブ (Autoloop / Council / Forge)。agent / fanout / council / verifier / human_gate / router / subflow のノード。セッションごとに context・tool・model・worktree。再試行・タイムアウト・中断・steer。`clawo acp`、`clawo-mcp`。対応 CLI の版は週次スイープで自動更新。個人。
+**claw-orchestrator** ([repo](https://github.com/Enderfga/claw-orchestrator)): Claude Code、Codex、Antigravity、Grok Build、OpenCode を "persistent programmable sessions" として包む。`clawo serve` でダッシュボードと HTTP (18796)、Web 3 タブ (Autoloop / Council / Forge)。agent / fanout / council / verifier / human_gate / router / subflow のノード。セッションごとに context・tool・model・worktree。再試行・タイムアウト・中断・steer。`clawo acp`、`clawo-mcp`。対応 CLI のバージョンは週次スイープで自動更新。個人。
 
 **Archon** ([repo](https://github.com/coleam00/Archon)、[docs](https://archon.diy/docs)): "Works with Claude Code SDK, Codex SDK, and local models via Pi"、"Compiled binaries need a CLAUDE_BIN_PATH"。端末では Claude Code 自身、Web では "Project chat"。"archon serve"、"A binary downloads the matching Web UI on first run"、"The Docker image ships Claude Code pre-installed"、"Ship from your phone"。".archon/workflows/build-feature.yaml"、"5 parallel reviewers"、"fresh_context: true"、"interactive: true"。"Run detail - Event log, artifacts, workflow graph"。MCP、skills、hooks。個人 (coleam00)。
 
-**Orca** ([repo](https://github.com/stablyai/orca)、[site](https://onorca.dev)): "Run Codex, ClaudeCode, OpenCode or Pi side-by-side"、"Works with any CLI agent — if it runs in a terminal, it runs in Orca."、"Plug in the subscriptions you already have"。"Running `orca serve` on a headless Linux server? See the headless Linux server guide."、iOS / Android。"Fan one prompt across five agents, each in its own isolated git worktree"。"Backed by Y Combinator"、Stably AI。2026-10-01 に公式文書の CLI と Agents の節、ソース (コミット cb11a9ff、版 1.4.214) で確かめたこと:
+**Orca** ([repo](https://github.com/stablyai/orca)、[site](https://onorca.dev)): "Run Codex, ClaudeCode, OpenCode or Pi side-by-side"、"Works with any CLI agent — if it runs in a terminal, it runs in Orca."、"Plug in the subscriptions you already have"。"Running `orca serve` on a headless Linux server? See the headless Linux server guide."、iOS / Android。"Fan one prompt across five agents, each in its own isolated git worktree"。"Backed by Y Combinator"、Stably AI。2026-10-01 に公式文書の CLI と Agents の節、ソース (コミット cb11a9ff、バージョン 1.4.214) で確かめたこと:
 - 委譲: "Orchestration is Orca's structured multi-agent layer: a Run (namespace + coordinator inbox), Tasks, Dispatches, supervised workers, messages, and decision gates." (docs/site/content/docs/cli/orchestration.mdx)。`orca orchestration worker-start --agent claude` か `--agent codex` で worker を起こし、宛先 `@claude` と `@codex` で伝言を送る。Experimental の設定で有効にする。端末の見出しの "Continue in New Session…" は、同じか別の CLI の新しいセッションに前の会話からの引き継ぎの文を渡す (docs/site/content/docs/agents/codex.mdx)。
 - 見渡し: Agent Dashboard (Experimental) が、Needs You / Working / Done / Idle の列でエージェントを並べる。Claude と Codex の subagent は親の下の行に出る (docs/site/content/docs/model/agents-sessions.mdx)。状態は端末の題名と、Orca が入れる hook から読む。
 - Orca の hook の置き場所: Claude は `~/.claude/settings.json` に hook と status line を書き足す (src/main/claude/hook-settings.ts 39〜41 行目、`homedir()` を使い `CLAUDE_CONFIG_DIR` は読まない)。Codex は `~/.codex/hooks.json` と `config.toml` (src/main/codex/codex-real-home-hooks-json.ts 9〜15 行目)。symlink は辿って書く (src/main/agent-hooks/hook-config-write-path.ts)。作業場所を信頼済みにする印は、`CLAUDE_CONFIG_DIR` を読んで `.claude.json` の `projects` に書く (src/main/claude/claude-folder-trust-file.ts)。Orca の端末の外で動いた hook は何もしない (src/main/agent-hooks/hook-script-outside-orca.test.ts 9〜10 行目)。
@@ -187,7 +187,7 @@ Claude Code のセッション記録 (開発 PC) と Codex の走行記録 (ミ�
 - h0x91b/dev-3.0 | H1: 不明 | H2: はい ("It runs headless, and your phone is a client") | 製品のエージェントが CLI に委譲 | "dev3 message --task" | デスクトップと Web | Apache-2.0
 - open-mercato/cezar | H1: はい ("Uses your own claude, codex, opencode or pi login. No API key needed.") | H2: はい ("cezar-cli server-install --platform ubuntu-vps"、"cockpit from anywhere, including your phone") | 製品のエージェントが CLI に委譲 | ".ai/cezar/workflows/" に YAML で段ごとに runner を指定 | Web | MIT
 - Ryder-Sun/Meldwork | H1: 不明 | H2: いいえ ("a local Electron desktop app...not a hosted agent fleet"、"for macOS (Apple silicon)") | 製品のエージェントが CLI に委譲 | "Auto Discussion V4" | デスクトップ | macOS 専用。ライセンス表記に矛盾 (バッジは Apache-2.0、LICENSE は非商用)
-- amirfish1/claude-command-center | H1: 不明 (~/.claude の記録を読む方式。BYOK の入力欄も併記) | H2: はい ("CCC runs on Linux as a headless service you reach from the browser") | その他 | "sibling-ask"、group chats | Web | 現行は非商用、旧版は MIT
+- amirfish1/claude-command-center | H1: 不明 (~/.claude の記録を読む方式。BYOK の入力欄も併記) | H2: はい ("CCC runs on Linux as a headless service you reach from the browser") | その他 | "sibling-ask"、group chats | Web | 現行は非商用、以前のバージョンは MIT
 - cfal/garcon | H1: はい ("Use an existing agent login or subscription where its CLI supports one") | H2: はい (自前運用の Web、Linux x64 のバイナリ) | ベンダーの CLI そのもの | garcon-task で子チャットに委譲 | Web | GPL-3.0
 - alamops/agetor | H1: はい ("claude runs in interactive mode"、"codex exec") | H2: 不明 (ヘッドレスのデーモンと JSON / SSE の API はあるが Linux は未テストと明記) | ベンダーの CLI そのもの | AGENTS_CONFIG.yml | Web / TUI | MIT、"no sandbox"
 - ai4kanban/ai4kanban | H1: はい ("your own AI subscriptions") | H2: 不明 (デスクトップ app 中心) | 製品のエージェントが CLI に委譲 | 記載なし | Web | web/ は再配布不可、他は Apache-2.0
@@ -448,7 +448,7 @@ H1 の判定の途中で、Anthropic の公式文書に次の記述があるこ�
 - cyclops-team/cyclops | A (tmux の中で `claude --settings <path>`) | resources/manifests/claude.toml `launch="claude"`、src/cyclops/src/workspace.rs 625、src/cyclops-tmux/src/ops.rs 470-481 | A | 残す
 - cyrusagents/cyrus | B のみ | packages/claude-runner/src/ClaudeRunner.ts 774 `this.activeQuery = query(queryOptions)`、packages/claude-runner/package.json 18 `"@anthropic-ai/claude-agent-sdk"`、定額は packages/claude-runner/src/session-env.ts 12-16 | A の経路は無い | 棄却 H7
 - CompanyHelm/companyhelm | D (Anthropic の API を API キーで直接呼ぶ。Claude Code を動かさない) | apps/api/src/services/providers/models-adapters/anthropic_model_adapter.ts 29-33 `"x-api-key": normalizedApiKey` | A の経路は無い | 棄却 H1
-- amplifthq/opentag | C (現行の組み込みは ACP の adapter) | packages/runner/src/builtin-acp.ts 64 `"@agentclientprotocol/claude-agent-acp@0.59.0"`。CHANGELOG.md 555 では旧版が `claude` を直接起動していた | 設定で A を選ぶ手段は無く、コードの差し替え (packages/runner/src/executor.ts の ExecutorAdapter) が要る | 棄却 H7 (再考の条件: 設定で claude を直接起動する経路が戻ったら)
+- amplifthq/opentag | C (現行の組み込みは ACP の adapter) | packages/runner/src/builtin-acp.ts 64 `"@agentclientprotocol/claude-agent-acp@0.59.0"`。CHANGELOG.md 555 では以前のバージョンが `claude` を直接起動していた | 設定で A を選ぶ手段は無く、コードの差し替え (packages/runner/src/executor.ts の ExecutorAdapter) が要る | 棄却 H7 (再考の条件: 設定で claude を直接起動する経路が戻ったら)
 
 ## 7. tmux への依存 (2026-10-01)
 
@@ -510,7 +510,7 @@ TypeSafe の Jev を、製品の仕組みとして呼べるかを、各製品の
   - 2.1.287: "Added Claude Mods: plugins may now modify deeper behavior"。従来の settings.json の hook も同じ仕組みの上で動く。
   - 2.1.284: "Changed interactive terminal and VS Code sessions to start in auto mode when no permission mode is configured, on every plan and provider"。2.1.285 で `claude -p` にも広がった (第三者の提供元か、telemetry を切ったとき)。
   - 2.1.281: `--setting-sources` が、背後で起こすセッションにも引き継がれるようになった。
-  - 2.1.292: 手元の MCP サーバとの既定のプロトコル版が 2026-07-28 になった。
+  - 2.1.292: 手元の MCP サーバとの既定のプロトコルのバージョンが 2026-07-28 になった。
   - 2.1.280、2.1.284、2.1.293: Opus 5.5、Sonnet 5.5、Haiku 5.5 が既定のモデルになった。
 - Codex ([releases](https://github.com/openai/codex/releases))
   - 0.158.0: 起動画面の文言が変わり、それを目印に起動を待つ製品が止まった (Orca の v1.4.217 の説明)。
@@ -560,7 +560,7 @@ H9 の意図 (計画の 8 節、2026-10-10) に沿って、2026-09-15 から 202
 - 2026-09-29: GPT-6.1 Sol (Codex 0.159.1 で既定)。Codex 0.159.0 (app-server が履歴を途中から返せる)。
 - 2026-09-30: Claude Code 2.1.286 (信頼していない作業場所で `--bg` を断る。cccc の [#128](https://github.com/ChesterRa/cccc/issues/128) の記述)。
 - 2026-10-07: Claude Haiku 5.5 (Claude Code 2.1.293)。Codex 0.161.0 (認証を OS の keyring に置く場合がある)。
-- Claude Code の背景のセッション (Agent View、`claude agents`、`claude attach`、`claude daemon`) は、2.1.274 から 2.1.295 のほぼ毎版で振る舞いが変わった。
+- Claude Code の背景のセッション (Agent View、`claude agents`、`claude attach`、`claude daemon`) は、2.1.274 から 2.1.295 のほぼすべてのバージョンで振る舞いが変わった。
 
 ### 12.2 製品が上流に触れる面
 
@@ -574,10 +574,10 @@ H9 の意図 (計画の 8 節、2026-10-10) に沿って、2026-09-15 から 202
 - Opus 5.5 (09-22): cccc は当たらない。OpenClaw は 2026.9.6 (09-23) で選べるようになった (1 日)。
 - GPT-6 Sol と Luna (09-22): cccc は当たらない。OpenClaw は 2026.9.6 (09-23) で対応 (1 日)。OpenClaw 自身の実行器で GPT-6 Sol を断る [#155937](https://github.com/openclaw/openclaw/issues/155937) は開いたまま。
 - Sonnet 5.5 (09-28): cccc は当たらない。OpenClaw は 2026.9.7 (09-30) で対応 (2 日)。
-- GPT-6.1 Sol (09-29): cccc は当たらない。OpenClaw の主の系列は 2026.9.9 (10-08) で Codex の一覧に足した (9 日)。2026.9.8 では同梱の Codex 0.158.0 で 400 になった ([#164095](https://github.com/openclaw/openclaw/issues/164095))。長期保守の系列 (extended-stable) は 2026.8.35 (10-02) で対応 (3 日)。モデルの一覧を問い合わせるときの Codex の版が固定の値である件 ([#162768](https://github.com/openclaw/openclaw/issues/162768)) は開いたまま。
+- GPT-6.1 Sol (09-29): cccc は当たらない。OpenClaw の主の系列は 2026.9.9 (10-08) で Codex の一覧に足した (9 日)。2026.9.8 では同梱の Codex 0.158.0 で 400 になった ([#164095](https://github.com/openclaw/openclaw/issues/164095))。長期保守の系列 (extended-stable) は 2026.8.35 (10-02) で対応 (3 日)。モデルの一覧を問い合わせるときの Codex のバージョンが固定の値である件 ([#162768](https://github.com/openclaw/openclaw/issues/162768)) は開いたまま。
 - Haiku 5.5 (10-07): cccc は当たらない。OpenClaw は 2026.9.9 (10-08) で対応 (1 日)。
 
-CLI の振る舞いの変化 (本文が Claude Code か Codex の版か振る舞いに原因を結びつけている不具合。cccc は期間内の issue と PR をすべて、OpenClaw は期間内で関わりの深い 25 件を見た。日数は、上流の変化の日が分からないものは報告からの日数で、上流からはそれ以上になる):
+CLI の振る舞いの変化 (本文が Claude Code か Codex のバージョンか振る舞いに原因を結びつけている不具合。cccc は期間内の issue と PR をすべて、OpenClaw は期間内で関わりの深い 25 件を見た。日数は、上流の変化の日が分からないものは報告からの日数で、上流からはそれ以上になる):
 
 - 対話のセッションの auto mode の既定 (2.1.284、09-28): どちらも当たらない。cccc は Claude に `--dangerously-skip-permissions` を渡し、OpenClaw は `--permission-mode default` を明示する。
 - 信頼していない作業場所で `--bg` を断る (2.1.286、09-30): cccc は当たる。v0.4.41 (09-25) で信頼の確認を端末に出す対応が先に入っていた (#128 の記述)。
@@ -587,23 +587,23 @@ CLI の振る舞いの変化 (本文が Claude Code か Codex の版か振る舞
 - Claude Code 2.1.281 を入れているのに `claude_code_version_too_old` で断られる ([#157541](https://github.com/openclaw/openclaw/issues/157541)、09-24 報告): OpenClaw は当たる。09-26 に閉じた (2 日)。
 - Claude Code 2.1.292 が再開のときに追加の system prompt を無視する ([#167799](https://github.com/openclaw/openclaw/issues/167799)、10-09 報告): OpenClaw は当たる。修正は 10-09 にマージ、未リリース。
 - Claude Code 2.1.281 が前景の Bash を背景に回すと、返事がチャットに届かず、180 秒で打ち切られる ([#157647](https://github.com/openclaw/openclaw/issues/157647)、09-24 報告): OpenClaw は当たる。10-10 時点で開いたまま (報告から 16 日)。
-- Codex のモデルの一覧を問い合わせるときの版が 0.158.0 に固定で、新しい Codex を使っても GPT-6.1 Sol が出ない ([#162768](https://github.com/openclaw/openclaw/issues/162768)、10-01 報告): OpenClaw は当たる。開いたまま (9 日)。
+- Codex のモデルの一覧を問い合わせるときのバージョンが 0.158.0 に固定で、新しい Codex を使っても GPT-6.1 Sol が出ない ([#162768](https://github.com/openclaw/openclaw/issues/162768)、10-01 報告): OpenClaw は当たる。開いたまま (9 日)。
 - OpenClaw 自身の実行器 (ChatGPT のログインで OpenClaw が自分のループを回す経路) で GPT-6 Sol を断る ([#155937](https://github.com/openclaw/openclaw/issues/155937)、09-22 報告): OpenClaw は当たる。開いたまま (18 日)。PDA が使う、Codex の app-server を動かす経路ではない。
 
-### 12.4 届け方と、確かめている版
+### 12.4 届け方と、確かめているバージョン
 
-- cccc: リリースは 09-18、09-25、10-06。09-28 にマージした修正 ([#119](https://github.com/ChesterRa/cccc/pull/119)、[#124](https://github.com/ChesterRa/cccc/issues/124) の修正) は 10-06 のリリースで届いた (8 日)。10-10 時点で、製品の更新の確かめ (`cccc update --check`) と公式のインストーラの既定は 0.4.41 を指し、0.4.42 は版を指定しないと入らなかった。CI で確かめている版は Claude Code 2.1.261 と Codex 0.153.2 で、09-05 から変わっていない (最新は 2.1.296 と 0.162.1)。
+- cccc: リリースは 09-18、09-25、10-06。09-28 にマージした修正 ([#119](https://github.com/ChesterRa/cccc/pull/119)、[#124](https://github.com/ChesterRa/cccc/issues/124) の修正) は 10-06 のリリースで届いた (8 日)。10-10 時点で、製品の更新の確かめ (`cccc update --check`) と公式のインストーラの既定は 0.4.41 を指し、0.4.42 はバージョンを指定しないと入らなかった。CI で確かめているバージョンは Claude Code 2.1.261 と Codex 0.153.2 で、09-05 から変わっていない (最新は 2.1.296 と 0.162.1)。
 - OpenClaw: 主の系列のリリースは 09-19、09-23、09-30、10-03、10-08 で、別に長期保守の系列がある。製品が管理する Codex は 0.160.0 (10-02 に更新)、外部の Codex の下限は 0.149.0 (`extensions/codex/src/app-server/version.ts`)。Claude Code の全体の下限は置いていない (2026.9.7 の changelog)。
 
-### 12.5 最新の版での動作
+### 12.5 最新のバージョンでの動作
 
-cccc v0.4.42 は Claude Code 2.1.293 と Codex 0.161.0 で、T1〜T4 と T9 が通った ([評価](../../reports/v0.3-cccc-evaluation.md))。OpenClaw 2026.9.8 は同じ版で T1〜T5 が通った (2026-10-08)。
+cccc v0.4.42 は Claude Code 2.1.293 と Codex 0.161.0 で、T1〜T4 と T9 が通った ([評価](../../reports/v0.3-cccc-evaluation.md))。OpenClaw 2026.9.8 は同じバージョンで T1〜T5 が通った (2026-10-08)。
 
 ### 12.6 まとめ
 
 - 新しいモデルには、cccc は製品の対応が要らず、CLI を上げた日から使える。OpenClaw は 1〜2 日で対応し、GPT-6.1 Sol だけ主の系列で 9 日かかった。
 - CLI の振る舞いの変化: cccc は 3 件に当たった。回避の 1 件が報告から 4.7 日で届き、2 件は報告から 2〜3 日で未修正。OpenClaw は 5 件に当たった。2 件は報告から 1〜2 日で修正し (1 件は未リリース)、3 件は報告から 9〜18 日開いたまま (うち 1 件は PDA が使わない経路)。
-- 届け方: cccc はリリースの間隔が 7〜11 日で、マージから利用者に届くまで 8 日かかった例があり、製品の更新の経路は 10-10 時点で 4 日前のリリースを指していない。CI で確かめている版は 5 週間前のまま。OpenClaw はリリースの間隔が 3〜7 日。
+- 届け方: cccc はリリースの間隔が 7〜11 日で、マージから利用者に届くまで 8 日かかった例があり、製品の更新の経路は 10-10 時点で 4 日前のリリースを指していない。CI で確かめているバージョンは 5 週間前のまま。OpenClaw はリリースの間隔が 3〜7 日。
 - 5 日の線: どちらも超えるものがある。OpenClaw は個別の不具合 (#157647 の 16 日、#162768 と GPT-6.1 Sol の 9 日) で超え、cccc は修正の届け方 (リリースの間隔と更新の経路) で超える。
 
 ## 13. cccc の考え方と、cccc に沿った使い方 (2026-10-10)
@@ -698,5 +698,5 @@ cccc 自身の文書 (v0.4.42) と、cccc がエージェントに渡す約束�
 - [trietphan/jev-claw](https://github.com/trietphan/jev-claw): `sessions_spawn` の呼び出しに `before_tool_call` を掛け、Jev の判定と違う相手のエージェントへの委譲を止める。Jev がエージェントの割り当てを決める形。
 - [jason-allen-oneal/openclaw-plugin-typesafe-ai](https://github.com/jason-allen-oneal/openclaw-plugin-typesafe-ai): `before_tool_call` で Jev に危険度を採点させ、高ければ承認を求める。`before_model_resolve` で Jev にモデルを選ばせる機能もある (既定は切ってある)。
 - [FailproofAI/failproofai](https://github.com/FailproofAI/failproofai): OpenClaw 用の hook (`before_tool_call`、`before_agent_run`、`before_agent_finalize`) から自前の判定に渡し、その中で Jev に「頼まれたことと道具の呼び出しが合っているか」を判定させる。
-- [OpenBMB/ClawXRouter](https://github.com/OpenBMB/ClawXRouter): `before_model_resolve` で、手元の小さなモデルに依頼の難しさを判定させ、使うモデルを振り分ける。今の版から外れた hook も使っており、今の版での動作は確かめられていない。
+- [OpenBMB/ClawXRouter](https://github.com/OpenBMB/ClawXRouter): `before_model_resolve` で、手元の小さなモデルに依頼の難しさを判定させ、使うモデルを振り分ける。今のバージョンから外れた hook も使っており、今のバージョンでの動作は確かめられていない。
 - 判定モデルを使わず `before_tool_call` で止める・承認を求める plugin は多い (Cisco DefenseClaw、NVIDIA NemoClaw、Gen Digital Sage ほか)。公開の場は npm と ClawHub (https://clawhub.ai)。

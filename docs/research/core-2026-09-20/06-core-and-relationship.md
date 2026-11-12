@@ -41,7 +41,7 @@ A14は実行器に問い合わせず中央記録から答えられる条件と�
 |---|---|---|
 | [第1本v2](01-store-and-protocol.v2.md)・[review](01-review.md) | store、protocol、session/choreography、workflowの個別対応。LangGraphの未知遷移の無視という観察 | 同じprotocolを同じJSON型とはしない。今回は変更要求側と受理側を分け、未知要求の処理を記録する |
 | [第2本](02-self-declaration.md)・[review](02-review.md) | 能力宣言、資源・費用・stateの語彙、各種検査 | 宣言の存在から実態との一致を導かない。再試行可能という設定も中断後の実態保証とは別 |
-| [第3本](03-runtime-wrapper.md)・[review](03-review.md) | OCI/ACP/LSP、監督、adapterによる変換。通知の省略や未観測範囲 | 部品の再評価はしない。OTPは今回、中央の再起動規則として固定版を新たに読む。heartbeatでは生存中のevent省略を補えない |
+| [第3本](03-runtime-wrapper.md)・[review](03-review.md) | OCI/ACP/LSP、監督、adapterによる変換。通知の省略や未観測範囲 | 部品の再評価はしない。OTPは今回、中央の再起動規則として固定したバージョンを新たに読む。heartbeatでは生存中のevent省略を補えない |
 | [第4本](04-log-store.md)・[review](04-review.md) | 型検査・履歴・追記証明・前提付き完全性。Activity開始記録の留保 | 「検査を置く場所は未決定」という旧要件での留保は引き継がない。現行要件はラッパーがストアを仲介し、コアが受理時に検査する |
 | [第5本](05-whole.md)・[review](05-review.md) | IAM、VW、RouteLLM、DBOS、YAWLの部分的な対。BB1等の抽象。A9と判定器の共通契約の未対応 | 既存の部品は再採点しない。フロー変更の出所、規則の発火根拠、入力の出所に焦点を当て、末尾の集約表を更新する |
 
@@ -62,7 +62,7 @@ A14は実行器に問い合わせず中央記録から答えられる条件と�
 | O: OPA | 成立規則のlabelsとdecision logの仕様 [OP0](06-core-and-relationship.evidence.md#op0) | labelのある成立規則からmapを集め、同じmapは統合する | `v1/topdown/evaluated.go:34–50`、`v1/server/server.go:1525–1597`、`v1/plugins/logs/plugin.go:771–871` @`8cb39024` [OP1–4](06-core-and-relationship.evidence.md#op1) | 6・7 | A18が一部 | labelsは任意かつ非一意。logのdrop/mask。すべてのコア操作への強制適用 |
 | K: Kubernetes API | API受理・auditの仕様 [HKV](06-core-and-relationship.evidence.md#hkv)・[HKA2](06-core-and-relationship.evidence.md#hka2) | 対象decode違反を拒否し、audit有効の経路でresponse statusを記録する | `handlers/create.go:120–151`、`filters/audit.go:38–147` @`57c05b7d` [KA1–3](06-core-and-relationship.evidence.md#ka1) | 2・6・7 | A13・A18が一部 | validationモード、audit policy/sink/欠落条件。実行器全発信への同一検査 |
 | B: Racket | 高階契約とblame [PFF](06-core-and-relationship.evidence.md#pff) | 契約の正負位置に応じ責任側を反転し、違反時にそのblameを付ける | `contract/private/arrow-val-first.rkt:675–692`、`blame.rkt:280–285,347–385` @`45f34393` [RA1–3](06-core-and-relationship.evidence.md#ra1) | 2・6 | A13・A18が一部 | 契約に書いた検査対象に限定。共通event streamへの不受理の必須記録 |
-| L: Langfuse | prompt取得・template展開の仕様 [HLF](06-core-and-relationship.evidence.md#hlf) | text templateの固定部分と変数値から展開結果を作る | `langfuse/model.py:88–114`、`_client/attributes.py:133–146` @`65392c73` [LF1–3](06-core-and-relationship.evidence.md#lf1) | 1・7 | A16が一部 | 変数の出所と最終入力の一致。fallback時のprompt版属性。追記の禁止 |
+| L: Langfuse | prompt取得・template展開の仕様 [HLF](06-core-and-relationship.evidence.md#hlf) | text templateの固定部分と変数値から展開結果を作る | `langfuse/model.py:88–114`、`_client/attributes.py:133–146` @`65392c73` [LF1–3](06-core-and-relationship.evidence.md#lf1) | 1・7 | A16が一部 | 変数の出所と最終入力の一致。fallback時のpromptのバージョン属性。追記の禁止 |
 | M: MLflow | promptの取得・format仕様 [HML](06-core-and-relationship.evidence.md#hml) | 通常のdouble-brace展開で値を置換し、既定では不足変数を拒否 | `mlflow/genai/prompts/utils.py:1–12`、`prompt_version.py:537–573` @`3e1b7122` [ML1–3](06-core-and-relationship.evidence.md#ml1) | 1・7 | A16が一部 | prompt/trace関連付けは最終入力の強制検査ではない。許される入力源の制限 |
 | N: noWorkflow | scriptの実行provenance [PNW](06-core-and-relationship.evidence.md#pnw) | 計測した評価とその依存評価をIDで結び付ける | `prov_definition/definition.py:89–134`、`prov_execution/collector.py:2011–2046` @`4a2c4c8b` [NW1–2](06-core-and-relationship.evidence.md#nw1) | 7 | A16が一部 | 外部ランタイム内部、全依存の捕捉、許容入力源以外の禁止 |
 
@@ -110,9 +110,9 @@ Racketの契約では関数の引数側と戻り値側でblameの向きが変わ
 
 ### 3.5 事前文、前段出力、入力の出所
 
-本体確認。Langfuseのtext compileはtemplateの固定部分と与えた変数値を連結する。未指定変数は元のplaceholderを残す。観測属性にはpromptのname/versionを付けられるが、fallback promptでは付けず、観測inputもpromptとは別の引数である。prompt版を参照したことと、その版から得た文字列だけをランタイムへ渡したことは同じ証拠ではない。[HLF](06-core-and-relationship.evidence.md#hlf)[LF1–3](06-core-and-relationship.evidence.md#lf1)
+本体確認。Langfuseのtext compileはtemplateの固定部分と与えた変数値を連結する。未指定変数は元のplaceholderを残す。観測属性にはpromptのname/versionを付けられるが、fallback promptでは付けず、観測inputもpromptとは別の引数である。promptのバージョンを参照したことと、そのバージョンから得た文字列だけをランタイムへ渡したことは同じ証拠ではない。[HLF](06-core-and-relationship.evidence.md#hlf)[LF1–3](06-core-and-relationship.evidence.md#lf1)
 
-MLflowにも版を指定したprompt取得、通常のdouble-brace置換、不足変数の拒否、active traceとの関連付けがある。allow_partialやJinja形式という別の利用経路もある。公式資料はprompt版のimmutable性を説明するが、本書で実装との対にしたのは取得・展開・関連付けであり、あらゆる書込経路に対する不変性の証明ではない。[HML](06-core-and-relationship.evidence.md#hml)[ML1–3](06-core-and-relationship.evidence.md#ml1)
+MLflowにもバージョンを指定したprompt取得、通常のdouble-brace置換、不足変数の拒否、active traceとの関連付けがある。allow_partialやJinja形式という別の利用経路もある。公式資料はpromptのバージョンのimmutable性を説明するが、本書で実装との対にしたのは取得・展開・関連付けであり、あらゆる書込経路に対する不変性の証明ではない。[HML](06-core-and-relationship.evidence.md#hml)[ML1–3](06-core-and-relationship.evidence.md#ml1)
 
 noWorkflowはPythonのASTを計測用に変換し、評価同士の依存IDを記録する。利用者が元sourceを手で変更しなくても、実行コードには計測が入る。論文はnetwork/DBアクセス自体を直接捕捉せず、その呼出関数を捕捉すると留保する。未改変の外部ベンダーランタイム内部まで透過的に計測できるとは解釈しない。[PNW](06-core-and-relationship.evidence.md#pnw)[PNW2](06-core-and-relationship.evidence.md#pnw2)[NW1–2](06-core-and-relationship.evidence.md#nw1)
 
@@ -126,7 +126,7 @@ BDI/Jasonのsense・deliberate・actも役割を分けるが、外部event、初
 
 要件のjevエントリポイントは、仕事を受けた後のモデル選定を共通契約の判定器へ渡すという制御上の役割である。初期セルを定めることはplannerやworkflowのentrypointに対応付けられるが、特定のjev実装が永続的に不可欠であるという意味には読まない。A4の判定器交換可能性も同時に物差しに残る。今回のplannerやworkflow機構だけから、jevを含むすべての判定器が同じ宣言・受渡し・event契約に従うという対は得られていない。
 
-BPELは一参加者のprocessの振る舞いを記述し、WS-CDLは参加者間の共通かつ補完的な観測可能動作をglobalに記述する。WS-CDL 1.0の取得版は2005年のCandidate Recommendationであり、最終Recommendationとして扱わない。PDAの中央保持と参加者起点の変更は、フローの所有と変更判断の出所を分ける構造として整理できる。[PBP](06-core-and-relationship.evidence.md#pbp)[HCD](06-core-and-relationship.evidence.md#hcd)
+BPELは一参加者のprocessの振る舞いを記述し、WS-CDLは参加者間の共通かつ補完的な観測可能動作をglobalに記述する。WS-CDL 1.0の取得したバージョンは2005年のCandidate Recommendationであり、最終Recommendationとして扱わない。PDAの中央保持と参加者起点の変更は、フローの所有と変更判断の出所を分ける構造として整理できる。[PBP](06-core-and-relationship.evidence.md#pbp)[HCD](06-core-and-relationship.evidence.md#hcd)
 
 参加者内部を外から区別せず観測可能な通信に着目する抽象と、既存runtimeを無変更で接続するadapterは関連するが、前者だけで後者の実装が生じるわけではない。第3本のOCI/LSP/ACPの報告では、境界をラッパーが吸収できる一方、公開された外部interfaceの制約と省略が残る。コアの契約を知る必要があるのはラッパーであり、ランタイム本体がストアに直接触れることは現行要件の前提ではない。
 

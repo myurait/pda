@@ -2,7 +2,7 @@
 
 本文 `04-log-store.md` が正本。本書はその全引用位置を系譜ごとに記録する。取得日は全件 2026-09-20 JST。担当調査者が一次資料を取得して該当範囲を読んだものを「本体確認」とする。親による独立再取得の範囲は `04-review.md` が示す。
 
-コードはコミットSHAに固定。RFC・論文・製品HTMLにはコミットがないため、版、取得日、取得バイト列のSHA-256で固定する。path:lineは固定したソースの行であり、HTMLを整形した後の行ではない。PDFは取得版のPDFページと本文の節を使い、引用ページは画像でも確認した。
+コードはコミットSHAに固定。RFC・論文・製品HTMLにはコミットがないため、バージョン、取得日、取得バイト列のSHA-256で固定する。path:lineは固定したソースの行であり、HTMLを整形した後の行ではない。PDFは取得したバージョンのPDFページと本文の節を使い、引用ページは画像でも確認した。
 
 ## 1. コードと仕様の引用
 
@@ -62,7 +62,7 @@
 > This method will block until a message is available.
 
 <a id="s1"></a>
-### S1 — schema登録時に旧版との互換性を検査。force等による例外がある。
+### S1 — schema登録時に以前のバージョンとの互換性を検査。force等による例外がある。
 
 本体確認。[一次資料](https://github.com/confluentinc/schema-registry/blob/ff2583dc173630d09a91f410e29091d6b2591ca4/core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaSchemaRegistry.java#L527)。`core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaSchemaRegistry.java:527-537`。
 
@@ -619,7 +619,7 @@ Instrumentations MUST follow [JSON schema](/model/gen-ai/gen-ai-input-messages.j
 
 本体確認。[一次資料](https://docs.confluent.io/platform/7.9/schema-registry/schema-validation.html)。`confluent.html:1338-1338`。
 
-コミット: 該当なし。固定版URLと取得日による。
+コミット: 該当なし。バージョンを固定したURLと取得日による。
 
 取得内容 SHA-256: `7bc065ab2bdcac18318ff86d3b2592b53d1bb7f7b67e4af39632d86f76fed84d`。
 
@@ -630,7 +630,7 @@ Instrumentations MUST follow [JSON schema](/model/gen-ai/gen-ai-input-messages.j
 
 本体確認。[一次資料](https://pulsar.apache.org/docs/4.2.x/schema-overview/)。`pulsar-schema.html:31-31`。
 
-コミット: 該当なし。固定版URLと取得日による。
+コミット: 該当なし。バージョンを固定したURLと取得日による。
 
 取得内容 SHA-256: `7a4a519ed61cd1964c3c0fbbc9f07c7d3441657ea2fc1b11fccce8d59800f6b5`。
 
@@ -641,7 +641,7 @@ Instrumentations MUST follow [JSON schema](/model/gen-ai/gen-ai-input-messages.j
 
 本体確認。[一次資料](https://www.rfc-editor.org/rfc/rfc6962.txt)。`rfc6962.txt:298-308`。
 
-コミット: 該当なし。固定版URLと取得日による。
+コミット: 該当なし。バージョンを固定したURLと取得日による。
 
 取得内容 SHA-256: `08fdf31c10b9f20872a65c027a9fe8cee27280f930120784241a57de744752af`。
 
@@ -652,7 +652,7 @@ Instrumentations MUST follow [JSON schema](/model/gen-ai/gen-ai-input-messages.j
 
 本体確認。[一次資料](https://www.rfc-editor.org/rfc/rfc6962.txt)。`rfc6962.txt:463-477`。
 
-コミット: 該当なし。固定版URLと取得日による。
+コミット: 該当なし。バージョンを固定したURLと取得日による。
 
 取得内容 SHA-256: `08fdf31c10b9f20872a65c027a9fe8cee27280f930120784241a57de744752af`。
 
@@ -663,7 +663,7 @@ Instrumentations MUST follow [JSON schema](/model/gen-ai/gen-ai-input-messages.j
 
 本体確認。[一次資料](https://www.rfc-editor.org/rfc/rfc9162.txt)。`rfc9162.txt:198-217`。
 
-コミット: 該当なし。固定版URLと取得日による。
+コミット: 該当なし。バージョンを固定したURLと取得日による。
 
 取得内容 SHA-256: `a0e432ce7580c99fcc8faf0cf3f6191f9ce6b4864f949158e020d4ecb295081f`。
 

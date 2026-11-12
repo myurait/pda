@@ -74,7 +74,7 @@
 - Docker Engine 29.9.2、Docker Compose v5.6.1。
 - Codex CLI 0.156.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済みで、認証は `~/.codex/auth.json`。
 - Claude Code CLI 2.1.293。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、常駐（Remote Control、OpenClaw）が使う認証は `~/pda/secrets/claude/.credentials.json`（`CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude`）。
-- OpenClaw 2026.10.10-beta.5（プレリリース）。`npm install -g --prefix /home/user/v03/openclaw openclaw@<版>` で入れ、本体は `~/v03/openclaw/lib/node_modules/openclaw` にある。常駐は `v03-openclaw.service`、CLI は `~/v03/openclaw/oc`。版を上げるときは、常駐を止めて本体を入れ替え、`oc doctor --fix` で保存データを移してから起動する。外から入れたプラグイン（`oc plugins list` で origin が global のもの）は、常駐を止めた状態で `oc plugins update <id>` を実行して本体と同じ版にそろえる。
+- OpenClaw 2026.10.10-beta.5（プレリリース）。`npm install -g --prefix /home/user/v03/openclaw openclaw@<バージョン>` で入れ、本体は `~/v03/openclaw/lib/node_modules/openclaw` にある。常駐は `v03-openclaw.service`、CLI は `~/v03/openclaw/oc`。バージョンを上げるときは、常駐を止めて本体を入れ替え、`oc doctor --fix` で保存データを移してから起動する。外から入れたプラグイン（`oc plugins list` で origin が global のもの）は、常駐を止めた状態で `oc plugins update <id>` を実行して本体と同じバージョンにそろえる。
 - v0.2 の実行器は、この 2 つの認証ファイルの複製を `~/pda/secrets/` に置いて使う。ホストの `~/.codex` と `~/.claude` はマウントしない。手順は `docs/runbook/increment-3.md` の 2〜3 節。
 - uv 0.13.5（`~/.local/bin/uv`）と、uv が管理する Python 3.11.17（`~/.local/bin/python3.11`）。OS の `python3` は 3.12.3。
 - Node.js 24.22.1。nvm で入れたもので、`~/.local/bin/node`、`npm`、`npx` はその symlink。止めてある `beauty-passport-web.service` が直接指す 24.18.0 も nvm に残している。

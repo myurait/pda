@@ -172,7 +172,7 @@ if (!parseResult.success) {
 
 ### M6
 
-2025版にも同じ不変量がある。
+2025年のバージョンにも同じ不変量がある。
 
 出典: [modelcontextprotocol/modelcontextprotocol/docs/specification/2025-11-25/server/tools.mdx](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/24efd6e7cbd7a074e6b3b781eb370891df40afad/docs/specification/2025-11-25/server/tools.mdx)。commit `24efd6e7cbd7a074e6b3b781eb370891df40afad`、HTTP 200。位置: `docs/specification/2025-11-25/server/tools.mdx:335–343`。
 
@@ -184,7 +184,7 @@ Servers **MUST** provide structured results that conform to this schema.
 
 ### M7
 
-SDK公開定数と実装経路の版差を明示。
+SDK公開定数と実装経路のバージョンの差を明示。
 
 出典: [modelcontextprotocol/typescript-sdk/packages/core/src/constants.ts](https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/60321700871029401a2e3bed8fdf4f02c9ec3331/packages/core/src/constants.ts)。commit `60321700871029401a2e3bed8fdf4f02c9ec3331`、HTTP 200。位置: `packages/core/src/constants.ts:1–14`。
 
@@ -196,7 +196,7 @@ LATEST_PROTOCOL_VERSION = '2025-11-25'
 
 ### M8
 
-2026版の通信切断時は新規再投入。
+2026年のバージョンの通信切断時は新規再投入。
 
 出典: [modelcontextprotocol/modelcontextprotocol/docs/specification/2026-07-28/changelog.mdx](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/24efd6e7cbd7a074e6b3b781eb370891df40afad/docs/specification/2026-07-28/changelog.mdx)。commit `24efd6e7cbd7a074e6b3b781eb370891df40afad`、HTTP 200。位置: `docs/specification/2026-07-28/changelog.mdx:12–28`。
 
@@ -926,7 +926,7 @@ op: lte | gte | lt | gt
 
 ### S6
 
-SlothはOpenSLO v1alphaを受理、v1との版差。
+SlothはOpenSLO v1alphaを受理、v1とのバージョンの差。
 
 出典: [slok/sloth/internal/storage/io/openslo.go](https://raw.githubusercontent.com/slok/sloth/8a3be4fab79defa4448d09d91b48422615980b05/internal/storage/io/openslo.go)。commit `8a3be4fab79defa4448d09d91b48422615980b05`、HTTP 200。位置: `internal/storage/io/openslo.go:51–70`。
 
@@ -956,7 +956,7 @@ icontractの固定ソース `3e733f9e790359036c4da2cc550c599107710b60` を、調
 | `ensure(result > 0)` の関数が `-1` を返す | `ViolationError`、本体呼出記録 `[1]` | 後条件違反を本体実行後に検出 |
 | 同じ負の入力、`enabled=False` | `-1` をそのまま返す | 宣言があっても検査の無効化で通る |
 
-再現スクリプト・結果は調査時の `/private/tmp/pda-research-02/check_contract.py` と `check_contract.result.json`。引用台帳は同ディレクトリの `manifest.json`（GitHub資料）と `external-manifest.json`（PDF/HTML）。一時ファイルが消えても資料を再取得できるよう、根拠のURL・版・位置・引用は本ファイルに全件残した。
+再現スクリプト・結果は調査時の `/private/tmp/pda-research-02/check_contract.py` と `check_contract.result.json`。引用台帳は同ディレクトリの `manifest.json`（GitHub資料）と `external-manifest.json`（PDF/HTML）。一時ファイルが消えても資料を再取得できるよう、根拠のURL・バージョン・位置・引用は本ファイルに全件残した。
 
 その他の実装は固定ソースの検査経路を読んだ。MCP/A2Aサーバー、Kubernetes/Nix、Pony/Koka compiler、CHERI emulator、Sloth/Prometheus、CNETの実行試験はしていない。
 

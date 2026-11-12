@@ -23,7 +23,7 @@
 | Pulsar / Confluent | P0〜P7、S0〜S3 | schema登録・互換性検査、標準publish経路、ledger追加とReader、client側のpayload検査。Confluentのbroker製品仕様はID検査を説明 | 登録済みIDがあることはpayloadの適合ではない。JSON serializerの検査は既定falseで、非公開brokerのコードを検査したとはしない |
 | Iceberg | I1〜I4 | Sparkのwrite schemaを検査し、設定に応じてnullability等の不適合を拒否する | snapshot/fileのsequenceは個々の実行器eventの発生順序ではなく、逐次購読とも異なる |
 | Temporal | T1〜T7 | serverによる種別とattributesの構築、履歴IDの増分、終了後の追加拒否、long-poll。Activity開始をtransientとして完了時に補う経路 | workflow履歴はActivity内の全行為ではなく、すべての開始・再試行を即時出力する保証でもない |
-| Restate | R1〜R6 | 再生commandのdecode、header/index照合、journal保存、payload比較を省略できる設定、旧仕様のarchive状態 | debug assertionはrelease時の拒否を証明しない。旧版の全遷移の文言を現行版の無条件保証へ移さない |
+| Restate | R1〜R6 | 再生commandのdecode、header/index照合、journal保存、payload比較を省略できる設定、旧仕様のarchive状態 | debug assertionはrelease時の拒否を証明しない。以前のバージョンの全遷移の文言を現行のバージョンの無条件保証へ移さない |
 | OpenTelemetry / GenAI / Dapper | O1〜O7、G1〜G5、L4 | Logsのemit時export、Spanのend時export、samplingとqueue drop、event_nameの自由度、現行GenAI規約のDevelopmentとopt_in | 共通の形から名前別payload検証、全件性、永続性は導けない。記録の不在だけで行為の不在を判定しない |
 | CT / Trillian | C0〜C7 | treeの追記とroot/proof検証、RFC 6962のSCTとMMD、RFC 9162が述べる異なるviewの問題 | 証明対象は提出・公表済み記録。TrillianのRFC 6962由来実装をRFC 9162準拠の証明とはしない |
 | Agents SDK / A2A / protobuf | A1〜A5、B1・B2 | SDKの標準event構築とqueue読取り、省略されるitem、dataclass/Literalの型注釈、proto3 open enumとoneof | 型宣言だけを任意入力の実行時拒否としない。queueは永続ログではなく、oneofは値の必須性を保証しない |

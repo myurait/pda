@@ -2,7 +2,7 @@
 
 作成・一次資料取得日: 2026-09-20 JST。物差しは `docs/requirements.md`、対象ファイルの最終変更 commit は `cdd90e945d938769aefa17a2b8de3236647f6bdc`（`git log -1 --format=%H -- docs/requirements.md` で確認）。設計・製品選定ではなく、能力の宣言とその検査についての調査記録である。
 
-本文の一次資料は担当調査者が取得して確認した「本体確認」。分担先の未再取得の報告を根拠にした箇所はない。親による独立照合は `02-review.md` の範囲と区別する。根拠集は `02-self-declaration.evidence.md`。以下の資料IDは同根拠集の逐語引用・固定版・行番号を指す。
+本文の一次資料は担当調査者が取得して確認した「本体確認」。分担先の未再取得の報告を根拠にした箇所はない。親による独立照合は `02-review.md` の範囲と区別する。根拠集は `02-self-declaration.evidence.md`。以下の資料IDは同根拠集の逐語引用・固定したバージョン・行番号を指す。
 
 ## 1. 結論
 
@@ -23,7 +23,7 @@
 
 ## 3. 抽象・不変量・実装が揃う対
 
-実装のcommitは7節に全長で固定した。表中の実装名はその版を指す。逐語の不変量と検査経路は各対の下に示す。
+実装のcommitは7節に全長で固定した。表中の実装名はそのバージョンを指す。逐語の不変量と検査経路は各対の下に示す。
 
 | 抽象 | 不変量・検査範囲 | 実装（強制箇所） | 契約との対応 | A2 / A4 / A11 | 足りないもの |
 |---|---|---|---|---|---|
@@ -46,19 +46,19 @@
 
 ### MCP と TypeScript SDK
 
-本体確認。2025-11-25、2026-07-28両版のtools仕様に、outputSchema指定時の “Servers MUST provide structured results that conform to this schema.” がある。SDKの高水準 `McpServer` は登録済みtoolから宣言を作り、呼び出しで入力検査→handler→出力検査を通る。成功した正常結果の `structuredContent` を宣言スキーマで検査する。[M1](02-self-declaration.evidence.md#m1)、[M6](02-self-declaration.evidence.md#m6)、[M4–M5](02-self-declaration.evidence.md#m4)、[M13](02-self-declaration.evidence.md#m13)
+本体確認。2025-11-25、2026-07-28両方のバージョンのtools仕様に、outputSchema指定時の “Servers MUST provide structured results that conform to this schema.” がある。SDKの高水準 `McpServer` は登録済みtoolから宣言を作り、呼び出しで入力検査→handler→出力検査を通る。成功した正常結果の `structuredContent` を宣言スキーマで検査する。[M1](02-self-declaration.evidence.md#m1)、[M6](02-self-declaration.evidence.md#m6)、[M4–M5](02-self-declaration.evidence.md#m4)、[M13](02-self-declaration.evidence.md#m13)
 
 強制の範囲は限定される。入力スキーマ未設定なら引数を検査せず `undefined` を返す。出力スキーマ未設定、追加入力待ち、`isError` の結果では出力スキーマ検査を行わない。通常の検査エラーは `tools/call` のcatchで `isError: true` のtool結果へ変換されるため、常にJSON-RPCエラーが外に出るとは言わない。任意の低水準handlerを含む全SDK利用法の適合までは証明しない。[M4–M5](02-self-declaration.evidence.md#m4)
 
 Toolの `readOnlyHint`、`destructiveHint`、`idempotentHint`、`openWorldHint` は注釈であり、スキーマ自身がその全属性をヒントと位置付ける。`inputSchema`を検査しても「readOnlyと宣言したtoolがファイルを書かなかった」ことは分からない。`openWorldHint`も到達可能なURL、パス、コネクタ権限の列挙ではない。[M2–M3](02-self-declaration.evidence.md#m2)
 
-版の注意として、取得したSDKの公開 `LATEST_PROTOCOL_VERSION` は `2025-11-25` のままで、同じソースには2026版の処理も存在する。本対は両版に共通のtool入出力制約に限定し、SDK全体が2026版に準拠すると認定していない。2026版のstateは4節で仕様として別に扱う。[M7](02-self-declaration.evidence.md#m7)
+バージョンの注意として、取得したSDKの公開 `LATEST_PROTOCOL_VERSION` は `2025-11-25` のままで、同じソースには2026年のバージョンの処理も存在する。本対は両方のバージョンに共通のtool入出力制約に限定し、SDK全体が2026年のバージョンに準拠すると認定していない。2026年のバージョンのstateは4節で仕様として別に扱う。[M7](02-self-declaration.evidence.md#m7)
 
 ### A2A AgentCard と Python SDK
 
 本体確認。A2A仕様は `AgentCard.capabilities.streaming` が偽または未指定なら、streaming操作とtask購読操作に `UnsupportedOperationError` を要求する。Pythonの既定handlerはAgentCardを参照するdecoratorを持ち、偽ならhandler実行前に例外を返す。protobufのフィールド型から強制を推定したのではなく、この実行経路を確認した。[A1](02-self-declaration.evidence.md#a1)、[A3–A5](02-self-declaration.evidence.md#a3)
 
-このゲートは「宣言していない操作を受け付けない」を守る。「streaming=trueなら必ず正しく継続できる」「skillの説明どおりの能力がある」は守らない。Cardはskills、入出力メディア型、通信機能、エンドポイントを利用する側のsecurity requirementsを持つが、実行器から外部コネクタへの到達権限そのものではない。固定版 `specification/a2a.proto` 全812行を `cost|price|pricing|budget|quota|rate.?limit` で検索した一致は0件だった。対象はこのファイルであり、将来の拡張を含む全A2Aエコシステムに不在とする主張ではない。[A2](02-self-declaration.evidence.md#a2)
+このゲートは「宣言していない操作を受け付けない」を守る。「streaming=trueなら必ず正しく継続できる」「skillの説明どおりの能力がある」は守らない。Cardはskills、入出力メディア型、通信機能、エンドポイントを利用する側のsecurity requirementsを持つが、実行器から外部コネクタへの到達権限そのものではない。固定したバージョンの `specification/a2a.proto` 全812行を `cost|price|pricing|budget|quota|rate.?limit` で検索した一致は0件だった。対象はこのファイルであり、将来の拡張を含む全A2Aエコシステムに不在とする主張ではない。[A2](02-self-declaration.evidence.md#a2)
 
 ### OpenAPI と openapi-core
 
@@ -97,7 +97,7 @@ Kokaの論文は、`exn` effectなしで型付けされた式が未処理例外�
 | 対象 | 宣言できる既存語彙 | 宣言と実態の食い違いを検出できるか | 判定の限界 |
 |---|---|---|---|
 | 金額 | SLA4OAIのcost/currency/billingはある | 今回のanalyzerで確認したのは宣言の構文・計画上の上限比較。実請求との比較は未確認 | 定額料金等と1回の仕事の金額を同一視しない。MCPのcostPriorityは費用の優先度で、金額ではない。[M12](02-self-declaration.evidence.md#m12) |
-| 時間 | OpenSLOに指標、閾値、目標、時間窓がある | 外部の観測指標が必要。今回のSloth経路は宣言読込・変換まで | 集合的な応答時間SLOと各仕事の確定所要時間は別。OpenSLO v1とSloth v1alphaの版差を残す |
+| 時間 | OpenSLOに指標、閾値、目標、時間窓がある | 外部の観測指標が必要。今回のSloth経路は宣言読込・変換まで | 集合的な応答時間SLOと各仕事の確定所要時間は別。OpenSLO v1とSloth v1alphaのバージョンの差を残す |
 | レート上限 | SLA4OAIのrates/quotasがある | 宣言上の条件比較はある。実行回数の測定・超過拒否は今回のanalyzerから確認できない | CPU quotaやSLOのerror budgetをAPIの呼出回数上限に読み替えない |
 | メモリ・ファイル・ネットワーク | CHERI capability、Pony権限型、Nix sandbox、Kubernetes資源とsecurityContext | 制御下の操作について拒否経路がある | 各実装の対象・実行条件内に限定。設定の検査だけで全外部権限を実証しない |
 | コネクタ権限 | 認証scheme/scopeや独自属性を書ける。実行器の到達可能コネクタを共通に表す専用語彙の対は未発見 | 当該アカウント・環境での実際の到達性との共通検査は未発見 | サーバーへ接続する認証と、サーバーが持つ外向きの権限を区別 |
@@ -137,7 +137,7 @@ A2の「一部」は、既存の宣言形式・型に適合する対象を扱う
 | WSDL 1.1 / Zeep | WSDLの抽象メッセージ・bindingと、Zeepの送信XMLの必須要素・出現数検査 | WSDL単独の能力保証と、XSD由来の個別制約を混同しない。完全な型適合・外部動作・費用の準拠の対は確定していない。[W0–W1](02-self-declaration.evidence.md#w0) |
 | AsyncAPI / parser-js | アプリケーションが宣言に従うという仕様、宣言文書を検査する実装 | 今回追跡したのは文書をSpectralに通す経路。実際に流れる全メッセージや副作用を検査する経路ではない。[Y1–Y2](02-self-declaration.evidence.md#y1) |
 | SLA4OAI / analyzer | 費用・レート語彙、宣言の検査 | 宣言対象の実サービスから実消費・課金・所要時間を観測して照合する箇所は未確認。[S1–S4](02-self-declaration.evidence.md#s1) |
-| OpenSLO / Sloth | 目標語彙、v1alphaのratio SLO読込・変換 | 仕様版と実装の対応が限定される。今回Prometheusによる実指標評価まで再取得・実行していない。[S5–S7](02-self-declaration.evidence.md#s5) |
+| OpenSLO / Sloth | 目標語彙、v1alphaのratio SLO読込・変換 | 仕様のバージョンと実装の対応が限定される。今回Prometheusによる実指標評価まで再取得・実行していない。[S5–S7](02-self-declaration.evidence.md#s5) |
 | MCP Tasks拡張 | 状態・durable task handle・polling再開の仕様 | 本調査ではTasks拡張の全状態遷移と永続化を強制する実装まで追っていない。coreのtool schema検査とは別扱い。[M10](02-self-declaration.evidence.md#m10) |
 
 ### contract net の eligibility specification と node abstraction
@@ -200,10 +200,10 @@ A2の「一部」は、既存の宣言形式・型に適合する対象を扱う
 | [AsyncAPI](https://github.com/asyncapi/spec) | `1dd65fd2c1ed13f06365c1e870c61cdc82d8a981` |
 | [AsyncAPI parser](https://github.com/asyncapi/parser-js) | `e38319f82cf3bc42097f95035c2917ccbae8e77f` |
 
-Git commitを持たない一次資料は、FIPA SC00023Jの保存時刻付きアーカイブ、WSDL 1.1 W3C Note 2001-03-15、Smith 1980論文と1978年コード掲載PDF、Meyer 1992論文、CHERI ISAv9 UCAM-CL-TR-987、Leijen 2014 Koka論文である。原URL・取得日・版・PDFページ・取得物のSHA-256を根拠集に記録し、Git SHAがあるようには記載しない。
+Git commitを持たない一次資料は、FIPA SC00023Jの保存時刻付きアーカイブ、WSDL 1.1 W3C Note 2001-03-15、Smith 1980論文と1978年コード掲載PDF、Meyer 1992論文、CHERI ISAv9 UCAM-CL-TR-987、Leijen 2014 Koka論文である。原URL・取得日・バージョン・PDFページ・取得物のSHA-256を根拠集に記録し、Git SHAがあるようには記載しない。
 
 ## 8. 他の未実施の本へ渡す問い
 
 1. 第3本「ランタイムのラッパー」へ: スキーマ検査、特定APIの拒否、資源アクセスの拒否、外部観測による申告の検査は、改変できない各実行器についてそれぞれどこまで実施できるか。正常結果だけ検査するMCPのような実装で、エラー・追加入力待ち・中断をどの範囲まで既存仕様が覆うか。
-2. 第4本「ログストア」へ: 能力宣言の版と、実際に拒否・実行・再投入された出来事を同じ仕事へ結び付けられる一次資料はあるか。state語彙の存在から内部行為のevent streamが得られると推定しない場合、観測可能な範囲はどこまでか。
+2. 第4本「ログストア」へ: 能力宣言のバージョンと、実際に拒否・実行・再投入された出来事を同じ仕事へ結び付けられる一次資料はあるか。state語彙の存在から内部行為のevent streamが得られると推定しない場合、観測可能な範囲はどこまでか。
 3. 第5本「全体」へ: 費用・資源・stateの個別の語彙と強制は存在する。空白は、それらがないことではなく、環境・アカウント・エージェントの組の宣言と、外部から確認した実態とが同じ契約で揃うかである。宣言情報の探索とその真実性の確認を分けたうえでA2・A4・A11を判定できるか。

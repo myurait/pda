@@ -152,7 +152,7 @@
 ### MCP（commit `24efd6e7cbd7a074e6b3b781eb370891df40afad`）
 
 - **対応する抽象**: 状態を持たない request–reply。`ClientRequest` / `ServerNotification` / `ServerResult` が TypeScript の直和型として有限に閉じる（`schema/2026-07-28/schema.ts:3153-3197`）。FIPA の performative 集合に似るが、話者の意図の区別ではなく単なるメソッド表である。
-- **保っている不変量**: 能力の宣言が機械可読であること。`Tool.inputSchema`（`schema.ts:1997`）は型定義上 `type: "object"` を必須にし、JSON Schema 2020-12 を既定とする。通知種別も有限（`LoggingLevel` は 8 値、`schema.ts:2075-2084`、当該版で deprecated）。
+- **保っている不変量**: 能力の宣言が機械可読であること。`Tool.inputSchema`（`schema.ts:1997`）は型定義上 `type: "object"` を必須にし、JSON Schema 2020-12 を既定とする。通知種別も有限（`LoggingLevel` は 8 値、`schema.ts:2075-2084`、当該バージョンで deprecated）。
 - **落としている不変量**: 検査の所在。`inputSchema` を実際に検証するコードはこのリポジトリに無く（バリデータの依存も実装ディレクトリも存在しない）、各言語 SDK 側にある。この範囲では「型が要求する」に留まり「強制する」とは言えない。
 - **仕事のストアについての訂正**: MCP に task の概念が無いという読みは誤りである。`schema/2025-11-25/schema.ts` は `TaskStatus`（`:1306-1311`、`working` / `input_required` / `completed` / `failed` / `cancelled` の 5 値）、`Task`（`:1344`）、`GetTaskRequest`（`:1400-1408`、`method: "tasks/get"`）、`TaskStatusNotification`（`:1495`）を core schema に持っていた。SEP-2663（Status: Final、Extension Identifier `io.modelcontextprotocol/tasks`）がこれを core から外し拡張へ移した。SEP は「Tasks will become a foundational building block of MCP」と述べ、移設は仕様のリリース周期から切り離して育てるためだと説明する。拡張の運用は `docs/extensions/tasks/overview.mdx` にあり、「The task is durably created before the response is sent.」と永続化を要求し、`completed` / `failed` / `cancelled` を終端状態とする。したがって 2026-07-28 の core schema には仕事のストアの型が無く（`extensions?: { [key: string]: JSONObject }` が受け口）、ストアは拡張の側にある。
 

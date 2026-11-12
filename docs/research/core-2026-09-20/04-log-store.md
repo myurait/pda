@@ -22,7 +22,7 @@
 
 本書ではschemaに関する検査を次の4つに分ける。
 
-1. schema自体の登録可否と旧版との互換性。
+1. schema自体の登録可否と以前のバージョンとの互換性。
 2. recordに付いたschema IDと登録済みschemaの対応。
 3. 個々のpayloadがそのschemaに適合するか。
 4. 記録するeventの種別と、それに対応するpayloadの形の一致。
@@ -57,7 +57,7 @@ Pulsarの固定コミットは `776248a7fe0f93b213b9f06658ca7f7e64c87c42`。`pul
 
 一方、`pulsar-client/src/main/java/org/apache/pulsar/client/impl/schema/AutoProduceBytesSchema.java:86-100` は `requireSchemaValidation` のときにpayloadを検査する。`pulsar-client/src/main/java/org/apache/pulsar/client/impl/ReaderImpl.java:195-207` はconsumerから次のmessageを読み出す。Reader APIはmessage到着まで待てるので、producerの実行終了は必要ない。ただしこの確認から複数partition・複数実行器の実際の発生時刻に基づく全順序までは導けない。[P4][P5][P7]
 
-Confluent Schema Registry `ff2583dc173630d09a91f410e29091d6b2591ca4` の `core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaSchemaRegistry.java:527-537` はschema登録時の旧版との互換性を調べる。JSON serializerの `json-schema-serializer/src/main/java/io/confluent/kafka/serializers/json/AbstractKafkaJsonSchemaSerializer.java:199-252` は実payloadを `schema.validate` へ渡し、不適合ならSerializationExceptionにする。しかし `KafkaJsonSchemaSerializerConfig.java:35-39` の `json.fail.invalid.schema` は既定falseである。producer経路の条件付き保証を、Kafka broker全体の保証とはしない。[S1][S2][S3]
+Confluent Schema Registry `ff2583dc173630d09a91f410e29091d6b2591ca4` の `core/src/main/java/io/confluent/kafka/schemaregistry/storage/KafkaSchemaRegistry.java:527-537` はschema登録時の以前のバージョンとの互換性を調べる。JSON serializerの `json-schema-serializer/src/main/java/io/confluent/kafka/serializers/json/AbstractKafkaJsonSchemaSerializer.java:199-252` は実payloadを `schema.validate` へ渡し、不適合ならSerializationExceptionにする。しかし `KafkaJsonSchemaSerializerConfig.java:35-39` の `json.fail.invalid.schema` は既定falseである。producer経路の条件付き保証を、Kafka broker全体の保証とはしない。[S1][S2][S3]
 
 Confluent Platform 7.9の公式説明も、broker-side Schema ID ValidationはIDとsubjectの登録関係を確認し、data introspectionをしないと明記する。brokerの非公開実装を検査したとは主張しない。この製品仕様は今回本体確認した事実であり、第1本のKafka `ByteBuffer` に関する報告に依存せず区別できる。[S0]
 
@@ -83,7 +83,7 @@ serverの `crates/worker/src/partition/state_machine/entries/mod.rs:362-406` は
 
 `src/lib.rs:24-45` の `unstable_serialization` は再生時のpayload bytes比較を省略する選択を持つ。したがって再生不一致の検出と、全payloadを常に同じbytesとして監査することは異なる。今回確認したjournal保存・再生だけでは、監査UIへの追記購読APIまで確認したことにはならない。[R3]
 
-旧 `restatedev/service-protocol@eaebc104834cf3405267ec180912b0e295340501` のprose仕様は、全state transitionをInvocation journalに記録すると述べるが、READMEはarchive/移転を明記している。旧版のその文言を現行v7の全遷移へ無条件に移すことはしない。表の対は現行protoの不一致定義と現行SDKの照合について成立させ、旧prose仕様は系譜の説明にだけ用いる。[R5][R6]
+旧 `restatedev/service-protocol@eaebc104834cf3405267ec180912b0e295340501` のprose仕様は、全state transitionをInvocation journalに記録すると述べるが、READMEはarchive/移転を明記している。以前のバージョンのその文言を現行v7の全遷移へ無条件に移すことはしない。表の対は現行protoの不一致定義と現行SDKの照合について成立させ、旧prose仕様は系譜の説明にだけ用いる。[R5][R6]
 
 ### 4.5 OpenTelemetryとGenAI — 共通形式、実行中出力、全件性を分ける
 
@@ -142,7 +142,7 @@ PeerReview原論文の§4.5（取得PDF p.6）は完全性を正しいnodeとの
 
 SLiCのAlgorithm 4（取得PDF p.6）は、入力済みeventのうちcrashにより失ってよい範囲を計算し、それ以外の欠落を不正と判定する。cacheの前提を持つloggingのモデルであり、実行器の実際の行為集合を自動発見するモデルではない。[L5]
 
-順序については、LamportのClock Condition（取得版p.560）は `a → b` なら `C(a) < C(b)` と定め、逆を保証しない。Matternの取得版p.127 Theorem 10はvector timeによって因果関係と並行を表す。いずれも、実行器内の発生順、観測時刻、ストアへの追記順、実行器間の因果順を同一とする根拠ではない。共通timestamp fieldがあることだけで、A6に必要な受け渡し関係の順序まで確定しない。[L2][L3]
+順序については、LamportのClock Condition（取得したバージョンのp.560）は `a → b` なら `C(a) < C(b)` と定め、逆を保証しない。Matternの取得したバージョンのp.127 Theorem 10はvector timeによって因果関係と並行を表す。いずれも、実行器内の発生順、観測時刻、ストアへの追記順、実行器間の因果順を同一とする根拠ではない。共通timestamp fieldがあることだけで、A6に必要な受け渡し関係の順序まで確定しない。[L2][L3]
 
 KleppmannらのOLEPは、同じlogを購読する側に同じ更新列を同順で適用させ、複数のviewを整合させる。これは「可視化と監査が同じ記録を見る」ことに関係する抽象である。しかし、producerが必要なeventをすべて生成したという別の不変量を与えるものではない。[L1]
 
@@ -181,7 +181,7 @@ KleppmannらのOLEPは、同じlogを購読する側に同じ更新列を同順�
 1. event streamの共通形式をラッパー・受け入れ検査・ストアのどこで成立させるかを要件の固定事項と取り違えず、各対の強制箇所と接続時の条件を照合できるか。
 2. 実行器から実際に観測できる指示・tool call/結果・判断の範囲を、第3本のランタイム調査と対応させられるか。観測されなかった行為を「無かった」と解釈していないか。
 3. 生成、受入れ、永続化、外部読取り、sampling/drop、欠落検知のそれぞれについて、どの一次資料が何を保証するかを区別したまま全体を評価できるか。
-4. A9について、workflow定義の旧版へ戻すことと、改変の根拠・反映時点をevent streamに記録することの両方が、全体のどの既存実装で確認できるか。
+4. A9について、workflow定義の以前のバージョンへ戻すことと、改変の根拠・反映時点をevent streamに記録することの両方が、全体のどの既存実装で確認できるか。
 
 
 <!-- 一次資料への参照定義 -->

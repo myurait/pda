@@ -342,7 +342,7 @@ file: `tests/compile-fail/send-on-recv.rs`
 |1|Honda/Yoshida/Carbone, MAST, POPL2008|**成功 (200)**|doc.ic.ac.uk公式ミラー|
 |2|Honda, Types for Dyadic Interaction, CONCUR93|**失敗**（Springerはペイウォールのランディングページ、実質403相当）|代替としてESOP98を採用|
 |2'|Honda/Vasconcelos/Kubo, ESOP1998|**成功 (200)**|著者Vasconcelos本人のホームページ|
-|3a|Scribble Language Reference v0.3|**成功 (200)**|projection定義自体はこの版には記載なし、well-formednessは有り|
+|3a|Scribble Language Reference v0.3|**成功 (200)**|projection定義自体はこのバージョンには記載なし、well-formednessは有り|
 |3b|Scribble Tutorial (査読論文PDF)|**成功 (200)**|projection・動的検証の記述あり|
 |3c|scribble-java (GitHub)|**成功**（tarball経由、`git clone`はサンドボックス制約で失敗）|commit 723660a|
 |4|rumpsteak (Rust, GitHub)|**成功**（tarball経由）|commit 0ecfa0d|
