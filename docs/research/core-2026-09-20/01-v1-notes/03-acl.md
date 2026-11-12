@@ -103,16 +103,16 @@ grep で確認した reserved performative の定義例 (delete, delete-one, del
 ## 3. FIPA Communicative Act Library Specification (SC00037, Standard, 2002-12-03 / 参考として XC00037H, Experimental, 2001-08-10)
 
 ### 取得状況
-- Standard 版 (J, 2002-12-03): Wayback `http://web.archive.org/web/2018/https://www.fipa.org/specs/fipa00037/SC00037J.html` → **HTTP 200**、486,012 bytes。ローカル: `_src/fipa00037_cal_J_wayback.html` / `_src/fipa00037_J_stripped.txt`。これを主資料として引用する。
-- Experimental 版 (H, 2001-08-10): `https://jmvidal.cse.sc.edu/library/XC00037H.pdf` (大学ミラー) → **HTTP 200**、`application/pdf`、210,476 bytes、33 pages。ローカル: `_src/fipa00037_communicative_act_library.pdf` / `.txt` / `_joined.txt`。この版には FIPA 公式の行番号 (例: "119 120") が埋め込まれており、引用箇所の行特定に使った。
+- Standard のバージョン (J, 2002-12-03): Wayback `http://web.archive.org/web/2018/https://www.fipa.org/specs/fipa00037/SC00037J.html` → **HTTP 200**、486,012 bytes。ローカル: `_src/fipa00037_cal_J_wayback.html` / `_src/fipa00037_J_stripped.txt`。これを主資料として引用する。
+- Experimental のバージョン (H, 2001-08-10): `https://jmvidal.cse.sc.edu/library/XC00037H.pdf` (大学ミラー) → **HTTP 200**、`application/pdf`、210,476 bytes、33 pages。ローカル: `_src/fipa00037_communicative_act_library.pdf` / `.txt` / `_joined.txt`。このバージョンには FIPA 公式の行番号 (例: "119 120") が埋め込まれており、引用箇所の行特定に使った。
 - 直接の fipa.org 取得は前述のとおりカジノサイトへのスクワッティングで失敗。
 
 ### 抽象
-§2.1 "Status of a FIPA-Compliant Communicative Act" で CAL (Communicative Act Library) の規範性を規定。§5.3 "Underlying Semantic Model" (J版) / 該当箇所 (H版 line 423-424) で FP (feasibility precondition) と RE (rational effect) の形式的定義の枠組みを規定。各 act (inform, request, cfp, propose, accept-proposal, ... ) ごとに "Formal Model" として FP: / RE: の形式表現が与えられる。
+§2.1 "Status of a FIPA-Compliant Communicative Act" で CAL (Communicative Act Library) の規範性を規定。§5.3 "Underlying Semantic Model" (バージョン J) / 該当箇所 (バージョン H の line 423-424) で FP (feasibility precondition) と RE (rational effect) の形式的定義の枠組みを規定。各 act (inform, request, cfp, propose, accept-proposal, ... ) ごとに "Formal Model" として FP: / RE: の形式表現が与えられる。
 
 ### 不変量 (逐語引用)
 
-「ライブラリに属する act の定義は規範的」(§2.1, J版):
+「ライブラリに属する act の定義は規範的」(§2.1, バージョン J):
 > "The definition of a communicative act belonging to the CAL is normative."
 
 「実装するなら CAL の意味定義に従わねばならない」(§2.1, 同段落):
@@ -123,15 +123,15 @@ grep で確認した reserved performative の定義例 (delete, delete-one, del
 
 > "The name assigned to a proposed communicative act must uniquely identify which communicative act is used within a FIPA ACL message."
 
-新規 act 提案には形式的意味論が要求される (H版, line 180-181):
+新規 act 提案には形式的意味論が要求される (バージョン H, line 180-181):
 > "A formal model, written in SL, of the act's semantics, its formal preconditions, and its rational effects is required."
 
-FP/RE の定義そのもの (J版, §5.3):
+FP/RE の定義そのもの (バージョン J, §5.3):
 > "the former is referred to as the rational effect or RE [9], and the latter as the feasibility preconditions or FPs"
 
-**結論**: 「communicative act が有限のライブラリとして定義されている」という主張は正しいが、そのライブラリは FIPA という管理団体による命名審査 ("The FIPA Agent Communication Technical Committee is the initial judge of the suitability of a name" — H版) を伴う**開いた・維持管理されたレジストリ**であり、KQML 同様に閉じた集合ではない。個々の act の意味論 (FP/RE) は規範的 (normative) で、実装した場合はそれに従う義務がある。
+**結論**: 「communicative act が有限のライブラリとして定義されている」という主張は正しいが、そのライブラリは FIPA という管理団体による命名審査 ("The FIPA Agent Communication Technical Committee is the initial judge of the suitability of a name" — バージョン H) を伴う**開いた・維持管理されたレジストリ**であり、KQML 同様に閉じた集合ではない。個々の act の意味論 (FP/RE) は規範的 (normative) で、実装した場合はそれに従う義務がある。
 
-### 実装 (各 act の FP/RE 形式表現の実例、J版)
+### 実装 (各 act の FP/RE 形式表現の実例、バージョン J)
 `accept-proposal` の Formal Model (HTML実体参照 `&lt;`/`&gt;` を `<`/`>` に復元):
 > `<i, accept-proposal(j, <j,act>, f)> ≡ <i, inform(j, Ii Done(<j,act>, f))> FP: Bi a ∧ ¬Bi(Bifj a ∨ Uifj a) RE: Bj a`
 
@@ -404,8 +404,8 @@ JADE には Introspection API (`jade.domain.introspection.*`、`jade/lang/acl/AC
 - `kqml_kqml97.pdf` / `.txt` — 未精査 (上記参照)
 - `smith1980_contract_net.pdf` / `.txt` / `_joined.txt` — Smith 1980 IEEE TC 論文
 - `fipa00061_acl_message_structure_wayback.html` / `_stripped.txt` — FIPA00061 (Wayback)
-- `fipa00037_communicative_act_library.pdf` / `.txt` / `_joined.txt` — FIPA00037 Experimental版 (XC00037H, 行番号付き)
-- `fipa00037_cal_J_wayback.html` / `_J_stripped.txt` — FIPA00037 Standard版 (SC00037J, Wayback, 主資料として引用)
+- `fipa00037_communicative_act_library.pdf` / `.txt` / `_joined.txt` — FIPA00037 Experimental のバージョン (XC00037H, 行番号付き)
+- `fipa00037_cal_J_wayback.html` / `_J_stripped.txt` — FIPA00037 Standard のバージョン (SC00037J, Wayback, 主資料として引用)
 - `fipa00029_contract_net_wayback.html` / `_stripped.txt` — FIPA00029 (Wayback)
 - `fipa_ips_decker_mirror.pdf` / `.txt` — 誤取得 (実際はSC00026H、未使用)
 - `jade-mirror/` — JADE ソース (github.com/ekiwi/jade-mirror の作業ツリーのみ、`.git` 無し)

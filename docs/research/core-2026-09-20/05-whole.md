@@ -21,7 +21,7 @@
 |---|---|---|
 | [第1本v2](01-store-and-protocol.v2.md)・[review](01-review.md) | session types/choreography、actor/dataflow、durable workflow、メッセージ規約等に個別の対がある | 同じプロトコルは同一JSON型を意味しない。仕事と成果の型の相違だけで失格にしない。非決定な処理をstepへ分ける含意は、本書で実装経路を追加確認する |
 | [第2本](02-self-declaration.md)・[review](02-review.md) | 機械可読宣言、入出力検査、資源配置の拒否、capability/effectの制限がある。費用・資源・stateの語彙も存在する | 宣言の構文、許可操作、実際の到達権限、実請求額、中断後の再開可能性を同じ検査としない。非LLMで動く要素だけではA4全体を満たさない |
-| [第3本](03-runtime-wrapper.md)・[review](03-review.md) | ラッパーによる状態遷移、受信時の形式検査、種別変換は実装されている | 未知通知の無視、失敗要素の除去、観測できない内部動作がある。adapterとSDKの版差を越えた組合せ動作は未実証。binary session typeは任意の外部ランタイムの全発話を支配しない |
+| [第3本](03-runtime-wrapper.md)・[review](03-review.md) | ラッパーによる状態遷移、受信時の形式検査、種別変換は実装されている | 未知通知の無視、失敗要素の除去、観測できない内部動作がある。adapterとSDKのバージョンの差を越えた組合せ動作は未実証。binary session typeは任意の外部ランタイムの全発話を支配しない |
 | [第4本](04-log-store.md)・[review](04-review.md) | schema検査、順序付き履歴、実行中の出力、追記証明には対がある。完全性もPeerReview・SLiC等の前提付き抽象がある | schema登録と個々のpayload検査、観測した履歴と実行器内部の全行為、変更履歴とA9を分ける。型宣言だけをruntime拒否としない |
 
 「event streamの種別検査は必ずストア自身で行う」「費用・資源・stateの語彙はどこにもない」「event完全性には抽象がない」という一般化は採用しない。要件は最終的な共通契約を要求しており、検査を置く位置を本書が追加決定するものではない。proto3のenum/oneofやPythonの型注釈だけから、不正値が実行時に拒否されるとも推論しない。

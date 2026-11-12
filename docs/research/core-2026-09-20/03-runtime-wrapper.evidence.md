@@ -4,7 +4,7 @@
 
 全項目は第3本担当による本体確認。公開リポジトリは固定SHAの配布物またはrawファイルを取得して該当コードを読んだ。URLは同じSHAのファイルへ固定している。型宣言、検査の呼び出し、検査後の失敗処理を別項目にした。コードを稼働させた試験は含まない。短い逐語引用の外側は、指定範囲を読んだ要約である。
 
-文献PDFは取得版の物理ページを1始まりで示す。改行・行末ハイフネーションのみを正規化して引用した。Gitコミットが存在しない資料は版・取得日・SHA-256で固定する。HTTP 200で取得した資料だけを本文の主張に使用した。
+文献PDFは取得したバージョンの物理ページを1始まりで示す。改行・行末ハイフネーションのみを正規化して引用した。Gitコミットが存在しない資料はバージョン・取得日・SHA-256で固定する。HTTP 200で取得した資料だけを本文の主張に使用した。
 
 ## OCI runtime specification・runc・containerd
 
@@ -226,7 +226,7 @@ session/updateに選ばれるスキーマ。
 
 > sessionUpdate: z.literal("tool_call_update")
 
-sessionUpdateはこの版の有限union。未知タグを受けるcatch-all無し。
+sessionUpdateはこのバージョンの有限union。未知タグを受けるcatch-all無し。
 
 ### C8
 
@@ -339,7 +339,7 @@ ContentBlockは有限union。意味内容は検査しない。
 
 > "@agentclientprotocol/sdk": "1.4.0"
 
-調査SDKの版と一致。
+調査SDKのバージョンと一致。
 
 ### C22
 
@@ -355,7 +355,7 @@ ContentBlockは有限union。意味内容は検査しない。
 
 > "@agentclientprotocol/sdk": "0.16.1"
 
-Gemini native側のSDKは別版。1.4.0の検査をそのまま帰属させない。
+Gemini native側のSDKは別のバージョン。1.4.0の検査をそのまま帰属させない。
 
 ### C24
 
@@ -435,7 +435,7 @@ wait結果を終了種別とstatusへ変換。
 
 ### P4
 
-本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/functions/pipe.html)。版: POSIX.1-2024 / Issue 8。取得HTML `posix-pipe.html:39-47`。commit SHA: 対象なし。SHA-256: `d8425cee340fdacb4f8b3db37a7ed1bced59e9b8227aed4a0cff387ced8d81f4`。
+本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/functions/pipe.html)。バージョン: POSIX.1-2024 / Issue 8。取得HTML `posix-pipe.html:39-47`。commit SHA: 対象なし。SHA-256: `d8425cee340fdacb4f8b3db37a7ed1bced59e9b8227aed4a0cff387ced8d81f4`。
 
 > on a first-in-first-out basis
 
@@ -443,7 +443,7 @@ pipe両端とFIFO。
 
 ### P5
 
-本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/functions/wait.html)。版: POSIX.1-2024 / Issue 8。取得HTML `posix-wait.html:41-52`。commit SHA: 対象なし。SHA-256: `8c9d5d9bf54b098e460832d466503567376fdd61d24cbef0d461389d113a36e5`。
+本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/functions/wait.html)。バージョン: POSIX.1-2024 / Issue 8。取得HTML `posix-wait.html:41-52`。commit SHA: 対象なし。SHA-256: `8c9d5d9bf54b098e460832d466503567376fdd61d24cbef0d461389d113a36e5`。
 
 > shall obtain status information
 
@@ -451,7 +451,7 @@ waitは子プロセスの状態を取得。成果の種別ではない。
 
 ### P6
 
-本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap03.html)。版: POSIX.1-2024 / Issue 8。取得HTML `posix-definitions.html:802-807`。commit SHA: 対象なし。SHA-256: `0037b423cc292c3cd7c55d347a2273407d156be2a161e56771b08c1c0d421d5a`。
+本体確認。[一次資料](https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap03.html)。バージョン: POSIX.1-2024 / Issue 8。取得HTML `posix-definitions.html:802-807`。commit SHA: 対象なし。SHA-256: `0037b423cc292c3cd7c55d347a2273407d156be2a161e56771b08c1c0d421d5a`。
 
 > The values 0, 1, and 2
 
@@ -493,7 +493,7 @@ channel構築で双対の両端を一組で作る。
 
 ### B5
 
-本体確認。[一次資料](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)。版: Jespersen, Munksgaard, Larsen, WGP 2015, author PDF (10 pages)。PDF物理1頁。commit SHA: 対象なし。SHA-256: `510fd2a75f372388756c4038967149954130c7a5972ec0832e41ef4a97d55197`。
+本体確認。[一次資料](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)。バージョン: Jespersen, Munksgaard, Larsen, WGP 2015, author PDF (10 pages)。PDF物理1頁。commit SHA: 対象なし。SHA-256: `510fd2a75f372388756c4038967149954130c7a5972ec0832e41ef4a97d55197`。
 
 > no run-time checks to ensure protocol safety
 
@@ -501,7 +501,7 @@ channel構築で双対の両端を一組で作る。
 
 ### B6
 
-本体確認。[一次資料](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)。版: same author PDF, §6.2–6.3。PDF物理9頁。commit SHA: 対象なし。SHA-256: `510fd2a75f372388756c4038967149954130c7a5972ec0832e41ef4a97d55197`。
+本体確認。[一次資料](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)。バージョン: same author PDF, §6.2–6.3。PDF物理9頁。commit SHA: 対象なし。SHA-256: `510fd2a75f372388756c4038967149954130c7a5972ec0832e41ef4a97d55197`。
 
 > We will not give a formal proof for our claims
 
@@ -511,7 +511,7 @@ channel構築で双対の両端を一組で作る。
 
 ### F1
 
-本体確認。[一次資料](https://arxiv.org/pdf/1504.07504v2)。版: arXiv:1504.07504v2, 2015-05-04, 8 pages。PDF物理1頁。commit SHA: 対象なし。SHA-256: `c546aeb4e3c2e279e7086b5dc8ec68313b3df2b4acc951b64e1018a56dd52d41`。
+本体確認。[一次資料](https://arxiv.org/pdf/1504.07504v2)。バージョン: arXiv:1504.07504v2, 2015-05-04, 8 pages。PDF物理1頁。commit SHA: 対象なし。SHA-256: `c546aeb4e3c2e279e7086b5dc8ec68313b3df2b4acc951b64e1018a56dd52d41`。
 
 > coordinator which avoids incompatible interactions
 
@@ -519,7 +519,7 @@ LTSとdesired behaviorのモデルからcoordinatorを合成。実装の強制�
 
 ### F2
 
-本体確認。[一次資料](https://www.dre.vanderbilt.edu/~schmidt/PDF/wrapper-facade.pdf)。版: Douglas C. Schmidt, C++ Report, February 1999, 10 pages。PDF物理1頁。commit SHA: 対象なし。SHA-256: `432f90c803944567a63f2fcacde62794a24513e45d3a7a5f6726580d7bd11002`。
+本体確認。[一次資料](https://www.dre.vanderbilt.edu/~schmidt/PDF/wrapper-facade.pdf)。バージョン: Douglas C. Schmidt, C++ Report, February 1999, 10 pages。PDF物理1頁。commit SHA: 対象なし。SHA-256: `432f90c803944567a63f2fcacde62794a24513e45d3a7a5f6726580d7bd11002`。
 
 > Encapsulate low-level functions and data structures within
 
@@ -530,11 +530,11 @@ LTSとdesired behaviorのモデルからcoordinatorを合成。実装の強制�
 1. `http://www.di.univaq.it/tivoli/SYNTHESIS/synthesis.html`: HTTP 404。F1が記す配布先。実装ソースの強制箇所を引用できず、抽象のみとして扱う。
 2. `https://www.di.univaq.it/tivoli/SYNTHESIS/synthesis.html`: 接続拒否、HTTP応答なし（Errno 61）。
 3. OTP `system/doc/design_principles/des_princ.md`（R4のSHA）: HTTP 404。現存する`gen_server_concepts.md`、`sup_princ.md`、実装の文書部分を取得して代替。
-4. `https://arxiv.org/pdf/1504.07504v2`はweb表示ツールで内部エラーになったが、直接取得ではHTTP 200で、版なしURLの取得物とSHA-256が一致した。資料内容は取得済み。
+4. `https://arxiv.org/pdf/1504.07504v2`はweb表示ツールで内部エラーになったが、直接取得ではHTTP 200で、バージョンを含まないURLの取得物とSHA-256が一致した。資料内容は取得済み。
 5. `https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf`のweb screenshotはcache missで失敗した。PDF本体と文字層は直接取得でき、HTTP 200とSHA-256を記録した。
 
 追加の探索資料として`https://arxiv.org/pdf/1412.0527`もHTTP 200で取得して全文を検索した（SHA-256 `48805b268d3809243d2ffc988aeab87cfc2ef2c6dd612f4878eb676bfc57a2d5`）。本文でその主張を独立に引用していないため対として重複計上しない。検索語と未発見の範囲は本文8節に記録した。
 
 ## 再取得用台帳
 
-本調査時の一時ディレクトリは`/private/tmp/pda-research-03/`。`manifest.json`は固定コミットの引用、`manifest-html.json`はPOSIX、`manifest-pdf.json`は論文のURL・取得版・引用位置・短い原文・ハッシュを持つ。これらは再照合の補助ファイルであり、恒久的な根拠は上記のURL・SHA・path:line・版情報である。
+本調査時の一時ディレクトリは`/private/tmp/pda-research-03/`。`manifest.json`は固定コミットの引用、`manifest-html.json`はPOSIX、`manifest-pdf.json`は論文のURL・取得したバージョン・引用位置・短い原文・ハッシュを持つ。これらは再照合の補助ファイルであり、恒久的な根拠は上記のURL・SHA・path:line・バージョン情報である。

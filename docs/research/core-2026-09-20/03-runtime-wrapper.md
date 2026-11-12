@@ -1,6 +1,6 @@
 # 第3本 — ランタイムのラッパー
 
-作成・一次資料取得日: 2026-09-20 JST。物差しは `docs/requirements.md` の commit `cdd90e945d938769aefa17a2b8de3236647f6bdc`。`git log -1 --format=%H -- docs/requirements.md` で確認した。調査記録であり、設計・製品選定・要件追加ではない。根拠の正本は本書、逐語引用・取得版・照合位置は `03-runtime-wrapper.evidence.md`。
+作成・一次資料取得日: 2026-09-20 JST。物差しは `docs/requirements.md` の commit `cdd90e945d938769aefa17a2b8de3236647f6bdc`。`git log -1 --format=%H -- docs/requirements.md` で確認した。調査記録であり、設計・製品選定・要件追加ではない。根拠の正本は本書、逐語引用・取得したバージョン・照合位置は `03-runtime-wrapper.evidence.md`。
 
 本書の「本体確認」は、この第3本の担当が公開一次資料の本文と固定コミットのコードを取得して読んだことを表す。実行試験済みという意味ではない。外部資料について分担先の未再取得の「報告」は使っていない。第1本の記述は探索の起点として読み、今回の判定に必要な箇所は別途確認した。各製品を組み合わせた起動試験、故障注入、PDAの受け入れ試験は実施していない。
 
@@ -70,7 +70,7 @@ POSIXでは0/1/2の入出力規約、pipeのFIFO、waitの終了状態が共通�
 | 対象 | 本体確認した変換・検査 | 検出できるもの | この証拠で保証できないもの |
 |---|---|---|---|
 | ACP仕様 | stdoutは有効なACPメッセージに限定。promptと更新が同じプロトコル上を流れ、共通ContentBlockを使用（C1〜C3・C19・C20） | 仕様は違反条件を定義する | MUSTの記載だけで実行時の拒否を証明できない |
-| SDK受信経路 | `registerAppNotification`→`parseParams`→`zSessionNotification`→`zSessionUpdate`（C4〜C7） | この版の未知`sessionUpdate`や、例えば`agent_message_chunk`の不正な必須contentを、handlerへ渡す前に検出 | 全フィールドの無損失性、未到着通知の欠落 |
+| SDK受信経路 | `registerAppNotification`→`parseParams`→`zSessionNotification`→`zSessionUpdate`（C4〜C7） | このバージョンの未知`sessionUpdate`や、例えば`agent_message_chunk`の不正な必須contentを、handlerへ渡す前に検出 | 全フィールドの無損失性、未到着通知の欠落 |
 | SDKの例外処理 | 通知の検査例外は`jsonrpc.ts:1416-1435`でエラー記録（C10） | 不正通知を通常handlerに渡さない | 相手への通知応答、接続の自動停止、PDAの監査ストアへの記録はこの分岐では保証しない |
 | SDKの許容的な処理 | `zToolCall.content`は`vecSkipError`を使い、不正要素を除去。`_meta`等は既定値へ戻す処理を持つ（C8・C9） | 正しい必須外形の範囲で残ったデータを受理する | content配列の一部が失われたことを成果の違反として必ず拒否する保証 |
 | SDK送信経路 | `AgentSideConnection.sessionUpdate`は`sendNotification`へ値を渡す。受信側のparseは呼ばない（C11） | 静的なTypeScript型による開発時検査 | ラッパーの実行時データが正しいこと。型アサーションやJavaScript呼び出しを通じた値まで拒むとはいえない |
@@ -98,7 +98,7 @@ OCIとOTPの終了検出はラッパー自身の停止を外側で観測する�
 |---|---|---|
 | OCI/containerd | コンテナ内部の仕事・成果の意味、engine内部の実行方法、shimとコンテナの1対1/1対多の選択、host共通設定の一律化（O3・O5・O11・O12） | 名前から別shimを解決するコードと、同じshimから別OCI engineを扱う仕様を確認（O10）。他のengineとの実動比較や普及原因の立証はしていない |
 | OTP | Reply・Stateの内部構造、仕事のアルゴリズム。bridge対象subsystemのOTPへの書き直し（E2・E6〜E8） | 生存監督の接続は共通化できる。ただし仕事の成果やeventの完全性はcallback外形からは決まらない |
-| ACP | モデルの内部推論手順、全入力種別の必須対応。入力はtext/resource_linkの基準と追加能力に分かれる（C3・C19） | 3実装に共通の更新種別への変換を確認した。標準種別へ写らないベンダー情報、未知入力、依存版の差は残る |
+| ACP | モデルの内部推論手順、全入力種別の必須対応。入力はtext/resource_linkの基準と追加能力に分かれる（C3・C19） | 3実装に共通の更新種別への変換を確認した。標準種別へ写らないベンダー情報、未知入力、依存のバージョンの差は残る |
 | LSP | 言語解析アルゴリズム、全言語機能の必須実装（L1・L2） | hoverのように宣言された機能だけを提供するコードを確認。PDAの任意の仕事と監査を扱う証拠ではない |
 | POSIX | stdoutの構造・意味、入力に応じた成果の種別、業務event（P1〜P6） | byte列のFIFOと終了観測で異なるプログラムを接続できる。PDAが要求する成果種別を捨ててよい根拠にはならない |
 
@@ -106,7 +106,7 @@ OCIとOTPの終了検出はラッパー自身の停止を外側で観測する�
 
 ## 6. binary session typesが保証する範囲
 
-[Session Types for Rust](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)は、型付きchannel上のプロトコル安全性を対象にする。取得版のPDF物理1頁と9頁（§6.2〜6.3）を確認した。§6.2は完全な形式証明を出していないと明記し、§6.3はaffineな値が早期に捨てられる問題を述べる（B5・B6）。この留保を省いて「証明済みのあらゆる通信安全性」とは扱わない。
+[Session Types for Rust](https://munksgaard.me/papers/laumann-munksgaard-larsen.pdf)は、型付きchannel上のプロトコル安全性を対象にする。取得したバージョンのPDF物理1頁と9頁（§6.2〜6.3）を確認した。§6.2は完全な形式証明を出していないと明記し、§6.3はaffineな値が早期に捨てられる問題を述べる（B5・B6）。この留保を省いて「証明済みのあらゆる通信安全性」とは扱わない。
 
 現在の固定実装は`session_channel<P: HasDual>()`で双対の両端を作り、`send(self, v)`が元のchannelを消費する（B1〜B3）。`HasDual`はsealedであり、論文当時の独自実装許容の説明を現在のAPIへそのまま移さない。現在の未終端channelのDropにはpanicもある（B4）。これらは実際の強制箇所だが、型に従ったまま内部eventを出さない処理を検出する機構ではない。
 
@@ -120,7 +120,7 @@ PDAに対する判定は、次の順序で前提を限定したものになる�
 
 | 対象 | 今回揃った側 | 揃わない理由 |
 |---|---|---|
-| Autili・Inverardi・Tivoli・Garlan, [Synthesis of “correct” adaptors for protocol enhancement in component-based systems](https://arxiv.org/pdf/1504.07504v2) | 抽象・不変量（論文は本体確認） | LTSで表したcomponentとdesired behaviorからcoordinatorを合成し、不整合な相互作用を避ける。取得版はarXiv v2、全8頁。SYNTHESISという実装の存在を著者は記すが、配布先がHTTP 404で、対応する公開コードをSHA/path:lineで固定できなかった。したがって本調査では「抽象のみ」とし、実装がないとは書かない（F1） |
+| Autili・Inverardi・Tivoli・Garlan, [Synthesis of “correct” adaptors for protocol enhancement in component-based systems](https://arxiv.org/pdf/1504.07504v2) | 抽象・不変量（論文は本体確認） | LTSで表したcomponentとdesired behaviorからcoordinatorを合成し、不整合な相互作用を避ける。取得したバージョンはarXiv v2、全8頁。SYNTHESISという実装の存在を著者は記すが、配布先がHTTP 404で、対応する公開コードをSHA/path:lineで固定できなかった。したがって本調査では「抽象のみ」とし、実装がないとは書かない（F1） |
 | Schmidt, [Wrapper Facade](https://www.dre.vanderbilt.edu/~schmidt/PDF/wrapper-facade.pdf), C++ Report, 1999 | パターンの抽象と実装例の記述（本体確認） | 低水準関数をclass interfaceで包むパターンとACE等の例はある。event streamの完全性や成果の種別保存を述べる形式的不変量、それを保証する実装の箇所の組は本稿から特定できなかった。名称がwrapperであるだけで正しさの対として採用しない（F2） |
 | Gemini API単体、jev HTTP API、決定論的検証ツールを一つの共通契約に揃えた実装 | 今回は揃わず | Gemini CLI nativeは確認したがAPI単体と同一視しない。jevの特定公開仕様・リポジトリは今回の入力で指定されていない。CLI/HTTPという輸送形態だけから仕事・成果・eventの契約を補わない |
 

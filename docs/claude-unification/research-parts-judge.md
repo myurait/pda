@@ -108,7 +108,7 @@
 
 **HumanLayer** ([humanlayer/humanlayer](https://github.com/humanlayer/humanlayer))
 
-- 今の状態: 以前の SDK (`require_approval` など) と、`--permission-prompt-tool` に渡す MCP サーバー (`humanlayer mcp claude_approvals`) は、今の main には無い (副調査の読み取り。旧版は `legacy` ブランチと v0.7.9 のタグ)。今の製品は、Claude Code の plugin がセッションを HumanLayer の Web に写し、Web から返事・停止・権限の確認への回答ができるもの。原文は "From the web app you can reply, stop a turn, answer permission prompts and comment on task files." ([apps/riptide-claude-code-plugin/README.md](https://github.com/humanlayer/humanlayer/blob/main/apps/riptide-claude-code-plugin/README.md))。Claude Code 2.1.287 以上と HumanLayer のアカウントが要る。
+- 今の状態: 以前の SDK (`require_approval` など) と、`--permission-prompt-tool` に渡す MCP サーバー (`humanlayer mcp claude_approvals`) は、今の main には無い (副調査の読み取り。以前のバージョンは `legacy` ブランチと v0.7.9 のタグ)。今の製品は、Claude Code の plugin がセッションを HumanLayer の Web に写し、Web から返事・停止・権限の確認への回答ができるもの。原文は "From the web app you can reply, stop a turn, answer permission prompts and comment on task files." ([apps/riptide-claude-code-plugin/README.md](https://github.com/humanlayer/humanlayer/blob/main/apps/riptide-claude-code-plugin/README.md))。Claude Code 2.1.287 以上と HumanLayer のアカウントが要る。
 - 置き場所: HumanLayer のサーバー。待つ間、同じ Claude Code のプロセスが答えを待つ形 (副調査がコードで読んだ範囲)。
 - 最後のコミット 2026-11-02、Apache-2.0。
 
@@ -263,4 +263,4 @@
 - 入口 (Remote Control の server mode のセッション) で agent teams が使えるか。
 - `defer` で止めたセッションを、別の機械 (開発 PC とミニ PC) をまたいで `--resume` できるか。セッションの記録はその機械のディスクにある。
 - `defer` の既知の不具合の報告 (止めた道具の入力が大きいと再開が止まる、とされる [anthropics/claude-code#41794](https://github.com/anthropics/claude-code/issues/41794))。報告の本文は読んでいない。
-- 副調査の読み取りと書いた箇所の原文 (goalkeeper の状態のファイル、subagent-loop の ledger、HumanLayer の旧版と待ち方、claude-push、claude-pager、cco-mcp、gotoHuman、codeArbiter、ruflo、superpowers、CrewAI、Microsoft Agent Framework、Google ADK)。
+- 副調査の読み取りと書いた箇所の原文 (goalkeeper の状態のファイル、subagent-loop の ledger、HumanLayer の以前のバージョンと待ち方、claude-push、claude-pager、cco-mcp、gotoHuman、codeArbiter、ruflo、superpowers、CrewAI、Microsoft Agent Framework、Google ADK)。

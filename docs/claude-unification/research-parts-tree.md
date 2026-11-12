@@ -171,7 +171,7 @@
   - 役の設定: コードのコメントは "Kai supplies every canonical instruction source explicitly." とし、`--bare` で `CLAUDE.md`・skill・hook・plugin・MCP・自動の記憶を読ませない。
   - 結果の戻り: 子の stream-json の `result` を読み、委譲の結果を共有の会話に残す。
   - 深さ: 委譲の方針に `max_depth: int = 3`、`max_fan_out: int = 3` などを持つ ([src/kai/workshop/agent_delegation.py:79-83](https://github.com/dcellison/kai/blob/aef6407ba3649ccee89468ae526811c430594599/src/kai/workshop/agent_delegation.py#L79))。
-  - 条件: 条件 1 に疑いがある。手元の `claude --help` は `--bare` について "Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read)." とする。一方、Kai の HN の投稿は定額のログインで動くとし、コードのコメントは `~/.claude/.credentials.json` の OAuth の資格情報に触れている。今の版が定額のログインで動くかは確かめていない。
+  - 条件: 条件 1 に疑いがある。手元の `claude --help` は `--bare` について "Anthropic auth is strictly ANTHROPIC_API_KEY or apiKeyHelper via --settings (OAuth and keychain are never read)." とする。一方、Kai の HN の投稿は定額のログインで動くとし、コードのコメントは `~/.claude/.credentials.json` の OAuth の資格情報に触れている。今のバージョンが定額のログインで動くかは確かめていない。
 
 - Neutron ([rjunee/neutron](https://github.com/rjunee/neutron))
   - Apache-2.0。最後のコミット 2026-10-10。

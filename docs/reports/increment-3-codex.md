@@ -15,9 +15,9 @@
 
 結果送信は少なくとも 1 回の意味論であり、送信を断念したタスクは Conductor の応答時間切れと再試行により同じセルが再び動き得る。
 
-## 2. 使ったイメージと版、依存パッケージと版
+## 2. 使ったイメージとバージョン、依存パッケージとバージョン
 
-増分 2 からの変更は自作イメージ `pda-executor:increment-3` と `pda-executor-real:increment-3`。ID は [images.json](evidence/increment-3/images.json)。基盤イメージの版、pyproject.toml と uv.lock の依存版は変更していない。npm アダプタは宣言の npx 指定で実行時に解決する。今回の実行は codex-acp 1.13.0 / Codex 0.155.1、claude-agent-acp 0.80.1-preview.2 / Claude Agent SDK 0.3.280。[npm-versions.json](evidence/increment-3/npm-versions.json) に記録した。
+増分 2 からの変更は自作イメージ `pda-executor:increment-3` と `pda-executor-real:increment-3`。ID は [images.json](evidence/increment-3/images.json)。基盤イメージのバージョン、pyproject.toml と uv.lock の依存のバージョンは変更していない。npm アダプタは宣言の npx 指定で実行時に解決する。今回の実行は codex-acp 1.13.0 / Codex 0.155.1、claude-agent-acp 0.80.1-preview.2 / Claude Agent SDK 0.3.280。[npm-versions.json](evidence/increment-3/npm-versions.json) に記録した。
 
 ## 3. 部品ごとの受け入れ条件の合否と確かめ方
 

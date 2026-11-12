@@ -11,11 +11,11 @@
 - 2.5: 読み取り専用の `pda_view`、3 つの API、日本語の画面、compose の `pda-view` を追加した。
 - 2.6: 単体試験と e2e 13・14、名指しした実行器のポーリング待機を追加した。手順書を `docs/runbook/increment-4.md` に置き換えた。
 
-## 2. 使ったイメージと版、依存パッケージと版
+## 2. 使ったイメージとバージョン、依存パッケージとバージョン
 
 自作イメージを `pda-executor:increment-3` → `pda-executor:local`、`pda-executor-real:increment-3` → `pda-executor-real:local` に変更し、今回のコードで再ビルドした。`pda-view` は前者を使い UID 1000 で動く。
 
-基底イメージと既存サービスの版は変更していない。アプリケーションの依存追加・版変更はなく、`uv.lock` は変更していない。`pyproject.toml` の wheel 対象に `src/pda_view` を追加し、`uv sync --frozen` で同期した。
+基底イメージと既存サービスのバージョンは変更していない。アプリケーションの依存追加・バージョンの変更はなく、`uv.lock` は変更していない。`pyproject.toml` の wheel 対象に `src/pda_view` を追加し、`uv sync --frozen` で同期した。
 
 画面の検証だけに `uv run --no-project --with playwright` の一時環境と Chromium 153.0.8010.12 を使用した。アプリケーション、イメージ、プロジェクトの依存には追加していない。画面にフレームワーク、npm、ビルド工程、CDN、外部フォントはない。
 

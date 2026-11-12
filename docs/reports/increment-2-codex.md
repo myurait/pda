@@ -23,7 +23,7 @@
 | `docs/runbook/` | ミニ PC 配置、認証、実 Codex 確認の人手用手順 |
 | `docs/reports/evidence/increment-2/` | 実測の抜粋。各ファイル 300 行以下 |
 
-## 2. 使ったイメージと版、依存パッケージと版
+## 2. 使ったイメージとバージョン、依存パッケージとバージョン
 
 | 用途 | イメージ |
 |---|---|
@@ -44,7 +44,7 @@
 
 ビルドバックエンドは `hatchling==1.29.0` を pyproject.toml で指定した。
 
-| パッケージ | 版 |
+| パッケージ | バージョン |
 |---|---|
 | `agent-client-protocol` | `0.12.1` |
 | `annotated-types` | `0.8.0` |
@@ -211,13 +211,13 @@ Docker Desktop 上で e2e 終了時に測定した。ミニ PC での実測で�
 4. file exporter の 100 MB 回転に加え、バックアップは 5 ファイルとした。名前付きボリュームに書く Collector は root で起動する。ログとトレースを同じファイルへ出し、証拠では対象 job のログレコードだけを抜粋した。
 5. Conductor サーバは Java を直接起動し、UI は nginx だけを起動する。Java のヒープを 256〜768 MB とした。ホストの UI ポートは試験時に 15000 を使用した。
 6. jev のローカルスクリプトと、その参照先 lib/jev_api.py を照合した。URL、Bearer ヘッダ、state/model/questions の本文、answers の形式は一致。キーのファイルパスはコンテナ向け指示 `/secrets/typesafe_credentials` を使用した。問いの criteria はローカルテンプレートと同じ選択肢名をキーにするオブジェクトで定義した。is_complete の 0.7 は未検証。
-7. 実 ACP アダプタの npm 指定は指示どおり、Codex は版指定なし、Claude は preview のままとした。Python 依存と Docker の基底イメージは固定したが、npm の解決版は未固定・未実行。実行器の外向き通信について宛先ドメインの制限は Docker では掛けていない。
+7. 実 ACP アダプタの npm 指定は指示どおり、Codex はバージョンの指定なし、Claude は preview のままとした。Python 依存と Docker の基底イメージは固定したが、npm で解決されるバージョンは未固定・未実行。実行器の外向き通信について宛先ドメインの制限は Docker では掛けていない。
 8. enforceSchema=true の定義を登録したが、Conductor は initial_input 欠落のワークフロー開始を拒否しなかった。ラッパーの入力検査が終端失敗にした。Conductor 自体による入力スキーマ強制が成立したとは報告しない。
 9. 3 秒ポーリングの写しは、その間に開始・完了して実行中一覧に一度も出なかったワークフローや短い状態遷移を拾えない。今回の基本シナリオでは engine.workflow と engine.task を取得した。e2e は動的セルの記録と最終 COMPLETED イベントが揃うまで待つ。
 10. 人手用の認証手順を確認する際、ホストの `codex login --help` は同梱バイナリの ENOENT で失敗した。既存のホスト CLI は変更せず、認証手順は [OpenAI 公式資料](https://learn.chatgpt.com/docs/auth) と [Claude Code 公式資料](https://code.claude.com/docs/en/authentication) を確認して記載した。
 11. e2e 後は試験用の定義と fixture の上書きを復元した。検証用 Compose サービスは停止・削除し、名前付きボリュームの記録は保持した。秘密情報は Git 管理外の deploy/.env にのみ試験用認証として作成した。外部サービスへの認証は行っていない。
 
-実装時に参照した SDK と構成の一次資料: [ACP Python SDK](https://agentclientprotocol.github.io/python-sdk/)、[Conductor v3.32.4 の Redis 設定](https://github.com/conductor-oss/conductor/blob/v3.32.4/docker/server/config/config-redis.properties)、[OpenObserve の OTLP 取り込み](https://openobserve.ai/docs/ingestion/logs/otlp/)。API と SDK の振る舞いは、上記資料に加えて固定版のインストール済みソースと実試験で確認した。
+実装時に参照した SDK と構成の一次資料: [ACP Python SDK](https://agentclientprotocol.github.io/python-sdk/)、[Conductor v3.32.4 の Redis 設定](https://github.com/conductor-oss/conductor/blob/v3.32.4/docker/server/config/config-redis.properties)、[OpenObserve の OTLP 取り込み](https://openobserve.ai/docs/ingestion/logs/otlp/)。API と SDK の振る舞いは、上記資料に加えて固定したバージョンのインストール済みソースと実試験で確認した。
 
 ## 9. 未実施のこと
 
