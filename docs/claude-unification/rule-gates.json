@@ -1,0 +1,1991 @@
+[
+ {
+  "memory": "feedback_bash_command_shape",
+  "scope": "global",
+  "rule": "Bashは1呼び出し1文で書く",
+  "check": "Bash入力に echo 前置・&&・;・for・パイプがあるか",
+  "type": 1,
+  "pattern": true,
+  "existing": "bash-shape-guard（一部）"
+ },
+ {
+  "memory": "feedback_bash_command_shape",
+  "scope": "global",
+  "rule": "コマンド作業を渡す依頼文に書き方の指示を含める",
+  "check": "Agent呼び出しの依頼文が、コマンド実行を頼むのに書き方を含むか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_change_cost_is_set_by_own_design",
+  "scope": "global",
+  "rule": "変更費用を理由にした記述に費用の出所を書く",
+  "check": "出力に「後から変えると〜作り直す」の類があり、出所が同じ文にあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_clean_up_own_byproducts",
+  "scope": "global",
+  "rule": "ファイル除去は trash -v 絶対パスの1文で行う",
+  "check": "Bash入力が rm -rf か、trash に dangerouslyDisableSandbox を付けたか",
+  "type": 1,
+  "pattern": true,
+  "existing": "permissions.deny（一部）"
+ },
+ {
+  "memory": "feedback_commit_needs_no_confirmation",
+  "scope": "global",
+  "rule": "応答でコミットの承認を求めたら、許可済みと伝えて続けさせる",
+  "check": "最終応答がコミットの承認を求めているか（Jev）。当たれば許可済みの文を注入する",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "判断依頼は1つのArtifactにまとめ本文はリンクと一文にする",
+  "check": "判断を求める応答がArtifactリンクと決める一文だけか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "判断の資料の文は常体で書く",
+  "check": "資料の本文にです・ます調の文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "各項目に推奨とその根拠を事実で付ける",
+  "check": "各項目に推奨があり、根拠が事実で同じ箇所に書かれているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "項目を問い→状態→事実→選択肢→推奨→選ぶ欄の順に置く",
+  "check": "項目の並び順と、選ぶ欄がチェックボックスで初期未選択か",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "見た目で違う選択肢は同じ位置の絵を並べる",
+  "check": "選択肢が見た目の違いなのに、絵が並んでいないか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dev_pc_connectors_include_skills",
+  "scope": "global",
+  "rule": "GitHubはgh、DBはRedash skillと依頼文に書く",
+  "check": "Agent依頼文・呼び出しに mcp__github__ 等のMCP道具があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dev_pc_connectors_include_skills",
+  "scope": "global",
+  "rule": "この Mac の道具の状態は尋ねず自分で調べる",
+  "check": "最終応答に、この Mac の道具の状態をオーナーに尋ねる文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dev_pc_connectors_include_skills",
+  "scope": "global",
+  "rule": "この Mac の道具のメモリは ~/.claude/memory に置く",
+  "check": "書いたメモリファイルのパスが ~/.claude/memory 配下か",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "直す理由に手間や指摘の属性を書かない",
+  "check": "理由に「数行で直せる」「念のため」「mustなので」があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "報告に全指摘を直した/直さないと理由の組で載せる",
+  "check": "報告が全指摘を、判定と理由の組で並べているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_elicit_by_offering_reading",
+  "scope": "global",
+  "rule": "二択を選ばせず、良さ・困りごとの重みと当否を問う",
+  "check": "問いが「AかBか」「どちらが」の形か、読みを示す形か",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
+  "scope": "global",
+  "rule": "比較の欄は評判・機能の有無でなく実例か試行結果で埋める",
+  "check": "比較表の欄が評判や機能の有無だけで埋まっていないか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
+  "scope": "global",
+  "rule": "実例も試行も無い候補は「実例なし」とし順位を付けない",
+  "check": "実例の無い候補に順位や推奨が付いていないか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
+  "scope": "global",
+  "rule": "主たる変数が未検証のまま候補を推奨しない",
+  "check": "推奨の文があり、主たる変数が「試すまで分からない」のままか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explain_in_why-what-how_order",
+  "scope": "global",
+  "rule": "説明をWhy→What→Howの順で書く",
+  "check": "説明の冒頭がHowで始まらず、Why・What・Howの順に並ぶか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explain_in_why-what-how_order",
+  "scope": "global",
+  "rule": "曖昧な業界語を使わず具体動作を文で書く",
+  "check": "「合流」「フォールバック」等の語が動作の説明なしに使われたか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_is_translation_for_listener",
+  "scope": "global",
+  "rule": "設計者が要る名前は原文のまま書き初出に持ち主を付ける",
+  "check": "テーブル等の名前が造語に置換されていないか、初出に持ち主があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_is_translation_for_listener",
+  "scope": "global",
+  "rule": "作業の単位は番号と中身の名前を対で書く",
+  "check": "PR・チケット等が番号だけ・名前だけ・相対位置で呼ばれているか",
+  "type": 1,
+  "pattern": false,
+  "existing": "reference-gate（一部）"
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "過去・現在・方針・評価・質問を並置せず1種類に絞る",
+  "check": "応答が複数種類の情報を区別せず並べているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_gh_runs_unsandboxed",
+  "scope": "global",
+  "rule": "excludedCommands はプレフィックス指定で書く",
+  "check": "settings.json に書いた excludedCommands が完全一致指定か",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "副作用の評価に「増えるだけ」を書かず負担の増す場面を書く",
+  "check": "副作用評価に「〜が増えるだけ」「操作は増えない」の類があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_headless_claude_inherits_hooks",
+  "scope": "global",
+  "rule": "claude -p には --setting-sources 空を付ける",
+  "check": "Bash入力に claude -p があり --setting-sources \"\" を含むか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_headless_claude_inherits_hooks",
+  "scope": "global",
+  "rule": "定期実行の定義に --setting-sources 空を入れる",
+  "check": "書いた launchd/cron の定義のコマンドに指定があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "相手に実行を頼むコマンドを書かない",
+  "check": "最終応答に、相手に実行してもらうコマンドの提示があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "応答を状況と次の行動の一文から書き始める",
+  "check": "最終応答の冒頭が、思考過程でなく状況と次の行動を言い切る文か",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_keep_technical_terms_as_katakana",
+  "scope": "global",
+  "rule": "技術用語を日本語の別の語に言い換えない",
+  "check": "応答の技術用語が、片仮名・原文でなく造語に替わっていないか",
+  "type": 1,
+  "pattern": false,
+  "existing": "forbidden-word-gate（一部）"
+ },
+ {
+  "memory": "feedback_memory_writing_rules",
+  "scope": "global",
+  "rule": "メモリに日付・チケット番号・引用・計測値を書かない",
+  "check": "書いたメモリ本文に、日付・チケット番号・引用・計測値があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_memory_writing_rules",
+  "scope": "global",
+  "rule": "発火条件に内省を示す語を書かない",
+  "check": "書いたルールに「感じたら」「迷ったら」などの語があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_never_stop_only_redirect",
+  "scope": "global",
+  "rule": "拒否の分岐に正しいやり方の場所と続行指示を入れる",
+  "check": "書いた hook の拒否文に、メモリのパスと書き直して続ける指示があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_never_stop_only_redirect",
+  "scope": "global",
+  "rule": "「伝えて止まる」「2回目も止める」を書かない",
+  "check": "hook やガードの記述に、ユーザーに伝えて止まる分岐があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_excessive_comments",
+  "scope": "global",
+  "rule": "コメントは why・地雷・前提条件だけに限る",
+  "check": "コミットで足されたコメントが、why・地雷・前提条件のどれかか",
+  "type": 1,
+  "pattern": false,
+  "existing": "comment-gate"
+ },
+ {
+  "memory": "feedback_no_excessive_comments",
+  "scope": "global",
+  "rule": "コメントに計測値・経緯・チケットIDを書かない",
+  "check": "足したコメントに、計測値・変更経緯・チケットIDがあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": "comment-gate"
+ },
+ {
+  "memory": "feedback_no_excessive_comments",
+  "scope": "global",
+  "rule": "削除対象のコメントは相手に問わず消す",
+  "check": "応答に、コメントの削除を勧める・残すか尋ねる文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_excessive_risk_caveats",
+  "scope": "global",
+  "rule": "入力の検証を攻撃想定を理由に消さない",
+  "check": "コード変更で、入力検証の削除が含まれていないか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_partial_framework_adoption",
+  "scope": "global",
+  "rule": "外部の枠組みを一部だけ借りる案を書かない",
+  "check": "提案に「一部を借りる」「道具なしで考え方だけ使う」の形があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_partial_framework_adoption",
+  "scope": "global",
+  "rule": "枠組みを採らない理由に一次資料のリンクを付ける",
+  "check": "不採用の理由の文に、その枠組みの文書へのリンクがあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_partial_framework_adoption",
+  "scope": "global",
+  "rule": "自前の進め方の案に範囲の全体を書く",
+  "check": "案に対象・順序・完了判定・変更の扱いが書かれているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_process_narrative_in_human_docs",
+  "scope": "global",
+  "rule": "人間向け文書に作業過程・検証結果・ファイル一覧を書かない",
+  "check": "PR説明等に、レビュー過程・ファイル一覧・ビルド結果の記述があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_process_narrative_in_human_docs",
+  "scope": "global",
+  "rule": "文書に決定の日付・経緯を書かない",
+  "check": "PR説明等に、決定日や「判明した」などの経緯の記述があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_space_between_ascii_and_japanese",
+  "scope": "global",
+  "rule": "英字・数字と日本語の間に空白を入れない",
+  "check": "応答・Artifact の、英数字と日本語の境目に空白があるか(コード要素を除く)",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_online_resource_must_be_linked",
+  "scope": "global",
+  "rule": "チケットキー・PR番号をリンクにする",
+  "check": "応答に、リンクでない裸のチケットキー・PR番号があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_online_resource_must_be_linked",
+  "scope": "global",
+  "rule": "外部ドキュメントのタイトルをリンクにする",
+  "check": "応答に、リンクでない外部ドキュメント・記事のタイトルがあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_output_language_is_japanese",
+  "scope": "global",
+  "rule": "つなぐ文は日本語で書く",
+  "check": "途中経過・最終応答に、識別子等以外の英語の文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": "language-gate（一部）"
+ },
+ {
+  "memory": "feedback_output_language_is_japanese",
+  "scope": "global",
+  "rule": "途中経過が英語なら最終応答で日本語に出し直す",
+  "check": "途中経過の英語の文のうち判断に要る内容が、最終応答にあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_outward_artifacts_are_users_work",
+  "scope": "global",
+  "rule": "成果物に判断依頼・未確定の語を書かない",
+  "check": "成果物に「判断してください」「要確認」「未確定」の類があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_outward_artifacts_are_users_work",
+  "scope": "global",
+  "rule": "レビュー観点は平叙形で確定済みの判断だけにする",
+  "check": "PRの「レビュー観点」の項目に、疑問形・依頼形があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_parallel_items_as_bulleted_list",
+  "scope": "global",
+  "rule": "並列の3項目以上は箇条書きの行に分ける",
+  "check": "1つの文・項目に、並列の項目を区切り記号で3つ以上並べたか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_parallel_items_as_bulleted_list",
+  "scope": "global",
+  "rule": "箇条書き不可の欄では項目を並べず状態を1文で書く",
+  "check": "wrap_up・件名・表のセルに、並列の項目を3つ以上並べたか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pr_create_as_draft",
+  "scope": "global",
+  "rule": "PR 作成のコマンドに --draft を付ける",
+  "check": "ツール入力の gh pr create に --draft(MCP は draft:true) があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pr_create_as_draft",
+  "scope": "global",
+  "rule": "作成報告にリンク・ドラフト・レビュー待ちを書く",
+  "check": "PR 作成の報告に、リンクとドラフトの旨とレビュー待ちがあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_prefer_tool_over_gated_bash",
+  "scope": "global",
+  "rule": "承認が要る Bash の前に専用 tool で代替する",
+  "check": "curl/wget の入力が、WebFetch や gh api で足りる取得か",
+  "type": 1,
+  "pattern": false,
+  "existing": "bash-shape-guard（一部）"
+ },
+ {
+  "memory": "feedback_reference_needs_visible_antecedent",
+  "scope": "global",
+  "rule": "指示語は指す先が同じ段落の名詞にあるときだけ使う",
+  "check": "最終応答の指示語・相対位置の語の指す先が、近くの名詞にあるか",
+  "type": 1,
+  "pattern": false,
+  "existing": "reference-gate"
+ },
+ {
+  "memory": "feedback_reference_needs_visible_antecedent",
+  "scope": "global",
+  "rule": "手順の結果は記号でなく得た手順で呼ぶ",
+  "check": "最終応答に、手順の結果を指す記号や「そこから」があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": "reference-gate（一部）"
+ },
+ {
+  "memory": "feedback_reference_needs_visible_antecedent",
+  "scope": "global",
+  "rule": "Artifact・PR 説明文・問い文でも指す先を書く",
+  "check": "Artifact 本文・PR 説明文・wrap_up の問いに、指す先の無い指示語があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_report_only_new_differences_as_problems",
+  "scope": "global",
+  "rule": "問題として残す項目に 5 つの要素を書く",
+  "check": "問題の項目に、場所・中身・理由・新規リスク・想定可否があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_secret_never_typed_in_command",
+  "scope": "global",
+  "rule": "秘密情報の値を平文で書いたコマンドを出さない",
+  "check": "応答のコマンドに API キー・トークン・パスワードの値があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_secret_never_typed_in_command",
+  "scope": "global",
+  "rule": "注意書きで済ませず安全な形で案内する",
+  "check": "案内の「注意して」が、形の変更で防げる事故を指しているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_skill_orchestration_and_components",
+  "scope": "global",
+  "rule": "段階のある skill を 2 種のスキルに分ける",
+  "check": "1 つの SKILL.md に、順に進む段階の見出しが複数あるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_skill_orchestration_and_components",
+  "scope": "global",
+  "rule": "コンポーネントに発火条件を書かない",
+  "check": "コンポーネントの description・本文に「〜のとき使う」があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_skill_orchestration_and_components",
+  "scope": "global",
+  "rule": "コンポーネントは自分の入出力だけを書く",
+  "check": "コンポーネント本文に、他の段階への言及があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_subagent_findings_must_be_relayed",
+  "scope": "global",
+  "rule": "スコープ判断を結論として貼らない",
+  "check": "応答に「主題外」「別タスク」等が結論として断定されているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_vocabulary_must_have_a_source",
+  "scope": "global",
+  "rule": "関係・評価の述語は基準を同じ文に書く",
+  "check": "「適切」「妥当」等の述語の同じ文に、基準が書かれているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_state_not_counts",
+  "scope": "global",
+  "rule": "道具の集計を写さず、結果の状態を書く",
+  "check": "passed/failed・ヒット数の集計を写した文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_state_not_counts",
+  "scope": "global",
+  "rule": "レビュー結果は件数でなく有無と中身で書く",
+  "check": "「指摘 N 件」「must 0 件」の形の文があるか",
+  "type": 1,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_what_to_do_only",
+  "scope": "global",
+  "rule": "食い違いは両立しない動作を書いた箇所だけ",
+  "check": "「食い違い」の引用 2 つが、同じ対象の両立しない動作か",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_what_to_do_only",
+  "scope": "global",
+  "rule": "文書を直す案にしないことを書き足さない",
+  "check": "直す案の追記に、しないことを書く文が入っているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_writing_briefs_for_other_sessions",
+  "scope": "global",
+  "rule": "依頼文に相手とのやり取りの規則を書かない",
+  "check": "Agent の prompt に「拒否されたら返す」「確認する」の類があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_writing_briefs_for_other_sessions",
+  "scope": "global",
+  "rule": "依頼文に報告の書き方を書かない",
+  "check": "Agent の prompt に「報告は〜で書く」の類があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_paid_options",
+  "scope": "pda",
+  "rule": "課金の候補は費用を冒頭に書き、無料の手段で足りない理由を添える",
+  "check": "出力の課金が要る候補に、費用の記述が冒頭にあるか、無料の手段で足りない理由があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_owner_approval_sheet_style",
+  "scope": "pda",
+  "rule": "承認依頼は1項目1判断に分け、束ねて承認を求めない",
+  "check": "承認依頼の出力に「〜1式」「〜N件」のような束ねの承認項目があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_owner_approval_sheet_style",
+  "scope": "pda",
+  "rule": "承認依頼はオーナー語彙で書き、内部のIDや実装用語を本文に出さない",
+  "check": "承認依頼の本文に設計判断IDや内部機構名・実装用語があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_owner_approval_sheet_style",
+  "scope": "pda",
+  "rule": "依頼セクションには返答が要る項目だけを置き、参考情報は分ける",
+  "check": "承認依頼の依頼セクションに、返答が要らない参考情報の項目が混ざっているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_owner_approval_sheet_style",
+  "scope": "pda",
+  "rule": "承認の順番を意識させず、順序指示の文言を出さない",
+  "check": "承認依頼・通知に「1枚目を承認してから」のような順序指示の文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_commit_without_asking",
+  "scope": "pda",
+  "rule": "応答でコミットの承認を求めたら、許可済みと伝えて続けさせる",
+  "check": "最終応答が区切りのコミットの承認を求めているか（Jev）。当たれば許可済みの文を注入する",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_derive_architecture_from_requirements",
+  "scope": "pda",
+  "rule": "導いた構成が5層に満たないか横断軸が無いとき、導き直す",
+  "check": "構成の提案の層の数と、Claude CodeとCodexを横断する軸があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_derive_architecture_from_requirements",
+  "scope": "pda",
+  "rule": "構成を確かめてもらうときは図を先頭に置いた判断の資料にする",
+  "check": "オーナーに構成の確認を求める資料の先頭に、図があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "報告は承認シートのArtifact更新とチャット数行にする",
+  "check": "最終応答が数行か。承認シートの内容を本文に書き込んでいないか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_mask_project_names",
+  "scope": "pda",
+  "rule": "発言の原文を記録するとき、伏せたことを記録の頭に一言書く",
+  "check": "案件名を伏せた原文の記録の頭に、伏せた旨の一文があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_progress_over_stopping",
+  "scope": "pda",
+  "rule": "止める機能を提案するとき、無いと何が起きるかとその強さを書く",
+  "check": "止める機能の提案の出力に、無い場合の結果と強さの記述があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_remake_cycle",
+  "scope": "pda",
+  "rule": "評価では不備ごとに直さず・直す・直さないのどれかを割り当てる",
+  "check": "評価記録の各不備に、3つの割り当てのどれかが書かれているか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_remake_cycle",
+  "scope": "pda",
+  "rule": "指示に部品ごとの受け入れ条件を書く",
+  "check": "Codex向けの指示の出力に、部品ごとの受け入れ条件の節があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_remake_cycle",
+  "scope": "pda",
+  "rule": "「次の指示への反省点」だけで不備を閉じず、負債一覧に移す",
+  "check": "評価記録に、割り当ての無い不備や反省点だけで閉じた不備があるか",
+  "type": 1,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_artifact_audience_first",
+  "scope": "global",
+  "rule": "Artifact作成前に誰が誰に何のために見せるかを書く",
+  "check": "依頼文と書き出した宛先・目的を照合し、資料の形が合うか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_artifact_audience_first",
+  "scope": "global",
+  "rule": "他者向け・依頼者整理用の資料に選択肢・推奨・回答欄を付けない",
+  "check": "依頼文から宛先が依頼者以外か自分用なら、本文に選択肢・回答欄があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_artifact_audience_first",
+  "scope": "global",
+  "rule": "依頼者の語を題名・見出しで別の語に言い換えない",
+  "check": "依頼文の論点の語と、Artifactの題名・見出しの語を照合する",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_change_cost_is_set_by_own_design",
+  "scope": "global",
+  "rule": "設計が悪いとの指摘に差し替え可能な部品と受け入れ条件を書く",
+  "check": "オーナーの指摘の後、設計文書に差し替え部品と受入条件があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_commit_needs_no_confirmation",
+  "scope": "global",
+  "rule": "push・PR作成・履歴書き換えは明示指示なしに実行しない",
+  "check": "push等の呼び出しの前に、オーナーの明示指示があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_elicit_by_offering_reading",
+  "scope": "global",
+  "rule": "答えを過去の発言から書ける問いは消し、読みとして記録する",
+  "check": "問いの答えが、オーナーの過去発言から書けるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_elicit_by_offering_reading",
+  "scope": "global",
+  "rule": "一次回答のある事項は読みを示し当否を問う",
+  "check": "問いが一次回答のある事項に「補足して」を求めていないか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_elicit_by_offering_reading",
+  "scope": "global",
+  "rule": "問いは書き直す文書の節に欠ける材料から逆算する",
+  "check": "聞き取り前に、書き直す節と欠けた材料の一覧があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_elicit_by_offering_reading",
+  "scope": "global",
+  "rule": "食い違う2発言は相手に解かせず場面と前提を記録する",
+  "check": "食い違いを解かせる問いがないか、発言とその場面を照合",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
+  "scope": "global",
+  "rule": "見本をありふれたものと分ける性質を書き出し基準にする",
+  "check": "見本の発言と、設計・依頼文の基準の語を照合する",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explain_in_why-what-how_order",
+  "scope": "global",
+  "rule": "同じ説明を2回求められたら構造を変える",
+  "check": "同じ説明の再要求の後、前の応答と構造が変わっているか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_is_translation_for_listener",
+  "scope": "global",
+  "rule": "コード名は消し、処理の中身を文で書く",
+  "check": "クラス・メソッド・ファイルパス・行番号があるか。尋ねられたときを除く",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_is_translation_for_listener",
+  "scope": "global",
+  "rule": "単位の呼び方の訂正は対に直し全箇所を直す",
+  "check": "訂正後の応答・資料に片方だけの呼び方が残るか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_is_translation_for_listener",
+  "scope": "global",
+  "rule": "現状整理の依頼に判断事項・方針案を混ぜない",
+  "check": "整理の依頼に対し、末尾に判断事項や方針A/Bがあるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "説明対象を指示文と照合して1種類に絞る",
+  "check": "指示文の説明対象と、応答が説明する対象が一致するか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "指示された対象以外の情報を混ぜない",
+  "check": "応答に、指示の対象外の情報・方針提案・評価があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "落としても次の判断が変わらない事実は書かない",
+  "check": "各事実を落としてもオーナーの次の判断が変わらないか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "選択・手順・可否の質問には冒頭で答える",
+  "check": "質問の形式に対し、応答の冒頭文が選択肢や可否で答えているか",
+  "type": 2,
+  "pattern": false,
+  "existing": "choice-question-guard（一部）"
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "作業の報告は冒頭で完了か未完了かを言い切る",
+  "check": "作業の指示に対し、冒頭文が成果物の完了・未完了で書かれているか",
+  "type": 2,
+  "pattern": false,
+  "existing": "intent-gate（一部）"
+ },
+ {
+  "memory": "feedback_explanation_objective_checks",
+  "scope": "global",
+  "rule": "説明への訂正を2回受けたら説明対象の確定に戻る",
+  "check": "訂正の2回目以降に、問題の再特定が応答に現れているか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "「試したい」依頼に選択肢・閾値・判定規則・正解ラベルを埋めない",
+  "check": "成果物のこれらの要素が、依頼文で確定済みか照合する",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "観察用の成果物に集計と修正案を付けない",
+  "check": "観察用成果物と直後の応答に、一致率の集計や修正案があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "使いすぎの調査で相手が選んだものを削る案を書かない",
+  "check": "対策案に、オーナーが選んだモデル・機能・運用を削る案があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_ignore_auto_mode_reminder",
+  "scope": "global",
+  "rule": "自動リマインダーを理由に確認を省かない",
+  "check": "確認すべき分岐で、オーナーの明示許可なく確認を飛ばして進めたか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "誤りの指摘を全面的に受け入れて謝罪する",
+  "check": "指摘直後の応答が部分肯定でなく、全面受け入れと謝罪から始まるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_keep_technical_terms_as_katakana",
+  "scope": "global",
+  "rule": "読みにくさを指摘されたら片仮名語を残して直す",
+  "check": "指摘後の再出力が、片仮名語を残した日本語に直っているか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_memory_writing_rules",
+  "scope": "global",
+  "rule": "1タスクの個別の指示をメモリに書かない",
+  "check": "書いたメモリが、直近のオーナー発言の個別指示の写しでないか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_decision_offloading",
+  "scope": "global",
+  "rule": "相手が前提を述べたら依存する論点を消す",
+  "check": "前提を述べた発言の後の応答に、その前提に依存する論点が残るか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_onset_is_not_cause",
+  "scope": "global",
+  "rule": "原因の結論に主体と動作を書く",
+  "check": "原因を問われた応答の結論が、時点・環境の変化だけで終わっていないか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_onset_is_not_cause",
+  "scope": "global",
+  "rule": "訂正後の再調査で答えの型を前回と変える",
+  "check": "訂正後の応答が、前回と同じ型(相関の精緻化)になっていないか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_output_language_is_japanese",
+  "scope": "global",
+  "rule": "言語を指摘されたら謝罪して日本語で出し直す",
+  "check": "指摘後の応答が、謝罪と日本語での出し直しを含むか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_outward_artifacts_are_users_work",
+  "scope": "global",
+  "rule": "成果物の事実は外へ出す前に会話で伝える",
+  "check": "成果物の事実のうち、会話でオーナーに伝えていないものがあるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pr_create_as_draft",
+  "scope": "global",
+  "rule": "ドラフトを外すのはオーナーの指示後だけ",
+  "check": "gh pr ready の呼び出し前に、オーナーの Ready 指示があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_separate_offtopic_findings",
+  "scope": "global",
+  "rule": "主題外の発見を主題内の項目と別節に置く",
+  "check": "主題内のリストに、依頼の範囲外の項目が混ざっているか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_visual_spec_needs_picture",
+  "scope": "global",
+  "rule": "画面の仕様は絵か試作で合意を取ってから指示する",
+  "check": "画面仕様を書いた実装指示の前に、絵の提示とオーナーの合意があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_visual_spec_needs_picture",
+  "scope": "global",
+  "rule": "文章だけの了承を合意とみなさない",
+  "check": "了承が文章へのものだけなのに「了承済み」と書いたか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_visual_spec_needs_picture",
+  "scope": "global",
+  "rule": "指定された表示の書き換えは前後の絵で問う",
+  "check": "オーナーが名指しした表示を別の形に書いた記述に、前後の絵があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_vocabulary_must_have_a_source",
+  "scope": "global",
+  "rule": "出所のある語だけを使い、造語を作らない",
+  "check": "定義付き・連番付き・訳語の名詞が、資料や相手の発言に実在するか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_vocabulary_must_have_a_source",
+  "scope": "global",
+  "rule": "訂正された語を別の対象にも使わない",
+  "check": "訂正された語が、後の応答・成果物に再び現れるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_state_not_counts",
+  "scope": "global",
+  "rule": "件数でなく相手の知りたい状態を書く",
+  "check": "件数・回数・行数が、尋ねられたか選択肢を分けるものか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_write_what_to_do_only",
+  "scope": "global",
+  "rule": "しないことでなく、することを書く",
+  "check": "「〜せず」「〜しない」の句が、求められたか既定を止めるものか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "承認要求は各マイルストーンのexit gateにまとめ、反映操作の一覧を添える",
+  "check": "gate以外の途中で承認を求める文があるか。gate報告に反映操作の一覧があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_progress_over_stopping",
+  "scope": "pda",
+  "rule": "止める・断るための機能は、提案して承認を得てから作る",
+  "check": "hookや仕組みに、止める・断る・承認待ちの処理を書いたか。直前にオーナーの承認の発言があるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_requirements_from_owner_words",
+  "scope": "pda",
+  "rule": "要件の各項目に根拠となるオーナーの発言を原文で付ける",
+  "check": "要件の出力の各項目に、原文の引用があるか。発言との整合はオーナーの発言との照合が要る",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_requirements_from_owner_words",
+  "scope": "pda",
+  "rule": "画面を決めたら、画面に求めていた内容を要件から外す",
+  "check": "要件の出力に、画面で決まる見せ方・一覧・操作の項目が残っているか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
+  "scope": "pda",
+  "rule": "試用が残した認証の写し・設定の登録・bak・セッションは聞かずに消して記録する",
+  "check": "試用の残りの削除の可否をオーナーに問う文が応答にあるか",
+  "type": 2,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_askuserquestion_forbidden",
+  "scope": "global",
+  "rule": "分岐・選択肢の確認はテキストで提示する",
+  "check": "ツール呼び出しの名前が AskUserQuestion か",
+  "type": 3,
+  "pattern": true,
+  "existing": "permissions.deny"
+ },
+ {
+  "memory": "feedback_bash_command_shape",
+  "scope": "global",
+  "rule": "サンドボックス拒否後は excludedCommands の形に直す",
+  "check": "拒否の直後に dangerouslyDisableSandbox を付けた呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_bash_command_shape",
+  "scope": "global",
+  "rule": "ワークツリーから本体への書き込み git は -C と無効化で実行する",
+  "check": "本体への git 書き込みが git -C 本体 の形で呼ばれているか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_browser_per_action_approval_sites",
+  "scope": "global",
+  "rule": "Tailscale・LAN のサイトでは常に許可できる4道具だけ使う",
+  "check": "対象サイトで read_page等4つ以外のブラウザ道具を呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_browser_per_action_approval_sites",
+  "scope": "global",
+  "rule": "システムの設定・状態はブラウザを使わず CLI で取る",
+  "check": "ミニPCのサービスの状態取得に、ブラウザ操作が使われたか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_clean_up_own_byproducts",
+  "scope": "global",
+  "rule": "自分が持ち込んだ副産物は自分で除去し報告に書く",
+  "check": "報告の除去対象のうち自作のものが除去済みか、作成履歴と照合",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_clean_up_own_byproducts",
+  "scope": "global",
+  "rule": "自分の副産物の削除コマンド・「消す場合は」を報告に書かない",
+  "check": "報告に削除コマンドや「消す場合は」があり、対象が自作か",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_clean_up_own_byproducts",
+  "scope": "global",
+  "rule": "作業前からあった相手の資源だけ確認を取る",
+  "check": "削除対象が作業前からあったものか、作成記録と照合する",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_commit_needs_no_confirmation",
+  "scope": "global",
+  "rule": "報告の前に未コミットの変更をコミットする",
+  "check": "最終応答の時点で対象リポジトリに未コミット変更が残るか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_commit_needs_no_confirmation",
+  "scope": "global",
+  "rule": "コミットの許可要求が出たら自動で承認する",
+  "check": "許可要求の対象が git commit か（push・amend・rebase は除く）",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dev_pc_connectors_include_skills",
+  "scope": "global",
+  "rule": "道具の状態報告はMCP一覧だけでなくskillとCLIも確かめる",
+  "check": "状態報告の前に、skill一覧とCLIログインを確かめた呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "編集の前に指摘ごとの3つの問いを1行で書く",
+  "check": "指摘に応じた編集の呼び出しより前に、3つの問いへの答えを書いたか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
+  "scope": "global",
+  "rule": "見本を見ていない調査の合致評価は使わず照合し直す",
+  "check": "調査報告が見本を見ていない旨を含むのに、評価を使ったか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_final_response_divider",
+  "scope": "global",
+  "rule": "最終応答の先頭行を --- にし、作業中の応答は --- で始めない",
+  "check": "後にツール呼び出しが続くか否かと、先頭行が --- かを照合する",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_gh_runs_unsandboxed",
+  "scope": "global",
+  "rule": "GitHubの情報はMCPでなくghで取る",
+  "check": "呼び出しの名前が mcp__github__ で始まるか、依頼文に書かれたか",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_gh_runs_unsandboxed",
+  "scope": "global",
+  "rule": "ghの呼び出しに dangerouslyDisableSandbox を付けない",
+  "check": "gh で始まるBash呼び出しに無効化フラグが付いているか",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_gh_runs_unsandboxed",
+  "scope": "global",
+  "rule": "gh認証エラー時は excludedCommands を読んで形を直す",
+  "check": "認証エラーの直後に excludedCommands を読んだ呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_headless_claude_inherits_hooks",
+  "scope": "global",
+  "rule": "出力に hook_started があれば外部へ出る hook を止める",
+  "check": "stream出力の hook_started を見た後、hookを止める操作があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_headless_claude_inherits_hooks",
+  "scope": "global",
+  "rule": "非対話実行で作られた自分由来の状態ファイルを削除する",
+  "check": "実行後に増えた状態ファイルを列挙して削除したか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "条件を満たし済みなら止めた仕組みを通して続ける",
+  "check": "hook に止められた後、通し方を使わずにターンを返していないか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "副作用のある操作は承認を得てから行う",
+  "check": "ファイル作成・送信・PR作成の前に、オーナーの承認発言があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "ツールが無いと言う前に利用可能なツールを確かめる",
+  "check": "「使えない」と報告する前に、ツール一覧の再確認や代替の試行があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_items_from_decomposition_not_from_search",
+  "scope": "global",
+  "rule": "問いを受けたら調査の前に問う理由と変数を書く",
+  "check": "最初の検索系ツール呼び出しより前に、判断と変数を書いた文があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_memory_writing_rules",
+  "scope": "global",
+  "rule": "メモリを作ったら索引を同じ操作で更新する",
+  "check": "メモリ新規作成のツール呼び出しと同じ操作に、索引の更新があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_answer_before_determining_work",
+  "scope": "global",
+  "rule": "中身を返す背面作業の実行中は「作業中...」だけ出す",
+  "check": "その作業の実行中の応答が、固定文以外を含むか",
+  "type": 3,
+  "pattern": false,
+  "existing": "answer-gate"
+ },
+ {
+  "memory": "feedback_no_answer_before_determining_work",
+  "scope": "global",
+  "rule": "成功か失敗だけを返す背面作業中は応答してよい",
+  "check": "実行中の背面作業が成功か失敗だけを返す作業か",
+  "type": 3,
+  "pattern": false,
+  "existing": "answer-gate"
+ },
+ {
+  "memory": "feedback_no_excessive_comments",
+  "scope": "global",
+  "rule": "レビュー対応で足したコメントの根拠を1行で書く",
+  "check": "コメント追加の操作の前後に、該当条件を述べた1行があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_online_resource_must_be_linked",
+  "scope": "global",
+  "rule": "リンクのホストは参照元に現れた URL から確定する",
+  "check": "書いたリンクの URL が、取得したツール応答に現れた URL と合うか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_onset_is_not_cause",
+  "scope": "global",
+  "rule": "探索を打ち切ったら打ち切った地点を書く",
+  "check": "探索を途中で打ち切った応答に、打ち切り地点を述べた一文があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_prefer_tool_over_gated_bash",
+  "scope": "global",
+  "rule": "代替できない理由を示してから Bash を使う",
+  "check": "代替可能な Bash の直前の応答に、代替できない理由があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_report_only_new_differences_as_problems",
+  "scope": "global",
+  "rule": "直さなかったレビュー指摘を注意点に写さない",
+  "check": "報告の注意点に、直さないと判断した指摘が載っているか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_respect_turn_handover_instruction",
+  "scope": "global",
+  "rule": "停止点の指示で止まり後続の発信をしない",
+  "check": "停止点指示の後に、指示外の外部発信ツールを呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_sandbox_denial_looks_like_absence",
+  "scope": "global",
+  "rule": "ファイル操作の失敗を「不在」と断定しない",
+  "check": "ENOENT 系の結果の後、応答が確認なしに「存在しない」と書くか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_sandbox_denial_looks_like_absence",
+  "scope": "global",
+  "rule": "秘密情報のパスは探索を打ち切って尋ねる",
+  "check": ".env・認証情報・鍵のパスを探す Read/Bash が続いたか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_secret_never_typed_in_command",
+  "scope": "global",
+  "rule": "秘密が端末に出たら履歴の確認と再発行を案内する",
+  "check": "秘密情報を表示した実行の後、履歴確認と再発行の案内があるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_show_visual_pages_as_artifact",
+  "scope": "global",
+  "rule": "画像を含むページは Artifact で見せる",
+  "check": "画像を含むローカル HTML をユーザーに送る呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_subagent_findings_must_be_relayed",
+  "scope": "global",
+  "rule": "サブエージェントの指摘の中身を本文に展開する",
+  "check": "サブエージェント結果の個別の指摘が、応答本文に書かれているか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_todo_via_todo_scrap_mcp",
+  "scope": "global",
+  "rule": "todo・スクラップの読み書きは todo-scrap の道具で行う",
+  "check": "todo 操作で ~/todo-scrap のファイルを Bash 等で直接触ったか",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_todo_via_todo_scrap_mcp",
+  "scope": "global",
+  "rule": "道具エラーの後にサービスの状態を読んで報告する",
+  "check": "todo-scrap のエラー後に systemctl status があり、報告に載るか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_wait_for_approval",
+  "scope": "global",
+  "rule": "問いを出したターンでは対象の操作を実行しない",
+  "check": "問いを含む応答と同じターンで、問いの対象の操作ツールを呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_wait_for_approval",
+  "scope": "global",
+  "rule": "宣言した範囲を超えず、宣言どおりに動く",
+  "check": "「〜します」「お待ちします」の後の呼び出しが、宣言と矛盾するか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_work_ledger",
+  "scope": "global",
+  "rule": "複数ターンの作業は台帳 00_進捗.md を作って進める",
+  "check": "個別の指示を受けた未完の作業で、台帳が作られているか",
+  "type": 3,
+  "pattern": false,
+  "existing": "work-ledger（一部）"
+ },
+ {
+  "memory": "feedback_work_ledger",
+  "scope": "global",
+  "rule": "指示を受けたら応答前に守る指示へ足す",
+  "check": "オーナーの指示の後、台帳の守る指示への書き込みがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_work_ledger",
+  "scope": "global",
+  "rule": "判断・公開・段階完了のたびに進捗へ足す",
+  "check": "回答・公開・段階完了のターンで、台帳の進捗を更新したか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_work_ledger",
+  "scope": "global",
+  "rule": "コンプレス後は台帳を全文読んでから再開する",
+  "check": "要約から始まった会話で、台帳の Read より前に別の作業をしたか",
+  "type": 3,
+  "pattern": false,
+  "existing": "work-ledger（一部）"
+ },
+ {
+  "memory": "feedback_pda_commit_run_instructions_immediately",
+  "scope": "pda",
+  "rule": "指示ファイルや評価記録を書いたら同じターンでコミットする",
+  "check": "docs/codex-runs等のファイルをWrite/Editした後、報告前にgit commitを呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_commit_run_instructions_immediately",
+  "scope": "pda",
+  "rule": "「置いた」と報告する前に、ファイルがコミットに含まれると確かめる",
+  "check": "「置いた」「書いた」の報告の前に、git ls-treeかgit statusを呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_credit_tests_authorized",
+  "scope": "pda",
+  "rule": "クレジットを消費する検証の許可要求が出たら自動で承認する",
+  "check": "許可要求の対象が、live probe・E2E 検証の実行か",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_credit_tests_authorized",
+  "scope": "pda",
+  "rule": "検証用valveは終了時に本番値へ復元し、外部通知は抑止する",
+  "check": "検証の終了時に、valveを本番値に戻す操作を呼んだか。通知を抑止したか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "ミニPCのフルスイートは直列・nice付きで、実行前にfree -hを見る",
+  "check": "agent-nodeでのテスト実行のコマンドに、niceが付くか。直前にfree -hを呼んだか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "権限ブロックは代替経路2回まで、ダメなら実行コマンド案をgate報告へ集約する",
+  "check": "権限拒否の後の代替の試行が2回を超えたか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "再開時は記録を信用せず、HEADや盤面の実状態から再導出する",
+  "check": "再開後の最初の操作で、git log・盤面・ledgerを読む呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "docs/status/restricted-*を開かず、反証レビューの生出力を本体へ戻さない",
+  "check": "restricted-のファイルをRead/grepした呼び出しがあるか",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_goal_operating_rules",
+  "scope": "pda",
+  "rule": "凍結したセッションは再開せず、新規セッションで記録ファイル経由で再開する",
+  "check": "凍結したセッションのイベントを読み込む呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
+  "scope": "pda",
+  "rule": "認証の本体とsettings.json・config.tomlは消さない",
+  "check": "削除コマンドの対象に、.credentials.json・auth.json・.claude.json・settings.json・config.tomlがあるか",
+  "type": 3,
+  "pattern": true,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
+  "scope": "pda",
+  "rule": "権限の判定で止められたら、回り込まずオーナーに伝える",
+  "check": "削除が拒否された後に、別の方法で同じ対象を消す呼び出しがあるか",
+  "type": 3,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "3つの問いを満たす指摘だけを直す",
+  "check": "レビューの指摘ごとに、実在するか・目的の内か・直した後が良いかを先に判定して整理する",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "理由付き指示は理由節の問題をそのまま保持して解く",
+  "check": "指示の理由の節を特定し、困っている問題をオーナーの語のまま書き出す。後ろのゲートは応答がその問題を解いているかを照らす",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "相手の語は相手の世界での指示対象で束縛する",
+  "check": "オーナーの語が、オーナーが操作・観測できる世界で何を指すかを書き出す",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "相手の語を置き換えたら性質を保つか照合する",
+  "check": "オーナーの語がオーナーの世界で持つ性質を書き出す。後ろのゲートは置き換えた形が性質を保つかを照らす",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_grasp_problem_before_solving",
+  "scope": "global",
+  "rule": "対策の発動条件を困っている結果の事象で書く",
+  "check": "依頼から、原因の行為と困っている結果を分けて書き出す。後ろのゲートは発動条件が結果の事象かを照らす",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_items_from_decomposition_not_from_search",
+  "scope": "global",
+  "rule": "文書の項目は変数から作り、判断に要らない細部を載せない",
+  "check": "調査の前に、問う側の判断とそれを左右する変数を書き出す。後ろのゲートは各項目が変数に答えているかを照らす",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_match_host_vocabulary",
+  "scope": "global",
+  "rule": "追記は既存文書の語彙・表記に合わせる",
+  "check": "追記先の文書で、追記する概念がどの語・表記で書かれているかを集める。後ろのゲートは追記がそれに合うかを照らす",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_outward_artifacts_are_users_work",
+  "scope": "global",
+  "rule": "既存規約と違う構成は実装前に確認する",
+  "check": "実装の前に、作る構成の前例と規約を集め、外れるかを判定する。外れるならオーナーへの確認に回す",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_derive_architecture_from_requirements",
+  "scope": "pda",
+  "rule": "構成は今ある実装の一覧から1:1で起こさず、要件から逆算して導く",
+  "check": "構成を考える前に、要件から実現すべきことを書き出し、部品の一覧ではなくそこから導く",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_remake_cycle",
+  "scope": "pda",
+  "rule": "リメイクの判定は触る関数の割合20%のしきい値で行う",
+  "check": "リメイクを判定する前に、差分が触る関数の割合を数えて整理する",
+  "type": 4,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_change_cost_is_set_by_own_design",
+  "scope": "global",
+  "rule": "費用の出所が自分の設計なら、記述を消し部品の口を設計する",
+  "check": "変更の費用を理由にした記述に、出所が自分のこれから作る設計でないかを設計文書と照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "判断を求める問いは6関門を通ったものだけ出す",
+  "check": "オーナーに出す問いごとに、6つの関門を依頼と会話の記録に照らして通す",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "自分の成果物の欠陥を直すかは問わず、その場で直す",
+  "check": "問いが自分の成果物の欠陥を直すかの形なら、完了していないとして作業に戻す",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_decision_request_as_artifact",
+  "scope": "global",
+  "rule": "資料の事実は相手の選択が変わりうるものだけ載せる",
+  "check": "資料の各事実が、オーナーの選ぶ選択肢を変えうるかを判定する",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "コードから読める内容のコメント・文書を足さない",
+  "check": "足したコメント・文書の中身が、コードから読めるものでないかを差分と照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_dont_fix_unwarranted_review_findings",
+  "scope": "global",
+  "rule": "足した分岐の影響を解消する問題と並べて書く",
+  "check": "足した分岐の壊れ方と、解消する問題が並べて書かれているかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_investigation_principles",
+  "scope": "global",
+  "rule": "不在・不可の断定は観測してから書く",
+  "check": "応答の「無い・できない」の断定に、ツールの記録で観測した根拠があるかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_decision_offloading",
+  "scope": "global",
+  "rule": "読めば確定できる事項を「未確認」で返さない",
+  "check": "「未確認」「要確認」の項目が、資料を読めば確定できるものなら作業に戻す",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_decision_offloading",
+  "scope": "global",
+  "rule": "「検証で確かめる」と書く前に推論で結論を出す",
+  "check": "「検証で確かめる」の項目が、推論で結論が出るものなら作業に戻す",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_decision_offloading",
+  "scope": "global",
+  "rule": "残課題には相手の判断が要る事項だけ残す",
+  "check": "残課題の各項目が、オーナーの前提や推論で決まるものでないかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_excessive_risk_caveats",
+  "scope": "global",
+  "rule": "攻撃者だけが起こせる事象の但し書きを書かない",
+  "check": "攻撃者だけが起こせる事象の但し書きが、個人情報の動線のものかを判定する",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_report_only_new_differences_as_problems",
+  "scope": "global",
+  "rule": "注意点には作業が新しく生んだ差だけを挙げる",
+  "check": "報告の注意点の各項目が、変更前から同じ状態のものでないかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_separate_offtopic_findings",
+  "scope": "global",
+  "rule": "自発の付け足しも本体と同じ検証を通す",
+  "check": "頼まれていない注意点・補足の主張に、本体と同じ根拠があるかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_work_ledger",
+  "scope": "global",
+  "rule": "案を比べる文は守る指示の軸で書く",
+  "check": "比較・判断の文の軸が、台帳の守る指示の軸と一致するかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_no_paid_options",
+  "scope": "pda",
+  "rule": "課金が要る選択肢は無料の手段が尽きたときだけ出す",
+  "check": "課金が要る選択肢があれば、無料の手段が尽きた理由が書かれているかを照らし、無ければ作業に戻す",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_c6_credit_scope",
+  "scope": "pda",
+  "rule": "AI起動の要否は出力の消費先だけで判断し、検証をコスト理由で削らない",
+  "check": "提案に、品質保証のAI起動をコストを理由に削る案がないかを判定する",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_c6_credit_scope",
+  "scope": "pda",
+  "rule": "オーナーが行動に使う識別子（カードID・リンク）を要約から削らない",
+  "check": "要約・報告から、オーナーが行動に使う識別子が元の情報と比べて落ちていないかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_mask_project_names",
+  "scope": "pda",
+  "rule": "PDAの文書の案件名を[個人で受けている案件]等の伏せ字にする",
+  "check": "書いたファイル・コミットに、案件名の一覧に当たる固有名詞がないかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_oss_capability_from_docs",
+  "scope": "pda",
+  "rule": "OSSの機能の有無は公式資料で確かめて記録し、未決に載せない",
+  "check": "未決・候補の一覧に、公式資料を読まずに「確かめていない」とした項目がないかを照らす",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_pda_requirements_from_owner_words",
+  "scope": "pda",
+  "rule": "オーナーに問うのは機能要件だけにし、設計・実装の選択を問わない",
+  "check": "オーナーへの問いが機能要件か、仕組み・製品の選び方の問いかを判定する",
+  "type": 5,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_browser_per_action_approval_sites",
+  "scope": "global",
+  "rule": "承認カードの仕様と許可の残り方の事実",
+  "check": "",
+  "type": 0,
+  "pattern": false,
+  "existing": ""
+ },
+ {
+  "memory": "feedback_todo_via_todo_scrap_mcp",
+  "scope": "global",
+  "rule": "構成は deploy/todo-scrap/README.md を読む",
+  "check": "参照情報で、守らせる規則ではない",
+  "type": 0,
+  "pattern": false,
+  "existing": ""
+ }
+]
