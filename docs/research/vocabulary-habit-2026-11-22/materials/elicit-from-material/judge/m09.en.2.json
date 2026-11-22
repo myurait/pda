@@ -1,0 +1,109 @@
+{
+ "file": "m09.en.2.json",
+ "cond": "en",
+ "id": "m09",
+ "i": 2,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを避けるために除外した行が"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "その店舗の紐づけテーブル`post_google_location_relationships`"
+  },
+  {
+   "concept": "db_column",
+   "word": "投稿キー",
+   "quote": "登録済みの投稿キー`external_key`の一覧を作る"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "投稿キー`external_key`の一覧を作る"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "キーが一覧にあれば飛ばす"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に無ければ、新しい投稿グループを作る"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「キーの一覧に載っているかどうか」だけで決まります"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "キーの一覧を作るとき、「この実行で除外する行」を"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の後の処理で編集元の行を上書きしないこと"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同じ実行の後の処理で編集元の行を上書きしないこと"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "編集元の行のキーが一覧から消える"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に無いので「新規」と判定され"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "「上書きから守る行」と「存在しない行」は別のものです"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "キーの一覧を作ります。除外は上書きを避ける処理の側だけで使います"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "除外は上書きを避ける処理の側だけで使います"
+  },
+  {
+   "concept": "write_back",
+   "word": "処理",
+   "quote": "上書きを避ける処理の側だけで使います"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "PostGoogleLocationRelationship::where('location_id'"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "where('location_id', $locationId)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "->pluck('external_key')"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "$knownKeys = PostGoogleLocationRelationship"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"上書きを避けるために除外した行が\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"その店舗の紐づけテーブル`post_google_location_relationships`\"},\n{\"concept\":\"db_column\",\"word\":\"投稿キー\",\"quote\":\"登録済みの投稿キー`external_key`の一覧を作る\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"投稿キー`external_key`の一覧を作る\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"キーが一覧にあれば飛ばす\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"一覧に無ければ、新しい投稿グループを作る\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"「キーの一覧に載っているかどうか」だけで決まります\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"キーの一覧を作るとき、「この実行で除外する行」を\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同じ実行の後の処理で編集元の行を上書きしないこと\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同じ実行の後の処理で編集元の行を上書きしないこと\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"編集元の行のキーが一覧から消える\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"一覧に無いので「新規」と判定され\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"「上書きから守る行」と「存在しない行」は別のものです\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"キーの一覧を作ります。除外は上書きを避ける処理の側だけで使います\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"除外は上書きを避ける処理の側だけで使います\"},\n{\"concept\":\"write_back\",\"word\":\"処理\",\"quote\":\"上書きを避ける処理の側だけで使います\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"PostGoogleLocationRelationship::where('location_id'\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"where('location_id', $locationId)\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"->pluck('external_key')\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"$knownKeys = PostGoogleLocationRelationship\"}\n]"
+}

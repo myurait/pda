@@ -1,0 +1,104 @@
+{
+ "file": "m03.en.0.json",
+ "cond": "en",
+ "id": "m03",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`post_google_location_relationships` テーブルの行を最初にまとめて読み込み"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "最後にまとめて書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しは更新する列を指定していない `upsert` で"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "読み込んだ時点の全カラムで行を上書きします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "別の処理がこのテーブルの行を変更すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "更新する列を指定していない `upsert` で"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しまで最大で約5分空きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "約5分",
+   "quote": "書き戻しまで最大で約5分空きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "1〜3秒",
+   "quote": "問い合わせは1件あたり1〜3秒かかるため"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い紐付けの行の `deleted_at` に現在時刻を入れ"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "同期処理の書き戻しで、古い紐付けの行の"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い紐付けの行の `deleted_at` が読み込み時点の値"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`deleted_at` 以外のカラムも同じく"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "同期対象の店舗や行が多いほど書き戻しまでの時間が延び"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "書き戻しまでの時間が延び、発生しやすくなります"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` の第3引数に更新するカラム"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "更新するカラム（`state`・`published_at`）だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "他のカラムを上書きしないようにする"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻し時に論理削除済みの行を更新の対象から外す"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`post_google_location_relationships` テーブルの行を最初にまとめて読み込み\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"最後にまとめて書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しは更新する列を指定していない `upsert` で\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"読み込んだ時点の全カラムで行を上書きします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"別の処理がこのテーブルの行を変更すると\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"更新する列を指定していない `upsert` で\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しまで最大で約5分空きます\"},\n{\"concept\":\"time_range\",\"word\":\"約5分\",\"quote\":\"書き戻しまで最大で約5分空きます\"},\n{\"concept\":\"time_range\",\"word\":\"1〜3秒\",\"quote\":\"問い合わせは1件あたり1〜3秒かかるため\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い紐付けの行の `deleted_at` に現在時刻を入れ\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"同期処理の書き戻しで、古い紐付けの行の\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い紐付けの行の `deleted_at` が読み込み時点の値\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`deleted_at` 以外のカラムも同じく\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"同期対象の店舗や行が多いほど書き戻しまでの時間が延び\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"書き戻しまでの時間が延び、発生しやすくなります\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`upsert` の第3引数に更新するカラム\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"更新するカラム（`state`・`published_at`）だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"他のカラムを上書きしないようにする\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻し時に論理削除済みの行を更新の対象から外す\"}\n]"
+}

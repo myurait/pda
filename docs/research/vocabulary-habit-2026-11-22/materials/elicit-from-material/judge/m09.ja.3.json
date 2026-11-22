@@ -1,0 +1,199 @@
+{
+ "file": "m09.ja.3.json",
+ "cond": "ja",
+ "id": "m09",
+ "i": 3,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "投稿グループが重複するのは、最近の変更で"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "「上書きしない行」として除外リストに入れた行が"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "除外リストに入れた行が、「既に取り込み済みかどうか」"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "として除外リストに入れた行が、「既に取り込み済み"
+  },
+  {
+   "concept": "step",
+   "word": "取り込み処理",
+   "quote": "取り込み処理は最初に、この店舗に紐づく既存の行から"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "この店舗に紐づく既存の行から`external_key`を集めます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の行から`external_key`を集めます"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "これが「取り込み済みの投稿」の一覧になります"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "2. この一覧を作るときに、除外リスト（`excludedRowIds`）に"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "この一覧を作るときに、除外リスト（`excludedRowIds`）に入っている行"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "（`excludedRowIds`）に入っている行が取り除かれます"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2. この一覧を作るときに、除外リスト"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に名前がある投稿は飛ばし、ない投稿は"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "ない投稿は新しい投稿グループとして作ります"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "最近の変更で、編集元の行が除外リストに入るようになりました"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "編集元の行が除外リストに入るようになりました"
+  },
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "同じ実行の後の段階で編集内容を上書きしないことです"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "ところが、除外リストは手順2の一覧づくりにも使われています"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "除外リストは手順2の一覧づくりにも使われています"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外リストは手順2の一覧づくりにも使われています"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "編集元の行の`external_key`は「取り込み済み」の一覧に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集元の行の`external_key`は「取り込み済み」"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「取り込み済み」の一覧に載りません"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "既存の投稿グループとは別に新しい投稿グループが作られます"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "別に新しい投稿グループが作られます"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "つまり、除外リストは「この行を書き換えない」という意味で"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "「この行を書き換えない」という意味で追加された"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "「この行は存在しない」という意味で読まれています"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "行を書き換えるかどうかとは別の問いです"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "判定は、行を書き換えるかどうかとは別の問いです"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "`external_key`の一覧を作る問い合わせから"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`の一覧を作る問い合わせから"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`whereNotIn('id', $this->excludedRowIds)`を外し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`whereNotIn('id', $this->excludedRowIds)`を外し"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "店舗に紐づくすべての行を対象にするのが妥当です"
+  },
+  {
+   "concept": "collection",
+   "word": "除外リスト",
+   "quote": "除外リストは、行を上書きする処理の側でだけ使います"
+  },
+  {
+   "concept": "db_table",
+   "word": "行",
+   "quote": "除外リストは、行を上書きする処理の側でだけ使います"
+  },
+  {
+   "concept": "write_back",
+   "word": "処理",
+   "quote": "行を上書きする処理の側でだけ使います"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"投稿グループが重複するのは、最近の変更で\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"「上書きしない行」として除外リストに入れた行が\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"除外リストに入れた行が、「既に取り込み済みかどうか」\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"として除外リストに入れた行が、「既に取り込み済み\"},\n{\"concept\": \"step\", \"word\": \"取り込み処理\", \"quote\": \"取り込み処理は最初に、この店舗に紐づく既存の行から\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"この店舗に紐づく既存の行から`external_key`を集めます\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"既存の行から`external_key`を集めます\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"これが「取り込み済みの投稿」の一覧になります\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"2. この一覧を作るときに、除外リスト（`excludedRowIds`）に\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"この一覧を作るときに、除外リスト（`excludedRowIds`）に入っている行\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"（`excludedRowIds`）に入っている行が取り除かれます\"},\n{\"concept\": \"step\", \"word\": \"\", \"quote\": \"2. この一覧を作るときに、除外リスト\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"一覧に名前がある投稿は飛ばし、ない投稿は\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"ない投稿は新しい投稿グループとして作ります\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"最近の変更で、編集元の行が除外リストに入るようになりました\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"編集元の行が除外リストに入るようになりました\"},\n{\"concept\": \"step\", \"word\": \"段階\", \"quote\": \"同じ実行の後の段階で編集内容を上書きしないことです\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"ところが、除外リストは手順2の一覧づくりにも使われています\"},\n{\"concept\": \"step\", \"word\": \"手順2\", \"quote\": \"除外リストは手順2の一覧づくりにも使われています\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外リストは手順2の一覧づくりにも使われています\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"編集元の行の`external_key`は「取り込み済み」の一覧に\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"編集元の行の`external_key`は「取り込み済み」\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"「取り込み済み」の一覧に載りません\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"既存の投稿グループとは別に新しい投稿グループが作られます\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"別に新しい投稿グループが作られます\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"つまり、除外リストは「この行を書き換えない」という意味で\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"「この行を書き換えない」という意味で追加された\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"「この行は存在しない」という意味で読まれています\"},\n{\"concept\": \"write_back\", \"word\": \"\", \"quote\": \"行を書き換えるかどうかとは別の問いです\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"判定は、行を書き換えるかどうかとは別の問いです\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"`external_key`の一覧を作る問い合わせから\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key`の一覧を作る問い合わせから\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`whereNotIn('id', $this->excludedRowIds)`を外し\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`whereNotIn('id', $this->excludedRowIds)`を外し\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"店舗に紐づくすべての行を対象にするのが妥当です\"},\n{\"concept\": \"collection\", \"word\": \"除外リスト\", \"quote\": \"除外リストは、行を上書きする処理の側でだけ使います\"},\n{\"concept\": \"db_table\", \"word\": \"行\", \"quote\": \"除外リストは、行を上書きする処理の側でだけ使います\"},\n{\"concept\": \"write_back\", \"word\": \"処理\", \"quote\": \"行を上書きする処理の側でだけ使います\"}\n]"
+}

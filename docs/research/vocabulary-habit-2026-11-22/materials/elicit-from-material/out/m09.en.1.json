@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m09",
+ "i": 1,
+ "result": "---\n\n**原因:** 編集元の行を `excludedRowIds` に足した変更が、上書き防止だけでなく「既に取り込み済みか」の判定からも、その行を外してしまっているためです。\n\n**仕組み**\n\n1. `excludedRowIds` は、もともと「この実行中に触らない行」を表す集合です。最近の変更で、同じ実行の後半で上書きされないように、編集元の行がこの集合に入るようになりました。\n2. `importNewPosts` は、既知の投稿を調べるときに同じ集合で行を除外しています。そのため、編集元の行が持つ `external_key` は `$knownKeys` に入りません。\n3. Google ビジネスプロフィールから取得した投稿をループで照合すると、編集元に対応する投稿は `$post->name` が `$knownKeys` に見つかりません。その結果、未登録の投稿と判定されます。\n4. `createPostGroupFrom($post)` が呼ばれ、すでに投稿グループと紐付いている投稿について、新しい投稿グループがもう1つ作られます。\n\nこの集合には「上書きしない行」と「存在しないものとして扱う行」という別の意味が1つに混ざっています。上書きを防ぐために入れた行が、存在の判定では「無い」と扱われることが、重複の原因です。\n\n**直し方**\n\n既知のキーを集めるときは、除外の集合を使わずに、その店舗の紐付けをすべて対象にします。\n\n```php\n$knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n    ->pluck('external_key')\n    ->all();\n```\n\n`excludedRowIds` は、上書きを止める処理の側でだけ参照します。ほかの理由で除外した行も取り込み済みとして扱ってよいかは、`excludedRowIds` に行を入れている各箇所の意図を確認して判断してください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1001,
+  "cache_read_input_tokens": 22141,
+  "output_tokens": 945,
+  "output_tokens_details": {
+   "thinking_tokens": 304
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1001,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 945,
+    "cache_read_input_tokens": 22141,
+    "cache_creation_input_tokens": 1001,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1001
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

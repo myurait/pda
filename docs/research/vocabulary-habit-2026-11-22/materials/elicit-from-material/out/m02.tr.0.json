@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m02",
+ "i": 0,
+ "result": "---\n\n## 結論\n\n今のデータのままなら、夜間の集計結果は変わりません。集計のクエリが読む `post_search.location_ids` には今も値が入っており、新しい `post_search_locations` テーブルは空だからです。\n\nただし、次の2つの変更で集計がずれます。どちらもエラーにはならず、数字だけが変わります。\n\n- `location_ids` への書き込みが止まったとき\n- `tstamp` の型の変更が本番に入ったとき\n\n## 1. `location_ids` の廃止\n\n差分は `location_ids` に「deprecated, use post_search_locations」という注記を付けただけです。カラム自体は残っているので、すぐに集計が壊れることはありません。\n\n素材から分かる今の状態は次のとおりです。\n\n- `post_search` には `location_ids` に値の入った行が多数あります。\n- `post_search_locations` は本番に作られていますが、まだ1行もありません。移行のデータ投入はまだ行われていません。\n- 夜間の集計クエリは `location_ids` だけを読み、`post_search_locations` を結合していません。\n\n集計がずれるのは、アプリの書き込み先が `post_search_locations` に切り替わり、`location_ids` が書かれなくなったときです。切り替え後に作られた行は `location_ids` が空になるため、集計から抜け落ちます。クエリは失敗しないので、件数が減ったことに気づきにくい形になります。\n\n反対に、今の段階で集計クエリだけを `post_search_locations` に向けると、テーブルが空なので結果が0件になります。\n\n順序は次のようにする必要があります。\n\n1. 既存の `location_ids` の中身を `post_search_locations` に移す\n2. 集計クエリを `post_search_locations` を結合する形に直す\n3. アプリの `location_ids` への書き込みを止める\n\n## 2. `tstamp` の型の変更（`timestamp` から `datetime` へ）\n\nMySQLの `timestamp` はUTCで保存され、読み書きのたびに接続の `time_zone` で変換されます。`datetime` は書かれた値をそのまま保存し、変換しません。\n\nこのため、本番で `ALTER TABLE` を実行すると、既存の値はその `ALTER` を実行した接続のタイムゾーンで表した時刻に固定されます。その後の挙動は次の2つの設定で決まります。\n\n- アプリが書き込むときの接続のタイムゾーン\n- 夜間の集計が読むときの接続のタイムゾーン\n\nこれらが `ALTER` を実行した接続のタイムゾーンと違うと、集計の日付の境界がずれます。たとえばJSTとUTCの組み合わせなら9時間ずれ、日をまたぐ投稿が前日か翌日の集計に移ります。素材には集計クエリの `tstamp` の条件が含まれていないので、ずれる幅はまだ特定できていません。\n\nまた、今の `tstamp` が `timestamp` の自動初期化（`DEFAULT CURRENT_TIMESTAMP`）で埋まっていた場合、`datetime [not null]` には既定値が無いので、`tstamp` を指定しない `INSERT` が失敗するようになります。\n\n## 本番で確かめると決まること\n\n- `SHOW CREATE TABLE post_search` の結果で、型の変更が本番に入っているかと、`tstamp` の既定値の有無が分かります。\n- `SELECT @@global.time_zone, @@session.time_zone` を、アプリの接続と集計の接続の両方で実行すると、日付の境界がずれるかどうかと、ずれる幅が分かります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7311,
+  "cache_read_input_tokens": 15897,
+  "output_tokens": 2629,
+  "output_tokens_details": {
+   "thinking_tokens": 1401
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7311,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2629,
+    "cache_read_input_tokens": 15897,
+    "cache_creation_input_tokens": 7311,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7311
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

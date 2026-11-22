@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m09",
+ "i": 3,
+ "result": "---\n\n投稿グループが重複するのは、最近の変更で「上書きしない行」として除外リストに入れた行が、「既に取り込み済みかどうか」の判定からも外れてしまうためです。\n\n**判定の流れ**\n\n1. 取り込み処理は最初に、この店舗に紐づく既存の行から`external_key`を集めます。これが「取り込み済みの投稿」の一覧になります。\n2. この一覧を作るときに、除外リスト（`excludedRowIds`）に入っている行が取り除かれます。\n3. 次に、Googleビジネスプロフィールから取ってきた投稿を1件ずつ見ていきます。一覧に名前がある投稿は飛ばし、ない投稿は新しい投稿グループとして作ります。\n\n**重複が起きる仕組み**\n\n最近の変更で、編集元の行が除外リストに入るようになりました。この変更の目的は、同じ実行の後の段階で編集内容を上書きしないことです。\n\nところが、除外リストは手順2の一覧づくりにも使われています。そのため、編集元の行の`external_key`は「取り込み済み」の一覧に載りません。結果として、その行に対応するGoogle側の投稿は「まだ取り込んでいない投稿」と判定され、既存の投稿グループとは別に新しい投稿グループが作られます。\n\nつまり、除外リストは「この行を書き換えない」という意味で追加されたのに、この処理では「この行は存在しない」という意味で読まれています。\n\n**直し方**\n\n取り込み済みかどうかの判定は、行を書き換えるかどうかとは別の問いです。そのため、`external_key`の一覧を作る問い合わせから`whereNotIn('id', $this->excludedRowIds)`を外し、店舗に紐づくすべての行を対象にするのが妥当です。除外リストは、行を上書きする処理の側でだけ使います。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1000,
+  "cache_read_input_tokens": 22089,
+  "output_tokens": 1105,
+  "output_tokens_details": {
+   "thinking_tokens": 461
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1000,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1105,
+    "cache_read_input_tokens": 22089,
+    "cache_creation_input_tokens": 1000,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1000
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

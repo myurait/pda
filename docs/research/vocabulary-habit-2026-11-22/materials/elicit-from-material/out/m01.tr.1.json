@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m01",
+ "i": 1,
+ "result": "---\n\n## English\n\n**Title:** Add delivery instruction table and delivery state columns\n\n### Summary\n\nThis migration adds a new table that holds one delivery instruction per post group and platform. It also adds columns for the delivery state to the existing post-to-Google-location relationship table, and backfills the state of rows that were already sent.\n\n### Changes\n\n- New table `delivery_instructions`\n  - `post_group_id`: foreign key to `post_groups.id`. No cascade is set, so a post group that has delivery instructions cannot be deleted.\n  - `platform`: string, up to 32 characters\n  - `scheduled_at`: required\n  - `dispatched_at`: nullable\n  - Unique constraint on (`post_group_id`, `platform`), so each post group has at most one instruction per platform\n  - No `created_at` / `updated_at` columns\n- New columns on `post_google_location_relationships`\n  - `delivery_state`: string, up to 16 characters, default `'pending'`, placed after `sent_at`\n  - `external_key`: nullable string, placed after `delivery_state`\n  - Composite index on (`delivery_state`, `updated_at`)\n\n### Impact on existing data\n\n- `post_google_location_relationships`\n  - Rows with a non-NULL `sent_at` get `delivery_state = 'sent'`.\n  - Rows with a NULL `sent_at` stay at the default `'pending'`. Every existing unsent row is treated as pending, whatever the reason it was never sent.\n  - `external_key` is NULL on every existing row.\n  - The backfill runs as a raw `UPDATE`, so `updated_at` on the updated rows does not change.\n- `delivery_instructions` starts empty. No rows are created for existing post groups.\n- Running the migration adds two columns and an index to `post_google_location_relationships` and then updates every row that has a non-NULL `sent_at`. On a large table, this can take a while and lock the table.\n\n### Points for review\n\n- The migration has no `down()`. A rollback removes the migration record but leaves the table and columns in place, so the next `migrate` fails when it tries to create `delivery_instructions` again.\n- Please confirm that existing unsent rows becoming `'pending'` is intended. If any process picks up `'pending'` rows, those old rows would become delivery targets.\n\n## 日本語\n\n**タイトル:** 配信指示テーブルと配信状態カラムを追加する\n\n### 概要\n\nこのマイグレーションは、投稿グループとプラットフォームの組ごとに配信指示を 1 件持つテーブルを新しく作ります。あわせて、投稿と Google のロケーションを結ぶ既存のテーブルに配信状態のカラムを足し、送信済みの行に状態を埋めます。\n\n### 変更内容\n\n- 新しいテーブル `delivery_instructions`\n  - `post_group_id`: `post_groups.id` への外部キー。カスケードを指定していないため、配信指示を持つ投稿グループは削除できません。\n  - `platform`: 文字列（最大32文字）\n  - `scheduled_at`: 必須\n  - `dispatched_at`: NULL を許す\n  - (`post_group_id`, `platform`) のユニーク制約。1つの投稿グループにつき、プラットフォームごとの配信指示は最大1件です。\n  - `created_at`・`updated_at` のカラムはありません。\n- `post_google_location_relationships` に足すカラム\n  - `delivery_state`: 文字列（最大16文字）、既定値は `'pending'`、`sent_at` の後ろに置きます。\n  - `external_key`: NULL を許す文字列、`delivery_state` の後ろに置きます。\n  - (`delivery_state`, `updated_at`) の複合インデックス\n\n### 既存データへの影響\n\n- `post_google_location_relationships`\n  - `sent_at` に値がある行は `delivery_state = 'sent'` になります。\n  - `sent_at` が NULL の行は既定値の `'pending'` のままです。送られなかった理由を問わず、未送信の既存行はすべて配信待ちとして扱われます。\n  - `external_key` は既存のすべての行で NULL です。\n  - 状態を埋める処理は生の `UPDATE` で実行するため、更新した行の `updated_at` は変わりません。\n- `delivery_instructions` は空の状態で作られます。既存の投稿グループの分の行は作りません。\n- マイグレーションを流すと、`post_google_location_relationships` にカラム2つとインデックスを足したうえで、`sent_at` に値がある行をすべて更新します。行が多いテーブルでは時間がかかり、テーブルがロックされることがあります。\n\n### レビューで見てほしい点\n\n- `down()` がありません。ロールバックするとマイグレーションの記録だけが消え、テーブルとカラムは残ります。そのため、次の `migrate` は `delivery_instructions` の作成で失敗します。\n- 未送信の既存行が `'pending'` になるのが意図どおりか確認してください。`'pending'` の行を拾って配信する処理があれば、古い行も配信の対象になります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 114934,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2743,
+  "output_tokens_details": {
+   "thinking_tokens": 1027
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 114934,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2743,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 114934,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 114934
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

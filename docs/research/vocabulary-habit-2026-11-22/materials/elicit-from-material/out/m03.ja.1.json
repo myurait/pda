@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m03",
+ "i": 1,
+ "result": "---\n\n## 概要\n\nGBP投稿の同期処理が、編集済み投稿の配信完了時に論理削除された古い紐付けレコードを、論理削除されていない状態に戻してしまいます。その結果、同じ店舗・同じ投稿について、古い紐付けと新しい紐付けの両方が有効なレコードとして残ります。\n\n## 発生条件\n\n次の2つが同時に起きたときに発生します。\n\n- 同期処理（`SyncGbpPostsService`）が、対象の店舗の紐付けレコード（`post_google_location_relationships`）を読み込み、まだ一括書き込みを終えていない\n- 同期処理が読み込んでから一括書き込みするまでの間に、同じレコードを対象とする投稿の編集が配信完了し、編集時の保存処理（`PostUpdateService::saveOnCompleted()`）が古いレコードの `deleted_at` に日時を入れる\n\n同期処理は、読み込んだレコード1件ごとにGBPのAPIを呼び、1回に1〜3秒かかります。読み込みから書き込みまでの時間はレコード数に比例して延び、100件なら100〜300秒になります。対象の店舗が多いほど、この間に編集の配信が完了する可能性が高くなります。\n\n## 影響\n\n- 論理削除されたはずの古い紐付けレコードが復活し、編集後の新しいレコードと並んで有効なレコードとして扱われる\n  - 管理画面や一覧で、同じ投稿が編集前と編集後の2件として表示される\n  - 以降の同期処理でも、古いレコードが同期の対象に含まれ続ける\n- 復活したレコードの `state` と `published_at` には、編集前の投稿についてGBPから取得した値が入る\n\n## 原因\n\n同期処理は、最初に読み込んだレコードの内容をメモリ上に保持し、APIで取得した `state` と `published_at` だけを書き換えたうえで、最後にupsertで一括書き込みします。このupsertは更新する列を指定していないため、メモリ上のレコードが持つすべての列でDBの値を上書きします。\n\n読み込んだ時点の `deleted_at` は空なので、その間に編集時の保存処理が `deleted_at` に日時を入れていても、一括書き込みで空に戻ります。`deleted_at` 以外の列も、読み込んだ後に別の処理が変えた値は読み込んだ時点の値に戻ります。\n\n## 対応案\n\n- upsertの更新対象の列を `state` と `published_at` に限定し、ほかの列を上書きしないようにする\n- 一括書き込みの対象から、書き込み時点で論理削除されているレコードを除く",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1000,
+  "cache_read_input_tokens": 22196,
+  "output_tokens": 1759,
+  "output_tokens_details": {
+   "thinking_tokens": 847
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1000,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1759,
+    "cache_read_input_tokens": 22196,
+    "cache_creation_input_tokens": 1000,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1000
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

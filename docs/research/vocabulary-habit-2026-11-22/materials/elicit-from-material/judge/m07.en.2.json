@@ -1,0 +1,154 @@
+{
+ "file": "m07.en.2.json",
+ "cond": "en",
+ "id": "m07",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "取り込み処理",
+   "quote": "この取り込み処理は、**投稿から3時間以上たった投稿だけを"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "投稿から3時間以上たった投稿だけを取り込み"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間以内",
+   "quote": "3時間以内の投稿は取り込みません**"
+  },
+  {
+   "concept": "time_range",
+   "word": "上限",
+   "quote": "投稿の古さに上限はありません。"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間以内",
+   "quote": "判定時点より3時間以内に作られた投稿です。"
+  },
+  {
+   "concept": "step",
+   "word": "配信処理",
+   "quote": "自社の配信処理が投稿したばかりで"
+  },
+  {
+   "concept": "step",
+   "word": "処理中",
+   "quote": "まだ処理中かもしれない投稿を拾わない"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間以内",
+   "quote": "手で出した投稿も3時間以内なら同じく除外"
+  },
+  {
+   "concept": "time_range",
+   "word": "下限",
+   "quote": "「何日前まで」という下限は無く"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "3時間より古ければ1か月前の投稿でも"
+  },
+  {
+   "concept": "time_range",
+   "word": "1か月前",
+   "quote": "1か月前の投稿でも1年前の投稿でも"
+  },
+  {
+   "concept": "time_range",
+   "word": "1年前",
+   "quote": "1か月前の投稿でも1年前の投稿でも"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "3時間より古くなっているので"
+  },
+  {
+   "concept": "time_range",
+   "word": "約1日",
+   "quote": "最大で約1日遅れます。"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "処理は毎日1時に始まり"
+  },
+  {
+   "concept": "time_range",
+   "word": "約9時間",
+   "quote": "全店舗を終えるまで約9時間かかります。"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "## 実行時刻と「3時間」の関係"
+  },
+  {
+   "concept": "time_range",
+   "word": "境目",
+   "quote": "除外の境目は判定の基準時刻 `$now`"
+  },
+  {
+   "concept": "time_range",
+   "word": "境目",
+   "quote": "どの店舗でも境目は前日22時です。"
+  },
+  {
+   "concept": "time_range",
+   "word": "境目",
+   "quote": "当日7時ごろが境目になり"
+  },
+  {
+   "concept": "time_range",
+   "word": "範囲",
+   "quote": "店舗によって取り込まれる範囲がずれます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日",
+   "quote": "## 30日での削除"
+  },
+  {
+   "concept": "db_table",
+   "word": "取り込み記録",
+   "quote": "取り込み記録 `ImportedPost` のうち"
+  },
+  {
+   "concept": "db_column",
+   "word": "日時",
+   "quote": "取り込んだ日時 `imported_at` が30日より前"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日",
+   "quote": "`imported_at` が30日より前のものを削除"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日後",
+   "quote": "30日後に記録が消えると"
+  },
+  {
+   "concept": "time_range",
+   "word": "上限",
+   "quote": "古さの上限が無いため"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "記録があるかで判定している場合"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`ImportedPost` に記録があるかで判定"
+  }
+ ],
+ "raw": "```json\n[\n{\"concept\": \"step\", \"word\": \"取り込み処理\", \"quote\": \"この取り込み処理は、**投稿から3時間以上たった投稿だけを\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"投稿から3時間以上たった投稿だけを取り込み\"},\n{\"concept\": \"time_range\", \"word\": \"3時間以内\", \"quote\": \"3時間以内の投稿は取り込みません**\"},\n{\"concept\": \"time_range\", \"word\": \"上限\", \"quote\": \"投稿の古さに上限はありません。\"},\n{\"concept\": \"time_range\", \"word\": \"3時間以内\", \"quote\": \"判定時点より3時間以内に作られた投稿です。\"},\n{\"concept\": \"step\", \"word\": \"配信処理\", \"quote\": \"自社の配信処理が投稿したばかりで\"},\n{\"concept\": \"step\", \"word\": \"処理中\", \"quote\": \"まだ処理中かもしれない投稿を拾わない\"},\n{\"concept\": \"time_range\", \"word\": \"3時間以内\", \"quote\": \"手で出した投稿も3時間以内なら同じく除外\"},\n{\"concept\": \"time_range\", \"word\": \"下限\", \"quote\": \"「何日前まで」という下限は無く\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"3時間より古ければ1か月前の投稿でも\"},\n{\"concept\": \"time_range\", \"word\": \"1か月前\", \"quote\": \"1か月前の投稿でも1年前の投稿でも\"},\n{\"concept\": \"time_range\", \"word\": \"1年前\", \"quote\": \"1か月前の投稿でも1年前の投稿でも\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"3時間より古くなっているので\"},\n{\"concept\": \"time_range\", \"word\": \"約1日\", \"quote\": \"最大で約1日遅れます。\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"処理は毎日1時に始まり\"},\n{\"concept\": \"time_range\", \"word\": \"約9時間\", \"quote\": \"全店舗を終えるまで約9時間かかります。\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"## 実行時刻と「3時間」の関係\"},\n{\"concept\": \"time_range\", \"word\": \"境目\", \"quote\": \"除外の境目は判定の基準時刻 `$now`\"},\n{\"concept\": \"time_range\", \"word\": \"境目\", \"quote\": \"どの店舗でも境目は前日22時です。\"},\n{\"concept\": \"time_range\", \"word\": \"境目\", \"quote\": \"当日7時ごろが境目になり\"},\n{\"concept\": \"time_range\", \"word\": \"範囲\", \"quote\": \"店舗によって取り込まれる範囲がずれます。\"},\n{\"concept\": \"time_range\", \"word\": \"30日\", \"quote\": \"## 30日での削除\"},\n{\"concept\": \"db_table\", \"word\": \"取り込み記録\", \"quote\": \"取り込み記録 `ImportedPost` のうち\"},\n{\"concept\": \"db_column\", \"word\": \"日時\", \"quote\": \"取り込んだ日時 `imported_at` が30日より前\"},\n{\"concept\": \"time_range\", \"word\": \"30日\", \"quote\": \"`imported_at` が30日より前のものを削除\"},\n{\"concept\": \"time_range\", \"word\": \"30日後\", \"quote\": \"30日後に記録が消えると\"},\n{\"concept\": \"time_range\", \"word\": \"上限\", \"quote\": \"古さの上限が無いため\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"記録があるかで判定している場合\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`ImportedPost` に記録があるかで判定\"}\n]\n```"
+}

@@ -1,0 +1,124 @@
+{
+ "file": "m07.tr.2.json",
+ "cond": "tr",
+ "id": "m07",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "取り込み処理",
+   "quote": "この取り込み処理は、作成から3時間以上たった投稿を取り込み"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "作成から3時間以上たった投稿を取り込み"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "作成から3時間以内の投稿は取り込みません"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "3時間以上前に作られた投稿です"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "ちょうど3時間前に作られた投稿も含みます"
+  },
+  {
+   "concept": "time_range",
+   "word": "直前3時間",
+   "quote": "基準時刻の直前3時間に作られた投稿です"
+  },
+  {
+   "concept": "step",
+   "word": "投稿処理",
+   "quote": "自社の投稿処理から送った投稿がまだ反映途中"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "この3時間に入れば同じように外れます"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "処理は毎日1:00に動きます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "作成から3時間を超えているので取り込まれます"
+  },
+  {
+   "concept": "time_range",
+   "word": "約1日",
+   "quote": "取り込みは最大でおよそ1日遅れます"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "処理が全店舗を回り終えるまでには約9時間かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "約9時間",
+   "quote": "回り終えるまでには約9時間かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "直前3時間",
+   "quote": "その店舗を処理した時刻の直前3時間に作られた投稿"
+  },
+  {
+   "concept": "time_range",
+   "word": "7:00〜10:00",
+   "quote": "7:00〜10:00に作られた投稿が外れます"
+  },
+  {
+   "concept": "db_table",
+   "word": "取り込み記録",
+   "quote": "取り込んでから30日を過ぎた取り込み記録を消します"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日",
+   "quote": "取り込んでから30日を過ぎた取り込み記録"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "もう1つの処理は、取り込んでから30日を過ぎた"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "この処理は、投稿を取り込むかどうかの判定には関わりません"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "二重取り込みを防ぐ処理が別の場所にあり"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "その処理がこの取り込み記録を見ているとします"
+  },
+  {
+   "concept": "db_table",
+   "word": "取り込み記録",
+   "quote": "その処理がこの取り込み記録を見ているとします"
+  },
+  {
+   "concept": "db_table",
+   "word": "記録",
+   "quote": "その場合、記録が消えた後も"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"step\", \"word\": \"取り込み処理\", \"quote\": \"この取り込み処理は、作成から3時間以上たった投稿を取り込み\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"作成から3時間以上たった投稿を取り込み\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"作成から3時間以内の投稿は取り込みません\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"3時間以上前に作られた投稿です\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"ちょうど3時間前に作られた投稿も含みます\"},\n{\"concept\": \"time_range\", \"word\": \"直前3時間\", \"quote\": \"基準時刻の直前3時間に作られた投稿です\"},\n{\"concept\": \"step\", \"word\": \"投稿処理\", \"quote\": \"自社の投稿処理から送った投稿がまだ反映途中\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"この3時間に入れば同じように外れます\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"処理は毎日1:00に動きます。\"},\n{\"concept\": \"time_range\", \"word\": \"3時間\", \"quote\": \"作成から3時間を超えているので取り込まれます\"},\n{\"concept\": \"time_range\", \"word\": \"約1日\", \"quote\": \"取り込みは最大でおよそ1日遅れます\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"処理が全店舗を回り終えるまでには約9時間かかります\"},\n{\"concept\": \"time_range\", \"word\": \"約9時間\", \"quote\": \"回り終えるまでには約9時間かかります\"},\n{\"concept\": \"time_range\", \"word\": \"直前3時間\", \"quote\": \"その店舗を処理した時刻の直前3時間に作られた投稿\"},\n{\"concept\": \"time_range\", \"word\": \"7:00〜10:00\", \"quote\": \"7:00〜10:00に作られた投稿が外れます\"},\n{\"concept\": \"db_table\", \"word\": \"取り込み記録\", \"quote\": \"取り込んでから30日を過ぎた取り込み記録を消します\"},\n{\"concept\": \"time_range\", \"word\": \"30日\", \"quote\": \"取り込んでから30日を過ぎた取り込み記録\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"もう1つの処理は、取り込んでから30日を過ぎた\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"この処理は、投稿を取り込むかどうかの判定には関わりません\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"二重取り込みを防ぐ処理が別の場所にあり\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"その処理がこの取り込み記録を見ているとします\"},\n{\"concept\": \"db_table\", \"word\": \"取り込み記録\", \"quote\": \"その処理がこの取り込み記録を見ているとします\"},\n{\"concept\": \"db_table\", \"word\": \"記録\", \"quote\": \"その場合、記録が消えた後も\"}\n]"
+}

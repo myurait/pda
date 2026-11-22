@@ -1,0 +1,114 @@
+{
+ "file": "m09.en.3.json",
+ "cond": "en",
+ "id": "m09",
+ "i": 3,
+ "items": [
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "次の2段階で新しい投稿を見分けています"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "投稿の `external_key` を集め"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`$knownKeys` を作ります"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`$knownKeys` に含まれていなければ"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`$this->excludedRowIds` に入るようになりました"
+  },
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "1段階目の照合は"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "whereNotIn('id', $this->excludedRowIds)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "whereNotIn('id', $this->excludedRowIds)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集元の行の `external_key` は"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`external_key` は `$knownKeys` に入りません"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` は、同じ実行の後半で"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の後半で上書きしないための除外リスト"
+  },
+  {
+   "concept": "collection",
+   "word": "リスト",
+   "quote": "上書きしないための除外リストとして使われ始めました"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "除外は「上書きしない」ではなく"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを防ぐための除外が"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "$knownKeys = PostGoogleLocationRelationship"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "where('location_id', $locationId)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "->pluck('external_key')"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "すべての行の `external_key` を集めます"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` による除外は"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを行う処理の側だけで使います"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"step\", \"word\": \"段階\", \"quote\": \"次の2段階で新しい投稿を見分けています\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"投稿の `external_key` を集め\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`$knownKeys` を作ります\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`$knownKeys` に含まれていなければ\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`$this->excludedRowIds` に入るようになりました\"},\n{\"concept\": \"step\", \"word\": \"段階\", \"quote\": \"1段階目の照合は\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"whereNotIn('id', $this->excludedRowIds)\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"whereNotIn('id', $this->excludedRowIds)\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"編集元の行の `external_key` は\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`external_key` は `$knownKeys` に入りません\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`excludedRowIds` は、同じ実行の後半で\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"同じ実行の後半で上書きしないための除外リスト\"},\n{\"concept\": \"collection\", \"word\": \"リスト\", \"quote\": \"上書きしないための除外リストとして使われ始めました\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"除外は「上書きしない」ではなく\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを防ぐための除外が\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"$knownKeys = PostGoogleLocationRelationship\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"where('location_id', $locationId)\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"->pluck('external_key')\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"すべての行の `external_key` を集めます\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`excludedRowIds` による除外は\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを行う処理の側だけで使います\"}\n]"
+}

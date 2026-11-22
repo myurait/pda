@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m05",
+ "i": 2,
+ "result": "---\n\n## リリースの進め方\n\nこのリリースでは、投稿の配信をstep 3の旧バッチ`sync-google-posts`と旧キュー`post-delivery`の経路から、step 6のディスパッチャーと新キュー`post-dispatch`の経路へ切り替えます。旧経路を止めて残りを流し切ってから新経路を動かすので、手順の順番を入れ替えずに進めてください。\n\n### 全体の流れ\n\n```\n[1] DBマイグレーション\n      ↓\n[2] api / go-api をデプロイ → ヘルスチェック\n      ↓\n[3] 旧バッチを停止（新しいメッセージが旧キューに入らなくなる）\n      ↓\n[4] 旧キューが空になるまで待つ\n      ↓\n[5] 新キューを読む worker をデプロイ\n      ↓\n[6] ディスパッチャーのスケジュールを有効化（新経路で配信が始まる）\n```\n\n### 各手順\n\n1. **本番DBにマイグレーションを適用する**\n   - 対象は`2026_11_20_000000_add_delivery_state`です。\n   - step 2以降の新しいコードが配信状態を記録する先を先に用意するため、最初に行います。\n\n2. **api v3.14.0とgo-api v2.8.0をデプロイする**\n   - デプロイ後にヘルスチェックが通ることを確かめてから次へ進みます。\n\n3. **旧バッチのスケジュールを止める**\n   - Step Functionsの`sync-google-posts`を無効にします。\n   - 旧キュー`post-delivery`に新しいメッセージが入らなくなります。\n\n4. **旧キュー`post-delivery`が空になるまで待つ**\n   - `ApproximateNumberOfMessages`が0になったことを確認します。\n   - step 5で入れるworkerは旧キューを読まないので、ここで残っているメッセージはstep 5の後に処理されなくなります。0になるまで次へ進まないでください。\n\n5. **worker v5.2.0をデプロイする**\n   - このバージョンは新キュー`post-dispatch`を読みます。\n\n6. **ディスパッチャーのスケジュールを有効にする**\n   - 間隔は`rate(1 minute)`です。ここから新経路での配信が始まります。\n\n### 切り戻すとき\n\n新しいものから順に、次の順番で戻します。\n\n1. step 6のディスパッチャーのスケジュールを無効にする\n2. step 5のworkerを前のバージョンに戻す\n3. step 3で止めた旧バッチ`sync-google-posts`を有効に戻す\n\nstep 1のマイグレーションとstep 2のapi・go-apiのデプロイは戻しません。\n\n### 素材の切り戻し手順について一点\n\n切り戻しの手順には、新キュー`post-dispatch`に残ったメッセージの扱いが書かれていません。step 6を止めた時点でキューに残っているメッセージは、workerを前のバージョンに戻すと読まれなくなります。そのため、手順2の前に`post-dispatch`が空になるのを待つ工程を入れるか、残ったメッセージを捨ててよいかを、手順書の作成者に確かめてから実施してください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1005,
+  "cache_read_input_tokens": 22132,
+  "output_tokens": 1888,
+  "output_tokens_details": {
+   "thinking_tokens": 800
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1005,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1888,
+    "cache_read_input_tokens": 22132,
+    "cache_creation_input_tokens": 1005,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1005
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,179 @@
+{
+ "file": "m03.tr.2.json",
+ "cond": "tr",
+ "id": "m03",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "GBPの投稿状態の同期処理が、同期中に論理削除された"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships`の行を削除前の状態に戻します"
+  },
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "GBPの投稿状態の同期処理"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "対象店舗の`post_google_location_relationships`の行を最初に"
+  },
+  {
+   "concept": "collection",
+   "word": "全行",
+   "quote": "読み込んだ全行をまとめてデータベースへ書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "読み込んだ全行をまとめてデータベースへ書き戻します"
+  },
+  {
+   "concept": "time_range",
+   "word": "1〜3秒",
+   "quote": "問い合わせは1回1〜3秒かかります"
+  },
+  {
+   "concept": "step",
+   "word": "配信完了処理",
+   "quote": "編集した投稿の配信完了処理"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "旧版の行の`deleted_at`に現在時刻を入れて論理削除します"
+  },
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "同期処理が行を読み込んでから書き戻すまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "同期処理が行を読み込んでから書き戻すまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "書き戻すまでの間に配信完了処理が旧版の行を"
+  },
+  {
+   "concept": "step",
+   "word": "配信完了処理",
+   "quote": "書き戻すまでの間に配信完了処理が旧版の行を"
+  },
+  {
+   "concept": "time_range",
+   "word": "間の時間",
+   "quote": "この間の時間は対象の行数に比例して長くなり"
+  },
+  {
+   "concept": "time_range",
+   "word": "数分",
+   "quote": "行の多い店舗では数分続きます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻しの処理",
+   "quote": "書き戻しの処理は、更新する列を指定せずに`upsert`を呼んでいます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "更新する列を指定せずに`upsert`を呼んでいます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "読み込んだ時点の値で行のすべての列が上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "読み込んだ時点の`deleted_at`は`NULL`なので"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しによって配信完了処理が入れた削除日時が`NULL`に戻ります"
+  },
+  {
+   "concept": "step",
+   "word": "配信完了処理",
+   "quote": "書き戻しによって配信完了処理が入れた削除日時が"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`以外の列も同じ仕組みで上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`deleted_at`以外の列も同じ仕組みで上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "どの列でも読み込み時点の値に戻ります"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "旧版の行も通常の検索の結果に含まれます"
+  },
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "以降の同期処理は旧版の行も対象にして"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期中に他の処理が変えた列の値は、どの列でも失われます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期中に他の処理が変えた列の値は、どの列でも失われます"
+  },
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "同期処理が更新する`state`と`published_at`だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新する`state`と`published_at`だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新する`state`と`published_at`だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`を含む他の列を上書きの対象から外します"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`deleted_at`を含む他の列を上書きの対象から外します"
+  },
+  {
+   "concept": "step",
+   "word": "配信完了処理",
+   "quote": "戻ってしまった行は、配信完了処理の記録と照らして"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"GBPの投稿状態の同期処理が、同期中に論理削除された\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_google_location_relationships`の行を削除前の状態に戻します\"},\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"GBPの投稿状態の同期処理\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"対象店舗の`post_google_location_relationships`の行を最初に\"},\n{\"concept\":\"collection\",\"word\":\"全行\",\"quote\":\"読み込んだ全行をまとめてデータベースへ書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"読み込んだ全行をまとめてデータベースへ書き戻します\"},\n{\"concept\":\"time_range\",\"word\":\"1〜3秒\",\"quote\":\"問い合わせは1回1〜3秒かかります\"},\n{\"concept\":\"step\",\"word\":\"配信完了処理\",\"quote\":\"編集した投稿の配信完了処理\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"旧版の行の`deleted_at`に現在時刻を入れて論理削除します\"},\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"同期処理が行を読み込んでから書き戻すまでの間に\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"同期処理が行を読み込んでから書き戻すまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"書き戻すまでの間に配信完了処理が旧版の行を\"},\n{\"concept\":\"step\",\"word\":\"配信完了処理\",\"quote\":\"書き戻すまでの間に配信完了処理が旧版の行を\"},\n{\"concept\":\"time_range\",\"word\":\"間の時間\",\"quote\":\"この間の時間は対象の行数に比例して長くなり\"},\n{\"concept\":\"time_range\",\"word\":\"数分\",\"quote\":\"行の多い店舗では数分続きます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻しの処理\",\"quote\":\"書き戻しの処理は、更新する列を指定せずに`upsert`を呼んでいます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"更新する列を指定せずに`upsert`を呼んでいます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"読み込んだ時点の値で行のすべての列が上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"読み込んだ時点の`deleted_at`は`NULL`なので\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しによって配信完了処理が入れた削除日時が`NULL`に戻ります\"},\n{\"concept\":\"step\",\"word\":\"配信完了処理\",\"quote\":\"書き戻しによって配信完了処理が入れた削除日時が\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`以外の列も同じ仕組みで上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`deleted_at`以外の列も同じ仕組みで上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"どの列でも読み込み時点の値に戻ります\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"旧版の行も通常の検索の結果に含まれます\"},\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"以降の同期処理は旧版の行も対象にして\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期中に他の処理が変えた列の値は、どの列でも失われます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期中に他の処理が変えた列の値は、どの列でも失われます\"},\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"同期処理が更新する`state`と`published_at`だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新する`state`と`published_at`だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新する`state`と`published_at`だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`を含む他の列を上書きの対象から外します\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`deleted_at`を含む他の列を上書きの対象から外します\"},\n{\"concept\":\"step\",\"word\":\"配信完了処理\",\"quote\":\"戻ってしまった行は、配信完了処理の記録と照らして\"}\n]"
+}

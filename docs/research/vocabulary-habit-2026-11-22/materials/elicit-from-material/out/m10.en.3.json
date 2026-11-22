@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m10",
+ "i": 3,
+ "result": "---\n\nこの関数は、配信結果の行を店舗ごとにまとめ、**配信に失敗した投稿がある店舗だけ**について「店舗ID・失敗した件数・失敗した投稿IDの一覧」を返します。呼び出し側は、返ってきた店舗ごとに、失敗した投稿IDの一覧を付けて通知を送ります。\n\n## 何を計算して返すか\n\n1. 受け取った配信結果の行を1行ずつ見て、店舗IDごとに集計の入れ物を用意します。\n2. 行の状態が `failed` のときだけ、その店舗の失敗件数を1増やし、投稿IDを一覧に足します。状態が `failed` 以外の行は、店舗の入れ物を作るだけで件数も一覧も変えません。\n3. 最後に、失敗件数が1以上の店舗だけを結果に入れて返します。すべての配信が成功した店舗は結果に含まれません。\n\n## 呼び出し側での使われ方\n\n返ってきた店舗を1つずつ取り出し、店舗IDと失敗した投稿IDの一覧を通知の処理に渡しています。結果として、**失敗があった店舗ごとに1回ずつ通知が飛ぶ**動きになります。失敗の無い店舗には通知は飛びません。\n\n## 読むときに知っておくとよい性質\n\n- **店舗の並び順は実行のたびに変わります。** 店舗ごとの集計にGoのmapを使い、そのmapを順に取り出して結果を作っているためです。通知の順序に意味を持たせたい場合は、返した後に店舗IDなどで並べ替える必要があります。\n- **1つの店舗の中の投稿IDの並びは、入力の行の順序のままです。**\n- 状態の判定は文字列 `failed` との完全一致なので、大文字を含む値や別の綴りの値は失敗として数えられません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7346,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 931,
+  "output_tokens_details": {
+   "thinking_tokens": 286
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7346,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 931,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7346,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7346
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m01",
+ "i": 1,
+ "result": "---\n\n## 概要\n\n<!-- 背景・関連チケットのリンクをここに追記してください -->\n\n投稿グループの配信予定と、Google ロケーションごとの配信状態を記録するマイグレーションを追加します。`post_google_location_relationships` では、これまで `sent_at` の有無で送信済みかどうかを判断していました。この PR で状態を表す列を持たせ、配信の予定を別のテーブルで管理できるようにします。\n\n## 変更内容\n\n### 新しいテーブル `delivery_instructions`\n\n投稿グループとプラットフォームの組ごとに、配信の予定時刻と実際に配信した時刻を持ちます。\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: プラットフォーム名（最大32文字）\n- `scheduled_at`: 配信の予定時刻（必須）\n- `dispatched_at`: 配信した時刻（未配信のあいだは NULL）\n- `post_group_id` と `platform` の組に一意制約。1つの投稿グループに、同じプラットフォームの予定は1件だけ登録できます\n- `created_at`・`updated_at` は持ちません\n\n### `post_google_location_relationships` への列の追加\n\n- `delivery_state`: 配信状態（最大16文字、既定値 `pending`、`sent_at` の後ろに追加）\n- `external_key`: 外部の識別子（NULL 可）\n- `delivery_state` と `updated_at` の複合インデックス\n\n## 既存データへの影響\n\n`post_google_location_relationships` の既存の行には、マイグレーションの中で `delivery_state` を次のように設定します。\n\n- `sent_at` が入っている行は `sent`\n- `sent_at` が NULL の行は既定値の `pending`\n- `external_key` はすべての行で NULL\n\n`delivery_instructions` は空の状態で作成されるので、既存のデータは変わりません。\n\n## レビューで確認してほしい点\n\n- **過去の未送信の行が `pending` になる**: `sent_at` が NULL の行は、送信に失敗したものも意図して送らなかったものも区別されず、すべて `pending` になります。追加したインデックスを使って `delivery_state = 'pending'` の行を拾い、配信する処理を今後入れると、過去の未送信の投稿が送られます。その処理を入れる前に、古い行を対象から外すか別の状態にする必要があるかを確認してください。\n- **`post_groups` を削除できなくなる場合がある**: 外部キーに `onDelete` を指定していないので、`delivery_instructions` に行がある投稿グループは削除できません。投稿グループを削除する既存の処理があれば、カスケード削除にするか、先に予定を削除する必要があるかを確認してください。\n- **`down()` がない**: ロールバックしてもスキーマは戻らず、マイグレーションの記録だけが消えます。そのあと `migrate` をやり直すと、テーブルがすでにあるためエラーになります。\n- **全件の UPDATE**: `sent_at` が入っている行を1つの UPDATE 文でまとめて更新します。行数が多い環境では、テーブルのロック時間と実行時間を見積もってからデプロイしてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 10531,
+  "cache_read_input_tokens": 198527,
+  "output_tokens": 2207,
+  "output_tokens_details": {
+   "thinking_tokens": 1115
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 10531,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2207,
+    "cache_read_input_tokens": 198527,
+    "cache_creation_input_tokens": 10531,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10531
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

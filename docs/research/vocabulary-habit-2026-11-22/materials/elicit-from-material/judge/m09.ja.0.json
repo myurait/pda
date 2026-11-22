@@ -1,0 +1,109 @@
+{
+ "file": "m09.ja.0.json",
+ "cond": "ja",
+ "id": "m09",
+ "i": 0,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「この実行では上書きしない行」を除外する一覧が"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` から"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`id` が `excludedRowIds` に入ります"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` に入ります"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "行をこの一覧に加えたため"
+  },
+  {
+   "concept": "step",
+   "word": "流れ",
+   "quote": "**重複が起きる流れ**"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` の行を除いて"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key` を取ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key` が `$knownKeys` に入りません"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`$knownKeys` に入りません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "その `external_key` と同じ `name` を持つ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同じ `name` を持つ投稿は"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外の一覧が持つ意味は"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外の一覧が持つ意味は「この実行で書き換えない」"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`whereNotIn('id', $this->excludedRowIds)` を外し"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込みを行う処理",
+   "quote": "書き込みを行う処理の側だけで使います"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`$knownKeys = PostGoogleLocationRelationship::where"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "->pluck('external_key')"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外の一覧を参照していた理由が別にある場合は"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外の一覧を「上書きしない行」と"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"「この実行では上書きしない行」を除外する一覧が\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` から\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`id` が `excludedRowIds` に入ります\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`excludedRowIds` に入ります\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"行をこの一覧に加えたため\"},\n{\"concept\": \"step\", \"word\": \"流れ\", \"quote\": \"**重複が起きる流れ**\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`excludedRowIds` の行を除いて\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key` を取ります\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key` が `$knownKeys` に入りません\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`$knownKeys` に入りません\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"その `external_key` と同じ `name` を持つ\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"同じ `name` を持つ投稿は\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外の一覧が持つ意味は\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外の一覧が持つ意味は「この実行で書き換えない」\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`whereNotIn('id', $this->excludedRowIds)` を外し\"},\n{\"concept\": \"write_back\", \"word\": \"書き込みを行う処理\", \"quote\": \"書き込みを行う処理の側だけで使います\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`$knownKeys = PostGoogleLocationRelationship::where\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"->pluck('external_key')\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外の一覧を参照していた理由が別にある場合は\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外の一覧を「上書きしない行」と\"}\n]"
+}

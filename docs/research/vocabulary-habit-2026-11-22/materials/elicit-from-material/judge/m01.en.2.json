@@ -1,0 +1,159 @@
+{
+ "file": "m01.en.2.json",
+ "cond": "en",
+ "id": "m01",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "投稿グループごとの配信の指示を記録するテーブルを追加し"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "配信状態と外部キーの列を追加します"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 新規テーブル `delivery_instructions`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `platform`: 配信先のプラットフォーム名（最大 32 文字）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `scheduled_at`: 配信の予定日時（必須）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `dispatched_at`: 送り出した日時（未送出の間は NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約を付けており"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約を付けており"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `created_at` / `updated_at` は持ちません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `created_at` / `updated_at` は持ちません"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### `post_google_location_relationships` への列追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "### `post_google_location_relationships` への列追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state`: 配信状態。`sent_at` の後ろに追加し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "配信状態。`sent_at` の後ろに追加し、既定値は `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `external_key`: 外部サービス側のキー。NULL を許可"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state` と `updated_at` の複合インデックスを追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state` と `updated_at` の複合インデックスを追加"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_google_location_relationships` の既存行"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が入っている行は `delivery_state` が `sent` になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が入っている行は `delivery_state` が `sent` になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が NULL の行は既定値の `pending` になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `external_key` はすべて NULL になります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "- `delivery_instructions` は空のテーブルとして作られます"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `delivery_instructions` は空のテーブルとして作られます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が NULL の既存行がすべて `pending` になる扱いでよいか"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "既存テーブルへの列とインデックスの追加と、全行を対象にした `UPDATE`"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "既存テーブルへの列とインデックスの追加と、全行を対象にした `UPDATE`"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "全行を対象にした `UPDATE` を 1 回のマイグレーションで行います"
+  }
+ ],
+ "raw": "[{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"投稿グループごとの配信の指示を記録するテーブルを追加し\"},{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"配信状態と外部キーの列を追加します\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"### 新規テーブル `delivery_instructions`\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `platform`: 配信先のプラットフォーム名（最大 32 文字）\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `scheduled_at`: 配信の予定日時（必須）\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `dispatched_at`: 送り出した日時（未送出の間は NULL）\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id` と `platform` の組に一意制約を付けており\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id` と `platform` の組に一意制約を付けており\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `created_at` / `updated_at` は持ちません\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `created_at` / `updated_at` は持ちません\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"### `post_google_location_relationships` への列追加\"},{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"### `post_google_location_relationships` への列追加\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state`: 配信状態。`sent_at` の後ろに追加し\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"配信状態。`sent_at` の後ろに追加し、既定値は `pending`\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `external_key`: 外部サービス側のキー。NULL を許可\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state` と `updated_at` の複合インデックスを追加\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state` と `updated_at` の複合インデックスを追加\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_google_location_relationships` の既存行\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が入っている行は `delivery_state` が `sent` になります\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が入っている行は `delivery_state` が `sent` になります\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が NULL の行は既定値の `pending` になります\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `external_key` はすべて NULL になります\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"- `delivery_instructions` は空のテーブルとして作られます\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `delivery_instructions` は空のテーブルとして作られます\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が NULL の既存行がすべて `pending` になる扱いでよいか\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"既存テーブルへの列とインデックスの追加と、全行を対象にした `UPDATE`\"},{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"既存テーブルへの列とインデックスの追加と、全行を対象にした `UPDATE`\"},{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"全行を対象にした `UPDATE` を 1 回のマイグレーションで行います\"}]"
+}

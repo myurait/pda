@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m03",
+ "i": 2,
+ "result": "---\n\n## 概要\n\nGBPの投稿状態の同期処理が、同期中に論理削除された`post_google_location_relationships`の行を削除前の状態に戻します。編集した投稿の配信が同期と重なると、削除されたはずの旧版の投稿との紐付けが有効な状態で残ります。\n\n## 起きる条件\n\n次の2つが同じ店舗について同時に進んだときに起きます。\n\n- GBPの投稿状態の同期処理\n    - 対象店舗の`post_google_location_relationships`の行を最初にまとめて読み込みます。\n    - 1行ごとにGBPへ投稿の状態を問い合わせます。問い合わせは1回1〜3秒かかります。\n    - 最後に、読み込んだ全行をまとめてデータベースへ書き戻します。\n- 編集した投稿の配信完了処理\n    - 配信が成功すると、旧版の行の`deleted_at`に現在時刻を入れて論理削除します。\n\n同期処理が行を読み込んでから書き戻すまでの間に配信完了処理が旧版の行を論理削除すると、不具合が起きます。この間の時間は対象の行数に比例して長くなり、行の多い店舗では数分続きます。そのため、通常の運用で起きる頻度は低くありません。\n\n## 原因\n\n書き戻しの処理は、更新する列を指定せずに`upsert`を呼んでいます。この呼び方では、読み込んだ時点の値で行のすべての列が上書きされます。読み込んだ時点の`deleted_at`は`NULL`なので、書き戻しによって配信完了処理が入れた削除日時が`NULL`に戻ります。\n\n`deleted_at`以外の列も同じ仕組みで上書きされます。同期中に別の処理が変えた値は、どの列でも読み込み時点の値に戻ります。\n\n## 影響\n\n- 編集前の旧版の投稿との紐付けが、論理削除されていない行として残ります。\n- 新しい版の行と旧版の行が同じ店舗に並んで有効になり、旧版の行も通常の検索の結果に含まれます。\n- 以降の同期処理は旧版の行も対象にして、GBPへ旧版の投稿の状態を問い合わせ続けます。\n- 同期中に他の処理が変えた列の値は、どの列でも失われます。\n\n## 対応案\n\n- `upsert`の第3引数に、同期処理が更新する`state`と`published_at`だけを指定し、`deleted_at`を含む他の列を上書きの対象から外します。\n- 戻ってしまった行は、配信完了処理の記録と照らして論理削除し直します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1005,
+  "cache_read_input_tokens": 22247,
+  "output_tokens": 2353,
+  "output_tokens_details": {
+   "thinking_tokens": 1458
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1005,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2353,
+    "cache_read_input_tokens": 22247,
+    "cache_creation_input_tokens": 1005,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1005
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

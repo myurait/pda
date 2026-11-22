@@ -1,0 +1,184 @@
+{
+ "file": "m04.tr.2.json",
+ "cond": "tr",
+ "id": "m04",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQL の `settings` テーブルから、その店舗の設定を読みます"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQL の `settings` テーブルの全カラムを上書きします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "同期処理が `settings` テーブルに書くのは"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings` テーブルに更新日時かバージョンのカラムを持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` テーブルの全カラムを上書きします"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "直す前の名前を含む結果で全カラムを上書きします"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "オペレーターが管理画面で `settings.name` を直すと"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部APIが正である営業時間のカラムだけにします"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "更新日時かバージョンのカラムを持たせ"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "合わせた結果を外部APIへ書き込みます"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ結果で MySQL の `settings` テーブルの全カラムを上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "直す前の名前を含む結果で全カラムを上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "戻される",
+   "quote": "手順4で読んだ時点の値に戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "同期処理から MySQL へ書き戻す必要はありません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み時に「読んだときから変わっていないこと」を確かめます"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "MySQL の値は手順1で読んだ時点のものです"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1から手順5までの間には外部APIの呼び出しが2回入る"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1から手順5までの間には外部APIの呼び出しが2回入る"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "古い名前は手順4で外部APIにも送られる"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "外部側で手順2から手順4の間に営業時間が変わると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "外部側で手順2から手順4の間に営業時間が変わると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4で読んだ時点の値に戻されます"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "この処理を10分ごとに80,000店舗に対して行います"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順1から手順5までの間には外部APIの呼び出しが2回入る"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "その分だけ時間が空きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間にオペレーターが管理画面で"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "外部側で手順2から手順4の間に営業時間が変わると"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "80,000店舗を10分で回すには"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "ほとんどの店舗は10分の間に設定が変わらないはず"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "ほとんどの店舗は10分の間に設定が変わらないはず"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1周が10分で終わらないと"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "合わせた結果を外部APIへ書き込みます"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "同じ結果で MySQL の `settings` テーブル"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "直す前の名前を含む結果で全カラムを上書きします"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "合わせた結果が読んだ値と同じなら"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQL の `settings` テーブルから、その店舗の設定を読みます\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQL の `settings` テーブルの全カラムを上書きします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"同期処理が `settings` テーブルに書くのは\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings` テーブルに更新日時かバージョンのカラムを持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` テーブルの全カラムを上書きします\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"直す前の名前を含む結果で全カラムを上書きします\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"オペレーターが管理画面で `settings.name` を直すと\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部APIが正である営業時間のカラムだけにします\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"更新日時かバージョンのカラムを持たせ\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"合わせた結果を外部APIへ書き込みます\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同じ結果で MySQL の `settings` テーブルの全カラムを上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"直す前の名前を含む結果で全カラムを上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"戻される\",\"quote\":\"手順4で読んだ時点の値に戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"同期処理から MySQL へ書き戻す必要はありません\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込み時に「読んだときから変わっていないこと」を確かめます\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"MySQL の値は手順1で読んだ時点のものです\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1から手順5までの間には外部APIの呼び出しが2回入る\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1から手順5までの間には外部APIの呼び出しが2回入る\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"古い名前は手順4で外部APIにも送られる\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"外部側で手順2から手順4の間に営業時間が変わると\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"外部側で手順2から手順4の間に営業時間が変わると\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4で読んだ時点の値に戻されます\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"この処理を10分ごとに80,000店舗に対して行います\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順1から手順5までの間には外部APIの呼び出しが2回入る\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"その分だけ時間が空きます\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間にオペレーターが管理画面で\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"外部側で手順2から手順4の間に営業時間が変わると\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"80,000店舗を10分で回すには\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"ほとんどの店舗は10分の間に設定が変わらないはず\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"ほとんどの店舗は10分の間に設定が変わらないはず\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1周が10分で終わらないと\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"合わせた結果を外部APIへ書き込みます\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"同じ結果で MySQL の `settings` テーブル\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"直す前の名前を含む結果で全カラムを上書きします\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"合わせた結果が読んだ値と同じなら\"}\n]"
+}

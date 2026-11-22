@@ -1,0 +1,134 @@
+{
+ "file": "m07.tr.1.json",
+ "cond": "tr",
+ "id": "m07",
+ "i": 1,
+ "items": [
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "作成から3時間以上たっている投稿"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "作成から3時間たっていない投稿は"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "作成から3時間以内の投稿です。"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "## 処理の時間帯と除外される範囲"
+  },
+  {
+   "concept": "time_range",
+   "word": "範囲",
+   "quote": "## 処理の時間帯と除外される範囲"
+  },
+  {
+   "concept": "time_range",
+   "word": "約9時間",
+   "quote": "全店舗を終えるまでに約9時間かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "範囲",
+   "quote": "除外される投稿の範囲は「3時間をどの時刻から"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "除外される投稿の範囲は「3時間をどの時刻から"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "除外される時間帯は、処理の順番が後の店舗"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "最初の店舗では前日22:00〜1:00頃"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "最後の店舗では7:00〜10:00頃に作成された"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "処理中（1:00〜10:00頃）に作成された投稿"
+  },
+  {
+   "concept": "time_range",
+   "word": "3時間",
+   "quote": "翌日の回の時点では作成から3時間以上たっている"
+  },
+  {
+   "concept": "time_range",
+   "word": "範囲",
+   "quote": "投稿を取得する範囲の決め方によって決まります"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日",
+   "quote": "## 30日での削除"
+  },
+  {
+   "concept": "time_range",
+   "word": "30日",
+   "quote": "取り込んだ日時（`imported_at`）が30日より前の記録"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "処理は毎日1:00（日本時間）に始まり"
+  },
+  {
+   "concept": "step",
+   "word": "回",
+   "quote": "その回では取り込みません"
+  },
+  {
+   "concept": "step",
+   "word": "回",
+   "quote": "翌日の回の時点では作成から3時間以上"
+  },
+  {
+   "concept": "step",
+   "word": "回",
+   "quote": "翌日の回がその投稿を取得するかどうかは"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "これは取り込み済みの記録を整理する処理で"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "取り込み済みかを確かめる処理によって決まります"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "その処理は素材に含まれていません"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "取り込み記録のテーブル（`ImportedPost`）から"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "取り込んだ日時（`imported_at`）が30日より前"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"作成から3時間以上たっている投稿\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"作成から3時間たっていない投稿は\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"作成から3時間以内の投稿です。\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"## 処理の時間帯と除外される範囲\"},\n{\"concept\":\"time_range\",\"word\":\"範囲\",\"quote\":\"## 処理の時間帯と除外される範囲\"},\n{\"concept\":\"time_range\",\"word\":\"約9時間\",\"quote\":\"全店舗を終えるまでに約9時間かかります\"},\n{\"concept\":\"time_range\",\"word\":\"範囲\",\"quote\":\"除外される投稿の範囲は「3時間をどの時刻から\"},\n{\"concept\":\"time_range\",\"word\":\"3時間\",\"quote\":\"除外される投稿の範囲は「3時間をどの時刻から\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"除外される時間帯は、処理の順番が後の店舗\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"最初の店舗では前日22:00〜1:00頃\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"最後の店舗では7:00〜10:00頃に作成された\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"処理中（1:00〜10:00頃）に作成された投稿\"},\n{\"concept\":\"time_range\",\"word\":\"3時間\",\"quote\":\"翌日の回の時点では作成から3時間以上たっている\"},\n{\"concept\":\"time_range\",\"word\":\"範囲\",\"quote\":\"投稿を取得する範囲の決め方によって決まります\"},\n{\"concept\":\"time_range\",\"word\":\"30日\",\"quote\":\"## 30日での削除\"},\n{\"concept\":\"time_range\",\"word\":\"30日\",\"quote\":\"取り込んだ日時（`imported_at`）が30日より前の記録\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"処理は毎日1:00（日本時間）に始まり\"},\n{\"concept\":\"step\",\"word\":\"回\",\"quote\":\"その回では取り込みません\"},\n{\"concept\":\"step\",\"word\":\"回\",\"quote\":\"翌日の回の時点では作成から3時間以上\"},\n{\"concept\":\"step\",\"word\":\"回\",\"quote\":\"翌日の回がその投稿を取得するかどうかは\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"これは取り込み済みの記録を整理する処理で\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"取り込み済みかを確かめる処理によって決まります\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"その処理は素材に含まれていません\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"取り込み記録のテーブル（`ImportedPost`）から\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"取り込んだ日時（`imported_at`）が30日より前\"}\n]"
+}

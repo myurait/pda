@@ -1,0 +1,154 @@
+{
+ "file": "m02.en.2.json",
+ "cond": "en",
+ "id": "m02",
+ "i": 2,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "集計結果",
+   "quote": "夜間レポートの集計結果は変わりません"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "レポート側を新しいテーブルへ切り替えたとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の型を実際に変えたとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` → `post_search_locations`"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`location_ids` → `post_search_locations`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` に付いたのは"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search.location_ids` に付いた"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "夜間レポートはこのカラムだけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "結合していません。`post_search_locations` は 0 行"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込み側が `post_search_locations` だけに書く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "それ以降の投稿は `location_ids` が空のまま"
+  },
+  {
+   "concept": "collection",
+   "word": "店舗別集計",
+   "quote": "夜間レポートの店舗別集計から新しい投稿が抜けます"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "夜間レポートを `post_search_locations` から読む"
+  },
+  {
+   "concept": "collection",
+   "word": "店舗別の集計",
+   "quote": "切り替えると、店舗別の集計が空になります"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "集計を途切れさせずに移すには"
+  },
+  {
+   "concept": "step",
+   "word": "順",
+   "quote": "次の順で進めます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` へ移し替える"
+  },
+  {
+   "concept": "write_back",
+   "word": "移し替える",
+   "quote": "へ移し替える"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側を両方へ書くようにする"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "夜間レポートを `post_search_locations` の結合に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` への書き込みを止める"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "`location_ids` への書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "(`tstamp` を timestamp → datetime)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "datetime)"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "実行すると、次の違いが集計に効きます"
+  },
+  {
+   "concept": "collection",
+   "word": "日別の集計",
+   "quote": "日別の集計では日付の境界が9時間ずれます"
+  },
+  {
+   "concept": "collection",
+   "word": "日別集計",
+   "quote": "夜間レポートの日別集計を変えないためには"
+  },
+  {
+   "concept": "time_range",
+   "word": "9時間",
+   "quote": "日付の境界が9時間ずれます"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"collection\",\"word\":\"集計結果\",\"quote\":\"夜間レポートの集計結果は変わりません\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"レポート側を新しいテーブルへ切り替えたとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` の型を実際に変えたとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` → `post_search_locations`\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`location_ids` → `post_search_locations`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` に付いたのは\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search.location_ids` に付いた\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"夜間レポートはこのカラムだけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"結合していません。`post_search_locations` は 0 行\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"書き込み側が `post_search_locations` だけに書く\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"それ以降の投稿は `location_ids` が空のまま\"},\n{\"concept\":\"collection\",\"word\":\"店舗別集計\",\"quote\":\"夜間レポートの店舗別集計から新しい投稿が抜けます\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"夜間レポートを `post_search_locations` から読む\"},\n{\"concept\":\"collection\",\"word\":\"店舗別の集計\",\"quote\":\"切り替えると、店舗別の集計が空になります\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"集計を途切れさせずに移すには\"},\n{\"concept\":\"step\",\"word\":\"順\",\"quote\":\"次の順で進めます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` を\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` へ移し替える\"},\n{\"concept\":\"write_back\",\"word\":\"移し替える\",\"quote\":\"へ移し替える\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込み側を両方へ書くようにする\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"夜間レポートを `post_search_locations` の結合に\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` への書き込みを止める\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"`location_ids` への書き込みを止める\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"(`tstamp` を timestamp → datetime)\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"datetime)\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"実行すると、次の違いが集計に効きます\"},\n{\"concept\":\"collection\",\"word\":\"日別の集計\",\"quote\":\"日別の集計では日付の境界が9時間ずれます\"},\n{\"concept\":\"collection\",\"word\":\"日別集計\",\"quote\":\"夜間レポートの日別集計を変えないためには\"},\n{\"concept\":\"time_range\",\"word\":\"9時間\",\"quote\":\"日付の境界が9時間ずれます\"}\n]"
+}

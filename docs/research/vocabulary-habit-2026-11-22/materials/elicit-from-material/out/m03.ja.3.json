@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m03",
+ "i": 3,
+ "result": "---\n\n## 概要\n\n投稿の同期処理（GBPから投稿の状態を取り込む処理）が、同期中に論理削除された店舗と投稿の紐付けを、削除前の状態に戻してしまいます。投稿を編集して配信が完了したタイミングと同期処理の実行が重なると、削除済みのはずの古い紐付けが有効なまま残ります。\n\n## 原因\n\n同期処理は次の順で動きます。\n\n1. 対象店舗の紐付け（`post_google_location_relationships`）を、まとめて読み込む\n2. 紐付けを1件ずつ、GBPに投稿の状態を問い合わせる（1件あたり1〜3秒）\n3. 最後に、読み込んだ紐付けを全カラムまとめてDBへ書き戻す\n\n3の書き戻しでは、更新するカラムを指定していません。そのため、状態と公開日時だけでなく、1で読んだ時点の全カラムの値がそのまま上書きされます。`deleted_at` も、読み込んだ時点の値（未削除）で上書きされます。\n\n一方、投稿の編集が配信に成功すると、編集前の紐付けの `deleted_at` に現在時刻を入れて論理削除します。\n\nこの論理削除が1と3の間に起きると、3の書き戻しで `deleted_at` が未削除の値に戻ります。\n\n## 起きる条件\n\n- 投稿の同期処理が実行中である\n- 同期対象の店舗の投稿が編集され、その配信が、同期処理が紐付けを読み込んでから書き戻すまでの間に完了する\n\n2の問い合わせは紐付けの件数ぶん順に行うため、対象の紐付けが多いほど、読み込みから書き戻しまでの時間が延びます。たとえば100件なら100〜300秒になり、その間に完了した編集の配信はすべて該当します。\n\n## 影響\n\n- 編集前の紐付けが削除されず、編集後の紐付けと両方が有効な状態になる\n- 削除されていない紐付けを対象にする画面・処理で、編集前の投稿が引き続き対象に含まれる\n- 同じ書き戻しで、同期中に別の処理が更新した他のカラムの値も、読み込んだ時点の値に戻る\n\n## 該当箇所\n\n- `app/Services/SyncGbpPostsService.php` の一括書き戻しで、upsertに更新するカラムを指定していない箇所\n\n## 対応案\n\n書き戻しで更新するカラムを、同期処理が値を取り込む `state` と `published_at` に限定します。\n\n```php\nPostGoogleLocationRelationship::upsert(\n    $rows->map->getAttributes()->all(),\n    ['id'],\n    ['state', 'published_at']\n);\n```\n\nこれにより、同期中に入った `deleted_at` の論理削除や他のカラムの更新は上書きされなくなります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1003,
+  "cache_read_input_tokens": 22196,
+  "output_tokens": 1957,
+  "output_tokens_details": {
+   "thinking_tokens": 984
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1957,
+    "cache_read_input_tokens": 22196,
+    "cache_creation_input_tokens": 1003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m09",
+ "i": 2,
+ "result": "---\n\n重複の原因は、編集元の行を除外リストに入れたことで、その行が「すでに投稿グループに紐づいている投稿か」の判定からも外れたことです。\n\n**何が起きているか**\n\nこの処理は、取り込む投稿ごとに、その店舗の紐づけ表（`PostGoogleLocationRelationship`）に同じ `external_key` があるかを見ます。\n\n- ある場合は、紐づけ済みとして飛ばします。\n- ない場合は、新しい投稿グループを作ります。\n\n紐づけ済みのキーを集める段階で、除外リスト（`excludedRowIds`）に入った行を取り除いています。最近の変更で、編集元の行がこの除外リストに入るようになりました。その結果、次の流れで重複が起きます。\n\n1. 編集元の行はすでに投稿グループに紐づいており、その `external_key` はGoogleビジネスプロフィール側の投稿名と一致しています。\n2. 除外リストに入ったため、この行のキーは紐づけ済みのキーの一覧に入りません。\n3. Googleビジネスプロフィールから同じ投稿が届くと、一覧に名前が無いので未登録と判定されます。\n4. 既存の投稿グループがあるのに、新しい投稿グループが作られます。\n\n**なぜこうなったか**\n\n除外リストは「同じ実行の後半で上書きしない」ために足されたものです。一方、この処理での除外は「紐づけ済みかどうか」の判定に効いています。上書きを止めたい行と、存在を知っておくべき行が同じリストで扱われたため、上書きを止めるつもりの変更が存在の判定まで消しました。\n\n**直し方**\n\n紐づけ済みのキーを集めるときは除外リストで絞らず、その店舗の全行から集めます。除外リストは、上書きを行う処理の側でだけ使います。こうすれば、編集元の行は上書きされず、かつ紐づけ済みとして扱われるので、投稿グループは重複して作られません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1004,
+  "cache_read_input_tokens": 22089,
+  "output_tokens": 1053,
+  "output_tokens_details": {
+   "thinking_tokens": 367
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1004,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1053,
+    "cache_read_input_tokens": 22089,
+    "cache_creation_input_tokens": 1004,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1004
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

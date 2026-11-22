@@ -1,0 +1,114 @@
+{
+ "file": "m08.tr.1.json",
+ "cond": "tr",
+ "id": "m08",
+ "i": 1,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`reserve()` と `confirm()` の間に排他の切れ目があり"
+  },
+  {
+   "concept": "time_range",
+   "word": "切れ目",
+   "quote": "間に排他の切れ目があり、同じ枠に予約が二重に入る"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`reserve()` は `SELECT ... FOR UPDATE` で枠の行をロック"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`reserve()` は `SELECT ... FOR UPDATE` で枠の行をロック"
+  },
+  {
+   "concept": "time_range",
+   "word": "切れ目",
+   "quote": "2と3の間に別のリクエストが同じ枠で"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`confirm()` は別のトランザクションで予約の行を `INSERT`"
+  },
+  {
+   "concept": "time_range",
+   "word": "切れ目",
+   "quote": "負荷テストでは、この切れ目は40〜120ms開いていました"
+  },
+  {
+   "concept": "time_range",
+   "word": "40〜120ms",
+   "quote": "この切れ目は40〜120ms開いていました"
+  },
+  {
+   "concept": "time_range",
+   "word": "スライディングウィンドウ",
+   "quote": "60秒のスライディングウィンドウの中のリトライは弾きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "切れ目",
+   "quote": "60秒を過ぎたリトライは同じ切れ目に当たります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "予約テーブルに、枠ごとに有効な予約が1件だけになる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "例えば `(slot_id)`、キャンセル済みの行を残す設計なら"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`reserve()` で仮押さえの行を書く"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "自分の仮押さえを条件付きで更新します"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "UPDATE bookings"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "SET status = 'confirmed'"
+  },
+  {
+   "concept": "time_range",
+   "word": "期限",
+   "quote": "`status = 'held'`・有効期限付きで書き込みます"
+  },
+  {
+   "concept": "step",
+   "word": "定期処理",
+   "quote": "期限切れの仮押さえは定期処理で消すか"
+  },
+  {
+   "concept": "time_range",
+   "word": "数秒〜数分",
+   "quote": "ロックを数秒〜数分持つことになり"
+  },
+  {
+   "concept": "time_range",
+   "word": "ウィンドウ",
+   "quote": "レートリミッターのウィンドウを延ばす案"
+  },
+  {
+   "concept": "time_range",
+   "word": "切れ目",
+   "quote": "今回の切れ目を捉えていることも確かめられます"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`reserve()` と `confirm()` の間に排他の切れ目があり\"},\n{\"concept\":\"time_range\",\"word\":\"切れ目\",\"quote\":\"間に排他の切れ目があり、同じ枠に予約が二重に入る\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`reserve()` は `SELECT ... FOR UPDATE` で枠の行をロック\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`reserve()` は `SELECT ... FOR UPDATE` で枠の行をロック\"},\n{\"concept\":\"time_range\",\"word\":\"切れ目\",\"quote\":\"2と3の間に別のリクエストが同じ枠で\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`confirm()` は別のトランザクションで予約の行を `INSERT`\"},\n{\"concept\":\"time_range\",\"word\":\"切れ目\",\"quote\":\"負荷テストでは、この切れ目は40〜120ms開いていました\"},\n{\"concept\":\"time_range\",\"word\":\"40〜120ms\",\"quote\":\"この切れ目は40〜120ms開いていました\"},\n{\"concept\":\"time_range\",\"word\":\"スライディングウィンドウ\",\"quote\":\"60秒のスライディングウィンドウの中のリトライは弾きます\"},\n{\"concept\":\"time_range\",\"word\":\"切れ目\",\"quote\":\"60秒を過ぎたリトライは同じ切れ目に当たります\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"予約テーブルに、枠ごとに有効な予約が1件だけになる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"例えば `(slot_id)`、キャンセル済みの行を残す設計なら\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`reserve()` で仮押さえの行を書く\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"自分の仮押さえを条件付きで更新します\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"UPDATE bookings\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"SET status = 'confirmed'\"},\n{\"concept\":\"time_range\",\"word\":\"期限\",\"quote\":\"`status = 'held'`・有効期限付きで書き込みます\"},\n{\"concept\":\"step\",\"word\":\"定期処理\",\"quote\":\"期限切れの仮押さえは定期処理で消すか\"},\n{\"concept\":\"time_range\",\"word\":\"数秒〜数分\",\"quote\":\"ロックを数秒〜数分持つことになり\"},\n{\"concept\":\"time_range\",\"word\":\"ウィンドウ\",\"quote\":\"レートリミッターのウィンドウを延ばす案\"},\n{\"concept\":\"time_range\",\"word\":\"切れ目\",\"quote\":\"今回の切れ目を捉えていることも確かめられます\"}\n]"
+}

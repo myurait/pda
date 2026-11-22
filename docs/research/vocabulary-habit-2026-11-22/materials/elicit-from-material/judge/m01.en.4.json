@@ -1,0 +1,159 @@
+{
+ "file": "m01.en.4.json",
+ "cond": "en",
+ "id": "m01",
+ "i": 4,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "配信の予定と実行を記録するテーブル delivery_instructions を追加します"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "投稿と Google のロケーションの紐付け post_google_location_relationships に配信状態の列を追加します"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "post_google_location_relationships に配信状態の列を追加します"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 新しいテーブル delivery_instructions"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "post_group_id: post_groups への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "post_group_id: post_groups への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "platform: 配信先のプラットフォーム（32文字まで）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "scheduled_at: 配信の予定時刻（必須）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "dispatched_at: 配信を実行した時刻（未実行の間は NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "post_group_id と platform の組に一意制約を付けます。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### post_google_location_relationships への列の追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "### post_google_location_relationships への列の追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "delivery_state: 配信状態（16文字まで、既定値は pending）。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at の後ろに置きます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "external_key: 外部サービス側のキー（NULL 可）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "delivery_state と updated_at の複合インデックスを追加します。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "delivery_state と updated_at の複合インデックスを追加します。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- delivery_instructions は空の状態で作られます。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- post_google_location_relationships の既存の行は、次のようになります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at が入っている行: delivery_state が sent になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at が入っている行: delivery_state が sent になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at が NULL の行: delivery_state が既定値の pending になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at が NULL の行: delivery_state が既定値の pending になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "external_key: すべての行で NULL です。"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き換え",
+   "quote": "sent_at の値の書き換えは、マイグレーション内の UPDATE 1文で全行を対象に行います。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "sent_at の値の書き換えは、マイグレーション内の UPDATE 1文で"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "pending の行を送信待ちとして拾う処理を入れると"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "既存の列とデータは変更・削除しません。"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "migrate:rollback を実行してもテーブルと列は削除されません。"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "migrate:rollback を実行してもテーブルと列は削除されません。"
+  }
+ ],
+ "raw": "[{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"配信の予定と実行を記録するテーブル delivery_instructions を追加します\"}, {\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"投稿と Google のロケーションの紐付け post_google_location_relationships に配信状態の列を追加します\"}, {\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"post_google_location_relationships に配信状態の列を追加します\"}, {\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"### 新しいテーブル delivery_instructions\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"post_group_id: post_groups への外部キー\"}, {\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"post_group_id: post_groups への外部キー\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"platform: 配信先のプラットフォーム（32文字まで）\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"scheduled_at: 配信の予定時刻（必須）\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"dispatched_at: 配信を実行した時刻（未実行の間は NULL）\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"post_group_id と platform の組に一意制約を付けます。\"}, {\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"### post_google_location_relationships への列の追加\"}, {\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"### post_google_location_relationships への列の追加\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"delivery_state: 配信状態（16文字まで、既定値は pending）。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at の後ろに置きます。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"external_key: 外部サービス側のキー（NULL 可）\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"delivery_state と updated_at の複合インデックスを追加します。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"delivery_state と updated_at の複合インデックスを追加します。\"}, {\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"- delivery_instructions は空の状態で作られます。\"}, {\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"- post_google_location_relationships の既存の行は、次のようになります。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at が入っている行: delivery_state が sent になります。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at が入っている行: delivery_state が sent になります。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at が NULL の行: delivery_state が既定値の pending になります。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at が NULL の行: delivery_state が既定値の pending になります。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"external_key: すべての行で NULL です。\"}, {\"concept\": \"write_back\", \"word\": \"書き換え\", \"quote\": \"sent_at の値の書き換えは、マイグレーション内の UPDATE 1文で全行を対象に行います。\"}, {\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"sent_at の値の書き換えは、マイグレーション内の UPDATE 1文で\"}, {\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"pending の行を送信待ちとして拾う処理を入れると\"}, {\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"既存の列とデータは変更・削除しません。\"}, {\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"migrate:rollback を実行してもテーブルと列は削除されません。\"}, {\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"migrate:rollback を実行してもテーブルと列は削除されません。\"}]"
+}

@@ -1,0 +1,139 @@
+{
+ "file": "m04.ja.3.json",
+ "cond": "ja",
+ "id": "m04",
+ "i": 3,
+ "items": [
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` テーブルの全カラムを UPDATE する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "5 で全カラムごと書き戻します"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "全カラムを UPDATE（name = \"旧名\"）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "運用者が `settings.name` を変えると"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "全カラムの UPDATE を行っています"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "営業時間のカラムだけにします"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "全カラムの UPDATE を残す必要がある場合は"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "バージョンのカラムを足して楽観ロックをかけます"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQL の `settings` テーブルから"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings` テーブルの全カラムを UPDATE する"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings` テーブルにバージョンのカラムを足して"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "合わせた設定を外部 API に書き戻す"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻します",
+   "quote": "5 で全カラムごと書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻さない",
+   "quote": "店舗名を書き戻さない"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "書き戻す必要がありません"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同期ジョブが古い値で上書きして消してしまう"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "時刻  同期ジョブ"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブは 1 で読んだ時点の店舗名を"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは 10 分ごとに"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "次の回のジョブも消えた後の \"旧名\""
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "1 から 5 の間には外部 API との往復が 2 回入る"
+  },
+  {
+   "concept": "time_range",
+   "word": "間隔",
+   "quote": "間隔は短くありません"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "その間に運用者が `settings.name` を変えると"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "4 で書くまでの間に、外部 API 側で"
+  },
+  {
+   "concept": "time_range",
+   "word": "10 分",
+   "quote": "80,000 店舗を 10 分で回すと"
+  },
+  {
+   "concept": "time_range",
+   "word": "10 分",
+   "quote": "1 回の実行が 10 分を超えると"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` テーブルの全カラムを UPDATE する\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"5 で全カラムごと書き戻します\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"全カラムを UPDATE（name = \\\"旧名\\\"）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"運用者が `settings.name` を変えると\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"全カラムの UPDATE を行っています\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"営業時間のカラムだけにします\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"全カラムの UPDATE を残す必要がある場合は\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"バージョンのカラムを足して楽観ロックをかけます\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQL の `settings` テーブルから\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings` テーブルの全カラムを UPDATE する\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings` テーブルにバージョンのカラムを足して\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"合わせた設定を外部 API に書き戻す\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻します\",\"quote\":\"5 で全カラムごと書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻さない\",\"quote\":\"店舗名を書き戻さない\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"書き戻す必要がありません\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同期ジョブが古い値で上書きして消してしまう\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"時刻  同期ジョブ\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブは 1 で読んだ時点の店舗名を\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは 10 分ごとに\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"次の回のジョブも消えた後の \\\"旧名\\\"\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"1 から 5 の間には外部 API との往復が 2 回入る\"},\n{\"concept\":\"time_range\",\"word\":\"間隔\",\"quote\":\"間隔は短くありません\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"その間に運用者が `settings.name` を変えると\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"4 で書くまでの間に、外部 API 側で\"},\n{\"concept\":\"time_range\",\"word\":\"10 分\",\"quote\":\"80,000 店舗を 10 分で回すと\"},\n{\"concept\":\"time_range\",\"word\":\"10 分\",\"quote\":\"1 回の実行が 10 分を超えると\"}\n]"
+}

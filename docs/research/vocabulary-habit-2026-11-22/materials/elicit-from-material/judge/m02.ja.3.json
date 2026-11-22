@@ -1,0 +1,109 @@
+{
+ "file": "m02.ja.3.json",
+ "cond": "ja",
+ "id": "m02",
+ "i": 3,
+ "items": [
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の型が変わり、日付の区切りがずれる可能性がある"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "場所の情報の置き場が新しいテーブルへ移る途中で"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`post_search` テーブルの `location_ids` カラムは"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`post_search` テーブルの `location_ids` カラムは"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "カラムもデータも残っています"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`post_search_locations` テーブルが追加されました"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` には場所の入った行が約41万行ある"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`post_search_locations` テーブルは作られているが、空"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "アプリの書き込み先もまだ新しいテーブルへ移っていません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間レポートは `location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合していません"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "アプリの書き込み先が `post_search_locations` に切り替わったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "切り替え後に作られた行は `location_ids` が空になり"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "その後 `location_ids` カラムを削除すると"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` との結合に書き換える"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "既存データを `post_search_locations` へ移し替える"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 2. `tstamp` の `timestamp` から `datetime` への変更"
+  },
+  {
+   "concept": "time_range",
+   "word": "9時間",
+   "quote": "(日本時間とUTCなら9時間)だけ、前後の日の件数が入れ替わります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間レポートが `tstamp` で「日ごと」に区切っている場合"
+  },
+  {
+   "concept": "time_range",
+   "word": "日ごと",
+   "quote": "夜間レポートが `tstamp` で「日ごと」に区切っている場合"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` の型が変わり、日付の区切りがずれる可能性がある\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"場所の情報の置き場が新しいテーブルへ移る途中で\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`post_search` テーブルの `location_ids` カラムは\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`post_search` テーブルの `location_ids` カラムは\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"カラムもデータも残っています\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`post_search_locations` テーブルが追加されました\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` には場所の入った行が約41万行ある\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`post_search_locations` テーブルは作られているが、空\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"アプリの書き込み先もまだ新しいテーブルへ移っていません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間レポートは `location_ids` だけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` を結合していません\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"アプリの書き込み先が `post_search_locations` に切り替わったとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"切り替え後に作られた行は `location_ids` が空になり\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"その後 `location_ids` カラムを削除すると\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` との結合に書き換える\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"既存データを `post_search_locations` へ移し替える\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 2. `tstamp` の `timestamp` から `datetime` への変更\"},\n{\"concept\":\"time_range\",\"word\":\"9時間\",\"quote\":\"(日本時間とUTCなら9時間)だけ、前後の日の件数が入れ替わります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間レポートが `tstamp` で「日ごと」に区切っている場合\"},\n{\"concept\":\"time_range\",\"word\":\"日ごと\",\"quote\":\"夜間レポートが `tstamp` で「日ごと」に区切っている場合\"}\n]"
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m10",
+ "i": 4,
+ "result": "---\n\nこの関数は、配信結果の一覧から**配信に失敗した投稿を店舗ごとにまとめ、失敗が1件以上ある店舗だけを返します**。呼び出し側はその結果を使い、失敗のあった店舗それぞれに、失敗した投稿の一覧を付けて通知を送ります。\n\n## 何を計算して返すか\n\n入力は、配信1件ごとに「どの店舗の・どの投稿が・どういう状態だったか」を持つ行の一覧です。関数はこれを次の順で処理します。\n\n1. 行を順に見て、店舗ごとに集計の入れ物を用意します。初めて出てきた店舗には、失敗0件・投稿一覧が空の入れ物を作ります。\n2. 行の状態が `\"failed\"` のときだけ、その店舗の失敗件数を1増やし、その投稿のIDを失敗した投稿の一覧に足します。成功など他の状態の行は数えません。\n3. 全行を見終えたら、失敗件数が0の店舗を外し、残った店舗の集計を一覧にして返します。\n\n返る一覧の各要素は、店舗のIDとその店舗の失敗件数、失敗した投稿IDの一覧を持ちます。\n\n## 呼び出し側での使われ方\n\n呼び出し側は返った一覧を順に回し、店舗ごとに「店舗のID」と「失敗した投稿IDの一覧」を渡して通知を送ります。失敗の無かった店舗は関数の時点で外れているので、通知は失敗のあった店舗にだけ届きます。失敗件数は返り値に入っていますが、この呼び出し側では使っていません。\n\n## 挙動として押さえておくとよい点\n\n- **店舗の並び順は実行のたびに変わります。** 店舗ごとの集計をGoのマップに入れてから取り出しているためで、通知が送られる店舗の順番は毎回同じになりません。\n- **店舗の中での投稿IDの並びは、入力の行の順です。**\n- **同じ投稿の失敗行が入力に複数あれば、その投稿IDは一覧に重ねて入ります。** 重複を取り除く処理はありません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 998,
+  "cache_read_input_tokens": 22196,
+  "output_tokens": 1147,
+  "output_tokens_details": {
+   "thinking_tokens": 407
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 998,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1147,
+    "cache_read_input_tokens": 22196,
+    "cache_creation_input_tokens": 998,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 998
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

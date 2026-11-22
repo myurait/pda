@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m08",
+ "i": 1,
+ "result": "---\n\n## レビューの指摘\n\n`reserve()` と `confirm()` の間に排他の切れ目があり、同じ枠に予約が二重に入るという指摘です。\n\n## 何が起きているか\n\n1. `reserve()` は `SELECT ... FOR UPDATE` で枠の行をロックし、空きを確かめます。\n2. このロックはトランザクションが終わると外れます。`reserve()` の終わりで外れるため、確かめた「空き」は誰にも押さえられていない状態に戻ります。\n3. `confirm()` は別のトランザクションで予約の行を `INSERT` します。\n4. 2と3の間に別のリクエストが同じ枠で `reserve()` を通ると、どちらも空きを確認済みのまま `confirm()` まで進み、両方の `INSERT` が成功します。\n\n負荷テストでは、この切れ目は40〜120ms開いていました。二重予約は1万リクエストあたり3件起きています。\n\nレートリミッターはこの問題を防いでいません。60秒のスライディングウィンドウの中のリトライは弾きますが、60秒を過ぎたリトライは同じ切れ目に当たります。そもそも、別のユーザーから同時に来るリクエストはレートリミッターの対象外です。レートリミッターは流量を抑える仕組みで、同時実行の排他は担っていません。\n\n## 対応案\n\n推奨は案Aと案Bの組み合わせです。\n\n### 案A: 予約の行にユニーク制約を付ける（推奨・必須）\n\n予約テーブルに、枠ごとに有効な予約が1件だけになるユニーク制約を付けます。例えば `(slot_id)`、キャンセル済みの行を残す設計なら `WHERE status <> 'cancelled'` の部分インデックスにします。\n\n- 二つ目の `INSERT` はデータベースが一意制約違反で拒否します。\n- アプリケーション側では、その違反を捕まえて「この枠は埋まりました」と返します。`INSERT ... ON CONFLICT DO NOTHING` で書いて、挿入された行が無ければ埋まった扱いにする書き方もあります。\n\nアプリケーションの処理の順序に関係なく、データベースが二重予約を起こさせない形になるので、切れ目の長さやリトライの間隔に左右されません。\n\n### 案B: `reserve()` で仮押さえの行を書く\n\n`reserve()` の時点で、予約の行を `status = 'held'`・有効期限付きで書き込みます。`confirm()` は新しく `INSERT` せず、自分の仮押さえを条件付きで更新します。\n\n```sql\nUPDATE bookings\nSET status = 'confirmed'\nWHERE id = :hold_id\n  AND holder_id = :user_id\n  AND status = 'held'\n  AND expires_at > now();\n```\n\n- 更新された行が無ければ、期限切れか他人に取られたとして失敗を返します。\n- 期限切れの仮押さえは定期処理で消すか、制約の判定から外します。\n\n`reserve()` を通った時点で枠がデータベース上で埋まるため、ほかの人の `reserve()` がその枠を空きと見なくなります。案Aの制約と合わせると、仮押さえの段階で重複が弾かれます。\n\n### 採らない案\n\n- `reserve()` と `confirm()` を1つのトランザクションにしてロックを持ち続ける案: 間にユーザーの操作や決済が挟まる場合、ロックを数秒〜数分持つことになり、行ロックの待ちが詰まります。間に何も挟まらない処理なら、この案で足ります。\n- レートリミッターのウィンドウを延ばす案: 同時に来る別のユーザーのリクエストには効かないため、二重予約は残ります。\n\n## 確かめ方\n\n同じ枠に `reserve()` → `confirm()` を並列で多数投げるテストを足し、確定した予約が1件だけになること、ほかは「埋まった」の応答になることを確かめます。修正前のコードでこのテストが落ちることを先に見ておくと、テストが今回の切れ目を捉えていることも確かめられます。\n\nこの対応案は、指摘の文面から読める構成（`reserve()` が空きの確認、`confirm()` が予約の行の `INSERT`）を前提にしています。実際のコードを見せていただければ、制約の列や仮押さえの持ち方を具体的なテーブルに合わせて書きます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7143,
+  "cache_read_input_tokens": 15937,
+  "output_tokens": 2336,
+  "output_tokens_details": {
+   "thinking_tokens": 826
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7143,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2336,
+    "cache_read_input_tokens": 15937,
+    "cache_creation_input_tokens": 7143,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7143
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

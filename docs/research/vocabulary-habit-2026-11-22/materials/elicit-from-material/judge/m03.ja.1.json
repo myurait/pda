@@ -1,0 +1,189 @@
+{
+ "file": "m03.ja.1.json",
+ "cond": "ja",
+ "id": "m03",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "レコード",
+   "quote": "古い紐付けレコードを、論理削除されていない状態に戻してしまいます"
+  },
+  {
+   "concept": "db_table",
+   "word": "レコード",
+   "quote": "古い紐付けと新しい紐付けの両方が有効なレコードとして残ります"
+  },
+  {
+   "concept": "collection",
+   "word": "レコード",
+   "quote": "対象の店舗の紐付けレコード（`post_google_location_relationships`）を読み込み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "（`post_google_location_relationships`）を読み込み"
+  },
+  {
+   "concept": "step",
+   "word": "一括書き込み",
+   "quote": "まだ一括書き込みを終えていない"
+  },
+  {
+   "concept": "write_back",
+   "word": "一括書き込み",
+   "quote": "まだ一括書き込みを終えていない"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読み込んでから一括書き込みするまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "一括書き込み",
+   "quote": "読み込んでから一括書き込みするまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "保存処理",
+   "quote": "編集時の保存処理（`PostUpdateService::saveOnCompleted()`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古いレコードの `deleted_at` に日時を入れる"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "読み込みから書き込みまでの時間はレコード数に比例して延び"
+  },
+  {
+   "concept": "time_range",
+   "word": "1〜3秒",
+   "quote": "1回に1〜3秒かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "100〜300秒",
+   "quote": "100件なら100〜300秒になります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "対象の店舗が多いほど、この間に編集の配信が完了する"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "復活したレコードの `state` と `published_at` には"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "復活したレコードの `state` と `published_at` には"
+  },
+  {
+   "concept": "collection",
+   "word": "レコード",
+   "quote": "最初に読み込んだレコードの内容をメモリ上に保持し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "APIで取得した `state` と `published_at` だけを書き換えた"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "APIで取得した `state` と `published_at` だけを書き換えた"
+  },
+  {
+   "concept": "write_back",
+   "word": "upsert",
+   "quote": "最後にupsertで一括書き込みします"
+  },
+  {
+   "concept": "write_back",
+   "word": "一括書き込み",
+   "quote": "最後にupsertで一括書き込みします"
+  },
+  {
+   "concept": "write_back",
+   "word": "upsert",
+   "quote": "このupsertは更新する列を指定していない"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "このupsertは更新する列を指定していない"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "メモリ上のレコードが持つすべての列でDBの値を上書き"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "読み込んだ時点の `deleted_at` は空なので"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集時の保存処理が `deleted_at` に日時を入れていても"
+  },
+  {
+   "concept": "write_back",
+   "word": "保存処理",
+   "quote": "編集時の保存処理が `deleted_at` に日時を入れていても"
+  },
+  {
+   "concept": "write_back",
+   "word": "一括書き込み",
+   "quote": "一括書き込みで空に戻ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`deleted_at` 以外の列も、読み込んだ後に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` 以外の列も、読み込んだ後に"
+  },
+  {
+   "concept": "write_back",
+   "word": "upsert",
+   "quote": "upsertの更新対象の列を `state` と `published_at` に限定"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "upsertの更新対象の列を `state` と `published_at` に限定"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "upsertの更新対象の列を `state` と `published_at` に限定"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "upsertの更新対象の列を `state` と `published_at` に限定"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "ほかの列を上書きしないようにする"
+  },
+  {
+   "concept": "write_back",
+   "word": "一括書き込み",
+   "quote": "一括書き込みの対象から、書き込み時点で"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"レコード\",\"quote\":\"古い紐付けレコードを、論理削除されていない状態に戻してしまいます\"},\n{\"concept\":\"db_table\",\"word\":\"レコード\",\"quote\":\"古い紐付けと新しい紐付けの両方が有効なレコードとして残ります\"},\n{\"concept\":\"collection\",\"word\":\"レコード\",\"quote\":\"対象の店舗の紐付けレコード（`post_google_location_relationships`）を読み込み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"（`post_google_location_relationships`）を読み込み\"},\n{\"concept\":\"step\",\"word\":\"一括書き込み\",\"quote\":\"まだ一括書き込みを終えていない\"},\n{\"concept\":\"write_back\",\"word\":\"一括書き込み\",\"quote\":\"まだ一括書き込みを終えていない\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読み込んでから一括書き込みするまでの間に\"},\n{\"concept\":\"write_back\",\"word\":\"一括書き込み\",\"quote\":\"読み込んでから一括書き込みするまでの間に\"},\n{\"concept\":\"write_back\",\"word\":\"保存処理\",\"quote\":\"編集時の保存処理（`PostUpdateService::saveOnCompleted()`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古いレコードの `deleted_at` に日時を入れる\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"読み込みから書き込みまでの時間はレコード数に比例して延び\"},\n{\"concept\":\"time_range\",\"word\":\"1〜3秒\",\"quote\":\"1回に1〜3秒かかります\"},\n{\"concept\":\"time_range\",\"word\":\"100〜300秒\",\"quote\":\"100件なら100〜300秒になります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"対象の店舗が多いほど、この間に編集の配信が完了する\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"復活したレコードの `state` と `published_at` には\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"復活したレコードの `state` と `published_at` には\"},\n{\"concept\":\"collection\",\"word\":\"レコード\",\"quote\":\"最初に読み込んだレコードの内容をメモリ上に保持し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"APIで取得した `state` と `published_at` だけを書き換えた\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"APIで取得した `state` と `published_at` だけを書き換えた\"},\n{\"concept\":\"write_back\",\"word\":\"upsert\",\"quote\":\"最後にupsertで一括書き込みします\"},\n{\"concept\":\"write_back\",\"word\":\"一括書き込み\",\"quote\":\"最後にupsertで一括書き込みします\"},\n{\"concept\":\"write_back\",\"word\":\"upsert\",\"quote\":\"このupsertは更新する列を指定していない\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"このupsertは更新する列を指定していない\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"メモリ上のレコードが持つすべての列でDBの値を上書き\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"読み込んだ時点の `deleted_at` は空なので\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"編集時の保存処理が `deleted_at` に日時を入れていても\"},\n{\"concept\":\"write_back\",\"word\":\"保存処理\",\"quote\":\"編集時の保存処理が `deleted_at` に日時を入れていても\"},\n{\"concept\":\"write_back\",\"word\":\"一括書き込み\",\"quote\":\"一括書き込みで空に戻ります\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`deleted_at` 以外の列も、読み込んだ後に\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` 以外の列も、読み込んだ後に\"},\n{\"concept\":\"write_back\",\"word\":\"upsert\",\"quote\":\"upsertの更新対象の列を `state` と `published_at` に限定\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"upsertの更新対象の列を `state` と `published_at` に限定\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"upsertの更新対象の列を `state` と `published_at` に限定\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"upsertの更新対象の列を `state` と `published_at` に限定\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"ほかの列を上書きしないようにする\"},\n{\"concept\":\"write_back\",\"word\":\"一括書き込み\",\"quote\":\"一括書き込みの対象から、書き込み時点で\"}\n]"
+}

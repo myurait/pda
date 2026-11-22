@@ -1,0 +1,144 @@
+{
+ "file": "m01.ja.3.json",
+ "cond": "ja",
+ "id": "m01",
+ "i": 3,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "配信予定を記録するテーブル `delivery_instructions`"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` に"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "配信状態の列を足す"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### テーブル `delivery_instructions` を新規作成"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id`: `post_groups` を参照する外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_groups` を参照する外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`platform`: 配信先。32文字まで"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`scheduled_at`: 配信予定日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`dispatched_at`: 送出日時。送出前は NULL"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約を付ける"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約を付ける"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` に列"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "に列と索引を追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state`: 配信状態。16文字まで"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`: NULL を許す文字列"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合索引"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合索引"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions` は空の状態で作られ"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "既存のテーブルの行には触れない"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` の既存行は"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` が次のように埋まる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` に値がある行は `sent`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の行は既定値の `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key` は既存行ではすべて NULL になる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key` は何の識別子なのか"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"配信予定を記録するテーブル `delivery_instructions`\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` に\"},\n{\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"配信状態の列を足す\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"### テーブル `delivery_instructions` を新規作成\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_group_id`: `post_groups` を参照する外部キー\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_groups` を参照する外部キー\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`platform`: 配信先。32文字まで\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`scheduled_at`: 配信予定日時\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`dispatched_at`: 送出日時。送出前は NULL\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_group_id` と `platform` の組に一意制約を付ける\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_group_id` と `platform` の組に一意制約を付ける\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` に列\"},\n{\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"に列と索引を追加\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state`: 配信状態。16文字まで\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` の後ろに置く\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key`: NULL を許す文字列\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state` の後ろに置く\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state` と `updated_at` の複合索引\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state` と `updated_at` の複合索引\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`delivery_instructions` は空の状態で作られ\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"既存のテーブルの行には触れない\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` の既存行は\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state` が次のように埋まる\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` に値がある行は `sent`\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` が NULL の行は既定値の `pending`\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key` は既存行ではすべて NULL になる\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key` は何の識別子なのか\"}\n]"
+}

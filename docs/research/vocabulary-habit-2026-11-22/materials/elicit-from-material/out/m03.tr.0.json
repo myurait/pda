@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m03",
+ "i": 0,
+ "result": "---\n\n## English\n\n### Summary\n\nThe GBP post sync process (`SyncGbpPostsService::handle`) can bring back a post–location link that was soft-deleted while the sync was running. It can also roll back any other changes made to that link during the same period.\n\n### Cause\n\n- At (1), the sync reads all link rows for the target locations into memory.\n- It then calls the GBP API once per row. Each call takes 1–3 seconds, so the gap between reading and writing grows with the number of rows.\n- At (2), `upsert` writes back every attribute of the in-memory rows, because no update columns are specified. The values written are the ones read at (1), including `deleted_at`.\n- If `PostUpdateService::saveOnCompleted()` soft-deletes an old row (`deleted_at = now()`) during that gap, the sync overwrites it with the old value (`deleted_at = NULL`).\n\n### Conditions\n\nThe bug occurs when all of the following hold:\n\n- The sync is running for a location.\n- While the sync waits on the GBP API, an edited post for the same location is delivered successfully.\n- The old link row that `saveOnCompleted()` soft-deletes was among the rows read at (1).\n\nThe more locations or posts a single run covers, the longer the window and the more likely the bug.\n\n### Impact\n\n- **Deleted links come back.** The old link that should have been removed after the edit is delivered becomes active again. The old row and the new row then both exist as valid links for the same post and location.\n- **Other changes are reverted.** Any column updated by other processes during the sync is overwritten with the value read at (1).\n\n### Proposed fix\n\nPass the columns the sync actually updates (`state` and `published_at`) as the third argument of `upsert`, so that other columns, including `deleted_at`, are not overwritten.\n\n## 日本語\n\n### 概要\n\nGBPの投稿の同期処理（`SyncGbpPostsService::handle`）が、実行中に論理削除された投稿と店舗の紐付けを復活させることがあります。同じ時間帯に紐付けへ加えられたほかの変更も、元の値に戻ることがあります。\n\n### 原因\n\n- 同期は(1)で、対象の店舗の紐付けの行をすべてメモリに読み込みます。\n- その後、行ごとにGBPのAPIを呼びます。1回に1〜3秒かかるため、読み込みから書き込みまでの時間は行が多いほど長くなります。\n- (2)の`upsert`は更新する列を指定していないため、メモリ上の行の全列を書き戻します。書き込む値は`deleted_at`も含め、(1)で読んだ時点のものです。\n- この間に`PostUpdateService::saveOnCompleted()`が古い行を論理削除（`deleted_at = now()`）すると、同期がそれを読み込み時点の値（`deleted_at = NULL`）で上書きします。\n\n### 発生条件\n\n次のすべてを満たすと起きます。\n\n- ある店舗の同期が実行中である。\n- 同期がGBPのAPIを待っている間に、同じ店舗の編集済み投稿の配信が成功する。\n- `saveOnCompleted()`が論理削除する古い紐付けの行が、(1)で読み込んだ行に含まれている。\n\n1回の同期で扱う店舗や投稿が多いほど、上書きが起きうる時間が長くなり、発生しやすくなります。\n\n### 影響\n\n- **削除した紐付けが復活する**: 編集の配信後に消えるはずの古い紐付けが、有効な状態に戻ります。同じ投稿と店舗について、古い行と新しい行の両方が有効な紐付けとして残ります。\n- **ほかの変更が戻る**: 同期の実行中にほかの処理が更新した列も、(1)で読んだ値で上書きされます。\n\n### 対応案\n\n`upsert`の第3引数に、同期が更新する列（`state`と`published_at`）を指定します。こうすると、`deleted_at`を含むほかの列は上書きされなくなります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7349,
+  "cache_read_input_tokens": 15897,
+  "output_tokens": 2251,
+  "output_tokens_details": {
+   "thinking_tokens": 916
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7349,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2251,
+    "cache_read_input_tokens": 15897,
+    "cache_creation_input_tokens": 7349,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7349
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

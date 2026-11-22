@@ -1,0 +1,179 @@
+{
+ "file": "m04.en.2.json",
+ "cond": "en",
+ "id": "m04",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "この処理には、運営者が管理画面で変えた店名が、同期の処理に上書きされて消える"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期の処理に上書きされて消える問題があります"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "1. MySQLの`settings`テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQLの`settings`テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1で店名を読んでから手順5で書き戻すまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1で店名を読んでから手順5で書き戻すまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "手順1で店名を読んでから手順5で書き戻すまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順1で店名を読んでから手順5で書き戻すまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2と手順4の外部APIの呼び出しが2回入ります"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2と手順4の外部APIの呼び出しが2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に運営者が管理画面で`settings.name`を変えると"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "この間に運営者が管理画面で`settings.name`を変えると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順5が、手順1で読んだ古い店名で`name`カラムを上書きし"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順5が、手順1で読んだ古い店名で`name`カラムを上書きし"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "古い店名で`name`カラムを上書きし、変更が消える"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "古い店名で`name`カラムを上書きし、変更が消える"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4で、外部APIにも古い店名が送られている"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻している",
+   "quote": "変える必要のない店名まで書き戻していることが原因です"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4が古い営業時間で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "手順4が古い営業時間で上書きします"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分間",
+   "quote": "その10分間は2つの値が食い違います"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "80,000店舗を10分ごとに処理するため"
+  },
+  {
+   "concept": "write_back",
+   "word": "全カラム上書き",
+   "quote": "外部APIへの書き込みとMySQLの全カラム上書きを行う"
+  },
+  {
+   "concept": "time_range",
+   "word": "1周",
+   "quote": "1周が10分を超えると、同じ店舗を前の実行と"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1周が10分を超えると、同じ店舗を前の実行と"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "MySQLへの書き戻しは、外部APIを正とする営業時間のカラムだけを更新する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部APIを正とする営業時間のカラムだけを更新する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings`にバージョンのカラムを足し"
+  },
+  {
+   "concept": "time_range",
+   "word": "1周",
+   "quote": "1周の所要時間を計測し、前の実行が終わるまで"
+  }
+ ],
+ "raw": "[{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"この処理には、運営者が管理画面で変えた店名が、同期の処理に上書きされて消える\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期の処理に上書きされて消える問題があります\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"1. MySQLの`settings`テーブルから、その店舗の設定を読む\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQLの`settings`テーブルから、その店舗の設定を読む\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1で店名を読んでから手順5で書き戻すまでの間に\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1で店名を読んでから手順5で書き戻すまでの間に\"},{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"手順1で店名を読んでから手順5で書き戻すまでの間に\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順1で店名を読んでから手順5で書き戻すまでの間に\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2と手順4の外部APIの呼び出しが2回入ります\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2と手順4の外部APIの呼び出しが2回入ります\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に運営者が管理画面で`settings.name`を変えると\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"この間に運営者が管理画面で`settings.name`を変えると\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順5が、手順1で読んだ古い店名で`name`カラムを上書きし\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順5が、手順1で読んだ古い店名で`name`カラムを上書きし\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"古い店名で`name`カラムを上書きし、変更が消える\"},{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"古い店名で`name`カラムを上書きし、変更が消える\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4で、外部APIにも古い店名が送られている\"},{\"concept\":\"write_back\",\"word\":\"書き戻している\",\"quote\":\"変える必要のない店名まで書き戻していることが原因です\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4が古い営業時間で上書きします\"},{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"手順4が古い営業時間で上書きします\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4が成功して手順5が失敗すると\"},{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4が成功して手順5が失敗すると\"},{\"concept\":\"time_range\",\"word\":\"10分間\",\"quote\":\"その10分間は2つの値が食い違います\"},{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"80,000店舗を10分ごとに処理するため\"},{\"concept\":\"write_back\",\"word\":\"全カラム上書き\",\"quote\":\"外部APIへの書き込みとMySQLの全カラム上書きを行う\"},{\"concept\":\"time_range\",\"word\":\"1周\",\"quote\":\"1周が10分を超えると、同じ店舗を前の実行と\"},{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1周が10分を超えると、同じ店舗を前の実行と\"},{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"MySQLへの書き戻しは、外部APIを正とする営業時間のカラムだけを更新する\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部APIを正とする営業時間のカラムだけを更新する\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings`にバージョンのカラムを足し\"},{\"concept\":\"time_range\",\"word\":\"1周\",\"quote\":\"1周の所要時間を計測し、前の実行が終わるまで\"}]"
+}

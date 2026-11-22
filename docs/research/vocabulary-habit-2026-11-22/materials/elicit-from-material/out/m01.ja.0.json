@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m01",
+ "i": 0,
+ "result": "---\n\n## 概要\n\n投稿の配信状態を管理するため、マイグレーション `2026_11_20_000000_add_delivery_state.php` を追加します。投稿グループの配信予定をプラットフォームごとに持つテーブルを新しく作り、投稿と Google ロケーションの紐付けに配信状態のカラムを足します。\n\n## 変更内容\n\n### 新規テーブル `delivery_instructions`\n\n投稿グループごと・プラットフォームごとの配信予定と、実際に配信した時刻を持ちます。\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: 配信先プラットフォーム（最大32文字）\n- `scheduled_at`: 配信予定時刻（必須）\n- `dispatched_at`: 配信した時刻（未配信の間は NULL）\n- `post_group_id` と `platform` の組に一意制約を付けます。同じ投稿グループの同じプラットフォームの行は1行だけです。\n- `created_at` と `updated_at` は持ちません。\n\n### `post_google_location_relationships` へのカラム追加\n\n- `delivery_state`: 配信状態（最大16文字、既定値 `pending`）。`sent_at` の後ろに置きます。\n- `external_key`: 外部サービス側の識別子（NULL 可）。`delivery_state` の後ろに置きます。\n- `delivery_state` と `updated_at` の複合インデックスを追加します。\n\n## 既存データへの影響\n\n- `post_google_location_relationships` の既存行は、`delivery_state` が次の値になります。\n  - `sent_at` が入っている行: `sent`\n  - `sent_at` が NULL の行: `pending`\n- 既存行の `external_key` はすべて NULL です。\n- `delivery_instructions` は空の状態で作られます。既存の投稿グループから配信予定の行は作りません。\n- 既存のカラムの値は変わりません。\n\n## ロールバック\n\n`down()` を定義していません。`migrate:rollback` を実行しても `delivery_instructions` テーブルと追加したカラム・インデックスは残ります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 10531,
+  "cache_read_input_tokens": 198527,
+  "output_tokens": 1703,
+  "output_tokens_details": {
+   "thinking_tokens": 991
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 10531,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1703,
+    "cache_read_input_tokens": 198527,
+    "cache_creation_input_tokens": 10531,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10531
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

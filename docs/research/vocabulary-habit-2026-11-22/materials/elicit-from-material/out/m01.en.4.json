@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m01",
+ "i": 4,
+ "result": "---\n\nPR の説明文です。素材にはこの変更の理由が書かれていないため、背景の節は入れていません。必要であれば冒頭に足してください。\n\n```markdown\n## 概要\n\n投稿グループごと・配信先のプラットフォームごとに、配信の予定と実行を記録するテーブル delivery_instructions を追加します。あわせて、投稿と Google のロケーションの紐付け post_google_location_relationships に配信状態の列を追加します。\n\n## 変更内容\n\n### 新しいテーブル delivery_instructions\n\n- post_group_id: post_groups への外部キー\n- platform: 配信先のプラットフォーム（32文字まで）\n- scheduled_at: 配信の予定時刻（必須）\n- dispatched_at: 配信を実行した時刻（未実行の間は NULL）\n- post_group_id と platform の組に一意制約を付けます。1つの投稿グループに対し、同じプラットフォームの配信指示は1件までです。\n\n### post_google_location_relationships への列の追加\n\n- delivery_state: 配信状態（16文字まで、既定値は pending）。sent_at の後ろに置きます。\n- external_key: 外部サービス側のキー（NULL 可）\n- delivery_state と updated_at の複合インデックスを追加します。\n\n## 既存データへの影響\n\n- delivery_instructions は空の状態で作られます。既存の投稿グループに配信指示の行は作られません。\n- post_google_location_relationships の既存の行は、次のようになります。\n  - sent_at が入っている行: delivery_state が sent になります。\n  - sent_at が NULL の行: delivery_state が既定値の pending になります。送信に失敗したまま残っている行や、送信を取りやめた行も pending になります。pending の行を送信待ちとして拾う処理を入れると、これらの古い行も対象に入ります。\n  - external_key: すべての行で NULL です。\n- sent_at の値の書き換えは、マイグレーション内の UPDATE 1文で全行を対象に行います。\n- 既存の列とデータは変更・削除しません。\n- down() を定義していないため、migrate:rollback を実行してもテーブルと列は削除されません。\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7359,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 2928,
+  "output_tokens_details": {
+   "thinking_tokens": 2190
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7359,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2928,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7359,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7359
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

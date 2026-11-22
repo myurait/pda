@@ -1,0 +1,199 @@
+{
+ "file": "m03.en.2.json",
+ "cond": "en",
+ "id": "m03",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` の行を"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同期開始時点の古い値で上書きします"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "投稿状態を同期する処理が"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "ほかの処理が更新した"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "古い行に `deleted_at` を入れる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い行に `deleted_at` を入れる"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理は、最初に対象の行をまとめて"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "最初に対象の行をまとめて読み込みます"
+  },
+  {
+   "concept": "time_range",
+   "word": "所要時間",
+   "quote": "同期の所要時間は長くなります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に配信の完了が重なると発生します"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理は、最初に読み込んだ行の"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "最初に読み込んだ行の全カラムの値を"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "行の全カラムの値を最後に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻して",
+   "quote": "最後に `upsert` で書き戻している"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "更新するカラムを指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`state`・`published_at` だけでなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` も含めてすべてのカラムを"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "含めてすべてのカラムを上書きする"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "すべてのカラムを上書きする"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "読み込んだ時点では `deleted_at` が `NULL`"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "途中で入った削除日時が `NULL` に戻る"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "古い行の論理削除が取り消され"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "新しい行と古い行がどちらも有効な行として"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "どちらも有効な行として残る"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "古い行を参照する処理（一覧の表示、"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` 以外にも、同期中に"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期中にほかの処理が更新したカラムは"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "ほかの処理が更新したカラムはすべて"
+  },
+  {
+   "concept": "time_range",
+   "word": "同期中",
+   "quote": "`deleted_at` 以外にも、同期中に"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "同期開始時点の値に戻る"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` の第3引数に、同期で更新する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同期で更新するカラム（`state`、"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "それ以外のカラムを上書きしないように"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "それ以外のカラムを上書きしないように"
+  },
+  {
+   "concept": "time_range",
+   "word": "同期中",
+   "quote": "同期中に論理削除された行の"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き換わります",
+   "quote": "`published_at` は書き換わります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みの直前に `deleted_at` が"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "`NULL` の行だけに絞る条件を加えて"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` の行を\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"同期開始時点の古い値で上書きします\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"投稿状態を同期する処理が\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"ほかの処理が更新した\"},\n{\"concept\": \"write_back\", \"word\": \"\", \"quote\": \"古い行に `deleted_at` を入れる\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"古い行に `deleted_at` を入れる\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"同期処理は、最初に対象の行をまとめて\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"最初に対象の行をまとめて読み込みます\"},\n{\"concept\": \"time_range\", \"word\": \"所要時間\", \"quote\": \"同期の所要時間は長くなります\"},\n{\"concept\": \"time_range\", \"word\": \"間\", \"quote\": \"この間に配信の完了が重なると発生します\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"同期処理は、最初に読み込んだ行の\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"最初に読み込んだ行の全カラムの値を\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"行の全カラムの値を最後に\"},\n{\"concept\": \"write_back\", \"word\": \"書き戻して\", \"quote\": \"最後に `upsert` で書き戻している\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"更新するカラムを指定していないため\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`state`・`published_at` だけでなく\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`deleted_at` も含めてすべてのカラムを\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"含めてすべてのカラムを上書きする\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"すべてのカラムを上書きする\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"読み込んだ時点では `deleted_at` が `NULL`\"},\n{\"concept\": \"write_back\", \"word\": \"\", \"quote\": \"途中で入った削除日時が `NULL` に戻る\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"古い行の論理削除が取り消され\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"新しい行と古い行がどちらも有効な行として\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"どちらも有効な行として残る\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"古い行を参照する処理（一覧の表示、\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`deleted_at` 以外にも、同期中に\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"同期中にほかの処理が更新したカラムは\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"ほかの処理が更新したカラムはすべて\"},\n{\"concept\": \"time_range\", \"word\": \"同期中\", \"quote\": \"`deleted_at` 以外にも、同期中に\"},\n{\"concept\": \"write_back\", \"word\": \"\", \"quote\": \"同期開始時点の値に戻る\"},\n{\"concept\": \"write_back\", \"word\": \"\", \"quote\": \"`upsert` の第3引数に、同期で更新する\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"同期で更新するカラム（`state`、\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"それ以外のカラムを上書きしないように\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"それ以外のカラムを上書きしないように\"},\n{\"concept\": \"time_range\", \"word\": \"同期中\", \"quote\": \"同期中に論理削除された行の\"},\n{\"concept\": \"write_back\", \"word\": \"書き換わります\", \"quote\": \"`published_at` は書き換わります\"},\n{\"concept\": \"write_back\", \"word\": \"書き込み\", \"quote\": \"書き込みの直前に `deleted_at` が\"},\n{\"concept\": \"collection\", \"word\": \"行\", \"quote\": \"`NULL` の行だけに絞る条件を加えて\"}\n]"
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m03",
+ "i": 2,
+ "result": "---\n\n## 件名\n\nGBP投稿の同期処理が、配信完了時に論理削除された投稿と店舗の紐付けを復活させる\n\n## 概要\n\nGBP投稿の同期処理は、投稿と店舗の紐付けを読み込んでから、1件ずつGBPに状態を問い合わせ、最後にまとめて書き戻します。書き戻しでは `state` と `published_at` だけでなく、読み込んだ時点の全カラムの値で行を上書きします。\n\nこのため、読み込みから書き戻しまでの間に別の処理が同じ行を更新すると、その更新が読み込み時点の値で消えます。特に、編集した投稿の配信完了処理が古い紐付けに付けた `deleted_at` が空に戻り、論理削除した紐付けが有効な状態に戻ります。\n\n## 起きる条件\n\n次の2つが同じ紐付けの行に対して重なると起きます。\n\n- GBP投稿の同期処理が、その行を含む店舗を対象に実行中である\n- 同期処理が行を読み込んでから書き戻すまでの間に、編集した投稿の配信が完了し、古い紐付けの行に `deleted_at` が付く\n\nGBPへの問い合わせは1件あたり1〜3秒かかり、書き戻しは全件の問い合わせが終わってから行います。対象の紐付けが多いほど、読み込みから書き戻しまでの時間が長くなり、重なりやすくなります。\n\n```\n同期処理                         配信完了処理\n  |                                  |\n  | 紐付けを読み込む (deleted_at = NULL)\n  | GBPへ1件ずつ問い合わせ ...       |\n  |                                  | 古い紐付けに deleted_at を付ける\n  | 全件の問い合わせが終わる          |\n  | 読み込んだ値で全カラムを上書き    |\n  v  → deleted_at が NULL に戻る\n```\n\n## 影響\n\n- 編集前の投稿の紐付けが有効な状態に戻り、同じ店舗に編集前と編集後の紐付けが両方存在する状態になる\n- 紐付けを参照する画面や後続の処理で、編集前の投稿が現役の投稿として扱われる\n- `deleted_at` 以外のカラムも、同期処理の実行中にほかの処理が書いた値が読み込み時点の値に戻る\n\n## 対応案\n\n- 書き戻しで更新するカラムを、同期処理が値を決める `state` と `published_at` に限定する\n- 書き戻しの直前に論理削除済みの行を対象から外す",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1005,
+  "cache_read_input_tokens": 22196,
+  "output_tokens": 1773,
+  "output_tokens_details": {
+   "thinking_tokens": 903
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1005,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1773,
+    "cache_read_input_tokens": 22196,
+    "cache_creation_input_tokens": 1005,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1005
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

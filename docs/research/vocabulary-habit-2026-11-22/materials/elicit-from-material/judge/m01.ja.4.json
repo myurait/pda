@@ -1,0 +1,154 @@
+{
+ "file": "m01.ja.4.json",
+ "cond": "ja",
+ "id": "m01",
+ "i": 4,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "持つテーブル `delivery_instructions` を追加し"
+  },
+  {
+   "concept": "db_table",
+   "word": "関連テーブル",
+   "quote": "投稿の関連テーブル"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "配信状態のカラムを足します"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions` を新規作成"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`platform`: 配信先の媒体（最大32文字）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`scheduled_at`: 配信予定日時（必須）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`dispatched_at`: 配信を実行した日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組に一意制約"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`created_at` / `updated_at` は持たない"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`created_at` / `updated_at` は持たない"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` に"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "にカラムとインデックスを追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state`: 配信状態（最大16文字"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "。`sent_at` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`: 配信先の外部キー（NULL 可）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` の全行"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "全行に `delivery_state` を次のとおり埋めます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が入っている行: `sent`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の行: `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の行の `external_key` はすべて NULL になる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の行の `updated_at` は変わらない"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions` は空の状態で作られ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の既存の行がすべて"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"持つテーブル `delivery_instructions` を追加し\"},\n{\"concept\":\"db_table\",\"word\":\"関連テーブル\",\"quote\":\"投稿の関連テーブル\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"配信状態のカラムを足します\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`delivery_instructions` を新規作成\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id`: `post_groups` への外部キー\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_groups` への外部キー\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`platform`: 配信先の媒体（最大32文字）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`scheduled_at`: 配信予定日時（必須）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`dispatched_at`: 配信を実行した日時\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id` と `platform` の組に一意制約\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id` と `platform` の組に一意制約\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`created_at` / `updated_at` は持たない\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`created_at` / `updated_at` は持たない\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_google_location_relationships` に\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"にカラムとインデックスを追加\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state`: 配信状態（最大16文字\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"。`sent_at` の後ろに置く\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`external_key`: 配信先の外部キー（NULL 可）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` の後ろに置く\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` と `updated_at` の複合インデックス\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` と `updated_at` の複合インデックス\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_google_location_relationships` の全行\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"全行に `delivery_state` を次のとおり埋めます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が入っている行: `sent`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が NULL の行: `pending`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の行の `external_key` はすべて NULL になる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の行の `updated_at` は変わらない\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`delivery_instructions` は空の状態で作られ\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が NULL の既存の行がすべて\"}\n]"
+}

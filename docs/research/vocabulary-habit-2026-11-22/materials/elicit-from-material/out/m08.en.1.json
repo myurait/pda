@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m08",
+ "i": 1,
+ "result": "---\n\n## 指摘の内容\n\nレビューの指摘は、**同じ枠に予約が二重に入る競合状態がある**というものです。\n\n### なぜ起きるか\n\n予約は2段階で処理されています。\n\n1. `reserve()`で`SELECT ... FOR UPDATE`を使って枠の行をロックし、空いているかを確かめる\n2. `confirm()`で`INSERT`して予約を確定する\n\nロックは`reserve()`の終わり、つまりトランザクションの終了時に外れます。そのため、`reserve()`が終わってから`confirm()`の`INSERT`が走るまでの間は、枠が誰にも押さえられていません。この間に別のリクエストが`reserve()`を通ると、同じ枠を「空いている」と判断します。その結果、両方が`confirm()`まで進み、二重予約になります。\n\n### 実測された影響\n\n- 負荷試験では、ロックが外れている時間は40〜120msでした\n- 10,000リクエストあたり3件の二重予約が起きました\n\n### レート制限では防げない理由\n\nレート制限は60秒のスライディングウィンドウです。60秒以内の再試行は弾かれますが、60秒を過ぎた再試行は通るため、同じ隙間にまた当たり得ます。レート制限は再試行の頻度を下げるだけで、隙間そのものは残ります。\n\n## 対応案\n\n隙間をなくすには、「空いていることの確認」と「枠を自分のものにする書き込み」を1つのトランザクションで済ませる必要があります。推奨は、案1と案2を組み合わせる形です。\n\n### 案1: `reserve()`で仮押さえの行を書く（推奨）\n\n- `reserve()`のトランザクションの中で、`FOR UPDATE`で空きを確かめた直後に、状態が`held`の予約行を`INSERT`する。期限（例: 数分後）も持たせる\n- `confirm()`は新しく`INSERT`せず、`UPDATE ... SET status = 'confirmed' WHERE id = ? AND status = 'held' AND expires_at > now()`で状態を変える\n- 更新件数が0なら、期限切れなどで仮押さえが失われたものとして、確定失敗を返す\n- 期限切れの`held`行は、空き判定で無視するか定期的に消す\n\nこの形では、ロックが外れた時点ですでに枠は行として押さえられているため、別のリクエストは空きと判断しません。\n\n### 案2: DBの一意制約を最後の砦にする（案1と併用を推奨）\n\n- 枠IDに対して、有効な予約（`held`と`confirmed`）が1件しか存在できない一意制約を付ける。PostgreSQLなら`WHERE status IN ('held', 'confirmed')`の部分一意インデックスで書ける\n- 制約違反になったら、アプリ側で「すでに埋まっている」として扱う\n\nアプリのロジックに見落としがあっても、DBが二重予約を拒否します。\n\n### 案3: `reserve()`と`confirm()`を1トランザクションにまとめる（非推奨）\n\nロックを確定まで持ち続ければ隙間は消えます。ただし、`reserve()`と`confirm()`の間にユーザーの操作や外部呼び出しが挟まる場合、その間ずっと行ロックを握ることになり、待ちやタイムアウトが増えます。2つの処理が別々のリクエストであれば、そもそも実現できません。\n\n### 確かめ方\n\n対応後、同じ負荷試験を流し、二重予約が0件になることを確認します。あわせて、同じ枠に対する`reserve()`を並行に走らせ、片方だけが成功することを確かめるテストを足すと、回帰を防げます。\n\nなお、この説明はレビューコメントの記述だけをもとにしています。実際のコードを読める状態であれば、テーブル定義と`reserve()`・`confirm()`の実装に合わせて、案1の具体的な差分まで書けます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7146,
+  "cache_read_input_tokens": 15898,
+  "output_tokens": 1770,
+  "output_tokens_details": {
+   "thinking_tokens": 420
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7146,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1770,
+    "cache_read_input_tokens": 15898,
+    "cache_creation_input_tokens": 7146,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7146
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

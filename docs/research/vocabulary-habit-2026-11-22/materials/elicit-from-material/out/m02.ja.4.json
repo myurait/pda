@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m02",
+ "i": 4,
+ "result": "---\n\n**結論:** 今夜の時点では、夜間集計の結果は変わりません。この差分は列の型とメモを書き換えて空の新テーブルを足すもので、集計が読む `post_search.location_ids` のデータには触れていません。集計が欠けるのは、アプリが位置の書き込み先を新テーブル `post_search_locations` に切り替えた時点からです。\n\n## 位置の集計（`location_ids` → `post_search_locations`）\n\n- **今の状態**\n  - 位置を持つ行は、`post_search.location_ids` の JSON にだけ入っています。\n  - `post_search_locations` は本番 DB に作られていますが、まだ空です。移し替え（バックフィル）も、両方への書き込みもされていません。\n  - `deprecated` は DBML の note に書いた説明です。列もデータも消えていないので、集計はこれまでどおり読めます。\n- **影響が出る時点**\n  - note のとおりアプリが新テーブルにだけ書くようになると、それ以降の行は `location_ids` が空になります。\n  - 夜間集計は `location_ids` しか読まず、ほかのテーブルを結合していません。そのため切り替え後の投稿は、位置別の集計から黙って抜け落ちます。エラーにはならず、数字が減るだけです。\n- **対応**\n  - 次の 3 つをこの順で進めれば、集計は途切れません。\n    - 既存の `location_ids` を `post_search_locations` へ移す\n    - 夜間集計のクエリを `post_search_locations` との JOIN に書き換え、移し替え後のデータで旧クエリと結果が一致することを確かめる\n    - アプリの書き込み先を切り替える\n  - 移行期間中に両方へ書き込むなら、書き込み先の切り替えを先にしても構いません。\n\n## 時刻の扱い（`tstamp` の `timestamp` → `datetime`）\n\n- **違い**\n  - MySQL の `TIMESTAMP` は UTC で保存し、読み書きのたびに接続の `time_zone` で変換します。\n  - `DATETIME` は書かれた値をそのまま保存し、変換しません。\n- **影響が出る条件**\n  - 型を変える `ALTER` を実行した接続の `time_zone` で、既存の値はその時点の現地時刻に固定されます。\n  - 夜間集計の接続の `time_zone` がこれと違うと、日付で区切る集計の境界がずれます。たとえば UTC と JST なら 9 時間分で、日をまたぐ投稿が隣の日に入ります。\n  - アプリ・`ALTER`・集計の `time_zone` がすべて同じなら、集計結果は変わりません。\n- **確かめ方**\n  - 本番の列がもう `datetime` になっているかは、`SHOW CREATE TABLE post_search` で分かります。\n  - 本番 DB の `@@global.time_zone` と、アプリと集計それぞれの接続設定の `time_zone` を比べてください。\n  - 私の手元には本番 DB への接続がないため、この照合はまだしていません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1003,
+  "cache_read_input_tokens": 22160,
+  "output_tokens": 1815,
+  "output_tokens_details": {
+   "thinking_tokens": 759
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1815,
+    "cache_read_input_tokens": 22160,
+    "cache_creation_input_tokens": 1003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

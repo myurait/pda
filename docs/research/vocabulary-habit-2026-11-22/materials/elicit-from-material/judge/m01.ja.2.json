@@ -1,0 +1,179 @@
+{
+ "file": "m01.ja.2.json",
+ "cond": "ja",
+ "id": "m01",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "配信の状態を記録するため、テーブルを1つ追加し、既存のテーブルにカラムを足します。"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "既存のテーブルにカラムを足します"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "既存のテーブルにカラムを足します"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`delivery_instructions` テーブルを新設"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "配信するかを持つテーブルです"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "2つのカラムにユニーク制約を付けています"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`post_google_location_relationships` にカラムを追加"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` にカラムを追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`platform`: 配信先のプラットフォーム名"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`scheduled_at`: 配信予定の日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`dispatched_at`: 配信を実行した日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state`: 配信の状態。`sent_at` の後ろ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state`: 配信の状態。`sent_at` の後ろ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`: 配信先の外部キー。NULL を許す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存行の `delivery_state` を次のように埋めます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が入っている行: `sent`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の行: 既定値の `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key` は既存行すべてで NULL になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` の更新は全行を対象にした1本の UPDATE 文"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`updated_at` は変わりません"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### `post_google_location_relationships` の既存行"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### `post_groups` の削除"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_instructions.post_group_id` の外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions.post_group_id` の外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions` から参照されている"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "参照されている `post_groups` の行は削除できなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の既存行はすべて `pending`"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE 文",
+   "quote": "全行を対象にした1本の UPDATE 文で行います"
+  },
+  {
+   "concept": "step",
+   "word": "マイグレーション",
+   "quote": "マイグレーションの実行時に、既存行の"
+  },
+  {
+   "concept": "step",
+   "word": "マイグレーション",
+   "quote": "このマイグレーションを戻せません"
+  }
+ ],
+ "raw": "[{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"配信の状態を記録するため、テーブルを1つ追加し、既存のテーブルにカラムを足します。\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"既存のテーブルにカラムを足します\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"既存のテーブルにカラムを足します\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`delivery_instructions` テーブルを新設\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"配信するかを持つテーブルです\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"2つのカラムにユニーク制約を付けています\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`post_google_location_relationships` にカラムを追加\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_google_location_relationships` にカラムを追加\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_group_id`: `post_groups` への外部キー\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_group_id`: `post_groups` への外部キー\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`platform`: 配信先のプラットフォーム名\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`scheduled_at`: 配信予定の日時\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`dispatched_at`: 配信を実行した日時\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state`: 配信の状態。`sent_at` の後ろ\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state`: 配信の状態。`sent_at` の後ろ\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`external_key`: 配信先の外部キー。NULL を許す\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` と `updated_at` の複合インデックス\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` と `updated_at` の複合インデックス\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存行の `delivery_state` を次のように埋めます\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が入っている行: `sent`\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が NULL の行: 既定値の `pending`\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`external_key` は既存行すべてで NULL になります\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` の更新は全行を対象にした1本の UPDATE 文\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`updated_at` は変わりません\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"### `post_google_location_relationships` の既存行\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"### `post_groups` の削除\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_instructions.post_group_id` の外部キー\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`delivery_instructions.post_group_id` の外部キー\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`delivery_instructions` から参照されている\"},{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"参照されている `post_groups` の行は削除できなく\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が NULL の既存行はすべて `pending`\"},{\"concept\":\"write_back\",\"word\":\"UPDATE 文\",\"quote\":\"全行を対象にした1本の UPDATE 文で行います\"},{\"concept\":\"step\",\"word\":\"マイグレーション\",\"quote\":\"マイグレーションの実行時に、既存行の\"},{\"concept\":\"step\",\"word\":\"マイグレーション\",\"quote\":\"このマイグレーションを戻せません\"}]"
+}

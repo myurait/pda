@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m01",
+ "i": 0,
+ "result": "---\n\nPR の説明文を書きました。素材には変更の背景が書かれていないため、概要は変更の中身だけで書いています。背景があれば冒頭に足してください。\n\n```markdown\n## 概要\n\n配信の指示を投稿グループ単位で持つテーブルを新設し、Google ロケーションへの投稿の関連テーブルに配信状態を持たせる。\n\n## 変更内容\n\n### `delivery_instructions` テーブルを新設\n\n- `post_group_id` と `platform` の組ごとに 1 行を持つ（この組に一意制約を付けている）\n- `post_group_id` は `post_groups` への外部キー\n- `scheduled_at` に配信予定の日時、`dispatched_at` に実際に配信した日時を入れる。配信前の `dispatched_at` は NULL\n- `created_at` と `updated_at` は持たない\n\n### `post_google_location_relationships` に列とインデックスを追加\n\n- `delivery_state`: 配信状態。既定値は `pending`。`sent_at` の後ろに置く\n- `external_key`: 外部側のキー。NULL を許す\n- `delivery_state` と `updated_at` の複合インデックス\n\n## 既存データへの影響\n\n- `post_google_location_relationships` の既存行の `delivery_state` は次のようになる\n  - `sent_at` が入っている行は `sent`\n  - `sent_at` が NULL の行は `pending`。送信に失敗した行や送信をやめた行も、`sent_at` が NULL なら `pending` になる\n- 既存行の `external_key` はすべて NULL になる\n- 既存行を `sent` にする書き換えは `DB::statement` の UPDATE で行うため、既存行の `updated_at` は変わらない\n- `delivery_instructions` は空の状態で作られる。既存の投稿グループに対応する行は作らない\n\n## ロールバック\n\n`down()` を定義していないため、`migrate:rollback` ではこの変更を戻せない。\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 114902,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2597,
+  "output_tokens_details": {
+   "thinking_tokens": 1933
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 114902,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2597,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 114902,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 114902
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

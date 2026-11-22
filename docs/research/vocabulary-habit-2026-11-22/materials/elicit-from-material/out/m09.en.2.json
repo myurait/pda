@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m09",
+ "i": 2,
+ "result": "---\n\n既に投稿グループに紐づいている投稿を「未登録」と誤認して、新しい投稿グループを作ってしまうためです。最近の変更で、上書きを避けるために除外した行が、登録済みかどうかの判定からも外れるようになりました。\n\n**判定の仕組み**\n\n新しい投稿を取り込む処理は、次の順で動きます。\n\n1. その店舗の紐づけテーブル`post_google_location_relationships`から、登録済みの投稿キー`external_key`の一覧を作る\n2. Googleビジネスプロフィールから取得した投稿を1件ずつ見て、キーが一覧にあれば飛ばす\n3. 一覧に無ければ、新しい投稿グループを作る\n\nつまり、「新規かどうか」は「キーの一覧に載っているかどうか」だけで決まります。\n\n**重複が起きる流れ**\n\n- キーの一覧を作るとき、「この実行で除外する行」を取り除いている\n- 最近の変更で、編集元の行がこの除外の対象に加わった。目的は、同じ実行の後の処理で編集元の行を上書きしないこと\n- その結果、編集元の行のキーが一覧から消える\n- 編集元の投稿はGoogle側にはまだ存在するので、取得した投稿に含まれる\n- 一覧に無いので「新規」と判定され、同じ投稿に対して2つ目の投稿グループが作られる\n\n「上書きから守る行」と「存在しない行」は別のものですが、同じ除外の仕組みで扱ったため、守るはずの行が存在しない扱いになっています。\n\n**直し方**\n\n登録済みかどうかの判定では除外を使わず、店舗の紐づけの行すべてからキーの一覧を作ります。除外は上書きを避ける処理の側だけで使います。\n\n```php\n$knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n    ->pluck('external_key')\n    ->all();\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1002,
+  "cache_read_input_tokens": 22141,
+  "output_tokens": 962,
+  "output_tokens_details": {
+   "thinking_tokens": 292
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1002,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 962,
+    "cache_read_input_tokens": 22141,
+    "cache_creation_input_tokens": 1002,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1002
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

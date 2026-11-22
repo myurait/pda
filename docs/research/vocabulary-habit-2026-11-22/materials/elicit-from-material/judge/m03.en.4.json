@@ -1,0 +1,154 @@
+{
+ "file": "m03.en.4.json",
+ "cond": "en",
+ "id": "m03",
+ "i": 4,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "データベースのテーブル"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "GBP投稿の状態を同期する処理（SyncGbpPostsService）"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "編集した投稿の配信完了処理（PostUpdateService::saveOnCompleted）"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理は、紐付けを最初にまとめて読み込みます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "最後に全件をまとめて書き戻します"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読み込みから書き戻しまでの間は、件数×1〜3秒続きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に配信完了処理が古い紐付けを論理削除すると"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "この間に配信完了処理が古い紐付けを論理削除すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しの upsert で更新するカラムを指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "更新するカラムを指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "読み込んだ時点のすべてのカラムの値でレコードを上書きします"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "配信完了処理が入れた deleted_at が NULL に戻ります"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理が紐付けを読み込む（deleted_at は NULL）"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "同期処理がAPIを順に呼んでいる間に"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理がAPIを順に呼んでいる間に"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "配信完了処理が古い紐付けの deleted_at に現在時刻を入れる"
+  },
+  {
+   "concept": "write_back",
+   "word": "upsert",
+   "quote": "同期処理が読み込んだ時点の全カラムで upsert する"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理が読み込んだ時点の全カラムで upsert する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "読み込んだ時点の全カラムで upsert する"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読み込みから書き戻しまでの間にほかの処理が変えたカラム"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "読み込みから書き戻しまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "ほかの処理が変えたカラムはすべて"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "ほかの処理が変えたカラムはすべて"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "以降の同期処理が、古い紐付けの external_key でも"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同期処理が変えるカラムだけを指定します"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同期処理が変えるカラムだけを指定します"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "これで、同期処理が書き戻すのは state と"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "同期処理が書き戻すのは state と published_at だけ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "deleted_at を含むほかのカラムは上書きされません"
+  }
+ ],
+ "raw": "[{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"データベースのテーブル\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"GBP投稿の状態を同期する処理（SyncGbpPostsService）\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"編集した投稿の配信完了処理（PostUpdateService::saveOnCompleted）\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期処理は、紐付けを最初にまとめて読み込みます\"},{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"最後に全件をまとめて書き戻します\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読み込みから書き戻しまでの間は、件数×1〜3秒続きます\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に配信完了処理が古い紐付けを論理削除すると\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"この間に配信完了処理が古い紐付けを論理削除すると\"},{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しの upsert で更新するカラムを指定していないため\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"更新するカラムを指定していないため\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"読み込んだ時点のすべてのカラムの値でレコードを上書きします\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"配信完了処理が入れた deleted_at が NULL に戻ります\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期処理が紐付けを読み込む（deleted_at は NULL）\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"同期処理がAPIを順に呼んでいる間に\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期処理がAPIを順に呼んでいる間に\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"配信完了処理が古い紐付けの deleted_at に現在時刻を入れる\"},{\"concept\":\"write_back\",\"word\":\"upsert\",\"quote\":\"同期処理が読み込んだ時点の全カラムで upsert する\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期処理が読み込んだ時点の全カラムで upsert する\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"読み込んだ時点の全カラムで upsert する\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読み込みから書き戻しまでの間にほかの処理が変えたカラム\"},{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"読み込みから書き戻しまでの間に\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"ほかの処理が変えたカラムはすべて\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"ほかの処理が変えたカラムはすべて\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"以降の同期処理が、古い紐付けの external_key でも\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"同期処理が変えるカラムだけを指定します\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"同期処理が変えるカラムだけを指定します\"},{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"これで、同期処理が書き戻すのは state と\"},{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"同期処理が書き戻すのは state と published_at だけ\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"deleted_at を含むほかのカラムは上書きされません\"}]"
+}

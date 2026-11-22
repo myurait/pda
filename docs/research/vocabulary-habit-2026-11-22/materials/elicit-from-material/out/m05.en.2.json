@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m05",
+ "i": 2,
+ "result": "---\n\nこのリリースは、投稿の配信を旧来の仕組みから新しい仕組みへ切り替えるものです。旧来の仕組みでは、バッチのスケジュール `sync-google-posts` がSQSキュー `post-delivery` にメッセージを積んでいます。新しい仕組みでは、ディスパッチャーがキュー `post-dispatch` に積み、新しいworkerがそこから読みます。\n\n手順の順序は、切り替えの途中でメッセージを取りこぼさないことを軸に決まっています。古いキューへの投入を止め、古いキューが空になってから、workerを新しいキューに切り替えます。\n\n## 手順\n\n### 準備（1〜2）\n\n1. 本番環境にスキーマのマイグレーション `2026_11_20_000000_add_delivery_state` を適用します。\n2. 次の2つをデプロイし、ヘルスチェックが通ることを確かめます。\n   - `api` v3.14.0\n   - `go-api` v2.8.0\n\n### 旧来の仕組みを止める（3〜4）\n\n3. Step Functionsで旧来のバッチのスケジュール `sync-google-posts` を無効にします。これで古いキュー `post-delivery` に新しいメッセージが入らなくなります。\n4. 古いキュー `post-delivery` が空になるまで待ちます。`ApproximateNumberOfMessages` が0になれば空です。残っているメッセージは、この時点ではまだ旧workerが処理します。\n\n### 新しい仕組みに切り替える（5〜6）\n\n5. 新しいキュー `post-dispatch` から読むworker v5.2.0をデプロイします。\n6. ディスパッチャーのスケジュール（`rate(1 minute)`）を有効にします。ここから新しいキューへの投入が始まります。\n\n## ロールバック\n\n新しい仕組みを止めてから旧来の仕組みを戻すよう、逆の順で戻します。\n\n1. 手順6のディスパッチャーのスケジュールを無効にします。\n2. 手順5のworkerを元のバージョンに戻します。\n3. 手順3で無効にした `sync-google-posts` を有効に戻します。\n\n手順1のマイグレーションと手順2の `api`・`go-api` のデプロイは戻しません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1002,
+  "cache_read_input_tokens": 22093,
+  "output_tokens": 1284,
+  "output_tokens_details": {
+   "thinking_tokens": 512
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1002,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1284,
+    "cache_read_input_tokens": 22093,
+    "cache_creation_input_tokens": 1002,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1002
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

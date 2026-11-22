@@ -1,0 +1,104 @@
+{
+ "file": "m08.tr.2.json",
+ "cond": "tr",
+ "id": "m08",
+ "i": 2,
+ "items": [
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "`confirm()`までの間を守っていない"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "2つの呼び出しの間は、どのロックも掛かっていません"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "この無防備な時間が40〜120msありました"
+  },
+  {
+   "concept": "time_range",
+   "word": "スライディングウィンドウ",
+   "quote": "（60秒のスライディングウィンドウ）"
+  },
+  {
+   "concept": "time_range",
+   "word": "ウィンドウ",
+   "quote": "ウィンドウ内のリトライだけです"
+  },
+  {
+   "concept": "time_range",
+   "word": "隙間",
+   "quote": "同じ隙間にまた当たります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "予約テーブルの`slot_id`にユニークインデックスを張ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`slot_id`にユニークインデックスを張ります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "キャンセル済みの行を残すテーブルでは"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "`reserve()`のロックが掛かっている間に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "（`status = 'reserved'`・予約者"
+  },
+  {
+   "concept": "db_column",
+   "word": "予約者",
+   "quote": "`status = 'reserved'`・予約者・`expires_at`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "予約者・`expires_at`）を書きます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "SET status = 'confirmed' WHERE id = ?"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "WHERE id = ? AND status = 'reserved'"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND status = 'reserved' AND owner = ?"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND owner = ? AND expires_at > now()"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND expires_at > now()"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "間にユーザーの操作が挟まると"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"`confirm()`までの間を守っていない\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"2つの呼び出しの間は、どのロックも掛かっていません\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"この無防備な時間が40〜120msありました\"},\n{\"concept\":\"time_range\",\"word\":\"スライディングウィンドウ\",\"quote\":\"（60秒のスライディングウィンドウ）\"},\n{\"concept\":\"time_range\",\"word\":\"ウィンドウ\",\"quote\":\"ウィンドウ内のリトライだけです\"},\n{\"concept\":\"time_range\",\"word\":\"隙間\",\"quote\":\"同じ隙間にまた当たります\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"予約テーブルの`slot_id`にユニークインデックスを張ります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`slot_id`にユニークインデックスを張ります\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"キャンセル済みの行を残すテーブルでは\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"`reserve()`のロックが掛かっている間に\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"（`status = 'reserved'`・予約者\"},\n{\"concept\":\"db_column\",\"word\":\"予約者\",\"quote\":\"`status = 'reserved'`・予約者・`expires_at`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"予約者・`expires_at`）を書きます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"SET status = 'confirmed' WHERE id = ?\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"WHERE id = ? AND status = 'reserved'\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND status = 'reserved' AND owner = ?\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND owner = ? AND expires_at > now()\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND expires_at > now()\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"間にユーザーの操作が挟まると\"}\n]"
+}

@@ -1,0 +1,149 @@
+{
+ "file": "m02.ja.4.json",
+ "cond": "ja",
+ "id": "m02",
+ "i": 4,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "夜間集計の結果は変わりません"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "この差分は列の型とメモを書き換えて空の新テーブルを足す"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "空の新テーブルを足すもので"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "集計が読む `post_search.location_ids` のデータには"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "アプリが位置の書き込み先を新テーブル"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "書き込み先を新テーブル `post_search_locations` に切り替えた"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` の JSON にだけ入っています"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` は本番 DB に作られて"
+  },
+  {
+   "concept": "write_back",
+   "word": "移し替え（バックフィル）",
+   "quote": "まだ空です。移し替え（バックフィル）も、両方への書き込みも"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "両方への書き込みもされていません"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "列もデータも消えていないので"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "アプリが新テーブルにだけ書くようになると"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "それ以降の行は `location_ids` が空になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間集計は `location_ids` しか読まず"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "ほかのテーブルを結合していません"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "位置別の集計から黙って抜け落ちます"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "次の 3 つをこの順で進めれば、集計は途切れません"
+  },
+  {
+   "concept": "write_back",
+   "word": "移す",
+   "quote": "既存の `location_ids` を `post_search_locations` へ移す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` へ移す"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` との JOIN に書き換え"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み先を切り替える",
+   "quote": "アプリの書き込み先を切り替える"
+  },
+  {
+   "concept": "time_range",
+   "word": "期間",
+   "quote": "移行期間中に両方へ書き込むなら"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "移行期間中に両方へ書き込むなら"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み先の切り替え",
+   "quote": "書き込み先の切り替えを先にしても構いません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "時刻の扱い（`tstamp` の `timestamp` → `datetime`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "本番の列がもう `datetime` になっているか"
+  },
+  {
+   "concept": "time_range",
+   "word": "9 時間分",
+   "quote": "UTC と JST なら 9 時間分で"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"夜間集計の結果は変わりません\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"この差分は列の型とメモを書き換えて空の新テーブルを足す\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"空の新テーブルを足すもので\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"集計が読む `post_search.location_ids` のデータには\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"アプリが位置の書き込み先を新テーブル\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"書き込み先を新テーブル `post_search_locations` に切り替えた\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` の JSON にだけ入っています\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` は本番 DB に作られて\"},\n{\"concept\":\"write_back\",\"word\":\"移し替え（バックフィル）\",\"quote\":\"まだ空です。移し替え（バックフィル）も、両方への書き込みも\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"両方への書き込みもされていません\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"列もデータも消えていないので\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"アプリが新テーブルにだけ書くようになると\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"それ以降の行は `location_ids` が空になります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間集計は `location_ids` しか読まず\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"ほかのテーブルを結合していません\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"位置別の集計から黙って抜け落ちます\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"次の 3 つをこの順で進めれば、集計は途切れません\"},\n{\"concept\":\"write_back\",\"word\":\"移す\",\"quote\":\"既存の `location_ids` を `post_search_locations` へ移す\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` を\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` へ移す\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` との JOIN に書き換え\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み先を切り替える\",\"quote\":\"アプリの書き込み先を切り替える\"},\n{\"concept\":\"time_range\",\"word\":\"期間\",\"quote\":\"移行期間中に両方へ書き込むなら\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"移行期間中に両方へ書き込むなら\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み先の切り替え\",\"quote\":\"書き込み先の切り替えを先にしても構いません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"時刻の扱い（`tstamp` の `timestamp` → `datetime`）\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"本番の列がもう `datetime` になっているか\"},\n{\"concept\":\"time_range\",\"word\":\"9 時間分\",\"quote\":\"UTC と JST なら 9 時間分で\"}\n]"
+}

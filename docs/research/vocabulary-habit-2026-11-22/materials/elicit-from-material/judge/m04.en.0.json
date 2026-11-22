@@ -1,0 +1,169 @@
+{
+ "file": "m04.en.0.json",
+ "cond": "en",
+ "id": "m04",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQL の `settings` テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "MySQL の `settings` の行を全カラム更新する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "MySQL の `settings` の行を全カラム更新する"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1でMySQL を読んでから手順5で書き戻す"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1でMySQL を読んでから手順5で書き戻す"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順5で書き戻すまでの間に、運用担当者が"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "手順1でMySQL を読んでから手順5で書き戻す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "運用担当者が `settings.name` を編集すると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順5は全カラムを更新するので"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "手順5は全カラムを更新するので"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1で読んだ古い店舗名で `settings.name` を上書きする"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "古い店舗名で `settings.name` を上書きする"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い店舗名で `settings.name` を上書きする"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4で外部APIにも古い店舗名を送っている"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "次の回の同期は、上書きされた古い店舗名を"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読んでから書くまでの間には外部APIの呼び出しが2回入る"
+  },
+  {
+   "concept": "time_range",
+   "word": "間隔",
+   "quote": "この間隔は短くありません"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んだ古い営業時間で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "手順2で読んだ古い営業時間で上書きします"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "2つの書き込みの間で失敗すると、一時的に食い違う"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "自分の担当でない店舗名まで書き戻していること"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部APIから採る営業時間のカラムだけを更新し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings.name` を更新の対象から外す"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "全カラムを書く形を残すなら"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings` に版番号のカラムを持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` に版番号のカラムを持たせ"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きの機会が減り、80,000店舗ぶんの"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQL の `settings` テーブルから、その店舗の設定を読む\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"MySQL の `settings` の行を全カラム更新する\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"MySQL の `settings` の行を全カラム更新する\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1でMySQL を読んでから手順5で書き戻す\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1でMySQL を読んでから手順5で書き戻す\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順5で書き戻すまでの間に、運用担当者が\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"手順1でMySQL を読んでから手順5で書き戻す\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"運用担当者が `settings.name` を編集すると\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順5は全カラムを更新するので\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"手順5は全カラムを更新するので\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1で読んだ古い店舗名で `settings.name` を上書きする\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"古い店舗名で `settings.name` を上書きする\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い店舗名で `settings.name` を上書きする\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4で外部APIにも古い店舗名を送っている\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"次の回の同期は、上書きされた古い店舗名を\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読んでから書くまでの間には外部APIの呼び出しが2回入る\"},\n{\"concept\":\"time_range\",\"word\":\"間隔\",\"quote\":\"この間隔は短くありません\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んだ古い営業時間で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"手順2で読んだ古い営業時間で上書きします\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"2つの書き込みの間で失敗すると、一時的に食い違う\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4が成功して手順5が失敗すると\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4が成功して手順5が失敗すると\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"自分の担当でない店舗名まで書き戻していること\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部APIから採る営業時間のカラムだけを更新し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings.name` を更新の対象から外す\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"全カラムを書く形を残すなら\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings` に版番号のカラムを持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` に版番号のカラムを持たせ\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"上書きの機会が減り、80,000店舗ぶんの\"}\n]"
+}

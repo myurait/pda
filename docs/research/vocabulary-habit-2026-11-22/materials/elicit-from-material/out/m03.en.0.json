@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m03",
+ "i": 0,
+ "result": "---\n\n## 件名\n投稿の同期処理が、同期中に論理削除された店舗と投稿の紐付けを復活させる\n\n## 概要\nGoogleビジネスプロフィールの投稿状態を取り込む同期処理（`SyncGbpPostsService::handle()`）は、`post_google_location_relationships` テーブルの行を最初にまとめて読み込み、最後にまとめて書き戻します。書き戻しは更新する列を指定していない `upsert` で、読み込んだ時点の全カラムで行を上書きします。\n\nこのため、読み込みから書き戻しまでの間に別の処理がこのテーブルの行を変更すると、その変更が同期処理によって読み込み時点の値に戻されます。\n\n## 起きる条件\n次の2つが同時に起きたときに発生します。\n\n1. 同期処理が対象店舗の紐付けの行を読み込み、1件ずつGoogleへ問い合わせている\n    - 問い合わせは1件あたり1〜3秒かかるため、例えば100件なら書き戻しまで最大で約5分空きます\n2. その間に、編集した投稿の配信が成功する\n    - 投稿更新の完了処理（`PostUpdateService::saveOnCompleted()`）が古い紐付けの行の `deleted_at` に現在時刻を入れ、論理削除します\n\n## 何が起きるか\n同期処理の書き戻しで、古い紐付けの行の `deleted_at` が読み込み時点の値（NULL）に戻り、論理削除が取り消されます。結果として、同じ店舗に編集前の紐付けと編集後の紐付けが両方とも有効な状態で残ります。\n\n`deleted_at` 以外のカラムも同じく、同期中に別の処理が書いた値が読み込み時点の値に戻ります。\n\n## 影響\n- 編集前の投稿と編集後の投稿が、同じ店舗に二重に紐付いた状態になります\n- 二重の紐付けを前提にしていない画面・集計・後続の同期では、古い投稿が有効なものとして扱われます\n- 同期対象の店舗や行が多いほど書き戻しまでの時間が延び、発生しやすくなります\n\n## 対応案\n- `upsert` の第3引数に更新するカラム（`state`・`published_at`）だけを指定し、他のカラムを上書きしないようにする\n- あわせて、書き戻し時に論理削除済みの行を更新の対象から外す（例: 1件ずつ `whereNull('deleted_at')` を条件に更新する）",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7348,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1477,
+  "output_tokens_details": {
+   "thinking_tokens": 616
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7348,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1477,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7348,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7348
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

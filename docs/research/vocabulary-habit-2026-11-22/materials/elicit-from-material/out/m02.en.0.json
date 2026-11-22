@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m02",
+ "i": 0,
+ "result": "---\n\n**結論:** 現時点では、夜間レポートの地点別の集計は変わりません。ただし、書き込み側が新しいテーブルだけに書くよう切り替わった時点で、レポートは地点の付いた投稿を数えなくなり、エラーを出さずに値が減ります。もう1つ、`tstamp` の型変更によって、日付の境目で集計がずれる可能性があります。\n\n## 地点の集計（`location_ids` → `post_search_locations`）\n\n**今の状態**\n- `post_search.location_ids` は「deprecated」と注記されただけで、本番には今も空でない値が大量に入っています。\n- 移行先の `post_search_locations` はテーブルとして作られていますが、行は1件もありません。\n- 夜間レポートは `post_search.location_ids` だけを読み、`post_search_locations` を結合していません。\n\n**集計への影響**\n- 今の夜間レポートは、まだデータが入っている古いJSONの列を読んでいます。そのため、地点別の集計値は変わりません。\n- アプリが `post_search_locations` だけに書き、`location_ids` への書き込みをやめた日から、その日以降の投稿はレポートに地点なしとして扱われます。クエリはエラーにならないので、値が減ったことに気づきにくいです。\n\n**必要な対応**\n1. 既存の `location_ids` を `post_search_locations` にバックフィルします。\n2. 夜間レポートのクエリを `post_search_locations` の結合に書き換えます。\n3. 上の2つが終わってから、書き込み側の切り替えをリリースします。\n\n## 日時の列（`tstamp`: `timestamp` → `datetime`）\n\n**集計への影響**\n- MySQLの `TIMESTAMP` は値をUTCで保存し、読み書きのたびにセッションの `time_zone` で変換します。\n- `DATETIME` は書き込まれた値をそのまま保存し、変換しません。\n- `ALTER TABLE` で型を変えると、既存の行はALTERを実行したセッションの `time_zone` で変換された値として固定されます。\n- このALTERのタイムゾーンと、変更後にアプリが書き込む値のタイムゾーンが違うと、切り替え日を境に時刻が最大9時間ずれます（UTCと日本時間の差）。その結果、夜間レポートが `tstamp` で日付を区切っていれば、日別の件数が前後の日に移ります。\n\n**必要な対応**\n- 本番の `post_search.tstamp` がすでに `datetime` になっているかを確認します。今回の素材はDBMLの差分と件数のクエリだけで、列の型は確認できていません。\n- すでに `datetime` になっていれば、切り替え日の前後の行で時刻の基準がそろっているかを見ます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7314,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1851,
+  "output_tokens_details": {
+   "thinking_tokens": 901
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7314,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1851,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7314,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7314
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

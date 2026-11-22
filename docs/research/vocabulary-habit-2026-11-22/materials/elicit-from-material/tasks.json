@@ -1,0 +1,74 @@
+[
+ {
+  "id": "m01",
+  "focus": [
+   "列",
+   "表"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、この変更をレビューする人に向けて、PR の説明文を書いてください。何が変わり、既存のデータにどう影響するかを含めてください。\n\n```php\n// database/migrations/2026_11_20_000000_add_delivery_state.php\nreturn new class extends Migration {\n    public function up(): void\n    {\n        Schema::create('delivery_instructions', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('post_group_id')->constrained('post_groups');\n            $table->string('platform', 32);\n            $table->timestamp('scheduled_at');\n            $table->timestamp('dispatched_at')->nullable();\n            $table->unique(['post_group_id', 'platform']);\n        });\n        Schema::table('post_google_location_relationships', function (Blueprint $table) {\n            $table->string('delivery_state', 16)->default('pending')->after('sent_at');\n            $table->string('external_key')->nullable()->after('delivery_state');\n            $table->index(['delivery_state', 'updated_at']);\n        });\n        DB::statement(\"UPDATE post_google_location_relationships SET delivery_state = 'sent' WHERE sent_at IS NOT NULL\");\n    }\n};\n```\n"
+ },
+ {
+  "id": "m02",
+  "focus": [
+   "列",
+   "表"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、このスキーマの差分が本番の集計にどう影響するかを、調査結果としてユーザーに報告してください。\n\n```diff\n--- a/doc/dbml/app/schema.dbml\n+++ b/doc/dbml/app/schema.dbml\n@@ Table post_search {\n-  tstamp timestamp [not null]\n+  tstamp datetime [not null]\n   post_group_id bigint [not null]\n-  location_ids json\n+  location_ids json [note: 'deprecated, use post_search_locations']\n }\n+Table post_search_locations {\n+  post_group_id bigint [not null]\n+  location_id bigint [not null]\n+  indexes { (post_group_id, location_id) [unique] }\n+}\n```\n```\nmysql> SELECT COUNT(*) FROM post_search WHERE JSON_LENGTH(location_ids) > 0;\n| 412883 |\nmysql> SELECT COUNT(*) FROM post_search_locations;\n| 0 |\n```\nThe nightly report query still reads `post_search.location_ids` and joins nothing else.\n"
+ },
+ {
+  "id": "m03",
+  "focus": [
+   "書き戻し"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、このコードで起きる不具合を、Backlog の課題の本文としてユーザー向けに書いてください。起きる条件と影響を含めてください。\n\n```php\n// app/Services/SyncGbpPostsService.php\npublic function handle(Collection $locationIds): void\n{\n    $rows = PostGoogleLocationRelationship::whereIn('location_id', $locationIds)->get(); // (1)\n    foreach ($rows as $row) {\n        $remote = $this->gbp->fetchPost($row->external_key);             // takes 1-3 seconds per call\n        $row->state = $remote->state;\n        $row->published_at = $remote->updateTime;\n    }\n    $this->bulkUpdateModels($rows); // (2)\n}\n\nprivate function bulkUpdateModels(Collection $rows): void\n{\n    PostGoogleLocationRelationship::upsert(\n        $rows->map->getAttributes()->all(),\n        ['id']\n        // no update columns specified => every column is overwritten\n    );\n}\n```\nMeanwhile `PostUpdateService::saveOnCompleted()` soft-deletes the old row (`deleted_at = now()`) when an edited post is delivered successfully.\n"
+ },
+ {
+  "id": "m04",
+  "focus": [
+   "書き戻し"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、この処理の流れと問題点を、ユーザーに説明してください。\n\n```go\n// worker/internal/settings/sync.go\nfunc (s *Syncer) Run(ctx context.Context, storeID int64) error {\n    local, err := s.repo.LoadSettings(ctx, storeID)   // read from MySQL\n    if err != nil { return err }\n    remote, err := s.api.GetSettings(ctx, storeID)    // read from external API\n    if err != nil { return err }\n    merged := merge(local, remote)                     // remote wins on hours, local wins on name\n    if err := s.api.PutSettings(ctx, storeID, merged); err != nil { return err }\n    return s.repo.SaveSettings(ctx, storeID, merged)   // UPDATE settings SET ... (all fields)\n}\n```\nOperators also edit `settings.name` from the admin screen at any time. The job runs every 10 minutes for 80,000 stores.\n"
+ },
+ {
+  "id": "m05",
+  "focus": [
+   "段"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、作業する人に向けて、このリリースの進め方を日本語で説明してください。\n\nRelease runbook (draft, English)\n1. Apply schema migration `2026_11_20_000000_add_delivery_state` to production.\n2. Deploy api v3.14.0 and go-api v2.8.0. Verify the health check.\n3. Disable the legacy batch schedule `sync-google-posts` in Step Functions.\n4. Wait until the legacy SQS queue `post-delivery` is drained (ApproximateNumberOfMessages = 0).\n5. Deploy worker v5.2.0 which reads from the new queue `post-dispatch`.\n6. Enable the dispatcher schedule (rate(1 minute)).\nRollback: revert step 6, then step 5, then re-enable step 3. Steps 1 and 2 are not rolled back.\n"
+ },
+ {
+  "id": "m06",
+  "focus": [
+   "段"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、この CI の構成を、新しく参加したメンバーに日本語で説明してください。どこで失敗すると何が止まるかを含めてください。\n\n```yaml\n# .github/workflows/deploy.yml\non: { push: { branches: [main] } }\njobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - run: composer install\n      - run: php artisan test --parallel\n  build:\n    needs: test\n    steps:\n      - run: docker build -t api:${{ github.sha }} .\n      - run: docker push $ECR/api:${{ github.sha }}\n  deploy-staging:\n    needs: build\n    steps:\n      - run: aws ecs update-service --cluster stg --service api --force-new-deployment\n  deploy-production:\n    needs: deploy-staging\n    environment: production   # requires manual approval\n    steps:\n      - run: aws ecs update-service --cluster prd --service api --force-new-deployment\n```\n"
+ },
+ {
+  "id": "m07",
+  "focus": [
+   "窓"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、この取り込み処理がどの投稿を取り込み、どの投稿を取り込まないかを、ユーザーに説明してください。\n\n```php\n// app/Services/ImportGbpPostsService.php\nprivate const SKIP_RECENT_HOURS = 3;\nprivate const PURGE_AFTER_DAYS = 30;\n\npublic function shouldImport(GbpPost $p, Carbon $now): bool\n{\n    // posts created in the last 3 hours may still be in flight from our own dispatcher\n    if ($p->createTime->gt($now->copy()->subHours(self::SKIP_RECENT_HOURS))) {\n        return false;\n    }\n    return true;\n}\n\npublic function purge(Carbon $now): int\n{\n    return ImportedPost::where('imported_at', '<', $now->copy()->subDays(self::PURGE_AFTER_DAYS))->delete();\n}\n```\nCron: `0 1 * * *` (runs at 01:00 JST, takes about 9 hours to finish all stores).\n"
+ },
+ {
+  "id": "m08",
+  "focus": [
+   "窓"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、このレビューコメントの指摘を、日本語でユーザーに説明し、対応案を書いてください。\n\nReview comment (English):\n> There is a race here. Between `SELECT ... FOR UPDATE` being released at the end of `reserve()` and the `INSERT` in `confirm()`, another request can reserve the same slot. In load tests the gap was 40-120 ms, and we saw 3 double bookings per 10,000 requests. The rate limiter uses a 60-second sliding window, so retries inside that period are rejected, but retries after it can hit the same gap again.\n"
+ },
+ {
+  "id": "m09",
+  "focus": [
+   "一覧"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、このコードで、投稿グループが重複して作られる理由をユーザーに説明してください。\n\n```php\n// app/Services/SyncGbpPostsService.php\npublic function importNewPosts(int $locationId, array $gbpPosts): void\n{\n    $knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n        ->whereNotIn('id', $this->excludedRowIds)   // rows excluded from this run\n        ->pluck('external_key')\n        ->all();\n\n    foreach ($gbpPosts as $post) {\n        if (in_array($post->name, $knownKeys, true)) {\n            continue; // already linked to a post group\n        }\n        $this->createPostGroupFrom($post);\n    }\n}\n```\nA recent change added the edited-source rows to `$this->excludedRowIds` so that they are not overwritten later in the same run.\n"
+ },
+ {
+  "id": "m10",
+  "focus": [
+   "一覧"
+  ],
+  "prompt": "あなたはユーザーに向けて日本語の文章を書くアシスタントです。次の素材を読み、この関数が何を計算して返し、呼び出し側でどう使われるかを、ユーザーに説明してください。\n\n```go\n// go-api/internal/report/summary.go\ntype StoreSummary struct {\n    StoreID   int64\n    Failed    int\n    PostIDs   []int64\n}\n\nfunc Summarize(rows []DeliveryRow) []StoreSummary {\n    byStore := map[int64]*StoreSummary{}\n    for _, r := range rows {\n        s, ok := byStore[r.StoreID]\n        if !ok {\n            s = &StoreSummary{StoreID: r.StoreID}\n            byStore[r.StoreID] = s\n        }\n        if r.State == \"failed\" {\n            s.Failed++\n            s.PostIDs = append(s.PostIDs, r.PostID)\n        }\n    }\n    out := make([]StoreSummary, 0, len(byStore))\n    for _, s := range byStore {\n        if s.Failed > 0 { out = append(out, *s) }\n    }\n    return out\n}\n\n// caller\nsummaries := report.Summarize(rows)\nfor _, s := range summaries { notifier.Alert(s.StoreID, s.PostIDs) }\n```\n"
+ }
+]

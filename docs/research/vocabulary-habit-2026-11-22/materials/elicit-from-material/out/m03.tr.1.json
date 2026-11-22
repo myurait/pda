@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m03",
+ "i": 1,
+ "result": "---\n\n## 概要\n\nGBP投稿の同期処理が、同期中に論理削除された行を元に戻してしまいます。投稿を編集して配信が完了したとき、論理削除したはずの編集前の行が `post_google_location_relationships` テーブルで再び有効な行になります。\n\n## 起きる条件\n\n次の2つが重なると起きます。\n\n- GBP投稿の同期処理が実行中である\n    - この処理は、対象の店舗の行を最初にまとめて読み込みます。その後、1行ずつGBPのAPIに問い合わせ、最後に全行をまとめて書き戻します。\n    - APIの問い合わせは1回に1〜3秒かかります。そのため、読み込みから書き戻しまでの間は対象の行の数に比例して長くなり、店舗が多いと数分に及びます。\n- その間に、同じ店舗の投稿を編集して、配信が完了する\n    - 配信完了の処理は、編集前の行の `deleted_at` に現在時刻を入れて論理削除します。\n\n## 影響\n\n- 編集前の行の `deleted_at` が空に戻り、編集前の行と編集後の行が両方とも有効な行として残ります。\n- 論理削除済みの行を除いて読む処理はすべて、編集前の行も対象にします。そのため、同じ投稿が重複して扱われます。\n- 同期中にほかの処理が変更した列も、同じ理由で読み込み時点の値に戻ります。\n\n## 原因\n\n書き戻しの処理は、`id` をキーにした一括のupsertで行います。このupsertでは更新する列を指定していません。そのため、同期処理が変更した `state` と `published_at` だけでなく、`deleted_at` を含むすべての列を、最初に読み込んだ時点の値で上書きします。読み込んだ時点の行はまだ論理削除されていないので、`deleted_at` は空の値で書き戻されます。\n\n## 対応案\n\n- upsertの第3引数で、更新する列を `state` と `published_at` に絞る。\n- 書き戻しの条件に `deleted_at IS NULL` を加え、同期中に論理削除された行は更新しない。\n\nこの2つを両方入れると、論理削除された行が元に戻らず、同期処理が扱わない列も上書きされなくなります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7351,
+  "cache_read_input_tokens": 15897,
+  "output_tokens": 1849,
+  "output_tokens_details": {
+   "thinking_tokens": 1075
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7351,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1849,
+    "cache_read_input_tokens": 15897,
+    "cache_creation_input_tokens": 7351,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7351
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

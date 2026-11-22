@@ -1,0 +1,199 @@
+{
+ "file": "m04.tr.1.json",
+ "cond": "tr",
+ "id": "m04",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQLの `settings` テーブルと外部APIの間で"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "participant DB as MySQL settings テーブル"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "4. 合成した設定を全項目書き込む"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "5. 合成した設定で全カラムを UPDATE"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "5. 合成した設定で全カラムを UPDATE"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "オペレーターは管理画面からいつでも `settings.name` を書き換えます"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1で読んだ時点の店名を手順5でそのまま書き戻します"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1で読んだ時点の店名を手順5でそのまま書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻します",
+   "quote": "手順5でそのまま書き戻します"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1から手順5までの間に外部APIを2回呼ぶので"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順1から手順5までの間に外部APIを2回呼ぶので"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順1から手順5までの間に外部APIを2回呼ぶので"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間は数百ミリ秒から数秒あります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "participant DB as settings テーブル"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "J->>DB: 全カラム UPDATE（店名「旧」）"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "J->>DB: 全カラム UPDATE（店名「旧」）"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`UPDATE` が全カラムを書いていることが原因です"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`UPDATE` が全カラムを書いていることが原因です"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "### 2. 外部API側でも同じ上書きが起きる"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順4がそれを古い値で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "手順4がそれを古い値で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みとDBの `UPDATE` を行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "外部APIへの書き込みとDBの `UPDATE` を行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "130件の読み込みと130件の書き込みが届き"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "問題1と問題2の上書きがさらに起きやすくなります"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`UPDATE` で書くカラムを、ジョブが決める営業時間だけに絞ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`UPDATE` で書くカラムを、ジョブが決める営業時間だけに絞ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻さ",
+   "quote": "DBへは書き戻さず、外部APIへ送るだけにします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings` テーブルにバージョンのカラムを持たせて"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` テーブルにバージョンのカラムを持たせて"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`UPDATE ... WHERE version = 読んだときの値`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`UPDATE ... WHERE version = 読んだときの値`"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "対応していれば、手順4も同じ形にします"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みも `UPDATE` も省きます"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "外部APIへの書き込みも `UPDATE` も省きます"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQLの `settings` テーブルと外部APIの間で\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"participant DB as MySQL settings テーブル\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"4. 合成した設定を全項目書き込む\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"5. 合成した設定で全カラムを UPDATE\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"5. 合成した設定で全カラムを UPDATE\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"オペレーターは管理画面からいつでも `settings.name` を書き換えます\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1で読んだ時点の店名を手順5でそのまま書き戻します\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1で読んだ時点の店名を手順5でそのまま書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻します\",\"quote\":\"手順5でそのまま書き戻します\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1から手順5までの間に外部APIを2回呼ぶので\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順1から手順5までの間に外部APIを2回呼ぶので\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順1から手順5までの間に外部APIを2回呼ぶので\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間は数百ミリ秒から数秒あります\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"participant DB as settings テーブル\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"J->>DB: 全カラム UPDATE（店名「旧」）\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"J->>DB: 全カラム UPDATE（店名「旧」）\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`UPDATE` が全カラムを書いていることが原因です\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`UPDATE` が全カラムを書いていることが原因です\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"### 2. 外部API側でも同じ上書きが起きる\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順4がそれを古い値で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"手順4がそれを古い値で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みとDBの `UPDATE` を行います\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"外部APIへの書き込みとDBの `UPDATE` を行います\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"130件の読み込みと130件の書き込みが届き\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"問題1と問題2の上書きがさらに起きやすくなります\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`UPDATE` で書くカラムを、ジョブが決める営業時間だけに絞ります\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`UPDATE` で書くカラムを、ジョブが決める営業時間だけに絞ります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻さ\",\"quote\":\"DBへは書き戻さず、外部APIへ送るだけにします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings` テーブルにバージョンのカラムを持たせて\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` テーブルにバージョンのカラムを持たせて\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`UPDATE ... WHERE version = 読んだときの値`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`UPDATE ... WHERE version = 読んだときの値`\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"対応していれば、手順4も同じ形にします\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みも `UPDATE` も省きます\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"外部APIへの書き込みも `UPDATE` も省きます\"}\n]"
+}

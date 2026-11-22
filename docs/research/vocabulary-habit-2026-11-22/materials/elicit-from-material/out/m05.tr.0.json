@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m05",
+ "i": 0,
+ "result": "---\n\n# 投稿配信の切り替えリリースの手順\n\n## このリリースでやること\n\n投稿の配信を、旧方式から新方式へ切り替えます。\n\n- 旧方式：Step Functionsのバッチ`sync-google-posts`が、SQSキュー`post-delivery`にメッセージを積み、それを旧workerが処理する\n- 新方式：1分ごとに動くdispatcherが、新しいSQSキュー`post-dispatch`にメッセージを積み、それをworker v5.2.0が処理する\n\n手順の順番には理由があります。まず受け入れ側（DBとAPI）を新方式に対応させます。次に旧方式の入口を止め、旧キューに残ったメッセージを旧workerに処理し切らせます。そのあとでworkerを入れ替え、最後に新方式の入口を開けます。この順番を守ると、旧キューのメッセージを取りこぼさず、旧方式と新方式が同時に動くこともありません。\n\n## 手順\n\n1. **本番DBにマイグレーションを当てる**\n   `2026_11_20_000000_add_delivery_state`を本番に適用します。\n2. **APIをデプロイする**\n   - api v3.14.0とgo-api v2.8.0をデプロイします。\n   - デプロイ後、ヘルスチェックが通ることを確認します。\n3. **旧バッチを止める**\n   Step Functionsのスケジュール`sync-google-posts`を無効にします。これで旧キュー`post-delivery`に新しいメッセージが積まれなくなります。\n4. **旧キューが空になるのを待つ**\n   `post-delivery`の`ApproximateNumberOfMessages`が0になるまで待ちます。この間は旧workerが残りのメッセージを処理しています。0になる前に次の手順へ進まないでください。手順5でworkerを入れ替えると、旧キューを読む処理がなくなるためです。\n5. **workerをデプロイする**\n   worker v5.2.0をデプロイします。このバージョンは新キュー`post-dispatch`を読みます。\n6. **dispatcherのスケジュールを有効にする**\n   `rate(1 minute)`のスケジュールを有効にします。ここから新方式での配信が始まります。\n\n## 切り戻し\n\n戻すときは、新方式を止めてから旧方式を再開します。順番は次のとおりです。\n\n1. 手順6を戻す：dispatcherのスケジュールを無効にする\n2. 手順5を戻す：workerを前のバージョンに戻す\n3. 手順3を戻す：`sync-google-posts`のスケジュールを再び有効にする\n\n手順1のマイグレーションと、手順2のapi・go-apiのデプロイは戻しません。そのままにして旧方式を再開します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 24921,
+  "cache_read_input_tokens": 184062,
+  "output_tokens": 1907,
+  "output_tokens_details": {
+   "thinking_tokens": 967
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 24921,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1907,
+    "cache_read_input_tokens": 184062,
+    "cache_creation_input_tokens": 24921,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 24921
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

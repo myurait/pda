@@ -1,0 +1,194 @@
+{
+ "file": "m02.en.3.json",
+ "cond": "en",
+ "id": "m02",
+ "i": 3,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "夜間の集計の数字は変わりません"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込み側が `post_search_locations` だけに書く"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "新しい投稿の場所が集計から黙って抜け落ちます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の型の変更は、接続ごとのタイムゾーン"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "（`location_ids` → `post_search_locations`）"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "（`location_ids` → `post_search_locations`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` には、場所の入っている行が"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブル `post_search_locations` は作られていますが"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "新しいテーブル `post_search_locations` は作られていますが"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "旧カラムからの移し替え（バックフィル）はまだ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間の集計クエリは `post_search.location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブルを結合していません"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "本番の集計への影響は次のように分かれます"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "集計は旧カラムを読んでいて旧カラムにも値が入っている"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "集計は旧カラムを読んでいて旧カラムにも値が入っている"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "旧カラムにも値が入っているため"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "書き込み側が新しいテーブルへ移ったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` は deprecated と注記されている"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "いずれ旧カラムへの書き込みをやめます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` が空になり"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "集計だけを先に新しいテーブルへ切り替えたとき"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブルが空なので"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "場所に関する集計はすべて0になります"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "旧カラムの値を `post_search_locations` へ移し"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "旧カラムの値を `post_search_locations` へ移し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "件数が `location_ids` の展開後の件数と合う"
+  },
+  {
+   "concept": "time_range",
+   "word": "期間",
+   "quote": "移行の期間中は、書き込み側が旧カラムと"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "書き込み側が旧カラムと新しいテーブルの両方に書く"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "旧カラムと新しいテーブルの両方に書く"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` の結合に書き換える"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "旧カラムへの書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "（`tstamp` の `timestamp` → `datetime`）"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "日別の集計は変わりません"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "日付で区切る集計では"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "カラムを `ALTER` したときの接続の"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "本番の `tstamp` がすでに `datetime` になっているか"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`SHOW CREATE TABLE post_search`"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"夜間の集計の数字は変わりません\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"書き込み側が `post_search_locations` だけに書く\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"新しい投稿の場所が集計から黙って抜け落ちます\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`tstamp` の型の変更は、接続ごとのタイムゾーン\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"（`location_ids` → `post_search_locations`）\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"（`location_ids` → `post_search_locations`）\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_search.location_ids` には、場所の入っている行が\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"新しいテーブル `post_search_locations` は作られていますが\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"新しいテーブル `post_search_locations` は作られていますが\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"旧カラムからの移し替え（バックフィル）はまだ\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"夜間の集計クエリは `post_search.location_ids` だけを読み\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"新しいテーブルを結合していません\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"本番の集計への影響は次のように分かれます\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"集計は旧カラムを読んでいて旧カラムにも値が入っている\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"集計は旧カラムを読んでいて旧カラムにも値が入っている\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"旧カラムにも値が入っているため\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"書き込み側が新しいテーブルへ移ったとき\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`location_ids` は deprecated と注記されている\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"いずれ旧カラムへの書き込みをやめます\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`location_ids` が空になり\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"集計だけを先に新しいテーブルへ切り替えたとき\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"新しいテーブルが空なので\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"場所に関する集計はすべて0になります\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"旧カラムの値を `post_search_locations` へ移し\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"旧カラムの値を `post_search_locations` へ移し\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"件数が `location_ids` の展開後の件数と合う\"},\n{\"concept\": \"time_range\", \"word\": \"期間\", \"quote\": \"移行の期間中は、書き込み側が旧カラムと\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"書き込み側が旧カラムと新しいテーブルの両方に書く\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"旧カラムと新しいテーブルの両方に書く\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_search_locations` の結合に書き換える\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"旧カラムへの書き込みを止める\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"（`tstamp` の `timestamp` → `datetime`）\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"日別の集計は変わりません\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"日付で区切る集計では\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"カラムを `ALTER` したときの接続の\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"本番の `tstamp` がすでに `datetime` になっているか\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`SHOW CREATE TABLE post_search`\"}\n]"
+}

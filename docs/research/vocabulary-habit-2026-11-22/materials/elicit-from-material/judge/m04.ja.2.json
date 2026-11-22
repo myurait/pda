@@ -1,0 +1,299 @@
+{
+ "file": "m04.ja.2.json",
+ "cond": "ja",
+ "id": "m04",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "同期ジョブ",
+   "quote": "同期ジョブに上書きされて消えることがある"
+  },
+  {
+   "concept": "step",
+   "word": "処理の流れ",
+   "quote": "以下、処理の流れ、問題、直し方の順に説明します"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "自社の MySQL の `settings` テーブルから"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "3. 2つを合わせる。営業時間は外部 API 側"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "4. 合わせた結果を外部 API へ書き込む"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "MySQL の `settings` を、全カラムまとめて更新する"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新する",
+   "quote": "MySQL の `settings` を、全カラムまとめて更新する"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "MySQL の `settings` を、全カラムまとめて"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは、80,000店舗を対象に10分ごとに動きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "80,000店舗を対象に10分ごとに動きます"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1で読んだ店名を、手順5でそのまま書き戻しています"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順1で読んだ店名を、手順5でそのまま書き戻しています"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "手順5でそのまま書き戻しています"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1と手順5の間には、外部 API との往復が2回入ります"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順1と手順5の間には、外部 API との往復が2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順1と手順5の間には、外部 API との往復が2回入ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "運営者が管理画面で `settings.name` を変えると"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5の更新が全カラムを対象にするため"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "手順5の更新が全カラムを対象にするため"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "手順5の更新が全カラムを対象にするため"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1で読んだ古い店名で上書きされます"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "手順1で読んだ古い店名で上書きされます"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4で外部 API にも古い店名が送られます"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "80,000店舗を10分ごとに回しているので"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "手順2から手順4までの間に、外部 API 側で"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順2から手順4までの間に、外部 API 側で"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順2から手順4までの間に、外部 API 側で"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4で、手順2の時点の古い営業時間が書き戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "手順4で、手順2の時点の古い営業時間が書き戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻",
+   "quote": "古い営業時間が書き戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4の外部 API への書き込みが成功し"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "手順4の外部 API への書き込みが成功し"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5の MySQL の更新が失敗すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "手順5の MySQL の更新が失敗すると"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "80,000店舗を10分で回すと、1秒あたり約130店舗"
+  },
+  {
+   "concept": "time_range",
+   "word": "1秒あたり",
+   "quote": "1秒あたり約130店舗を処理することになります"
+  },
+  {
+   "concept": "time_range",
+   "word": "毎秒",
+   "quote": "毎秒260回ほどです"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "毎回、外部 API への書き込みと MySQL の全カラムの更新を行います"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "MySQL の全カラムの更新を行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "MySQL の全カラムの更新を行います"
+  },
+  {
+   "concept": "step",
+   "word": "実行",
+   "quote": "1回の実行が10分を超え、次の実行と"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1回の実行が10分を超え"
+  },
+  {
+   "concept": "step",
+   "word": "実行",
+   "quote": "次の実行と同じ店舗を同時に処理する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "ジョブが責任を持つカラムだけを書く"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブが責任を持つカラムだけを書く"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同期ジョブは `name` を更新対象から外し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期ジョブは `name` を更新対象から外し"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "営業時間のカラムだけを更新します"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "営業時間のカラムだけを更新します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みの直前に読み直すか"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings` に版番号のカラムを持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` に版番号のカラムを持たせ"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "更新文の条件に「読んだときの版番号と同じ」"
+  },
+  {
+   "concept": "write_back",
+   "word": "やり直し",
+   "quote": "途中で変わった場合に検出してやり直せます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "値が変わっていない店舗は書き込みを飛ばす"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4と手順5を行いません"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順4と手順5を行いません"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "条件付きの更新(ETag など)に対応していれば"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"同期ジョブ\",\"quote\":\"同期ジョブに上書きされて消えることがある\"},\n{\"concept\":\"step\",\"word\":\"処理の流れ\",\"quote\":\"以下、処理の流れ、問題、直し方の順に説明します\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"自社の MySQL の `settings` テーブルから\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"3. 2つを合わせる。営業時間は外部 API 側\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"4. 合わせた結果を外部 API へ書き込む\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"MySQL の `settings` を、全カラムまとめて更新する\"},\n{\"concept\":\"write_back\",\"word\":\"更新する\",\"quote\":\"MySQL の `settings` を、全カラムまとめて更新する\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"MySQL の `settings` を、全カラムまとめて\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは、80,000店舗を対象に10分ごとに動きます\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"80,000店舗を対象に10分ごとに動きます\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1で読んだ店名を、手順5でそのまま書き戻しています\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順1で読んだ店名を、手順5でそのまま書き戻しています\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"手順5でそのまま書き戻しています\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1と手順5の間には、外部 API との往復が2回入ります\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順1と手順5の間には、外部 API との往復が2回入ります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順1と手順5の間には、外部 API との往復が2回入ります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"運営者が管理画面で `settings.name` を変えると\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5の更新が全カラムを対象にするため\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"手順5の更新が全カラムを対象にするため\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"手順5の更新が全カラムを対象にするため\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1で読んだ古い店名で上書きされます\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"手順1で読んだ古い店名で上書きされます\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4で外部 API にも古い店名が送られます\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"80,000店舗を10分ごとに回しているので\"},\n{\"concept\":\"step\",\"word\":\"手順2\",\"quote\":\"手順2から手順4までの間に、外部 API 側で\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順2から手順4までの間に、外部 API 側で\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順2から手順4までの間に、外部 API 側で\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4で、手順2の時点の古い営業時間が書き戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順2\",\"quote\":\"手順4で、手順2の時点の古い営業時間が書き戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻\",\"quote\":\"古い営業時間が書き戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4の外部 API への書き込みが成功し\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"手順4の外部 API への書き込みが成功し\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5の MySQL の更新が失敗すると\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"手順5の MySQL の更新が失敗すると\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"80,000店舗を10分で回すと、1秒あたり約130店舗\"},\n{\"concept\":\"time_range\",\"word\":\"1秒あたり\",\"quote\":\"1秒あたり約130店舗を処理することになります\"},\n{\"concept\":\"time_range\",\"word\":\"毎秒\",\"quote\":\"毎秒260回ほどです\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"毎回、外部 API への書き込みと MySQL の全カラムの更新を行います\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"MySQL の全カラムの更新を行います\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"MySQL の全カラムの更新を行います\"},\n{\"concept\":\"step\",\"word\":\"実行\",\"quote\":\"1回の実行が10分を超え、次の実行と\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1回の実行が10分を超え\"},\n{\"concept\":\"step\",\"word\":\"実行\",\"quote\":\"次の実行と同じ店舗を同時に処理する\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"ジョブが責任を持つカラムだけを書く\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブが責任を持つカラムだけを書く\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同期ジョブは `name` を更新対象から外し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期ジョブは `name` を更新対象から外し\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"営業時間のカラムだけを更新します\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"営業時間のカラムだけを更新します\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込みの直前に読み直すか\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings` に版番号のカラムを持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` に版番号のカラムを持たせ\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"更新文の条件に「読んだときの版番号と同じ」\"},\n{\"concept\":\"write_back\",\"word\":\"やり直し\",\"quote\":\"途中で変わった場合に検出してやり直せます\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"値が変わっていない店舗は書き込みを飛ばす\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4と手順5を行いません\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順4と手順5を行いません\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"条件付きの更新(ETag など)に対応していれば\"}\n]"
+}

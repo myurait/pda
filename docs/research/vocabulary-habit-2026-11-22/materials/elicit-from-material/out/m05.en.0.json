@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m05",
+ "i": 0,
+ "result": "---\n\nこのリリースでは、投稿の配信を旧経路から新経路へ切り替えます。\n\n- 旧経路: バッチ`sync-google-posts`がSQSキュー`post-delivery`にメッセージを積み、workerがそこから読む\n- 新経路: dispatcherのスケジュールがキュー`post-dispatch`にメッセージを積み、worker v5.2.0がそこから読む\n\n```\n[切り替え前]  sync-google-posts ──▶ post-delivery ──▶ worker（旧版）\n[切り替え後]  dispatcher        ──▶ post-dispatch ──▶ worker v5.2.0\n```\n\n手順は、まず旧経路の入口を止め、旧キューを空にしてから新経路を動かす順になっています。旧キューに残ったメッセージを旧版のworkerで処理し切ってから新版へ替えるためです。\n\n## 手順\n\n1. **スキーマを更新する**\n   本番DBにマイグレーション`2026_11_20_000000_add_delivery_state`を適用します。\n\n2. **APIをデプロイする**\n   api v3.14.0とgo-api v2.8.0をデプロイし、ヘルスチェックが通ることを確認します。\n\n3. **旧経路の入口を止める**\n   Step Functionsで旧バッチのスケジュール`sync-google-posts`を無効にします。これで旧キュー`post-delivery`に新しいメッセージが積まれなくなります。\n\n4. **旧キューが空になるのを待つ**\n   `post-delivery`の`ApproximateNumberOfMessages`が0になるまで待ちます。新版のworkerは新しいキューだけを読むため、0になってから次の手順へ進んでください。\n\n5. **workerをデプロイする**\n   新しいキュー`post-dispatch`を読むworker v5.2.0をデプロイします。\n\n6. **新経路の入口を動かす**\n   dispatcherのスケジュール（`rate(1 minute)`）を有効にします。ここから新経路で配信が始まります。\n\n## ロールバック\n\n問題が起きたら、切り替えの手順を逆順に戻します。\n\n1. 手順6を戻す: dispatcherのスケジュールを無効にする\n2. 手順5を戻す: workerを前のバージョンに戻す\n3. 手順3を戻す: `sync-google-posts`のスケジュールを再び有効にする\n\n手順1のマイグレーションと手順2のAPIはそのまま残し、新しいスキーマとAPIの上で旧経路を動かします。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7235,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1821,
+  "output_tokens_details": {
+   "thinking_tokens": 966
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7235,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1821,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7235,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7235
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

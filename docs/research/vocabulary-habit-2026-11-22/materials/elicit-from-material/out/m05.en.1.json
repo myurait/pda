@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m05",
+ "i": 1,
+ "result": "---\n\n# 配信の仕組みを新方式へ切り替えるリリースの進め方\n\n## このリリースの目的\n\n投稿の配信を旧方式から新方式へ切り替えます。\n\n- **旧方式**: Step Functions のバッチスケジュール `sync-google-posts` が、SQS キュー `post-delivery` にメッセージを積みます。\n- **新方式**: ディスパッチャーが1分ごとに動き、SQS キュー `post-dispatch` にメッセージを積みます。worker v5.2.0 は `post-dispatch` から読みます。\n\n旧方式のメッセージを取りこぼさないように、手順の順序に意味があります。旧方式の受け付けを止め、`post-delivery` に残ったメッセージを処理し切ってから、worker を新しいキューへ切り替えます。\n\n## 手順\n\n1. **スキーマのマイグレーションを本番に適用する**\n   - 対象は `2026_11_20_000000_add_delivery_state` です。\n   - 配信状態を持つための DB の変更です。新しいアプリケーションが使うため、最初に適用します。\n2. **api と go-api をデプロイし、ヘルスチェックを確かめる**\n   - api は v3.14.0、go-api は v2.8.0 です。\n   - ヘルスチェックが通ってから次へ進みます。\n3. **旧バッチのスケジュールを無効にする**\n   - Step Functions の `sync-google-posts` を無効にします。\n   - これで `post-delivery` に新しいメッセージが入らなくなります。\n4. **`post-delivery` が空になるまで待つ**\n   - `ApproximateNumberOfMessages` が0になったことを確かめます。\n   - worker v5.2.0 は `post-delivery` を読まないため、空になる前に worker v5.2.0 をデプロイすると、残ったメッセージが処理されません。\n5. **worker v5.2.0 をデプロイする**\n   - このバージョンから、worker は新しいキュー `post-dispatch` を読みます。\n6. **ディスパッチャーのスケジュールを有効にする**\n   - 間隔は `rate(1 minute)` です。\n   - ここから新方式での配信が始まります。\n\n## ロールバック\n\n新方式の部分を逆の順で戻し、旧方式を動かし直します。\n\n1. ディスパッチャーのスケジュール（`rate(1 minute)`）を無効にする\n2. worker を v5.2.0 より前のバージョンに戻す\n3. Step Functions の `sync-google-posts` を有効に戻す\n\nスキーマのマイグレーションと、api v3.14.0・go-api v2.8.0 のデプロイは戻しません。\n\n## 作業前に決めておきたい点\n\nロールバックの時点で `post-dispatch` にメッセージが残っていた場合の扱いが、ドラフトには書かれていません。戻した worker は `post-dispatch` を読まないため、残ったメッセージは処理されずに残ります。ディスパッチャーを止めた後に `post-dispatch` が空になるのを待つか、残ったメッセージをどう扱うかを、ロールバック手順に書き足しておくことをお勧めします。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1004,
+  "cache_read_input_tokens": 22093,
+  "output_tokens": 1680,
+  "output_tokens_details": {
+   "thinking_tokens": 601
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1004,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1680,
+    "cache_read_input_tokens": 22093,
+    "cache_creation_input_tokens": 1004,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1004
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

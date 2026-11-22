@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m02",
+ "i": 3,
+ "result": "---\n\n**現時点では、夜間の集計の数字は変わりません。ただし、書き込み側が `post_search_locations` だけに書くよう切り替わった時点から、新しい投稿の場所が集計から黙って抜け落ちます。** `tstamp` の型の変更は、接続ごとのタイムゾーンの設定によっては日付の境目がずれます。\n\n## 場所の集計（`location_ids` → `post_search_locations`）\n\n素材から読み取れる状態は次のとおりです。\n\n- `post_search.location_ids` には、場所の入っている行が412,883行あります。\n- 新しいテーブル `post_search_locations` は作られていますが、行がありません。旧カラムからの移し替え（バックフィル）はまだ行われていません。\n- 夜間の集計クエリは `post_search.location_ids` だけを読み、新しいテーブルを結合していません。\n\nこの状態から、本番の集計への影響は次のように分かれます。\n\n- **今**: 集計は旧カラムを読んでいて旧カラムにも値が入っているため、数字は変わりません。\n- **書き込み側が新しいテーブルへ移ったとき**: `location_ids` は deprecated と注記されているので、書き込み側がいずれ旧カラムへの書き込みをやめます。その日以降の投稿は `location_ids` が空になり、場所ごとの件数が少なく出ます。エラーにはならないため、数字が減ったことに気づきにくい状態です。\n- **集計だけを先に新しいテーブルへ切り替えたとき**: 新しいテーブルが空なので、場所に関する集計はすべて0になります。\n\nこのため、移行は次の順で進める必要があります。\n\n1. 旧カラムの値を `post_search_locations` へ移し、件数が `location_ids` の展開後の件数と合うことを確かめる\n2. 移行の期間中は、書き込み側が旧カラムと新しいテーブルの両方に書く\n3. 夜間の集計クエリを `post_search_locations` の結合に書き換える\n4. そのあとで、旧カラムへの書き込みを止める\n\n## 時刻の集計（`tstamp` の `timestamp` → `datetime`）\n\nMySQL の `timestamp` は、接続のタイムゾーン設定（`time_zone`）に合わせて変換して読み書きされます。`datetime` は変換されず、書いた値がそのまま返ります。\n\n- 書き込み側と夜間の集計の接続がどちらも同じタイムゾーンなら、日別の集計は変わりません。\n- 両者のタイムゾーンが異なる場合、変更前は集計側のタイムゾーンで読めていた時刻が、変更後は書き込み側の時刻のまま返ります。日付で区切る集計では、日付の境目付近の投稿が前後の日に移ります。\n- カラムを `ALTER` したときの接続のタイムゾーンで既存の値が変換されるため、そのタイムゾーンが書き込み側と違うと、変更前の行も時刻がずれます。\n\nこの diff は `doc/dbml` 配下の設計書の変更なので、本番の `tstamp` がすでに `datetime` になっているかは素材からは分かりません。`SHOW CREATE TABLE post_search` で本番の型を見て、書き込み側・集計側・`ALTER` を流す接続の `time_zone` がそろっているかを確かめてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7313,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1958,
+  "output_tokens_details": {
+   "thinking_tokens": 807
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7313,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1958,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7313,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7313
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

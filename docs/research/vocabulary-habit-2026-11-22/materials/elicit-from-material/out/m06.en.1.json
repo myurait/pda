@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m06",
+ "i": 1,
+ "result": "---\n\n## このCIの全体像\n\n`main`ブランチにpushされるたびに、テスト → イメージ作成 → ステージング反映 → 本番反映の4段階が順番に動きます。各段階は前の段階が成功したときだけ始まります。最後の本番反映だけは、人が承認するまで始まりません。\n\n```\nmain に push\n   │\n   ▼\n[test] テスト実行\n   │ 成功したときだけ\n   ▼\n[build] Dockerイメージを作ってECRへ登録\n   │ 成功したときだけ\n   ▼\n[deploy-staging] ステージング(stg)のECSサービスを入れ替え\n   │ 成功したときだけ\n   ▼\n（承認待ち：production環境の承認者が承認する）\n   │\n   ▼\n[deploy-production] 本番(prd)のECSサービスを入れ替え\n```\n\n## 各段階でしていること\n\n- **test**\n  - リポジトリを取得し、`composer install`でPHPの依存パッケージを入れます。\n  - `php artisan test --parallel`でLaravelのテストを並列で実行します。\n- **build**\n  - コミットのSHAをタグにしてDockerイメージを作り、ECR（AWSのコンテナレジストリ）へpushします。\n  - タグがコミットごとに違うので、どのコミットから作ったイメージかを後から辿れます。\n- **deploy-staging**\n  - ステージングのクラスター`stg`にあるサービス`api`を、`--force-new-deployment`で新しいタスクに入れ替えます。\n- **deploy-production**\n  - GitHubの`production`環境に設定された承認者が承認すると、本番のクラスター`prd`のサービス`api`を同じ方法で入れ替えます。\n\n## どこで失敗すると何が止まるか\n\n| 失敗した段階 | 主な原因の例 | 止まるもの | ステージング | 本番 |\n|---|---|---|---|---|\n| test | テストの失敗、依存パッケージの取得失敗 | build以降すべて | 変わらない | 変わらない |\n| build | Dockerfileの誤り、ECRへのpush失敗 | ステージング反映以降 | 変わらない | 変わらない |\n| deploy-staging | AWSの権限不足、ECSの更新失敗 | 本番反映 | 反映されない（または途中） | 変わらない |\n| 承認されない／却下 | 承認者がステージングで問題を見つけた | 本番反映 | 新しい版のまま | 変わらない |\n| deploy-production | AWSの権限不足、ECSの更新失敗 | なし（最後の段階） | 新しい版のまま | 反映されない（または途中） |\n\n押さえておきたいのは次の2点です。\n\n- 前の段階で失敗すると、後ろの段階はスキップされます。本番に届く前に、テストとステージングの2か所で止まる仕組みです。\n- `aws ecs update-service`はデプロイの開始を依頼した時点で成功扱いになります。新しいタスクが起動に失敗しても、ジョブは緑のまま終わることがあります。反映できたかはECSのコンソールでサービスの状態を確かめてください。\n\n---\n\n### 素材のままだと動かない・意図とずれる箇所\n\n説明とは別に、貼っていただいたYAMLをそのまま読むと気になる点があります。抜粋のため省略されているだけなら読み流してください。\n\n- `build`・`deploy-staging`・`deploy-production`に`runs-on`がありません。GitHub Actionsでは必須なので、このままだとワークフローがエラーになります。\n- `docker build`は`api:<SHA>`というタグで作り、`docker push`は`$ECR/api:<SHA>`を送ろうとしています。タグが一致しないので、pushは「イメージが無い」で失敗します。`docker build -t $ECR/api:${{ github.sha }} .`にそろえる必要があります。\n- ECRへのログインと、AWSの認証情報を設定する手順（`aws-actions/configure-aws-credentials`など）が見当たりません。\n- `--force-new-deployment`はタスク定義を変えずにタスクを入れ替えるだけです。タスク定義が今回の`<SHA>`タグを指していないので、今回作ったイメージではなく、タスク定義が指している既存のイメージで再起動されます。新しいイメージを出すには、タスク定義のイメージを`<SHA>`に書き換えて新しいリビジョンを登録する手順が要ります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 998,
+  "cache_read_input_tokens": 22143,
+  "output_tokens": 1969,
+  "output_tokens_details": {
+   "thinking_tokens": 440
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 998,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1969,
+    "cache_read_input_tokens": 22143,
+    "cache_creation_input_tokens": 998,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 998
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

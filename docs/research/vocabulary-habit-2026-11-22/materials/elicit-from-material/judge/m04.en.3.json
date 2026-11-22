@@ -1,0 +1,304 @@
+{
+ "file": "m04.en.3.json",
+ "cond": "en",
+ "id": "m04",
+ "i": 3,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "書き戻されて",
+   "quote": "同期で古い値に書き戻されて消える問題があります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読んでから書くまでの間に他から書き込みが入ると"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "その書き込みを上書きしてしまう作りです"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQLの`settings`テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "合わせた設定を外部APIへ書き込む"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "1でMySQLを読んでから5で書き戻すまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "1でMySQLを読んでから5で書き戻すまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "1でMySQLを読んでから5で書き戻すまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "1でMySQLを読んでから5で書き戻すまでの間に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "オペレーターが管理画面で`settings.name`を変えると"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "3で合わせた設定には、1で読んだ古い店舗名が入っている"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "3で合わせた設定には、1で読んだ古い店舗名が入っている"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "5は全カラムを`UPDATE`するので"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "5は全カラムを`UPDATE`するので"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "5は全カラムを`UPDATE`するので"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings.name`が古い店舗名に戻る"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "4で外部APIにも古い店舗名が送られる"
+  },
+  {
+   "concept": "write_back",
+   "word": "送られる",
+   "quote": "4で外部APIにも古い店舗名が送られる"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "1から5の間には外部APIの呼び出しが2回挟まる"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "1から5の間には外部APIの呼び出しが2回挟まる"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "1から5の間には外部APIの呼び出しが2回挟まる"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間は短くありません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "5で`settings.name`を書く必要はもともとありません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "5で`settings.name`を書く必要はもともとありません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書く",
+   "quote": "5で`settings.name`を書く必要はもともとありません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "必要のない書き込みが、変更を消す原因になっています"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2で読んでから4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2で読んでから4で書くまでの間に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書く",
+   "quote": "2で読んでから4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "2で読んでから4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "4がその変更を古い値で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "4がその変更を古い値で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIとMySQLの書き込みがそろわないことがある"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "4が成功して5が失敗すると"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "4が成功して5が失敗すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "問題1の上書きと重なると"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "値が変わっていなくても毎回書き込む"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "毎回4と5を実行します"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "毎回4と5を実行します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みが多いほど問題1が起きる機会も増えます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "MySQLへの書き込みを、外部APIの値を採るカラムだけにする"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "MySQLへの書き込みを、外部APIの値を採るカラムだけにする"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "`UPDATE`で営業時間のカラムだけを書き"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`UPDATE`で営業時間のカラムだけを書き"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き",
+   "quote": "`UPDATE`で営業時間のカラムだけを書き"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings.name`には触れません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込まない",
+   "quote": "差がない店舗は書き込まない"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "合わせた結果が読んだ値と同じなら、4と5を実行しません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "合わせた結果が読んだ値と同じなら、4と5を実行しません"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "外部APIが条件付きの更新（ETagなど）に対応していれば使う"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2で読んだ版から変わっていたら4を失敗させ"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2で読んだ版から変わっていたら4を失敗させ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "複数のカラムを別々の画面から編集するようになったら"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings`に版番号のカラムを足して"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings`に版番号のカラムを足して"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "読んだ版と一致するときだけ`UPDATE`する形"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"書き戻されて\",\"quote\":\"同期で古い値に書き戻されて消える問題があります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読んでから書くまでの間に他から書き込みが入ると\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"その書き込みを上書きしてしまう作りです\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQLの`settings`テーブルから、その店舗の設定を読む\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"合わせた設定を外部APIへ書き込む\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"1でMySQLを読んでから5で書き戻すまでの間に\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"1でMySQLを読んでから5で書き戻すまでの間に\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"1でMySQLを読んでから5で書き戻すまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"1でMySQLを読んでから5で書き戻すまでの間に\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"オペレーターが管理画面で`settings.name`を変えると\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"3で合わせた設定には、1で読んだ古い店舗名が入っている\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"3で合わせた設定には、1で読んだ古い店舗名が入っている\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"5は全カラムを`UPDATE`するので\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"5は全カラムを`UPDATE`するので\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"5は全カラムを`UPDATE`するので\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings.name`が古い店舗名に戻る\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"4で外部APIにも古い店舗名が送られる\"},\n{\"concept\":\"write_back\",\"word\":\"送られる\",\"quote\":\"4で外部APIにも古い店舗名が送られる\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"1から5の間には外部APIの呼び出しが2回挟まる\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"1から5の間には外部APIの呼び出しが2回挟まる\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"1から5の間には外部APIの呼び出しが2回挟まる\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間は短くありません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"5で`settings.name`を書く必要はもともとありません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"5で`settings.name`を書く必要はもともとありません\"},\n{\"concept\":\"write_back\",\"word\":\"書く\",\"quote\":\"5で`settings.name`を書く必要はもともとありません\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"必要のない書き込みが、変更を消す原因になっています\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2で読んでから4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2で読んでから4で書くまでの間に\"},\n{\"concept\":\"write_back\",\"word\":\"書く\",\"quote\":\"2で読んでから4で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"2で読んでから4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"4がその変更を古い値で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"4がその変更を古い値で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIとMySQLの書き込みがそろわないことがある\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"4が成功して5が失敗すると\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"4が成功して5が失敗すると\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"問題1の上書きと重なると\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"値が変わっていなくても毎回書き込む\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"毎回4と5を実行します\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"毎回4と5を実行します\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込みが多いほど問題1が起きる機会も増えます\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"MySQLへの書き込みを、外部APIの値を採るカラムだけにする\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"MySQLへの書き込みを、外部APIの値を採るカラムだけにする\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"`UPDATE`で営業時間のカラムだけを書き\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`UPDATE`で営業時間のカラムだけを書き\"},\n{\"concept\":\"write_back\",\"word\":\"書き\",\"quote\":\"`UPDATE`で営業時間のカラムだけを書き\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings.name`には触れません\"},\n{\"concept\":\"write_back\",\"word\":\"書き込まない\",\"quote\":\"差がない店舗は書き込まない\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"合わせた結果が読んだ値と同じなら、4と5を実行しません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"合わせた結果が読んだ値と同じなら、4と5を実行しません\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"外部APIが条件付きの更新（ETagなど）に対応していれば使う\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2で読んだ版から変わっていたら4を失敗させ\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2で読んだ版から変わっていたら4を失敗させ\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"複数のカラムを別々の画面から編集するようになったら\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings`に版番号のカラムを足して\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings`に版番号のカラムを足して\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"読んだ版と一致するときだけ`UPDATE`する形\"}\n]"
+}

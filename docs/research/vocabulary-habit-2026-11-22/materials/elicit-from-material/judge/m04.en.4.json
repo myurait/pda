@@ -1,0 +1,244 @@
+{
+ "file": "m04.en.4.json",
+ "cond": "en",
+ "id": "m04",
+ "i": 4,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "同期が最初に読んだ値で`settings`の全カラムを上書きする"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings`の全カラムを上書きすることです"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "最初に読んだ値で`settings`の全カラムを上書きする"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "MySQLの`settings`から自社側の設定を読む"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "外部APIから先方の設定を読む"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2つを合わせる"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "合わせた設定を外部APIへ書き込む"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "合わせた設定を外部APIへ書き込む"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "MySQLの`settings`から自社側の設定を読む"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "合わせた設定で`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings`の全カラムを`UPDATE`する"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "このジョブは10分ごとに、80,000店舗すべてに"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは10分ごとに、80,000店舗すべてに"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "オペレーターは、管理画面からいつでも`settings.name`を書き換えます"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "オペレーターは、管理画面からいつでも`settings.name`を書き換えます"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "同期が手順1で読んでから手順5で書くまでの間には"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "同期が手順1で読んでから手順5で書くまでの間には"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順5で書くまでの間には、外部APIの呼び出しが2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間にオペレーターが店舗名を直すと"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "|-- 5. settings を全カラム UPDATE → name=\"旧名\" に戻る"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "|-- 5. settings を全カラム UPDATE → name=\"旧名\" に戻る"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "|-- 5. settings を全カラム UPDATE → name=\"旧名\" に戻る"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "80,000店舗を10分ごとに回すので"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "どこかの回の途中」にある状態に近く"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順4で書くまでの間に、先方で営業時間が変わった場合"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "同期は古い営業時間を書き戻します"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1回の実行が10分を超えると、同じ店舗の同期が重なる"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "80,000店舗を10分で終えるには"
+  },
+  {
+   "concept": "time_range",
+   "word": "毎秒",
+   "quote": "毎秒およそ130店舗、外部APIへは毎秒およそ270件"
+  },
+  {
+   "concept": "time_range",
+   "word": "毎秒",
+   "quote": "外部APIへは毎秒およそ270件を処理する必要があります"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "実行が10分を超えると、次の回が始まって"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "値に変化がない店舗にも毎回書き込むため"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings`への書き込みを、外部APIから採る営業時間の"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "`settings`への書き込みを、外部APIから採る営業時間の"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部APIから採る営業時間のカラムだけにする"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "同期が書き戻す必要がありません"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同期が上書きするカラムが今後増える場合に備えて"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同期が上書きするカラムが今後増える場合に備えて"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings`に`version`か`updated_at`を持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings`に`version`か`updated_at`を持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings`に`version`か`updated_at`を持たせ"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "読んだときの値と一致するときだけ`UPDATE`する(楽観ロック)"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "合わせた結果が読んだ値と同じ店舗は書き込みを省く"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"同期が最初に読んだ値で`settings`の全カラムを上書きする\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings`の全カラムを上書きすることです\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"最初に読んだ値で`settings`の全カラムを上書きする\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"MySQLの`settings`から自社側の設定を読む\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"外部APIから先方の設定を読む\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2つを合わせる\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"合わせた設定を外部APIへ書き込む\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"合わせた設定を外部APIへ書き込む\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"MySQLの`settings`から自社側の設定を読む\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"合わせた設定で`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings`の全カラムを`UPDATE`する\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"このジョブは10分ごとに、80,000店舗すべてに\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは10分ごとに、80,000店舗すべてに\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"オペレーターは、管理画面からいつでも`settings.name`を書き換えます\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"オペレーターは、管理画面からいつでも`settings.name`を書き換えます\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"同期が手順1で読んでから手順5で書くまでの間には\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"同期が手順1で読んでから手順5で書くまでの間には\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順5で書くまでの間には、外部APIの呼び出しが2回入ります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間にオペレーターが店舗名を直すと\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"|-- 5. settings を全カラム UPDATE → name=\\\"旧名\\\" に戻る\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"|-- 5. settings を全カラム UPDATE → name=\\\"旧名\\\" に戻る\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"|-- 5. settings を全カラム UPDATE → name=\\\"旧名\\\" に戻る\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"80,000店舗を10分ごとに回すので\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"どこかの回の途中」にある状態に近く\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順4で書くまでの間に、先方で営業時間が変わった場合\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"同期は古い営業時間を書き戻します\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1回の実行が10分を超えると、同じ店舗の同期が重なる\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"80,000店舗を10分で終えるには\"},\n{\"concept\":\"time_range\",\"word\":\"毎秒\",\"quote\":\"毎秒およそ130店舗、外部APIへは毎秒およそ270件\"},\n{\"concept\":\"time_range\",\"word\":\"毎秒\",\"quote\":\"外部APIへは毎秒およそ270件を処理する必要があります\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"実行が10分を超えると、次の回が始まって\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"値に変化がない店舗にも毎回書き込むため\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings`への書き込みを、外部APIから採る営業時間の\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"`settings`への書き込みを、外部APIから採る営業時間の\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部APIから採る営業時間のカラムだけにする\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"同期が書き戻す必要がありません\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"同期が上書きするカラムが今後増える場合に備えて\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同期が上書きするカラムが今後増える場合に備えて\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings`に`version`か`updated_at`を持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings`に`version`か`updated_at`を持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings`に`version`か`updated_at`を持たせ\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"読んだときの値と一致するときだけ`UPDATE`する(楽観ロック)\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"合わせた結果が読んだ値と同じ店舗は書き込みを省く\"}\n]"
+}

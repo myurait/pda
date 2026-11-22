@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m02",
+ "i": 0,
+ "result": "---\n\n**結論:** 今夜の時点では、夜間レポートの集計結果は変わりません。影響が出るのは、書き込み側が `post_search_locations` だけに書くよう切り替わったときです。その時点から、レポートは新しい投稿を数えなくなり、件数がエラーなしに減ります。\n\n## 店舗の紐付け（`location_ids` から `post_search_locations` へ）\n\n今の状態は次のとおりです。\n\n- 差分は `location_ids` に廃止予定の注記を付けただけです。カラムもデータも残っており、値の入った行がDBに多数あります。\n- 新しい `post_search_locations` はDBに作られていますが、空です。既存データはまだ移されていません。\n- 夜間レポートは `location_ids` だけを読み、`post_search_locations` を結合していません。\n\nこのため、次の時点で集計が壊れます。\n\n- **書き込み側が新テーブルだけに書くようになったとき**\n    - それ以降の投稿は `location_ids` が空になり、レポートから落ちます。\n    - クエリはエラーにならないので、件数の減少に気づきにくいです。\n- **`location_ids` カラムを削除したとき**\n    - レポートのクエリがエラーで止まります。\n\n安全な移行の順序は次のとおりです。\n\n1. 書き込み側が両方のテーブルに書くようにする\n2. 既存の `location_ids` を `post_search_locations` へ移す（バックフィル）\n3. 夜間レポートを `post_search_locations` を結合する形に書き換え、旧クエリと結果が一致することを確かめる\n4. 書き込み側を新テーブルだけにする\n5. `location_ids` を削除する\n\n## `tstamp` の型（`timestamp` から `datetime` へ）\n\nMySQLの2つの型は、時刻の扱いが違います。\n\n- TIMESTAMPは、UTCで保存され、読むときにセッションのタイムゾーンへ変換されます。\n- DATETIMEは、変換されず、書いた値がそのまま返ります。\n\nALTERで型を変えると、既存の値はALTERを実行したセッションのタイムゾーンで見えていた値に固定されます。集計への影響は、タイムゾーンの設定によって次のように分かれます。\n\n- **書き込み・夜間レポート・ALTERのセッションのタイムゾーンがすべて同じ場合**\n    - 集計は変わりません。\n- **いずれかが違う場合（例: アプリはUTC、レポートはJST）**\n    - 日付の境界がずれます。\n    - 日別の件数が、時差の分だけ前後の日へ移ります。\n    - 変更前の行と変更後の行で、ずれ方が変わります。\n\n素材からは、この型変更が本番DBにすでに適用されたかが分かりません。`post_search_locations` が存在するので、マイグレーションは少なくとも一部が適用済みです。次の2点を本番で確かめれば、影響の有無が決まります。\n\n- `SHOW CREATE TABLE post_search` で、`tstamp` の現在の型を見る\n- アプリ・レポート・マイグレーションの各接続で `SELECT @@global.time_zone, @@session.time_zone` を実行し、タイムゾーンが揃っているかを見る\n\n私の手元からは本番DBに接続できないため、この2点は未確認です。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7310,
+  "cache_read_input_tokens": 15851,
+  "output_tokens": 2912,
+  "output_tokens_details": {
+   "thinking_tokens": 1777
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7310,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2912,
+    "cache_read_input_tokens": 15851,
+    "cache_creation_input_tokens": 7310,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7310
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

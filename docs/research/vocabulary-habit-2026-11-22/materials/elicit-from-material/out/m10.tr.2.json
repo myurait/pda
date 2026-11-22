@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m10",
+ "i": 2,
+ "result": "---\n\nこの関数は、配信の記録の一覧から「配信に失敗した投稿がある店舗」だけを選び出し、店舗ごとに失敗した投稿をまとめて返します。呼び出し側はこの結果を使い、失敗のあった店舗ごとに1回ずつ通知を送ります。\n\n## 何を計算して返すか\n\n入力は配信の記録の一覧です。記録の1件には、どの店舗のどの投稿がどの状態になったかが入っています。\n\n返すのは、店舗ごとのまとめの一覧です。まとめの1つには次の情報が入ります。\n\n- 店舗のID\n- その店舗で配信に失敗した件数\n- 失敗した投稿のIDの一覧\n\n## 処理の流れ\n\n1. 記録を先頭から順に見ていき、店舗のIDごとにまとめを用意します。初めて出てきた店舗には、空のまとめを作ります。\n2. 記録の状態が「failed」のときだけ、その店舗の失敗件数を1増やし、投稿のIDを一覧に加えます。それ以外の状態の記録では、まとめは作りますが中身には何も加えません。\n3. すべての記録を見終えたら、失敗件数が1以上の店舗のまとめだけを返します。失敗が1件も無かった店舗は結果に入りません。\n\n## 呼び出し側での使われ方\n\n呼び出し側は返ってきたまとめを1つずつ取り出し、店舗のIDと失敗した投稿のIDの一覧を通知の処理に渡します。その結果、失敗のあった店舗ごとに、どの投稿が失敗したかを知らせる通知が1回送られます。失敗の無い店舗に通知は送られません。\n\n## 結果の並び順\n\n店舗ごとのまとめはGoのマップにいったん入れてから取り出しているので、返す一覧の並び順は呼び出すたびに変わることがあります。そのため、通知を送る店舗の順番も毎回同じになるとは限りません。一方、各店舗の投稿IDの一覧は、入力の記録に出てきた順に並びます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 25077,
+  "cache_read_input_tokens": 184062,
+  "output_tokens": 2139,
+  "output_tokens_details": {
+   "thinking_tokens": 1428
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 25077,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2139,
+    "cache_read_input_tokens": 184062,
+    "cache_creation_input_tokens": 25077,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 25077
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

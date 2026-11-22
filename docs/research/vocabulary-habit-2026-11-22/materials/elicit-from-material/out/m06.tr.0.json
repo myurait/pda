@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m06",
+ "i": 0,
+ "result": "---\n\n## English\n\n### Overview\n\nThis workflow runs every time a commit lands on `main`, whether by direct push or by merging a PR. It does not run on pull requests, so tests are not run before code reaches `main`.\n\nThe jobs run in a single chain. Each job starts only after the previous one succeeds.\n\n```\npush to main\n   ↓\ntest ──→ build ──→ deploy-staging ──→ deploy-production\n                                      (waits for manual approval)\n```\n\n### What each job does\n\n- **test**: Installs dependencies with `composer install` and runs the Laravel test suite in parallel with `php artisan test --parallel`.\n- **build**: Builds a Docker image tagged with the commit SHA and pushes it to ECR.\n- **deploy-staging**: Restarts the `api` service on the ECS cluster `stg`.\n- **deploy-production**: Restarts the `api` service on the ECS cluster `prd`. Because it uses the `production` environment, it pauses until an approver allows it, provided an approval rule is configured in the repository settings. The YAML comment alone does not create the approval rule.\n\n### Where a failure stops the pipeline\n\n- **test fails** (dependency install or any test): No image is built and nothing is deployed. Staging and production keep running the previous version.\n- **build fails** (image build or ECR push): Neither environment is deployed. Both keep running the previous version.\n- **deploy-staging fails** (the `update-service` call errors): Production is not deployed.\n- **Production approval is rejected or never given**: Production stays on the previous version. Staging already has the new version.\n\nOne caveat: `aws ecs update-service` succeeds as soon as ECS accepts the deployment request. It does not wait for the new tasks to become healthy. If the new containers crash on staging, the job is still marked successful, and the production approval request still appears. Before approving production, check the service state in the staging ECS console.\n\n### Issues in this YAML (separate from the explanation above)\n\nThe file as written is unlikely to work, so please confirm it against the actual repository version.\n\n- `build`, `deploy-staging`, and `deploy-production` have no `runs-on`. GitHub rejects the workflow, so no job runs.\n- `build` has no `actions/checkout`, so the source and Dockerfile are not available to `docker build`.\n- The image is tagged `api:<sha>` but pushed as `$ECR/api:<sha>`. That tag does not exist locally, so the push fails. There is also no ECR login step.\n- Neither deploy job configures AWS credentials.\n- `--force-new-deployment` restarts tasks using the existing task definition. Unless the task definition points to the new `<sha>` image, the newly built image is not deployed.\n\n## 日本語\n\n### 全体の流れ\n\nこのワークフローは、`main` にコミットが入るたびに動きます。直接 push した場合も、PR をマージした場合も同じです。PR の段階では動かないため、テストは `main` に入った後で初めて走ります。\n\nジョブは 1 本の鎖でつながっていて、前のジョブが成功したときだけ次のジョブが始まります。\n\n```\nmain への push\n   ↓\ntest ──→ build ──→ deploy-staging ──→ deploy-production\n                                      (手動承認を待つ)\n```\n\n### 各ジョブの役割\n\n- **test**: `composer install` で依存パッケージを入れ、`php artisan test --parallel` で Laravel のテストを並列に実行します。\n- **build**: コミットの SHA をタグにした Docker イメージを作り、ECR に push します。\n- **deploy-staging**: ECS のクラスター `stg` の `api` サービスを再デプロイします。\n- **deploy-production**: ECS のクラスター `prd` の `api` サービスを再デプロイします。\n  - `production` 環境を使うため、承認者が許可するまで止まって待ちます。\n  - 承認が求められるのは、リポジトリの設定で承認ルールが入っている場合です。YAML のコメントを書いただけでは承認ルールは作られません。\n\n### どこで失敗すると何が止まるか\n\n- **test の失敗** (依存の取得やテストの失敗): イメージは作られず、どこにもデプロイされません。ステージングも本番も前のバージョンのまま動き続けます。\n- **build の失敗** (イメージ作成や ECR への push の失敗): ステージングにも本番にもデプロイされません。どちらも前のバージョンのままです。\n- **deploy-staging の失敗** (`update-service` の呼び出しがエラー): 本番にはデプロイされません。\n- **本番の承認を却下した、または承認しないまま**: 本番は前のバージョンのままです。ステージングには新しいバージョンがすでに入っています。\n\n注意点が 1 つあります。`aws ecs update-service` は、ECS がデプロイの依頼を受け付けた時点で成功を返します。新しいタスクが正常に起動するまでは待ちません。そのため、ステージングで新しいコンテナが起動直後に落ちていても、このジョブは成功扱いになり、本番の承認依頼も届きます。本番を承認する前に、ECS のコンソールでステージングのサービスの状態を確かめてください。\n\n### この YAML の不具合 (上の説明とは別の話)\n\nこのファイルは、書かれているままでは動かない見込みです。リポジトリにある実物と照らし合わせて確かめてください。\n\n- `build`・`deploy-staging`・`deploy-production` に `runs-on` がありません。この状態では GitHub がワークフロー自体を受け付けず、どのジョブも動きません。\n- `build` に `actions/checkout` がありません。ソースも Dockerfile も無い状態で `docker build` が走ることになります。\n- イメージのタグ付けと push の名前が合っていません。\n  - タグは `api:<sha>` で付けています。\n  - push は `$ECR/api:<sha>` に対して行っています。\n  - この名前のイメージは手元に無いため、push は失敗します。ECR へのログインの手順もありません。\n- どちらのデプロイのジョブにも、AWS の認証情報を設定する手順がありません。\n- `--force-new-deployment` は、今のタスク定義のままタスクを入れ替えます。タスク定義が新しい `<sha>` のイメージを指していなければ、ビルドしたイメージはデプロイされません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 21834,
+  "cache_read_input_tokens": 1387,
+  "output_tokens": 3248,
+  "output_tokens_details": {
+   "thinking_tokens": 1117
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 21834,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3248,
+    "cache_read_input_tokens": 1387,
+    "cache_creation_input_tokens": 21834,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 21834
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

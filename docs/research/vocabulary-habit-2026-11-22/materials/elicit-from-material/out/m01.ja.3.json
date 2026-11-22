@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m01",
+ "i": 3,
+ "result": "---\n\nPR の説明文を書きました。そのまま貼れる形にしてあります。\n\n```markdown\n## 概要\n\n配信予定を記録するテーブル `delivery_instructions` を新しく作り、`post_google_location_relationships` に配信状態の列を足す。\n\n## 変更内容\n\n### テーブル `delivery_instructions` を新規作成\n\n投稿グループごと・配信先ごとに、配信予定日時と送出日時を持つ。\n\n- `post_group_id`: `post_groups` を参照する外部キー\n- `platform`: 配信先。32文字まで\n- `scheduled_at`: 配信予定日時\n- `dispatched_at`: 送出日時。送出前は NULL\n- `post_group_id` と `platform` の組に一意制約を付ける。1つの投稿グループにつき、配信先ごとに1行だけ持てる\n\n### `post_google_location_relationships` に列と索引を追加\n\n- `delivery_state`: 配信状態。16文字まで、既定値は `pending`。`sent_at` の後ろに置く\n- `external_key`: NULL を許す文字列。`delivery_state` の後ろに置く\n- `delivery_state` と `updated_at` の複合索引\n\n## 既存データへの影響\n\n- `delivery_instructions` は空の状態で作られ、既存のテーブルの行には触れない\n- `post_google_location_relationships` の既存行は、マイグレーションの中で `delivery_state` が次のように埋まる\n  - `sent_at` に値がある行は `sent`\n  - `sent_at` が NULL の行は既定値の `pending`\n- `external_key` は既存行ではすべて NULL になる\n- `down()` を定義していないため、`migrate:rollback` では元に戻らない\n```\n\n素材のマイグレーションには、この変更を入れる理由が書かれていませんでした。そのため「背景」の節は作っていません。チケットなど理由のわかる資料があれば、概要の前に足せます。また `external_key` は何の識別子なのかがコードから読み取れないので、型と NULL を許すことだけを書いています。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 10534,
+  "cache_read_input_tokens": 198527,
+  "output_tokens": 2303,
+  "output_tokens_details": {
+   "thinking_tokens": 1602
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 10534,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2303,
+    "cache_read_input_tokens": 198527,
+    "cache_creation_input_tokens": 10534,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10534
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m01",
+ "i": 0,
+ "result": "---\n\n## English\n\nThe PR description is below. The material only contains the migration, so I could not find the reason for the change. The Background section is left as a placeholder for you to fill in.\n\n```markdown\n## Background\n\n(Add the reason for the change here.)\n\n## Changes\n\n### New table: `delivery_instructions`\n\nHolds one delivery instruction per post group and platform.\n\n- `post_group_id`: foreign key to `post_groups`\n- `platform`: string, up to 32 characters\n- `scheduled_at`: the scheduled delivery time (required)\n- `dispatched_at`: when the instruction was dispatched (nullable)\n- `(post_group_id, platform)` must be unique\n\n### New columns on `post_google_location_relationships`\n\n- `delivery_state`: string, up to 16 characters, default `pending`, placed after `sent_at`\n- `external_key`: string, nullable\n- A composite index on `(delivery_state, updated_at)`\n\n## Effect on existing data\n\n- Existing rows in `post_google_location_relationships`:\n  - Rows where `sent_at` is set get `delivery_state = 'sent'`.\n  - Rows where `sent_at` is NULL get `delivery_state = 'pending'`.\n  - `external_key` is NULL for every existing row.\n- `delivery_instructions` starts out empty.\n- The foreign key has no `onDelete` setting. Once a post group has a delivery instruction, deleting that post group fails until its instructions are deleted first.\n\n## Deployment notes\n\n- The migration alters `post_google_location_relationships` (two new columns and an index) and backfills every sent row with a single `UPDATE`. On a large table this can take a while.\n- There is no `down()` method, so `migrate:rollback` does not undo this migration. To revert it, drop the table, the columns and the index by hand.\n```\n\n## 日本語\n\nPR の説明文を下に書きました。素材にはマイグレーションしか無く、変更の理由は分かりませんでした。「背景」の節は空けてあるので、書き足してください。\n\n```markdown\n## 背景\n\n（変更の理由を書いてください）\n\n## 変更内容\n\n### 新しいテーブル `delivery_instructions`\n\n投稿グループとプラットフォームの組ごとに、配信の指示を 1 件ずつ持つ。\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: 文字列（最大32文字）\n- `scheduled_at`: 配信の予定日時（必須）\n- `dispatched_at`: 指示を送り出した日時（NULL 可）\n- `(post_group_id, platform)` に一意制約\n\n### `post_google_location_relationships` に足すカラム\n\n- `delivery_state`: 文字列（最大16文字）。既定値は `pending`。`sent_at` の後ろに置く\n- `external_key`: 文字列（NULL 可）\n- `(delivery_state, updated_at)` の複合インデックス\n\n## 既存データへの影響\n\n- `post_google_location_relationships` の既存の行\n  - `sent_at` が入っている行は `delivery_state = 'sent'` になる\n  - `sent_at` が NULL の行は `delivery_state = 'pending'` になる\n  - `external_key` はどの既存の行も NULL になる\n- `delivery_instructions` は空の状態で作られる\n- 外部キーに `onDelete` の指定が無い。配信の指示を持つ投稿グループは、先に指示を消さないと削除できなくなる\n\n## デプロイ時の注意\n\n- `post_google_location_relationships` を変更（カラム2つとインデックスの追加）したうえで、送信済みの行すべてを1回の `UPDATE` で埋める。行数が多いと時間がかかる\n- `down()` が無いので、`migrate:rollback` ではこのマイグレーションを戻せない。戻すときは、テーブルとカラムとインデックスを手で消す\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 114938,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2498,
+  "output_tokens_details": {
+   "thinking_tokens": 1204
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 114938,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2498,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 114938,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 114938
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

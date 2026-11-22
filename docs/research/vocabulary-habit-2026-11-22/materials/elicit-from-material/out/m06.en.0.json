@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m06",
+ "i": 0,
+ "result": "---\n\nこのCIは、`main`にpushされるたびに、テスト、イメージのビルド、ステージングへのデプロイ、本番へのデプロイを順に一本道で実行します。どの段階で失敗しても、それより後の段階はすべて実行されません。本番へのデプロイだけは、人が承認するまで止まります。\n\n## 全体の流れ\n\n```\nmain に push\n   │\n   ▼\ntest ──失敗──▶ ここで終了（イメージは作られない）\n   │\n   ▼\nbuild ──失敗──▶ ここで終了（ECR に新しいイメージは無い）\n   │\n   ▼\ndeploy-staging ──失敗──▶ ここで終了（本番は承認待ちにもならない）\n   │\n   ▼\ndeploy-production ──（承認待ちで停止）──▶ 承認されると本番へ反映\n```\n\n各ジョブは`needs`で直前のジョブにつながっています。前のジョブが成功したときだけ次のジョブが始まります。\n\n## 各段階で行うことと、失敗したときに止まるもの\n\n| ジョブ | 行うこと | 失敗したときに止まるもの |\n|---|---|---|\n| `test` | コードを取得し、`composer install`で依存を入れ、`php artisan test --parallel`でテストを並列実行する | build・ステージング・本番のすべて。ステージングも本番も前の版のまま動き続ける |\n| `build` | コミットのSHAをタグにしてDockerイメージを作り、ECRへpushする | ステージングと本番への反映 |\n| `deploy-staging` | ECSの`stg`クラスターの`api`サービスを再デプロイする | 本番への反映。承認の依頼も出ない |\n| `deploy-production` | GitHubの`production`環境の承認を待ち、承認後にECSの`prd`クラスターの`api`サービスを再デプロイする | 承認されない限り本番は変わらない。承認後にここで失敗した場合、ステージングだけが新しい版になっている |\n\n## 日々の作業で押さえておくこと\n\n- `main`へのpushがそのままデプロイの起点になります。テストが通ればステージングまでは自動で反映されます。\n- 本番に出すには、GitHub Actionsの実行画面で`production`環境の承認が要ります。承認できるのは、その環境に設定されたレビュアーです。\n- 失敗したら、Actionsの画面で赤くなっている最初のジョブを見ます。それより後のジョブは「スキップ」になっているだけで、原因はありません。\n\n---\n\n**説明とは別に、この素材のままでは動かないと思われる箇所**\n\n新メンバー向けの説明とは別件ですが、素材のYAMLには次の問題があります。実際のファイルでは省略されているだけかもしれないので、手元の本物と照らしてください。\n\n- `build`・`deploy-staging`・`deploy-production`に`runs-on`がありません。GitHub Actionsでは必須のため、ワークフローとして読み込まれません。\n- `build`に`actions/checkout`がありません。`docker build`の時点でDockerfileが無く、失敗します。\n- `docker build`は`api:<SHA>`という名前で作り、`docker push`は`$ECR/api:<SHA>`を送ろうとしています。名前が一致せず、pushが失敗します。\n- AWSの認証とECRへのログインの手順がありません。pushも`aws ecs`も認証で失敗します。\n- `--force-new-deployment`はタスク定義を変えずにコンテナを入れ替えるだけです。タスク定義がSHAのタグを指していれば、新しいイメージには替わりません。タスク定義を更新する手順を入れるか、タスク定義側が`latest`のような動くタグを使っているかを確認する必要があります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7285,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1640,
+  "output_tokens_details": {
+   "thinking_tokens": 358
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7285,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1640,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7285,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7285
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

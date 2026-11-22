@@ -1,0 +1,189 @@
+{
+ "file": "m09.tr.0.json",
+ "cond": "tr",
+ "id": "m09",
+ "i": 0,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを防ぐために除外した紐付けの行が"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "除外した紐付けの行が、既存かどうかの判定からも"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "その店舗の紐付けの行（`PostGoogleLocationRelationship`）から"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`PostGoogleLocationRelationship`）から、GBPの投稿の識別子"
+  },
+  {
+   "concept": "db_column",
+   "word": "識別子",
+   "quote": "GBPの投稿の識別子（`external_key`）を集めて"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "識別子（`external_key`）を集めて"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「既知の識別子」の一覧を作る"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "識別子がこの一覧にあれば既存として飛ばす"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に無ければ、新しい投稿グループを作る"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "元の投稿が編集された紐付けの行を `$this->excludedRowIds` に足しました"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "紐付けの行を `$this->excludedRowIds` に足しました"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の中で後からその行を上書きしないことです"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "ところが、1の一覧を作るクエリも"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`whereNotIn('id', $this->excludedRowIds)` で同じ除外の一覧を使っています"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "`$this->excludedRowIds)` で同じ除外の一覧を使っています"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "編集された紐付けの行の `external_key` が、既知の識別子の一覧に入らない"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "紐付けの行の `external_key` が、既知の識別子の一覧に"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "`external_key` が、既知の識別子の一覧に入らない"
+  },
+  {
+   "concept": "step",
+   "word": "判定",
+   "quote": "GBPの投稿が2の判定で「未知」と見なされる"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "既存の投稿グループと紐付けの行は残っているので"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` は「この実行で書き換えない行」を表す一覧です"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き換え",
+   "quote": "「この実行で書き換えない行」を表す一覧です"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「この実行で書き換えない行」を表す一覧です"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "この一覧を「この店舗に既にある投稿」の判定にも使っている"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き換え",
+   "quote": "書き換えないだけのはずの行が、存在しない行として"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の識別子の一覧は、除外の一覧を通さずに"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の識別子の一覧は、除外の一覧を通さずに"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "その店舗の紐付けの行をすべて対象にして作ります"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "$knownKeys = PostGoogleLocationRelationship::where("
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "where('location_id', $locationId)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "->pluck('external_key')"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "$knownKeys = PostGoogleLocationRelationship::where("
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`excludedRowIds` による除外は、紐付けの行を更新・上書きする処理の側だけで"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付けの行",
+   "quote": "紐付けの行を更新・上書きする処理の側だけで使います"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "紐付けの行を更新・上書きする処理の側だけで使います"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "編集された行は上書きされず、新しい投稿グループも"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"上書きを防ぐために除外した紐付けの行が\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"除外した紐付けの行が、既存かどうかの判定からも\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"その店舗の紐付けの行（`PostGoogleLocationRelationship`）から\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`PostGoogleLocationRelationship`）から、GBPの投稿の識別子\"},\n{\"concept\":\"db_column\",\"word\":\"識別子\",\"quote\":\"GBPの投稿の識別子（`external_key`）を集めて\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"識別子（`external_key`）を集めて\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"「既知の識別子」の一覧を作る\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"識別子がこの一覧にあれば既存として飛ばす\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"一覧に無ければ、新しい投稿グループを作る\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"元の投稿が編集された紐付けの行を `$this->excludedRowIds` に足しました\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"紐付けの行を `$this->excludedRowIds` に足しました\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同じ実行の中で後からその行を上書きしないことです\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"ところが、1の一覧を作るクエリも\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"`whereNotIn('id', $this->excludedRowIds)` で同じ除外の一覧を使っています\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"`$this->excludedRowIds)` で同じ除外の一覧を使っています\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"編集された紐付けの行の `external_key` が、既知の識別子の一覧に入らない\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"紐付けの行の `external_key` が、既知の識別子の一覧に\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"`external_key` が、既知の識別子の一覧に入らない\"},\n{\"concept\":\"step\",\"word\":\"判定\",\"quote\":\"GBPの投稿が2の判定で「未知」と見なされる\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"既存の投稿グループと紐付けの行は残っているので\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"`excludedRowIds` は「この実行で書き換えない行」を表す一覧です\"},\n{\"concept\":\"write_back\",\"word\":\"書き換え\",\"quote\":\"「この実行で書き換えない行」を表す一覧です\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"「この実行で書き換えない行」を表す一覧です\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"この一覧を「この店舗に既にある投稿」の判定にも使っている\"},\n{\"concept\":\"write_back\",\"word\":\"書き換え\",\"quote\":\"書き換えないだけのはずの行が、存在しない行として\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"既知の識別子の一覧は、除外の一覧を通さずに\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"既知の識別子の一覧は、除外の一覧を通さずに\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"その店舗の紐付けの行をすべて対象にして作ります\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"$knownKeys = PostGoogleLocationRelationship::where(\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"where('location_id', $locationId)\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"->pluck('external_key')\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"$knownKeys = PostGoogleLocationRelationship::where(\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"`excludedRowIds` による除外は、紐付けの行を更新・上書きする処理の側だけで\"},\n{\"concept\":\"db_table\",\"word\":\"紐付けの行\",\"quote\":\"紐付けの行を更新・上書きする処理の側だけで使います\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"紐付けの行を更新・上書きする処理の側だけで使います\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"編集された行は上書きされず、新しい投稿グループも\"}\n]"
+}

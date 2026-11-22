@@ -1,0 +1,149 @@
+{
+ "file": "m02.ja.1.json",
+ "cond": "ja",
+ "id": "m02",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` だけを読んでおり"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "その列には値が入ったままだから"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "場所の情報を新しいテーブルへ移す途中"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 場所の情報（`location_ids` →"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` は非推奨と注記された"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブル `post_search_locations` は空です"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "新しいテーブル `post_search_locations` は空です"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間集計は `location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "書き込み側が `location_ids` を書かなくなったとき"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` にだけ入るようになると"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "集計を `post_search_locations` へ切り替えたとき"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "テーブルが空なので場所ごとの集計がすべて0になります"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` には"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`(post_group_id, location_id)` の一意制約"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` の配列に同じIDが重複して"
+  },
+  {
+   "concept": "collection",
+   "word": "配列",
+   "quote": "`location_ids` の配列に同じIDが重複して"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` へ移し替える"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "集計を `post_search_locations` へ切り替える"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` への書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 時刻（`tstamp` の `timestamp`"
+  },
+  {
+   "concept": "time_range",
+   "word": "日付範囲",
+   "quote": "UTCを前提にした集計の日付範囲があると"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "日をまたぐ時間帯の投稿が前後の日へ移る"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "本番の列の型がすでに変わっているか"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`SHOW CREATE TABLE post_search`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の実際の型を見る"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` だけを読んでおり\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"その列には値が入ったままだから\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"場所の情報を新しいテーブルへ移す途中\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 場所の情報（`location_ids` →\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` は非推奨と注記された\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しいテーブル `post_search_locations` は空です\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"新しいテーブル `post_search_locations` は空です\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間集計は `location_ids` だけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` を結合していません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"書き込み側が `location_ids` を書かなくなったとき\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` にだけ入るようになると\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"集計を `post_search_locations` へ切り替えたとき\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"テーブルが空なので場所ごとの集計がすべて0になります\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` には\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`(post_group_id, location_id)` の一意制約\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` の配列に同じIDが重複して\"},\n{\"concept\":\"collection\",\"word\":\"配列\",\"quote\":\"`location_ids` の配列に同じIDが重複して\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` を\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` へ移し替える\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"集計を `post_search_locations` へ切り替える\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` への書き込みを止める\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 時刻（`tstamp` の `timestamp`\"},\n{\"concept\":\"time_range\",\"word\":\"日付範囲\",\"quote\":\"UTCを前提にした集計の日付範囲があると\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"日をまたぐ時間帯の投稿が前後の日へ移る\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"本番の列の型がすでに変わっているか\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`SHOW CREATE TABLE post_search`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` の実際の型を見る\"}\n]"
+}

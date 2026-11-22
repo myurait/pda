@@ -1,0 +1,159 @@
+{
+ "file": "m03.en.3.json",
+ "cond": "en",
+ "id": "m03",
+ "i": 3,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "読み込んだ時点の古い値で上書きします"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "次の2つが同じ時間帯に起きると発生します"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付け",
+   "quote": "対象ロケーションの紐付け（`post_google_location_relationships`）を読み込み"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "その間に、同じ紐付けの行を対象とする"
+  },
+  {
+   "concept": "collection",
+   "word": "全件",
+   "quote": "同期処理は全件を先に読み込み"
+  },
+  {
+   "concept": "time_range",
+   "word": "秒",
+   "quote": "問い合わせ（1件あたり1〜3秒）をすべて終えてから"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "まとめて書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しは更新する列を指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "書き戻しは更新する列を指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` を含むすべての列を"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`deleted_at` を含むすべての列を"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "読み込み時点の値で上書きします"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "読み込み時点の `deleted_at` は空なので"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "その間に入った削除の日時が消えます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "読み込みから書き戻しまでの時間が長くなり"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "読み込みから書き戻しまでの時間が長くなり"
+  },
+  {
+   "concept": "time_range",
+   "word": "約5分間",
+   "quote": "100件なら最大で約5分間、この状態が続きます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期中に他の処理が更新した列も"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` と同じく読み込み時点の値に戻る"
+  },
+  {
+   "concept": "collection",
+   "word": "全件",
+   "quote": "全件を読み込んでから、時間のかかる問い合わせを挟んで"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "問い合わせを挟んで書き戻している"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` で更新する列を指定しておらず"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`upsert` で更新する列を指定しておらず"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "全列を上書きしている"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "全列を上書きしている"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` の更新する列を、同期で変えた"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`upsert` の更新する列を、同期で変えた"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期で変えた `state` と `published_at` に絞る"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期で変えた `state` と `published_at` に絞る"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "書き戻すときに、論理削除された行を"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"読み込んだ時点の古い値で上書きします\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"次の2つが同じ時間帯に起きると発生します\"},\n{\"concept\":\"db_table\",\"word\":\"紐付け\",\"quote\":\"対象ロケーションの紐付け（`post_google_location_relationships`）を読み込み\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"その間に、同じ紐付けの行を対象とする\"},\n{\"concept\":\"collection\",\"word\":\"全件\",\"quote\":\"同期処理は全件を先に読み込み\"},\n{\"concept\":\"time_range\",\"word\":\"秒\",\"quote\":\"問い合わせ（1件あたり1〜3秒）をすべて終えてから\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"まとめて書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しは更新する列を指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"書き戻しは更新する列を指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` を含むすべての列を\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`deleted_at` を含むすべての列を\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"読み込み時点の値で上書きします\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"読み込み時点の `deleted_at` は空なので\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"その間に入った削除の日時が消えます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"読み込みから書き戻しまでの時間が長くなり\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"読み込みから書き戻しまでの時間が長くなり\"},\n{\"concept\":\"time_range\",\"word\":\"約5分間\",\"quote\":\"100件なら最大で約5分間、この状態が続きます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期中に他の処理が更新した列も\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` と同じく読み込み時点の値に戻る\"},\n{\"concept\":\"collection\",\"word\":\"全件\",\"quote\":\"全件を読み込んでから、時間のかかる問い合わせを挟んで\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"問い合わせを挟んで書き戻している\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`upsert` で更新する列を指定しておらず\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`upsert` で更新する列を指定しておらず\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"全列を上書きしている\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"全列を上書きしている\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`upsert` の更新する列を、同期で変えた\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`upsert` の更新する列を、同期で変えた\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期で変えた `state` と `published_at` に絞る\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期で変えた `state` と `published_at` に絞る\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"書き戻すときに、論理削除された行を\"}\n]"
+}

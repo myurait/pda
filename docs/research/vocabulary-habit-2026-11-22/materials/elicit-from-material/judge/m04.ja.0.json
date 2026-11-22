@@ -1,0 +1,249 @@
+{
+ "file": "m04.ja.0.json",
+ "cond": "ja",
+ "id": "m04",
+ "i": 0,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "読み込んだ時点の店名で`settings`テーブルの全項目を書き戻すことです"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "読み込んだ時点の店名で`settings`テーブルの全項目を書き戻す"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "MySQLの`settings`テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "1. MySQLの`settings`テーブルから、その店舗の設定を読む"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "4. 合わせた設定を外部APIへ書き込む"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "合わせた設定で`settings`テーブルの行を、全項目まとめて上書きする"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書きする",
+   "quote": "`settings`テーブルの行を、全項目まとめて上書きする"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは10分ごとに、80,000店舗すべてに対して動きます"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "このジョブは10分ごとに、80,000店舗すべてに対して動きます"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "店名は手順1で読んだ値が手順5でそのまま書き戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "店名は手順1で読んだ値が手順5でそのまま書き戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻される",
+   "quote": "手順1で読んだ値が手順5でそのまま書き戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1と手順5の間には外部APIへの往復が2回入ります"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順1と手順5の間には外部APIへの往復が2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順1と手順5の間には外部APIへの往復が2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間にオペレーターが管理画面で`settings.name`を直す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "管理画面で`settings.name`を直すと、次の順で起きます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "1. ジョブが古い店名を読む"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "3. ジョブが古い店名を含む全項目で上書きする"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書きする",
+   "quote": "3. ジョブが古い店名を含む全項目で上書きする"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "さらに手順4で古い店名が外部APIにも送られます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブは常に80,000店舗を回っているので"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "どの時刻に編集しても、その店舗の処理と重なる可能性があります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読んでから書くまでの間に別の経路で営業時間が変わると"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4で手順2の時点の値に戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "手順4で手順2の時点の値に戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "戻される",
+   "quote": "手順4で手順2の時点の値に戻されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4の外部APIへの書き込みが成功し"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5のMySQLへの書き込みが失敗すると"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "10分の間に回り切らないおそれがある"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "10分の間に回り切らないおそれがある"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "80,000店舗を10分で回すには"
+  },
+  {
+   "concept": "time_range",
+   "word": "1周",
+   "quote": "1周に約9時間かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "9時間",
+   "quote": "1周に約9時間かかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "1周",
+   "quote": "もし1周が10分を超えて次の回と重なると"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "もし1周が10分を超えて次の回と重なると"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5の`UPDATE`は営業時間の列だけを更新し"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "手順5の`UPDATE`は営業時間の列だけを更新し"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`UPDATE`は営業時間の列だけを更新し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`settings.name`には触れないようにします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings`テーブルにバージョン列を足します"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`settings`テーブルにバージョン列を足します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書く",
+   "quote": "全項目を書く必要が残るなら"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4と手順5を飛ばします"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順4と手順5を飛ばします"
+  },
+  {
+   "concept": "time_range",
+   "word": "1周",
+   "quote": "1周が10分に収まっているか"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1周が10分に収まっているか"
+  },
+  {
+   "concept": "time_range",
+   "word": "間隔",
+   "quote": "ロックをかけるか、間隔を見直します"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"読み込んだ時点の店名で`settings`テーブルの全項目を書き戻すことです\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"読み込んだ時点の店名で`settings`テーブルの全項目を書き戻す\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"MySQLの`settings`テーブルから、その店舗の設定を読む\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"1. MySQLの`settings`テーブルから、その店舗の設定を読む\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"4. 合わせた設定を外部APIへ書き込む\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"合わせた設定で`settings`テーブルの行を、全項目まとめて上書きする\"},\n{\"concept\":\"write_back\",\"word\":\"上書きする\",\"quote\":\"`settings`テーブルの行を、全項目まとめて上書きする\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは10分ごとに、80,000店舗すべてに対して動きます\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"このジョブは10分ごとに、80,000店舗すべてに対して動きます\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"店名は手順1で読んだ値が手順5でそのまま書き戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"店名は手順1で読んだ値が手順5でそのまま書き戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻される\",\"quote\":\"手順1で読んだ値が手順5でそのまま書き戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1と手順5の間には外部APIへの往復が2回入ります\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順1と手順5の間には外部APIへの往復が2回入ります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順1と手順5の間には外部APIへの往復が2回入ります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間にオペレーターが管理画面で`settings.name`を直す\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"管理画面で`settings.name`を直すと、次の順で起きます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"1. ジョブが古い店名を読む\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"3. ジョブが古い店名を含む全項目で上書きする\"},\n{\"concept\":\"write_back\",\"word\":\"上書きする\",\"quote\":\"3. ジョブが古い店名を含む全項目で上書きする\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"さらに手順4で古い店名が外部APIにも送られます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブは常に80,000店舗を回っているので\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"どの時刻に編集しても、その店舗の処理と重なる可能性があります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読んでから書くまでの間に別の経路で営業時間が変わると\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4で手順2の時点の値に戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順2\",\"quote\":\"手順4で手順2の時点の値に戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"戻される\",\"quote\":\"手順4で手順2の時点の値に戻されます\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4の外部APIへの書き込みが成功し\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5のMySQLへの書き込みが失敗すると\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"10分の間に回り切らないおそれがある\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"10分の間に回り切らないおそれがある\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"80,000店舗を10分で回すには\"},\n{\"concept\":\"time_range\",\"word\":\"1周\",\"quote\":\"1周に約9時間かかります\"},\n{\"concept\":\"time_range\",\"word\":\"9時間\",\"quote\":\"1周に約9時間かかります\"},\n{\"concept\":\"time_range\",\"word\":\"1周\",\"quote\":\"もし1周が10分を超えて次の回と重なると\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"もし1周が10分を超えて次の回と重なると\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5の`UPDATE`は営業時間の列だけを更新し\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"手順5の`UPDATE`は営業時間の列だけを更新し\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`UPDATE`は営業時間の列だけを更新し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`settings.name`には触れないようにします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings`テーブルにバージョン列を足します\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`settings`テーブルにバージョン列を足します\"},\n{\"concept\":\"write_back\",\"word\":\"書く\",\"quote\":\"全項目を書く必要が残るなら\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4と手順5を飛ばします\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順4と手順5を飛ばします\"},\n{\"concept\":\"time_range\",\"word\":\"1周\",\"quote\":\"1周が10分に収まっているか\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1周が10分に収まっているか\"},\n{\"concept\":\"time_range\",\"word\":\"間隔\",\"quote\":\"ロックをかけるか、間隔を見直します\"}\n]"
+}

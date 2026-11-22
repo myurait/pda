@@ -1,0 +1,79 @@
+{
+ "file": "m09.ja.1.json",
+ "cond": "ja",
+ "id": "m09",
+ "i": 1,
+ "items": [
+  {
+   "concept": "step",
+   "word": "取り込み処理",
+   "quote": "取り込み処理は、次の順で動きます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "投稿の `external_key` を、`post_google_location_relationships`"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`post_google_location_relationships` テーブルから集めて"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「既知の投稿」の一覧を作る"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "名前が既知の一覧にあれば飛ばし"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧を作るとき、この実行で除外する行は"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外対象なので既知の一覧から外れる"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に名前が無いため未知と判定される"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の後半で上書きされないように"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "「上書きしない行」を表すための仕組み"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを止める処理の側だけで参照します"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを避ける目的も損なわれません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "すべての行の `external_key` を使います"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の一覧の作り方から除外の条件を外すことで"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"step\", \"word\": \"取り込み処理\", \"quote\": \"取り込み処理は、次の順で動きます。\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"投稿の `external_key` を、`post_google_location_relationships`\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"`post_google_location_relationships` テーブルから集めて\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"「既知の投稿」の一覧を作る\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"名前が既知の一覧にあれば飛ばし\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"一覧を作るとき、この実行で除外する行は\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外対象なので既知の一覧から外れる\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"一覧に名前が無いため未知と判定される\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"同じ実行の後半で上書きされないように\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"「上書きしない行」を表すための仕組み\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを止める処理の側だけで参照します\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを避ける目的も損なわれません\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"すべての行の `external_key` を使います\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"既知の一覧の作り方から除外の条件を外すことで\"}\n]"
+}

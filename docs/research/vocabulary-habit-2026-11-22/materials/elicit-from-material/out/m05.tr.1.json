@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m05",
+ "i": 1,
+ "result": "---\n\n# リリース手順の説明\n\n## この順番で進める理由\n\nこのリリースでは、投稿の配信を古い仕組みから新しい仕組みへ切り替えます。\n\n- **古い仕組み**: `sync-google-posts` のバッチが `post-delivery` キューにメッセージを入れる\n- **新しい仕組み**: ディスパッチャーが `post-dispatch` キューにメッセージを入れ、worker がそこから読む\n\n切り替えの途中でメッセージを取りこぼさないことが大事です。古いキューに新しいメッセージが入らない状態を作り、残りを処理しきってから、新しい worker とディスパッチャーを動かします。\n\n## 手順\n\n1. **本番DBにスキーママイグレーションを適用する**\n   `2026_11_20_000000_add_delivery_state` を本番に適用します。後の手順でデプロイするアプリケーションがこの変更を前提にしているため、最初に行います。\n\n2. **APIをデプロイしてヘルスチェックを確かめる**\n   - api v3.14.0\n   - go-api v2.8.0\n\n   両方をデプロイし、ヘルスチェックが通ることを確かめてから次へ進みます。\n\n3. **古いバッチのスケジュールを止める**\n   Step Functions のスケジュール `sync-google-posts` を無効にします。これで `post-delivery` キューに新しいメッセージが入らなくなります。\n\n4. **古いキューが空になるまで待つ**\n   `post-delivery` キューの `ApproximateNumberOfMessages` が0になるまで待ちます。0になる前に次へ進むと、残ったメッセージが処理されずに残ります。\n\n5. **新しい worker をデプロイする**\n   worker v5.2.0 をデプロイします。このバージョンは新しいキュー `post-dispatch` から読みます。\n\n6. **ディスパッチャーのスケジュールを有効にする**\n   `rate(1 minute)` のスケジュールを有効にします。ここから新しい仕組みで配信が始まります。\n\n## ロールバック\n\n問題が起きたときは、後の手順から逆の順で戻します。\n\n1. 手順6のディスパッチャーのスケジュールを無効に戻す\n2. 手順5の worker v5.2.0 のデプロイを戻す\n3. 手順3で止めた `sync-google-posts` のスケジュールを有効に戻す\n\n手順1のマイグレーションと手順2のAPIのデプロイは戻しません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7235,
+  "cache_read_input_tokens": 15897,
+  "output_tokens": 1479,
+  "output_tokens_details": {
+   "thinking_tokens": 642
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7235,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1479,
+    "cache_read_input_tokens": 15897,
+    "cache_creation_input_tokens": 7235,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7235
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

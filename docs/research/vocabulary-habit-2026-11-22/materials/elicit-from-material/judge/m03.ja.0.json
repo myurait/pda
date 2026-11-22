@@ -1,0 +1,169 @@
+{
+ "file": "m03.ja.0.json",
+ "cond": "ja",
+ "id": "m03",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "紐付け",
+   "quote": "「投稿と店舗の紐付け」の行を、削除前の状態で書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "削除前の状態で書き戻します"
+  },
+  {
+   "concept": "time_range",
+   "word": "1〜3秒",
+   "quote": "1回の問い合わせに1〜3秒かかります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "まとめてDBへ書き込みます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`に現在時刻を入れる"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "行数×1〜3秒の時間がかかります"
+  },
+  {
+   "concept": "time_range",
+   "word": "2〜5分",
+   "quote": "たとえば100行なら2〜5分ほどです"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に配信完了処理が古い行を論理削除すると"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "行の全カラムをそのまま書き戻す"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "行の全カラムをそのまま書き戻す"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "どのカラムを更新するかを指定していない"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "この時点では`deleted_at`は空"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "APIへの問い合わせを続けている間に"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い行の`deleted_at`に時刻を入れる"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1で読み込んだ値で全カラムを書き戻す"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "手順1で読み込んだ値で全カラムを書き戻す"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "手順1で読み込んだ値で全カラムを書き戻す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`が空に戻り"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`だけでなく"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "手順2の間にほかの処理が変更したカラムも"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順2の間にほかの処理が変更したカラムも"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "手順2の間にほかの処理が変更したカラムも"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻して",
+   "quote": "時間のかかるAPI問い合わせを挟んで書き戻している"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`upsert`に更新するカラムを指定しておらず"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "全カラムを上書きしている"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "全カラムを上書きしている"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同期処理が更新するカラム（`state`・`published_at`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新するカラム（`state`・`published_at`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新するカラム（`state`・`published_at`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at`などそれ以外のカラムを"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`deleted_at`などそれ以外のカラムを"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "書き込み時に`deleted_at`が空の行だけを更新する"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"紐付け\",\"quote\":\"「投稿と店舗の紐付け」の行を、削除前の状態で書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"削除前の状態で書き戻します\"},\n{\"concept\":\"time_range\",\"word\":\"1〜3秒\",\"quote\":\"1回の問い合わせに1〜3秒かかります\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"まとめてDBへ書き込みます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`に現在時刻を入れる\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"行数×1〜3秒の時間がかかります\"},\n{\"concept\":\"time_range\",\"word\":\"2〜5分\",\"quote\":\"たとえば100行なら2〜5分ほどです\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に配信完了処理が古い行を論理削除すると\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"行の全カラムをそのまま書き戻す\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"行の全カラムをそのまま書き戻す\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"どのカラムを更新するかを指定していない\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"この時点では`deleted_at`は空\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"APIへの問い合わせを続けている間に\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い行の`deleted_at`に時刻を入れる\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1で読み込んだ値で全カラムを書き戻す\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"手順1で読み込んだ値で全カラムを書き戻す\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"手順1で読み込んだ値で全カラムを書き戻す\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`が空に戻り\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`だけでなく\"},\n{\"concept\":\"step\",\"word\":\"手順2\",\"quote\":\"手順2の間にほかの処理が変更したカラムも\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順2の間にほかの処理が変更したカラムも\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"手順2の間にほかの処理が変更したカラムも\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻して\",\"quote\":\"時間のかかるAPI問い合わせを挟んで書き戻している\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`upsert`に更新するカラムを指定しておらず\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"全カラムを上書きしている\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"全カラムを上書きしている\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"同期処理が更新するカラム（`state`・`published_at`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新するカラム（`state`・`published_at`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新するカラム（`state`・`published_at`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at`などそれ以外のカラムを\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`deleted_at`などそれ以外のカラムを\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"書き込み時に`deleted_at`が空の行だけを更新する\"}\n]"
+}

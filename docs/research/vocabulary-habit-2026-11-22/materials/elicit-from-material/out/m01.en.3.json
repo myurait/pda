@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m01",
+ "i": 3,
+ "result": "---\n\n`post_groups`の配信予定を記録するテーブルを足し、`post_google_location_relationships`に配信状態を持たせる変更のPR説明文です。素材に変更の目的が書かれていないため、目的の節は置いていません。\n\n```markdown\n## 変更内容\n\n### 新しいテーブル `delivery_instructions`\n\n投稿グループごと・配信先プラットフォームごとの配信予定を記録するテーブルを作ります。\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: 配信先プラットフォーム（最大32文字）\n- `scheduled_at`: 配信予定日時（必須）\n- `dispatched_at`: 実際に配信へ回した日時（未配信の間は NULL）\n- `post_group_id` と `platform` の組に一意制約を付けています。1つの投稿グループにつき、プラットフォームごとに配信予定は1行だけです。\n- `created_at` / `updated_at` は持ちません。\n\n### `post_google_location_relationships` へのカラム追加\n\n- `delivery_state`: 配信状態（最大16文字、既定値 `pending`）。`sent_at` の後ろに置きます。\n- `external_key`: 配信先側で振られるキー（NULL 可）。\n- `delivery_state` と `updated_at` の複合インデックスを足します。\n\n## 既存データへの影響\n\n### `post_google_location_relationships` の既存行\n\nマイグレーションの中で `delivery_state` を埋めます。\n\n- `sent_at` が入っている行は `sent` になります。\n- `sent_at` が NULL の行は既定値の `pending` になります。過去に送られないまま残った行も `pending` になります。\n- `external_key` は全行 NULL のままで、埋め戻しはしません。\n\n### `post_groups` の削除\n\n`delivery_instructions.post_group_id` の外部キーには削除時の動作を指定していません。`delivery_instructions` に行がある投稿グループは、その行を先に消さないと削除できなくなります。\n\n## リリース時の注意\n\n- `post_google_location_relationships` へのカラム追加とインデックス作成、`sent_at` が入っている行の一括 UPDATE が1回のマイグレーションで走ります。行数が多い場合は実行時間とロックの影響を本番相当のデータで確認してください。\n- `down()` を定義していないため、`migrate:rollback` では戻せません。\n\n## レビューで見てほしい点\n\n- `sent_at` が NULL の既存行をすべて `pending` にしてよいか。`pending` の行を拾って配信する処理を後から入れると、過去に送られなかった行も配信の対象になります。\n- `post_groups` の削除を外部キーで止める動作でよいか（`cascadeOnDelete()` にするか）。\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7353,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 2070,
+  "output_tokens_details": {
+   "thinking_tokens": 1130
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7353,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2070,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7353,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7353
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,99 @@
+{
+ "file": "m06.tr.0.json",
+ "cond": "tr",
+ "id": "m06",
+ "i": 0,
+ "items": [
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "PR の段階では動かないため、テストは `main` に入った後で"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブは 1 本の鎖でつながっていて"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "前のジョブが成功したときだけ次のジョブが始まります"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "前のジョブが成功したときだけ次のジョブが始まります"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "### 各ジョブの役割"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "- **test**: `composer install` で依存パッケージを入れ"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "- **build**: コミットの SHA をタグにした Docker イメージを作り"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "- **deploy-staging**: ECS のクラスター `stg` の"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "- **deploy-production**: ECS のクラスター `prd` の"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**test の失敗** (依存の取得やテストの失敗)"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**build の失敗** (イメージ作成や ECR への push の失敗)"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**deploy-staging の失敗** (`update-service` の呼び出しがエラー)"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは成功扱いになり、本番の承認依頼も届きます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "GitHub がワークフロー自体を受け付けず、どのジョブも動きません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`build` に `actions/checkout` がありません"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "ECR へのログインの手順もありません"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "どちらのデプロイのジョブにも"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "AWS の認証情報を設定する手順がありません"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"段階\",\"quote\":\"PR の段階では動かないため、テストは `main` に入った後で\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブは 1 本の鎖でつながっていて\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"前のジョブが成功したときだけ次のジョブが始まります\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"前のジョブが成功したときだけ次のジョブが始まります\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"### 各ジョブの役割\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"- **test**: `composer install` で依存パッケージを入れ\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"- **build**: コミットの SHA をタグにした Docker イメージを作り\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"- **deploy-staging**: ECS のクラスター `stg` の\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"- **deploy-production**: ECS のクラスター `prd` の\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**test の失敗** (依存の取得やテストの失敗)\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**build の失敗** (イメージ作成や ECR への push の失敗)\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**deploy-staging の失敗** (`update-service` の呼び出しがエラー)\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは成功扱いになり、本番の承認依頼も届きます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"GitHub がワークフロー自体を受け付けず、どのジョブも動きません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`build` に `actions/checkout` がありません\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"ECR へのログインの手順もありません\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"どちらのデプロイのジョブにも\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"AWS の認証情報を設定する手順がありません\"}\n]"
+}

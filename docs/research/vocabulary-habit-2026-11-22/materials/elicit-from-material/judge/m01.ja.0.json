@@ -1,0 +1,154 @@
+{
+ "file": "m01.ja.0.json",
+ "cond": "ja",
+ "id": "m01",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "投稿グループの配信予定をプラットフォームごとに持つテーブルを新しく作り"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "投稿と Google ロケーションの紐付けに配信状態のカラムを足します"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 新規テーブル `delivery_instructions`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `platform`: 配信先プラットフォーム（最大32文字）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `scheduled_at`: 配信予定時刻（必須）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `dispatched_at`: 配信した時刻（未配信の間は NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `post_group_id` と `platform` の組に一意制約を付けます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `post_group_id` と `platform` の組に一意制約を付けます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `created_at` と `updated_at` は持ちません。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `created_at` と `updated_at` は持ちません。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### `post_google_location_relationships` へのカラム追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "### `post_google_location_relationships` へのカラム追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state`: 配信状態（最大16文字、既定値 `pending`）。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` の後ろに置きます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `external_key`: 外部サービス側の識別子（NULL 可）。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` の後ろに置きます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state` と `updated_at` の複合インデックスを追加します。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state` と `updated_at` の複合インデックスを追加します。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_google_location_relationships` の既存行は、`delivery_state` が次の値になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "の既存行は、`delivery_state` が次の値になります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "  - `sent_at` が入っている行: `sent`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "  - `sent_at` が NULL の行: `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- 既存行の `external_key` はすべて NULL です。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `delivery_instructions` は空の状態で作られます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "- 既存のカラムの値は変わりません。"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`delivery_instructions` テーブルと追加したカラム・インデックスは残ります。"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "テーブルと追加したカラム・インデックスは残ります。"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"投稿グループの配信予定をプラットフォームごとに持つテーブルを新しく作り\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"投稿と Google ロケーションの紐付けに配信状態のカラムを足します\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"### 新規テーブル `delivery_instructions`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `platform`: 配信先プラットフォーム（最大32文字）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `scheduled_at`: 配信予定時刻（必須）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `dispatched_at`: 配信した時刻（未配信の間は NULL）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `post_group_id` と `platform` の組に一意制約を付けます。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `post_group_id` と `platform` の組に一意制約を付けます。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `created_at` と `updated_at` は持ちません。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `created_at` と `updated_at` は持ちません。\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"### `post_google_location_relationships` へのカラム追加\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"### `post_google_location_relationships` へのカラム追加\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state`: 配信状態（最大16文字、既定値 `pending`）。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` の後ろに置きます。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `external_key`: 外部サービス側の識別子（NULL 可）。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`delivery_state` の後ろに置きます。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state` と `updated_at` の複合インデックスを追加します。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state` と `updated_at` の複合インデックスを追加します。\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_google_location_relationships` の既存行は、`delivery_state` が次の値になります。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"の既存行は、`delivery_state` が次の値になります。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"  - `sent_at` が入っている行: `sent`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"  - `sent_at` が NULL の行: `pending`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- 既存行の `external_key` はすべて NULL です。\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `delivery_instructions` は空の状態で作られます。\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"- 既存のカラムの値は変わりません。\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`delivery_instructions` テーブルと追加したカラム・インデックスは残ります。\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"テーブルと追加したカラム・インデックスは残ります。\"}\n]"
+}

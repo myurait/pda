@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m09",
+ "i": 0,
+ "result": "---\n\n投稿グループが重複するのは、「この実行では上書きしない行」を除外する一覧が、「すでに投稿グループに紐づいているか」を判定する照会にも使われているためです。最近の変更で編集元の行をこの一覧に加えたため、編集元の行に紐づく GBP の投稿が未登録に見えるようになり、新しい投稿グループが作られています。\n\n**重複が起きる流れ**\n\n1. 編集元の行の `id` が `excludedRowIds` に入ります。目的は、同じ実行の後半でその行を上書きしないことです。\n2. 既知のキーを集める照会は、`post_google_location_relationships` から `excludedRowIds` の行を除いて `external_key` を取ります。そのため、編集元の行の `external_key` が `$knownKeys` に入りません。\n3. GBP から取得した投稿のうち、その `external_key` と同じ `name` を持つ投稿は、`in_array` の判定で「未登録」になります。\n4. 未登録として扱われた投稿から投稿グループが新しく作られます。編集元の行は既存の投稿グループに紐づいたまま残るため、同じ投稿に投稿グループが 2 つできます。\n\n**原因の要点**\n\n除外の一覧が持つ意味は「この実行で書き換えない」です。一方、既知のキーの判定に必要な意味は「すでに紐づいている」です。編集元の行は書き換えないが紐づいている行なので、この 2 つが食い違い、紐づきの判定から漏れます。\n\n**直し方**\n\n既知のキーを集める照会から `whereNotIn('id', $this->excludedRowIds)` を外し、その拠点の紐づきの行をすべて対象にします。上書きを防ぐための除外は、書き込みを行う処理の側だけで使います。\n\n```php\n$knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n    ->pluck('external_key')\n    ->all();\n```\n\nこの照会が除外の一覧を参照していた理由が別にある場合は、除外の一覧を「上書きしない行」と「紐づきの判定から外す行」の 2 つに分けてください。編集元の行は前者だけに入れます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7237,
+  "cache_read_input_tokens": 15851,
+  "output_tokens": 1049,
+  "output_tokens_details": {
+   "thinking_tokens": 298
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7237,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1049,
+    "cache_read_input_tokens": 15851,
+    "cache_creation_input_tokens": 7237,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7237
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

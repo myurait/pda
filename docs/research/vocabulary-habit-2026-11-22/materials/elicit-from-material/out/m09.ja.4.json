@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m09",
+ "i": 4,
+ "result": "---\n\n投稿グループが重複して作られるのは、同じ実行の中で上書きを防ぐために除外した行が、取り込み済みかどうかの判定からも外れてしまうためです。\n\n**判定の仕組み**\n\n新しい投稿を取り込む処理は、まずその店舗に紐づく行から`external_key`の一覧を作ります。Googleビジネスプロフィールから取得した投稿の名前がこの一覧にあれば、すでに投稿グループと紐づいているとみなして飛ばします。一覧になければ、新しい投稿として投稿グループを作ります。\n\n**最近の変更で起きたこと**\n\n最近の変更で、編集元の行を「この実行で除外する行」に加えました。目的は、同じ実行の後の処理で編集元の行が上書きされないようにすることです。\n\nところが、一覧を作るときにも除外する行を外す条件（`whereNotIn('id', $this->excludedRowIds)`）がかかっています。そのため、次のように進みます。\n\n1. 編集元の行が除外の対象に入る\n2. その行の`external_key`が、取り込み済みの一覧に入らない\n3. Googleビジネスプロフィール側の同じ投稿が「まだ紐づいていない投稿」と判定される\n4. すでに投稿グループがあるのに、新しい投稿グループが作られる\n\n除外の目的は「上書きしない」ことでしたが、同じ除外が「すでにあるとは見なさない」ことまで引き起こしています。\n\n**直し方**\n\n取り込み済みの判定では、除外した行も含めて一覧を作れば重複は止まります。具体的には、`knownKeys`を作るクエリから`whereNotIn('id', $this->excludedRowIds)`の行を取り除きます。上書きを防ぐ除外は、上書きする側の処理だけに残します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1001,
+  "cache_read_input_tokens": 22089,
+  "output_tokens": 863,
+  "output_tokens_details": {
+   "thinking_tokens": 240
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1001,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 863,
+    "cache_read_input_tokens": 22089,
+    "cache_creation_input_tokens": 1001,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1001
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

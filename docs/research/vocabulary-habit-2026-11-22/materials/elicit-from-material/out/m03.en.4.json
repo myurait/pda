@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m03",
+ "i": 4,
+ "result": "---\n\n以下がBacklogの課題本文です。\n\n```markdown\n## 概要\n\nGBP投稿の状態を同期する処理（SyncGbpPostsService）が、同期中に論理削除された投稿と店舗の紐付けを、削除前の状態に戻してしまいます。\n編集した投稿の配信が完了したときに消したはずの古い紐付けが、有効な紐付けとして復活します。\n\n## 起きる条件\n\n次の2つが、同じ店舗の同じ紐付けに対して同時に走ったときに起きます。\n\n- GBP投稿の同期処理（SyncGbpPostsService::handle）\n- 編集した投稿の配信完了処理（PostUpdateService::saveOnCompleted）。古い紐付けに deleted_at を入れて論理削除する\n\n同期処理は、紐付けを最初にまとめて読み込みます。その後、1件ずつGBPのAPIを呼び（1件あたり1〜3秒）、最後に全件をまとめて書き戻します。\n読み込みから書き戻しまでの間は、件数×1〜3秒続きます。100件なら100〜300秒です。この間に配信完了処理が古い紐付けを論理削除すると、不具合が起きます。\n\n## 原因\n\n書き戻しの upsert で更新するカラムを指定していないため、読み込んだ時点のすべてのカラムの値でレコードを上書きします。\n読み込んだ時点の deleted_at は NULL なので、配信完了処理が入れた deleted_at が NULL に戻ります。\n\n1. 同期処理が紐付けを読み込む（deleted_at は NULL）\n2. 同期処理がAPIを順に呼んでいる間に、配信完了処理が古い紐付けの deleted_at に現在時刻を入れる\n3. 同期処理が読み込んだ時点の全カラムで upsert する → deleted_at が NULL に戻る\n\ndeleted_at に限らず、読み込みから書き戻しまでの間にほかの処理が変えたカラムはすべて、読み込んだ時点の値に戻ります。\n\n## 影響\n\n- 編集前の古い紐付けが有効な状態で残り、同じ店舗に古い投稿と新しい投稿の紐付けが両方ある状態になる\n- 画面や集計で、編集前の投稿が編集後の投稿と並んで表示・集計される\n- 以降の同期処理が、古い紐付けの external_key でもGBPのAPIを呼び続ける\n\n## 対応案\n\nupsert の第3引数に、同期処理が変えるカラムだけを指定します。\n\n    PostGoogleLocationRelationship::upsert(\n        $rows->map->getAttributes()->all(),\n        ['id'],\n        ['state', 'published_at']\n    );\n\nこれで、同期処理が書き戻すのは state と published_at だけになり、deleted_at を含むほかのカラムは上書きされません。\n```",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 998,
+  "cache_read_input_tokens": 22203,
+  "output_tokens": 1712,
+  "output_tokens_details": {
+   "thinking_tokens": 734
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 998,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1712,
+    "cache_read_input_tokens": 22203,
+    "cache_creation_input_tokens": 998,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 998
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

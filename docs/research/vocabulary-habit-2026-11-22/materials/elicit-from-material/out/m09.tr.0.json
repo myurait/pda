@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m09",
+ "i": 0,
+ "result": "---\n\n投稿グループが重複するのは、上書きを防ぐために除外した紐付けの行が、既存かどうかの判定からも外れてしまうためです。\n\n## 何が起きているか\n\n既存の投稿かどうかの判定は、次の流れで行われています。\n\n1. その店舗の紐付けの行（`PostGoogleLocationRelationship`）から、GBPの投稿の識別子（`external_key`）を集めて「既知の識別子」の一覧を作る\n2. GBPから取得した投稿ごとに、識別子がこの一覧にあれば既存として飛ばす\n3. 一覧に無ければ、新しい投稿グループを作る\n\n最近の変更で、元の投稿が編集された紐付けの行を `$this->excludedRowIds` に足しました。目的は、同じ実行の中で後からその行を上書きしないことです。\n\nところが、1の一覧を作るクエリも `whereNotIn('id', $this->excludedRowIds)` で同じ除外の一覧を使っています。そのため次のことが起きます。\n\n- 編集された紐付けの行の `external_key` が、既知の識別子の一覧に入らない\n- その行に対応するGBPの投稿が2の判定で「未知」と見なされる\n- 3で新しい投稿グループが作られる。既存の投稿グループと紐付けの行は残っているので、同じGBPの投稿に投稿グループが2つできる\n\n## 原因の核心\n\n`excludedRowIds` は「この実行で書き換えない行」を表す一覧です。この一覧を「この店舗に既にある投稿」の判定にも使っているため、書き換えないだけのはずの行が、存在しない行として扱われます。変更前は除外される行が既存判定に影響しない種類だけだったので表に出ず、編集された行を足したことで重複として現れました。\n\n## 直し方\n\n既知の識別子の一覧は、除外の一覧を通さずに、その店舗の紐付けの行をすべて対象にして作ります。\n\n```php\n$knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n    ->pluck('external_key')\n    ->all();\n```\n\n`excludedRowIds` による除外は、紐付けの行を更新・上書きする処理の側だけで使います。これで、編集された行は上書きされず、新しい投稿グループも作られなくなります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7246,
+  "cache_read_input_tokens": 16122,
+  "output_tokens": 1397,
+  "output_tokens_details": {
+   "thinking_tokens": 602
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7246,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1397,
+    "cache_read_input_tokens": 16122,
+    "cache_creation_input_tokens": 7246,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7246
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

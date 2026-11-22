@@ -1,0 +1,104 @@
+{
+ "file": "m08.en.1.json",
+ "cond": "en",
+ "id": "m08",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`UPDATE ... SET status = 'confirmed' WHERE id = ? AND status = 'held' AND expires_at > now()`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "状態が`held`の予約行を`INSERT`する。期限（例: 数分後）も持たせる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "枠IDに対して、有効な予約（`held`と`confirmed`）が1件しか存在できない一意制約"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "実際のコードを読める状態であれば、テーブル定義と`reserve()`・`confirm()`の実装"
+  },
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "予約は2段階で処理されています。"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`reserve()`で`SELECT ... FOR UPDATE`を使って枠の行をロックし"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`confirm()`で`INSERT`して予約を確定する"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "ロックが外れている時間は40〜120msでした"
+  },
+  {
+   "concept": "time_range",
+   "word": "スライディングウィンドウ",
+   "quote": "レート制限は60秒のスライディングウィンドウです。"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "`reserve()`が終わってから`confirm()`の`INSERT`が走るまでの間は"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に別のリクエストが`reserve()`を通ると"
+  },
+  {
+   "concept": "time_range",
+   "word": "隙間",
+   "quote": "同じ隙間にまた当たり得ます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "隙間",
+   "quote": "再試行の頻度を下げるだけで、隙間そのものは残ります。"
+  },
+  {
+   "concept": "time_range",
+   "word": "隙間",
+   "quote": "隙間をなくすには、「空いていることの確認」と"
+  },
+  {
+   "concept": "time_range",
+   "word": "隙間",
+   "quote": "ロックを確定まで持ち続ければ隙間は消えます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "`reserve()`と`confirm()`の間にユーザーの操作や外部呼び出しが挟まる場合"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "その間ずっと行ロックを握ることになり"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "「枠を自分のものにする書き込み」を1つのトランザクションで済ませる"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`confirm()`は新しく`INSERT`せず、`UPDATE ... SET status = 'confirmed'"
+  }
+ ],
+ "raw": "[{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`UPDATE ... SET status = 'confirmed' WHERE id = ? AND status = 'held' AND expires_at > now()`\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"状態が`held`の予約行を`INSERT`する。期限（例: 数分後）も持たせる\"},{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"枠IDに対して、有効な予約（`held`と`confirmed`）が1件しか存在できない一意制約\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"実際のコードを読める状態であれば、テーブル定義と`reserve()`・`confirm()`の実装\"},{\"concept\":\"step\",\"word\":\"段階\",\"quote\":\"予約は2段階で処理されています。\"},{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`reserve()`で`SELECT ... FOR UPDATE`を使って枠の行をロックし\"},{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`confirm()`で`INSERT`して予約を確定する\"},{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"ロックが外れている時間は40〜120msでした\"},{\"concept\":\"time_range\",\"word\":\"スライディングウィンドウ\",\"quote\":\"レート制限は60秒のスライディングウィンドウです。\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"`reserve()`が終わってから`confirm()`の`INSERT`が走るまでの間は\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に別のリクエストが`reserve()`を通ると\"},{\"concept\":\"time_range\",\"word\":\"隙間\",\"quote\":\"同じ隙間にまた当たり得ます。\"},{\"concept\":\"time_range\",\"word\":\"隙間\",\"quote\":\"再試行の頻度を下げるだけで、隙間そのものは残ります。\"},{\"concept\":\"time_range\",\"word\":\"隙間\",\"quote\":\"隙間をなくすには、「空いていることの確認」と\"},{\"concept\":\"time_range\",\"word\":\"隙間\",\"quote\":\"ロックを確定まで持ち続ければ隙間は消えます。\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"`reserve()`と`confirm()`の間にユーザーの操作や外部呼び出しが挟まる場合\"},{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"その間ずっと行ロックを握ることになり\"},{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"「枠を自分のものにする書き込み」を1つのトランザクションで済ませる\"},{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`confirm()`は新しく`INSERT`せず、`UPDATE ... SET status = 'confirmed'\"}]"
+}

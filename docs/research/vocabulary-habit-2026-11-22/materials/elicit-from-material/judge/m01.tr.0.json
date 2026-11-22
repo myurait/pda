@@ -1,0 +1,124 @@
+{
+ "file": "m01.tr.0.json",
+ "cond": "tr",
+ "id": "m01",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 新しいテーブル `delivery_instructions`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_group_id`: `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `platform`: 文字列（最大32文字）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `scheduled_at`: 配信の予定日時（必須）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `dispatched_at`: 指示を送り出した日時（NULL 可）"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "### `post_google_location_relationships` に足すカラム"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "### `post_google_location_relationships` に足すカラム"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `delivery_state`: 文字列（最大16文字）。既定値は `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `external_key`: 文字列（NULL 可）"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_google_location_relationships` の既存の行"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が入っている行は `delivery_state = 'sent'` になる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が入っている行は `delivery_state = 'sent'` になる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `sent_at` が NULL の行は `delivery_state = 'pending'`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の行は `delivery_state = 'pending'`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "- `external_key` はどの既存の行も NULL になる"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`delivery_instructions` は空の状態で作られる"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_google_location_relationships` を変更（カラム2つと"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "を変更（カラム2つとインデックスの追加）"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "送信済みの行すべてを1回の `UPDATE` で埋める"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "テーブルとカラムとインデックスを手で消す"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "テーブルとカラムとインデックスを手で消す"
+  }
+ ],
+ "raw": "```json\n[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"### 新しいテーブル `delivery_instructions`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_group_id`: `post_groups` への外部キー\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `platform`: 文字列（最大32文字）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `scheduled_at`: 配信の予定日時（必須）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `dispatched_at`: 指示を送り出した日時（NULL 可）\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"### `post_google_location_relationships` に足すカラム\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"### `post_google_location_relationships` に足すカラム\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `delivery_state`: 文字列（最大16文字）。既定値は `pending`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` の後ろに置く\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `external_key`: 文字列（NULL 可）\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_google_location_relationships` の既存の行\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が入っている行は `delivery_state = 'sent'` になる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が入っている行は `delivery_state = 'sent'` になる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `sent_at` が NULL の行は `delivery_state = 'pending'`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`sent_at` が NULL の行は `delivery_state = 'pending'`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"- `external_key` はどの既存の行も NULL になる\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`delivery_instructions` は空の状態で作られる\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_google_location_relationships` を変更（カラム2つと\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"を変更（カラム2つとインデックスの追加）\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"送信済みの行すべてを1回の `UPDATE` で埋める\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"テーブルとカラムとインデックスを手で消す\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"テーブルとカラムとインデックスを手で消す\"}\n]\n```"
+}

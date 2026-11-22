@@ -1,0 +1,124 @@
+{
+ "file": "m08.en.0.json",
+ "cond": "en",
+ "id": "m08",
+ "i": 0,
+ "items": [
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "ロックが外れてから `INSERT` が走るまでの間は"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に別のリクエストが `reserve()` を通ると"
+  },
+  {
+   "concept": "time_range",
+   "word": "空白の時間",
+   "quote": "この空白の時間は40〜120msでした"
+  },
+  {
+   "concept": "time_range",
+   "word": "スライディングウィンドウ",
+   "quote": "レートリミッターは60秒のスライディングウィンドウなので"
+  },
+  {
+   "concept": "time_range",
+   "word": "空白の時間",
+   "quote": "同じ空白の時間に再び入り込めます"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "予約テーブルの枠ID"
+  },
+  {
+   "concept": "db_column",
+   "word": "枠ID",
+   "quote": "予約テーブルの枠ID"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "ON bookings (slot_id)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "ON bookings (slot_id)"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "WHERE status <> 'cancelled';"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "2つの処理が同じリクエストの中で続けて呼ばれている"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "UPDATE slots"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "SET status = 'held', held_by = :request_id"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "held_by = :request_id"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "held_until = now() + interval '5 minutes'"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "WHERE id = :slot_id"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND (status = 'free' OR (status = 'held'"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND held_until < now());"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "UPDATE slots"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "SET status = 'booked'"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "WHERE id = :slot_id AND held_by = :request_id"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "AND held_until > now();"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "更新件数が 1 のときだけ bookings に INSERT"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"ロックが外れてから `INSERT` が走るまでの間は\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に別のリクエストが `reserve()` を通ると\"},\n{\"concept\":\"time_range\",\"word\":\"空白の時間\",\"quote\":\"この空白の時間は40〜120msでした\"},\n{\"concept\":\"time_range\",\"word\":\"スライディングウィンドウ\",\"quote\":\"レートリミッターは60秒のスライディングウィンドウなので\"},\n{\"concept\":\"time_range\",\"word\":\"空白の時間\",\"quote\":\"同じ空白の時間に再び入り込めます\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"予約テーブルの枠ID\"},\n{\"concept\":\"db_column\",\"word\":\"枠ID\",\"quote\":\"予約テーブルの枠ID\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"ON bookings (slot_id)\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"ON bookings (slot_id)\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"WHERE status <> 'cancelled';\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"2つの処理が同じリクエストの中で続けて呼ばれている\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"UPDATE slots\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"SET status = 'held', held_by = :request_id\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"held_by = :request_id\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"held_until = now() + interval '5 minutes'\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"WHERE id = :slot_id\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND (status = 'free' OR (status = 'held'\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND held_until < now());\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"UPDATE slots\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"SET status = 'booked'\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"WHERE id = :slot_id AND held_by = :request_id\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"AND held_until > now();\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"更新件数が 1 のときだけ bookings に INSERT\"}\n]"
+}

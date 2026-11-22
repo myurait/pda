@@ -1,0 +1,117 @@
+<title>異常語彙の再現試験</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDPMincho:wght@400;700&display=swap">
+<style>
+/* 課題ごとに、課題文 → 3 条件の出力を横並び（狭い幅では縦）で置く読み比べの一覧 */
+:root {
+  --bg: #f5f6f4;
+  --paper: #ffffff;
+  --fg: #1d2327;
+  --muted: #5b646b;
+  --line: #d6dbd7;
+  --accent: #2c6150;
+  --accent-soft: #e3efe9;
+  --hit: #fbe3a6;
+  --hit-fg: #5a3c00;
+  --body: "BIZ UDPMincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --ui: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141816; --paper: #1c2120; --fg: #e4e8e6; --muted: #9aa5a0; --line: #333b38;
+    --accent: #8cc7b0; --accent-soft: #20302a; --hit: #5c4513; --hit-fg: #ffe6a8; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141816; --paper: #1c2120; --fg: #e4e8e6; --muted: #9aa5a0; --line: #333b38;
+  --accent: #8cc7b0; --accent-soft: #20302a; --hit: #5c4513; --hit-fg: #ffe6a8; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--ui); }
+.wrap { max-width: 1200px; margin: 0 auto; padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.5rem; margin: 0 0 8px; text-wrap: balance; }
+.lead { color: var(--muted); line-height: 1.8; max-width: 72ch; margin: 0 0 8px; }
+.conds { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 16px; color: var(--muted); font-size: .9rem; line-height: 1.7; }
+.conds b { color: var(--fg); }
+.summary { overflow-x: auto; margin: 8px 0 24px; }
+.summary table { border-collapse: collapse; font-size: .9rem; min-width: 520px; }
+.summary th, .summary td { border-bottom: 1px solid var(--line); padding: 6px 10px; text-align: left; font-variant-numeric: tabular-nums; }
+.summary a { color: var(--accent); }
+.summary .n0 { color: var(--muted); }
+.summary .n1 { background: var(--hit); color: var(--hit-fg); font-weight: 700; }
+.task { margin-top: 36px; scroll-margin-top: 16px; }
+.task h2 { font-size: 1.15rem; margin: 0 0 6px; text-wrap: balance; }
+.meta { color: var(--muted); font-size: .88rem; line-height: 1.7; }
+.chip { display: inline-block; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; margin: 2px 4px 2px 0; background: var(--paper); }
+.prompt { background: var(--accent-soft); border-radius: 6px; padding: 12px 14px; white-space: pre-wrap; line-height: 1.75; font-size: .93rem; margin-top: 8px; }
+.cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+@media (max-width: 900px) { .cols { grid-template-columns: 1fr; } }
+.col h3 { font-size: .95rem; margin: 0 0 8px; color: var(--accent); }
+.out { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; min-width: 0; }
+.out .no { font-size: .8rem; color: var(--muted); }
+.out .text { font-family: var(--body); line-height: 1.85; white-space: pre-wrap; overflow-wrap: anywhere; margin-top: 4px; }
+mark { background: var(--hit); color: var(--hit-fg); padding: 0 2px; border-radius: 2px; }
+details { margin-top: 6px; font-size: .85rem; color: var(--muted); }
+details pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--ui); line-height: 1.6; }
+summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+  <h1>異常語彙の再現試験</h1>
+  <p class="lead">指摘された日本語の誤りの語ごとに、誤りが出た場面と同じ事実と書き方の制約を短い課題文にし、Opus（エフォート low）に書かせた。システムプロンプトには CLAUDE.md の全文を入れ、6 行目だけを次の 3 通りに変えた。課題ごと・条件ごとに 4 回書かせている。誤りの語が出た箇所は色を付けて示す。</p>
+  <div class="conds">
+    <span><b>日本語のみ</b>: Respond in Japanese.</span>
+    <span><b>英語で考える</b>: Always Think in English, but respond in Japanese.</span>
+    <span><b>英語で書いて訳す</b>: 英語の下書きを書いてから日本語に訳させ、訳だけを載せた（下書きは各出力の下に畳んである）</span>
+  </div>
+  <div class="summary" id="summary"></div>
+  <div id="list"><p class="lead">読み込んでいる。</p></div>
+</div>
+
+<script>
+const CONDS = [["ja", "日本語のみ"], ["en", "英語で考える"], ["tr", "英語で書いて訳す"]];
+function esc(s) { return s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function mark(text, pats) {
+  let h = esc(text);
+  for (const p of [...pats].sort((a, b) => b.length - a.length)) {
+    const e = esc(p);
+    if (e) h = h.split(e).join("\u0000" + e + "\u0001");
+  }
+  return h.replace(/\u0000/g, "<mark>").replace(/\u0001/g, "</mark>").replace(/<mark><mark>/g, "<mark>").replace(/<\/mark><\/mark>/g, "</mark>");
+}
+(async () => {
+  let data;
+  try { data = await (await fetch("data.json")).json(); }
+  catch { document.getElementById("list").innerHTML = '<p class="lead">データを読み込めなかった。</p>'; return; }
+  const rows = data.tasks.map(t => {
+    const cells = CONDS.map(([c]) => {
+      const o = t.outs[c] || [];
+      const n = o.filter(x => x.hits.length).length;
+      return `<td class="${n ? "n1" : "n0"}">${n} / ${o.length}</td>`;
+    }).join("");
+    return `<tr><td><a href="#${t.id}">${esc(t.id)}</a></td><td>${esc(t.word)}</td>${cells}</tr>`;
+  }).join("");
+  document.getElementById("summary").innerHTML =
+    `<table><thead><tr><th>課題</th><th>誤りの語</th>${CONDS.map(([, l]) => `<th>${l}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>`;
+  const list = document.getElementById("list");
+  list.textContent = "";
+  for (const t of data.tasks) {
+    const sec = document.createElement("section");
+    sec.className = "task";
+    sec.id = t.id;
+    sec.innerHTML = `
+      <h2>${esc(t.id)}　${esc(t.word)}</h2>
+      <div class="meta">${t.source_en ? "元の英語: " + esc(t.source_en) + "　" : ""}検出する語: ${t.patterns.map(p => `<span class="chip">${esc(p)}</span>`).join("")}</div>
+      <div class="prompt">${esc(t.prompt)}</div>
+      <div class="cols">${CONDS.map(([c, l]) => `
+        <div class="col"><h3>${l}</h3>${(t.outs[c] || []).map(o => `
+          <div class="out"><div class="no">${o.i + 1} 回目${o.hits.length ? "　誤りの語あり" : ""}</div>
+            <div class="text">${mark(o.text, t.patterns)}</div>
+            ${o.draft ? `<details><summary>英語の下書き</summary><pre>${esc(o.draft)}</pre></details>` : ""}
+          </div>`).join("")}</div>`).join("")}
+      </div>`;
+    list.appendChild(sec);
+  }
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+})();
+</script>

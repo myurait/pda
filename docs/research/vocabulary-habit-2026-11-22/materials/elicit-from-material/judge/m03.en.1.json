@@ -1,0 +1,154 @@
+{
+ "file": "m03.en.1.json",
+ "cond": "en",
+ "id": "m03",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": ""
+  },
+  {
+   "concept": "collection",
+   "word": "紐付けレコード",
+   "quote": "投稿と店舗の紐付けレコード（`PostGoogleLocationRelationship`）を最初にまとめて読み込みます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "全カラムを `upsert` で書き戻します"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "最後に読み込んだ時点の全カラムを `upsert` で書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しで更新するカラムを指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "書き戻しで更新するカラムを指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`saveOnCompleted()` が付ける `deleted_at` が `NULL` に戻ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "レコードを読み込んでから書き戻すまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読み込んでから書き戻すまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "この間の時間は、GBP API の呼び出しが"
+  },
+  {
+   "concept": "time_range",
+   "word": "1〜3秒",
+   "quote": "GBP API の呼び出しが1件あたり1〜3秒かかるため"
+  },
+  {
+   "concept": "collection",
+   "word": "レコード",
+   "quote": "対象レコードの件数に比例して長くなります"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "## 処理の流れ"
+  },
+  {
+   "concept": "collection",
+   "word": "紐付けレコード",
+   "quote": "1. 同期処理が紐付けレコードを読み込む。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "旧レコードの `deleted_at` は `NULL`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "旧レコードに `deleted_at = now()` を書き込む"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "同期処理が手順1で読み込んだ全カラムを"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "手順1で読み込んだ全カラムを `upsert` で"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "全カラムを `upsert` で書き戻す。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "旧レコードの `deleted_at` が `NULL` で上書きされる"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`deleted_at` 以外のカラムも同じ仕組みで巻き戻ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "同期処理の書き戻しで読み込み時点の値に戻ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しはモデルのイベントを通らないため"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` の第3引数に、同期で取得した値を書き込む"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "値を書き込むカラム（`state`・`published_at`）だけを"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "それ以外のカラムを上書きしないようにする"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しの対象から論理削除済みのレコードを除外する"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻し直前に `deleted_at` が `NULL` のレコードだけを"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "書き戻し直前に `deleted_at` が `NULL` のレコード"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"\"},\n{\"concept\":\"collection\",\"word\":\"紐付けレコード\",\"quote\":\"投稿と店舗の紐付けレコード（`PostGoogleLocationRelationship`）を最初にまとめて読み込みます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"全カラムを `upsert` で書き戻します\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"最後に読み込んだ時点の全カラムを `upsert` で書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しで更新するカラムを指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"書き戻しで更新するカラムを指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`saveOnCompleted()` が付ける `deleted_at` が `NULL` に戻ります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"レコードを読み込んでから書き戻すまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読み込んでから書き戻すまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"この間の時間は、GBP API の呼び出しが\"},\n{\"concept\":\"time_range\",\"word\":\"1〜3秒\",\"quote\":\"GBP API の呼び出しが1件あたり1〜3秒かかるため\"},\n{\"concept\":\"collection\",\"word\":\"レコード\",\"quote\":\"対象レコードの件数に比例して長くなります\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"## 処理の流れ\"},\n{\"concept\":\"collection\",\"word\":\"紐付けレコード\",\"quote\":\"1. 同期処理が紐付けレコードを読み込む。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"旧レコードの `deleted_at` は `NULL`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"旧レコードに `deleted_at = now()` を書き込む\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"同期処理が手順1で読み込んだ全カラムを\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"手順1で読み込んだ全カラムを `upsert` で\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"全カラムを `upsert` で書き戻す。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"旧レコードの `deleted_at` が `NULL` で上書きされる\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`deleted_at` 以外のカラムも同じ仕組みで巻き戻ります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"同期処理の書き戻しで読み込み時点の値に戻ります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しはモデルのイベントを通らないため\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`upsert` の第3引数に、同期で取得した値を書き込む\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"値を書き込むカラム（`state`・`published_at`）だけを\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"それ以外のカラムを上書きしないようにする\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しの対象から論理削除済みのレコードを除外する\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻し直前に `deleted_at` が `NULL` のレコードだけを\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"書き戻し直前に `deleted_at` が `NULL` のレコード\"}\n]"
+}

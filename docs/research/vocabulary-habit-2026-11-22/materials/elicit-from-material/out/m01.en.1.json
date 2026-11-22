@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m01",
+ "i": 1,
+ "result": "---\n\nPR の説明文を書きました。そのまま貼れるように、コードブロックに入れています。\n\n```markdown\n## 概要\n\n配信の状態を記録するため、次の 2 つの変更を入れます。\n\n- 配信指示を持つテーブル `delivery_instructions` を新設する\n- 投稿と Google ロケーションの対応を持つテーブル `post_google_location_relationships` に、配信状態と外部キーのカラムを足す\n\n## 変更内容\n\n### 新設: `delivery_instructions`\n\n投稿グループ 1 件ごと・配信先プラットフォーム 1 つごとの配信指示を 1 行で持ちます。\n\n- `post_group_id`: `post_groups` への外部キー制約付き\n- `platform`: 配信先プラットフォーム（最大 32 文字）\n- `scheduled_at`: 配信予定日時（必須）\n- `dispatched_at`: 配信を実行した日時（未実行なら NULL）\n- `post_group_id` と `platform` の組に一意制約。同じ投稿グループに同じプラットフォームの指示は 1 行しか作れません\n\n### 変更: `post_google_location_relationships`\n\n- `delivery_state` を `sent_at` の後ろに追加（最大 16 文字、既定値 `pending`）\n- `external_key` を `delivery_state` の後ろに追加（NULL 可）\n- `delivery_state` と `updated_at` の複合インデックスを追加\n\n## 既存データへの影響\n\n- `post_google_location_relationships` の既存行は、マイグレーション内の UPDATE で `delivery_state` が次のように埋まります\n  - `sent_at` が入っている行: `sent`\n  - `sent_at` が NULL の行: 既定値の `pending`\n- 既存行の `external_key` はすべて NULL になります\n- UPDATE は Eloquent を通さない SQL なので、既存行の `updated_at` は変わりません\n- `delivery_instructions` は空のテーブルとして作られ、既存の投稿グループに対応する行は作られません\n- 既存テーブルへのカラム追加とインデックス作成を行うため、適用にかかる時間は `post_google_location_relationships` の行数に応じて伸びます\n\n## ロールバック\n\n`down()` を定義していないため、`migrate:rollback` でこのマイグレーションを戻すことはできません。\n```\n\nこの変更が必要になった背景や関連チケットは素材に書かれていなかったので、説明文には入れていません。必要であれば「概要」の冒頭に足してください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 114902,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1666,
+  "output_tokens_details": {
+   "thinking_tokens": 810
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 114902,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1666,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 114902,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 114902
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

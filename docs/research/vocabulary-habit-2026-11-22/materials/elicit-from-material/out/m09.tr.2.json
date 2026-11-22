@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m09",
+ "i": 2,
+ "result": "---\n\n最近の変更で、編集元の行を「この実行では上書きしない行」の一覧に入れました。この一覧が、取り込み済みかどうかの判定にも使われています。そのため、編集元の行に紐づく Google ビジネスプロフィールの投稿が「まだ取り込んでいない投稿」と判定され、新しい投稿グループが作られます。\n\n## 取り込み済みかの判定の仕組み\n\n新しい投稿の取り込みは、次の順で進みます。\n\n1. その店舗について、投稿グループと Google ビジネスプロフィールの投稿の紐づけ（`PostGoogleLocationRelationship`）から `external_key` を集め、取り込み済みの投稿の一覧にする。\n2. Google ビジネスプロフィールから届いた投稿を 1 件ずつ見て、投稿の名前が取り込み済みの一覧にあれば飛ばし、無ければ投稿グループを新しく作る。\n\n手順 1 で紐づけを集めるとき、「この実行では除外する行」を外しています。\n\n## 重複が起きる流れ\n\n```\n編集元の行 (external_key = X) が紐づけに存在する\n        │\n        ▼\n最近の変更で「除外する行」に編集元の行が入る\n        │\n        ▼\n取り込み済みの一覧を作るときに除外されるので X が一覧に無い\n        │\n        ▼\n届いた投稿 X が「未取り込み」と判定される\n        │\n        ▼\nX の投稿グループが新しく作られる (既存の投稿グループと重複)\n```\n\n除外の一覧は「同じ実行の後の段階で上書きしない」ために作られたものです。「すでに紐づいているか」の判定では、上書きするかどうかに関係なく、紐づけが存在するかだけを見る必要があります。この 2 つの目的に同じ一覧を使ったことが原因です。\n\n## 直し方\n\n取り込み済みの一覧を作るときは除外を掛けず、その店舗の紐づけの `external_key` をすべて集めます。除外の一覧は、上書きを行う段階だけで使います。これで、編集元の行に紐づく投稿は取り込み済みとして飛ばされ、上書きもされません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1003,
+  "cache_read_input_tokens": 22180,
+  "output_tokens": 1421,
+  "output_tokens_details": {
+   "thinking_tokens": 670
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1421,
+    "cache_read_input_tokens": 22180,
+    "cache_creation_input_tokens": 1003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m04",
+ "i": 0,
+ "result": "---\n\nこの処理には、運用担当者が管理画面で直した店舗名を、同期の処理が古い値で上書きして消してしまう問題があります。80,000店舗を10分ごとに回すため、編集した店舗名が戻る事象は日常的に起こり得ます。\n\n## 処理の流れ\n\n1店舗ぶんの同期は、次の順で進みます。\n\n1. MySQL の `settings` テーブルから、その店舗の設定を読む\n2. 外部APIから、その店舗の設定を読む\n3. 2つを合わせる。営業時間は外部APIの値を、店舗名はMySQL の値を採る\n4. 合わせた設定を外部APIへ書き込む\n5. 合わせた設定で、MySQL の `settings` の行を全カラム更新する\n\n## 問題点\n\n### 1. 管理画面で直した店舗名が消える（主な問題）\n\n手順1でMySQL を読んでから手順5で書き戻すまでの間に、運用担当者が `settings.name` を編集すると、次のことが起こります。\n\n- 手順5は全カラムを更新するので、手順1で読んだ古い店舗名で `settings.name` を上書きする\n- 手順4で外部APIにも古い店舗名を送っている\n- 次の回の同期は、上書きされた古い店舗名を正しい値として扱う\n\n編集した内容はMySQL と外部APIの両方から消え、どこにも残りません。担当者には、保存したはずの店舗名が勝手に戻ったように見えます。\n\n読んでから書くまでの間には外部APIの呼び出しが2回入るので、この間隔は短くありません。どの店舗を編集しても、同期と重なる機会が10分ごとに訪れます。\n\n### 2. 外部側で変わった営業時間も同じ形で消える\n\n外部APIについても、手順2で読んでから手順4で書くまでの間に外部側で営業時間が変わると、手順2で読んだ古い営業時間で上書きします。外部側で誰がいつ営業時間を変えるかはこの素材から読めませんが、変わる経路があるなら問題1と同じ形で失われます。\n\n### 3. 2つの書き込みの間で失敗すると、一時的に食い違う\n\n手順4が成功して手順5が失敗すると、外部APIとMySQL の内容が食い違ったままになります。ただし次の回の同期で同じ規則で合わせ直すので、10分後には揃います。問題1・問題2に比べると影響は小さいです。\n\n## 直し方の方向\n\n問題1の原因は、同期の処理が自分の担当でない店舗名まで書き戻していることです。\n\n- MySQL への書き込みは、外部APIから採る営業時間のカラムだけを更新し、`settings.name` を更新の対象から外す\n- 全カラムを書く形を残すなら、`settings` に版番号のカラムを持たせ、読んだときの版のままのときだけ更新する。版が変わっていたら、その店舗はその回を見送る\n- 合わせた結果が読んだ値と同じなら、外部APIにもMySQL にも書かない。上書きの機会が減り、80,000店舗ぶんの書き込みの負荷も下がる\n\n問題2は、外部APIが版や更新日時による条件付きの更新を受け付けるかどうかで直し方が決まるので、外部APIの仕様を確認してから判断します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7269,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1867,
+  "output_tokens_details": {
+   "thinking_tokens": 731
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7269,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1867,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7269,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7269
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

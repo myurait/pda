@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m09",
+ "i": 4,
+ "result": "---\n\n最近の変更で、編集元の行が「既に紐付け済みの投稿」の一覧から外れるようになりました。そのため、すでに投稿グループを持っている投稿が未登録と判定され、投稿グループが新しく作られます。\n\n## 重複が起きる流れ\n\n1. 取り込みの最初に、ロケーションの紐付けの行から`external_key`を集めて、「既に紐付け済みの投稿」の一覧を作ります。\n2. このとき、`excludedRowIds`に入っている行は一覧から外されます。\n3. 最近の変更で、編集元の行がこの除外リストに入るようになりました。目的は、同じ実行の後の段階で上書きされないようにすることです。\n4. その結果、編集元の行の`external_key`は「既に紐付け済みの投稿」の一覧に入りません。\n5. Googleビジネスプロフィールから取得した投稿を1件ずつ照合すると、編集元の行に対応する投稿は一覧に見つかりません。そのため、未登録の投稿として扱われ、投稿グループが新しく作られます。\n6. 同期のたびに編集元の行は除外されるので、実行するごとに重複が増えます。\n\n## 原因\n\n除外リストは本来「この実行で上書きしない行」を表すものです。それが「既に紐付け済みか」の判定にも使われているため、2つの意味が混ざっています。行を上書きから守ることと、その行がまだ存在していることは別の事実です。しかし、このコードでは除外された行が存在しないものとして扱われています。\n\n## 直し方\n\n「既に紐付け済みの投稿」の一覧は、除外リストを使わずに、そのロケーションのすべての紐付けの行から作ります。除外リストは、上書きする段階だけで参照します。具体的には、`whereNotIn('id', $this->excludedRowIds)`の条件をこの一覧の作成から外します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1000,
+  "cache_read_input_tokens": 22096,
+  "output_tokens": 1074,
+  "output_tokens_details": {
+   "thinking_tokens": 427
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1000,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1074,
+    "cache_read_input_tokens": 22096,
+    "cache_creation_input_tokens": 1000,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1000
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m01",
+ "i": 2,
+ "result": "---\n\nPR の説明文を書きました。素材にはこの変更の目的が書かれていないため、背景の節は置いていません。目的を冒頭に1〜2文足してください。\n\n```markdown\n## 変更内容\n\n配信の状態を記録するため、テーブルを1つ追加し、既存のテーブルにカラムを足します。\n\n### `delivery_instructions` テーブルを新設\n\n投稿グループをどのプラットフォームへいつ配信するかを持つテーブルです。\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: 配信先のプラットフォーム名（32文字まで）\n- `scheduled_at`: 配信予定の日時\n- `dispatched_at`: 配信を実行した日時。未実行の間は NULL\n\n同じ投稿グループと同じプラットフォームの組は1行しか作れないよう、2つのカラムにユニーク制約を付けています。\n\n### `post_google_location_relationships` にカラムを追加\n\n- `delivery_state`: 配信の状態。`sent_at` の後ろに置き、既定値は `pending`\n- `external_key`: 配信先の外部キー。NULL を許す\n- `delivery_state` と `updated_at` の複合インデックス\n\n## 既存データへの影響\n\n### `post_google_location_relationships` の既存行\n\nマイグレーションの実行時に、既存行の `delivery_state` を次のように埋めます。\n\n- `sent_at` が入っている行: `sent`\n- `sent_at` が NULL の行: 既定値の `pending` のまま\n\n`external_key` は既存行すべてで NULL になります。\n\n`delivery_state` の更新は全行を対象にした1本の UPDATE 文で行います。SQL を直接実行するので、`updated_at` は変わりません。\n\n### `post_groups` の削除\n\n`delivery_instructions.post_group_id` の外部キーには削除時の動作を指定していません。このため、`delivery_instructions` から参照されている `post_groups` の行は削除できなくなります。今は削除できる投稿グループでも、配信の指示が作られた後は削除がエラーになります。\n\n## ロールバック\n\n`down()` を定義していないため、`migrate:rollback` ではこのマイグレーションを戻せません。\n```\n\n説明文に入れた点のうち、次の2つは素材のコードを読んで見つけたものです。意図した仕様かどうかを確かめてください。\n\n- `sent_at` が NULL の既存行はすべて `pending` になります。まだ送っていない行のほかに、送る予定のない行があれば、その行も配信待ちとして扱われます。\n- 外部キーに削除時の動作を指定していないため、配信の指示がある `post_groups` は削除できなくなります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 10535,
+  "cache_read_input_tokens": 198527,
+  "output_tokens": 1791,
+  "output_tokens_details": {
+   "thinking_tokens": 877
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 10535,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1791,
+    "cache_read_input_tokens": 198527,
+    "cache_creation_input_tokens": 10535,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 10535
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

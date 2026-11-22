@@ -1,0 +1,324 @@
+{
+ "file": "m04.ja.4.json",
+ "cond": "ja",
+ "id": "m04",
+ "i": 4,
+ "items": [
+  {
+   "concept": "step",
+   "word": "同期処理",
+   "quote": "この同期処理の最大の問題は、オペレーターが管理画面で"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "管理画面で `settings.name` を変更しても"
+  },
+  {
+   "concept": "step",
+   "word": "同期ジョブ",
+   "quote": "同期ジョブがその変更を古い値で上書きして消してしまう"
+  },
+  {
+   "concept": "step",
+   "word": "処理の流れ",
+   "quote": "## 処理の流れ"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "1. MySQL から店舗の設定を読みます。"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2. 外部 API から同じ店舗の設定を読みます。"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "3. 2つを合成します。営業時間は外部 API の値"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "4. 合成した設定を外部 API に書き込みます。"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "全カラムを上書きする UPDATE で保存します"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "合成した設定を MySQL の `settings` に"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` に、全カラムを上書きする UPDATE"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは10分ごとに8万店舗ぶん実行されます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "このジョブは10分ごとに8万店舗ぶん"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1で読んでから手順5で保存するまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順1で読んでから手順5で保存するまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順5で保存するまでの間に、外部 API への呼び出しが2回入ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間にオペレーターが店舗名を変更すると"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5の UPDATE が手順1で読んだ古い店舗名で"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "手順5の UPDATE が手順1で読んだ古い店舗名で"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順5の UPDATE が手順1で読んだ古い店舗名で"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い店舗名で `settings.name` を上書きします"
+  },
+  {
+   "concept": "step",
+   "word": "同期ジョブ",
+   "quote": "同期ジョブ                         オペレーター"
+  },
+  {
+   "concept": "write_back",
+   "word": "書く",
+   "quote": "外部 API に書く (name = \"A店\")"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "MySQL を全カラム UPDATE (name = \"A店\")"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "MySQL を全カラム UPDATE (name = \"A店\")"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "この店舗名の上書きは一時的なずれではなく"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "次回以降のジョブは \"A店\" を正しい値として扱い続け"
+  },
+  {
+   "concept": "time_range",
+   "word": "対象期間",
+   "quote": "どの店舗もほぼ常にジョブの対象期間に入っています"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "どの店舗もほぼ常にジョブの対象期間に入っています"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分ごと",
+   "quote": "8万店舗を10分ごとに処理するので"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "管理画面での変更が上書きに当たる機会は少なくありません"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "### 2. 実行が10分を超えると、同じ店舗の同期が重なる"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "8万店舗を10分で回すには、1秒あたり約130店舗"
+  },
+  {
+   "concept": "time_range",
+   "word": "10分",
+   "quote": "1回の実行が10分を超えると、次の実行が始まり"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同じ店舗を2つのジョブが同時に処理します"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "2つのジョブが互いに古い値で上書きし合うので"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "2つのジョブが互いに古い値で上書きし合うので"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "問題1と同じ型の上書きが、ジョブ同士の間でも起きます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "問題1と同じ型の上書きが、ジョブ同士の間でも起きます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部 API への書き込みと MySQL の UPDATE を毎回行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "外部 API への書き込みと MySQL の UPDATE を毎回行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みのほとんどは不要で"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "問題1の上書きが起きる機会の両方を増やしています"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "### 4. 外部 API と MySQL の書き込みが片方だけ成功しうる"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順4が成功して手順5が失敗すると"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このずれは次回のジョブで解消されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "**UPDATE の対象を同期が持つカラムに絞る**"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "**UPDATE の対象を同期が持つカラムに絞る**"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同期ジョブが `settings.name` を書き込む必要はありません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期ジョブが `settings.name` を書き込む必要はありません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込む",
+   "quote": "同期ジョブが `settings.name` を書き込む必要はありません"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部 API を正とするカラム (営業時間) だけを UPDATE すれば"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "カラム (営業時間) だけを UPDATE すれば"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`settings` にバージョンのカラムを持たせ"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`settings` にバージョンのカラムを持たせ"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "`UPDATE ... WHERE version = <読んだときの値>` で保存します"
+  },
+  {
+   "concept": "write_back",
+   "word": "保存",
+   "quote": "`UPDATE ... WHERE version = <読んだときの値>` で保存します"
+  },
+  {
+   "concept": "write_back",
+   "word": "やり直",
+   "quote": "読み直してやり直します"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同じカラムを編集するようになっても安全です"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "違うときだけ外部 API と MySQL に書き込みます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "実行中のジョブがある間は次の実行を始めないか"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "実行中のジョブがある間は次の実行を始めないか"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"同期処理\",\"quote\":\"この同期処理の最大の問題は、オペレーターが管理画面で\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"管理画面で `settings.name` を変更しても\"},\n{\"concept\":\"step\",\"word\":\"同期ジョブ\",\"quote\":\"同期ジョブがその変更を古い値で上書きして消してしまう\"},\n{\"concept\":\"step\",\"word\":\"処理の流れ\",\"quote\":\"## 処理の流れ\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"1. MySQL から店舗の設定を読みます。\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2. 外部 API から同じ店舗の設定を読みます。\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"3. 2つを合成します。営業時間は外部 API の値\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"4. 合成した設定を外部 API に書き込みます。\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"全カラムを上書きする UPDATE で保存します\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"合成した設定を MySQL の `settings` に\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` に、全カラムを上書きする UPDATE\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは10分ごとに8万店舗ぶん実行されます。\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"このジョブは10分ごとに8万店舗ぶん\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1で読んでから手順5で保存するまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順1で読んでから手順5で保存するまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順5で保存するまでの間に、外部 API への呼び出しが2回入ります\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間にオペレーターが店舗名を変更すると\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5の UPDATE が手順1で読んだ古い店舗名で\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"手順5の UPDATE が手順1で読んだ古い店舗名で\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順5の UPDATE が手順1で読んだ古い店舗名で\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い店舗名で `settings.name` を上書きします\"},\n{\"concept\":\"step\",\"word\":\"同期ジョブ\",\"quote\":\"同期ジョブ                         オペレーター\"},\n{\"concept\":\"write_back\",\"word\":\"書く\",\"quote\":\"外部 API に書く (name = \\\"A店\\\")\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"MySQL を全カラム UPDATE (name = \\\"A店\\\")\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"MySQL を全カラム UPDATE (name = \\\"A店\\\")\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"この店舗名の上書きは一時的なずれではなく\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"次回以降のジョブは \\\"A店\\\" を正しい値として扱い続け\"},\n{\"concept\":\"time_range\",\"word\":\"対象期間\",\"quote\":\"どの店舗もほぼ常にジョブの対象期間に入っています\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"どの店舗もほぼ常にジョブの対象期間に入っています\"},\n{\"concept\":\"time_range\",\"word\":\"10分ごと\",\"quote\":\"8万店舗を10分ごとに処理するので\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"管理画面での変更が上書きに当たる機会は少なくありません\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"### 2. 実行が10分を超えると、同じ店舗の同期が重なる\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"8万店舗を10分で回すには、1秒あたり約130店舗\"},\n{\"concept\":\"time_range\",\"word\":\"10分\",\"quote\":\"1回の実行が10分を超えると、次の実行が始まり\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同じ店舗を2つのジョブが同時に処理します\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"2つのジョブが互いに古い値で上書きし合うので\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"2つのジョブが互いに古い値で上書きし合うので\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"問題1と同じ型の上書きが、ジョブ同士の間でも起きます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"問題1と同じ型の上書きが、ジョブ同士の間でも起きます\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部 API への書き込みと MySQL の UPDATE を毎回行います\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"外部 API への書き込みと MySQL の UPDATE を毎回行います\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込みのほとんどは不要で\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"問題1の上書きが起きる機会の両方を増やしています\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"### 4. 外部 API と MySQL の書き込みが片方だけ成功しうる\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4が成功して手順5が失敗すると\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順4が成功して手順5が失敗すると\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このずれは次回のジョブで解消されます\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"**UPDATE の対象を同期が持つカラムに絞る**\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"**UPDATE の対象を同期が持つカラムに絞る**\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同期ジョブが `settings.name` を書き込む必要はありません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期ジョブが `settings.name` を書き込む必要はありません\"},\n{\"concept\":\"write_back\",\"word\":\"書き込む\",\"quote\":\"同期ジョブが `settings.name` を書き込む必要はありません\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部 API を正とするカラム (営業時間) だけを UPDATE すれば\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"カラム (営業時間) だけを UPDATE すれば\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`settings` にバージョンのカラムを持たせ\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`settings` にバージョンのカラムを持たせ\"},\n{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"`UPDATE ... WHERE version = <読んだときの値>` で保存します\"},\n{\"concept\":\"write_back\",\"word\":\"保存\",\"quote\":\"`UPDATE ... WHERE version = <読んだときの値>` で保存します\"},\n{\"concept\":\"write_back\",\"word\":\"やり直\",\"quote\":\"読み直してやり直します\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"同じカラムを編集するようになっても安全です\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"違うときだけ外部 API と MySQL に書き込みます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"実行中のジョブがある間は次の実行を始めないか\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"実行中のジョブがある間は次の実行を始めないか\"}\n]"
+}

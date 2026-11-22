@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m01",
+ "i": 4,
+ "result": "---\n\nPR の説明文の案です。\n\n```markdown\n## 概要\n\n投稿グループの配信予定を媒体ごとに持つテーブル `delivery_instructions` を追加し、Google ロケーションへの投稿の関連テーブル `post_google_location_relationships` に配信状態のカラムを足します。\n\n## 変更内容\n\n### `delivery_instructions` を新規作成\n\n- `post_group_id`: `post_groups` への外部キー\n- `platform`: 配信先の媒体（最大32文字）\n- `scheduled_at`: 配信予定日時（必須）\n- `dispatched_at`: 配信を実行した日時（未実行の間は NULL）\n- `post_group_id` と `platform` の組に一意制約を付け、1つの投稿グループにつき媒体ごとに1行だけ持つ\n- `created_at` / `updated_at` は持たない\n\n### `post_google_location_relationships` にカラムとインデックスを追加\n\n- `delivery_state`: 配信状態（最大16文字、既定値 `pending`）。`sent_at` の後ろに置く\n- `external_key`: 配信先の外部キー（NULL 可）。`delivery_state` の後ろに置く\n- `delivery_state` と `updated_at` の複合インデックス\n\n## 既存データへの影響\n\nマイグレーションの中で、既存の `post_google_location_relationships` の全行に `delivery_state` を次のとおり埋めます。\n\n- `sent_at` が入っている行: `sent`\n- `sent_at` が NULL の行: `pending`（既定値のまま）\n\nそのほかの点は次のとおりです。\n\n- 既存の行の `external_key` はすべて NULL になる\n- 埋める処理は `DB::statement` の UPDATE 1文で行うため、既存の行の `updated_at` は変わらない\n- `delivery_instructions` は空の状態で作られ、既存の投稿グループの行は作らない\n- `down()` を定義していないため、`migrate:rollback` では元に戻らない\n```\n\nレビューで判断が要りそうな点として、`sent_at` が NULL の既存の行がすべて `pending` になることがあります。送信に失敗した行や、意図して送らなかった行も `pending` になります。`pending` を拾って送る処理がこの PR か後続にある場合、その行が送り直される可能性があるので、説明文に書き足すか、埋め方を見直すかを決めてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7361,
+  "cache_read_input_tokens": 15851,
+  "output_tokens": 1871,
+  "output_tokens_details": {
+   "thinking_tokens": 1058
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7361,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1871,
+    "cache_read_input_tokens": 15851,
+    "cache_creation_input_tokens": 7361,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7361
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

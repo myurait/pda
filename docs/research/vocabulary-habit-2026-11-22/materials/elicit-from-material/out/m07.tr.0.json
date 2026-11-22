@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m07",
+ "i": 0,
+ "result": "---\n\n## English\n\n**Which posts this import takes in, and which it does not**\n\nThe import runs every day starting at 1:00 AM (JST). It takes about 9 hours to process all stores.\n\n**Imported**\n- Posts that were made at least 3 hours before the import checks them.\n\n**Not imported (postponed)**\n- Posts made less than 3 hours before the import checks them.\n- Our own posting system may still be publishing these posts. The import waits so it does not take in a post that is only half finished.\n- These posts are not lost. The next day's run imports them, because by then they are more than 3 hours old.\n- As a result, a new post can take up to about one day before it shows up.\n\n**Deletion of imported posts**\n- Each imported post is deleted 30 days after it was imported.\n\n**Note for you (not part of the text above)**\n\nThe code you shared leaves two points open, and both affect the wording above:\n- **The time used for the 3-hour check.** If that time is the job's start time (1:00 AM), every store postpones posts made after 10:00 PM the previous day. If it is the time each store is processed, the postponed range shifts later for stores processed later; for example, a store processed at 8:00 AM postpones posts made after 5:00 AM. In both cases, the next day's run picks up the postponed posts.\n- **Whether old posts come back after deletion.** The 3-hour check has no upper limit on a post's age. If the fetch from Google Business Profile returns posts older than 30 days, and duplicates are detected using the imported records, those posts would be imported again after their records are deleted. The fetch and duplicate-detection code is not in the material, so I left this out of the text above.\n\n## 日本語\n\n**この取り込み処理が取り込む投稿と、取り込まない投稿**\n\n取り込みは毎日1:00（日本時間）に始まります。全店舗の処理を終えるまで約9時間かかります。\n\n**取り込む投稿**\n- 取り込み処理が確かめる時点で、投稿から3時間以上たっている投稿\n\n**取り込まない投稿（後回しにする投稿）**\n- 取り込み処理が確かめる時点で、投稿から3時間たっていない投稿\n- 自社の投稿の仕組みがまだ投稿している最中かもしれないため、途中の投稿を取り込まないように後回しにしています。\n- 後回しにした投稿は失われません。翌日の処理では投稿から3時間以上たっているので、そこで取り込まれます。\n- このため、新しい投稿が反映されるまで最大で1日ほどかかることがあります。\n\n**取り込んだ投稿の削除**\n- 取り込んだ投稿は、取り込んでから30日たつと削除されます。\n\n**ご依頼者への補足（上の文章には含めていません）**\n\nいただいたコードからは、次の2点が決まりません。どちらも上の文章の書き方に関わります。\n- **3時間の判定に使う時刻**\n  - 処理の開始時刻（1:00）を使う場合は、全店舗で前日22:00以降の投稿が後回しになります。\n  - 店舗ごとの処理時刻を使う場合は、後に処理される店舗ほど後回しになる範囲が遅い時刻にずれます。たとえば8:00に処理される店舗では、5:00以降の投稿が後回しになります。\n  - どちらの場合も、後回しにした投稿は翌日の処理で取り込まれます。\n- **削除した投稿がもう一度取り込まれるか**\n  - 3時間の判定には、投稿の古さの上限がありません。\n  - Google Business Profileからの取得で30日より古い投稿も返り、重複の判定に取り込み済みの記録を使っている場合は、記録の削除後にその投稿がもう一度取り込まれます。\n  - 取得と重複判定のコードが素材に無いため、上の文章には書いていません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7289,
+  "cache_read_input_tokens": 16122,
+  "output_tokens": 3102,
+  "output_tokens_details": {
+   "thinking_tokens": 1825
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7289,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3102,
+    "cache_read_input_tokens": 16122,
+    "cache_creation_input_tokens": 7289,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7289
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

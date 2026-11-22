@@ -1,0 +1,149 @@
+{
+ "file": "m02.en.0.json",
+ "cond": "en",
+ "id": "m02",
+ "i": 0,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "夜間レポートの地点別の集計は変わりません"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブルだけに書くよう切り替わった時点で"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "日付の境目で集計がずれる可能性があります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の型変更によって"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "## 地点の集計（`location_ids` →"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 地点の集計（`location_ids` →"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`location_ids` → `post_search_locations`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` は「deprecated」と"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "はテーブルとして作られていますが"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "移行先の `post_search_locations` はテーブルとして"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間レポートは `post_search.location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合していません"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "**集計への影響**"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "まだデータが入っている古いJSONの列を読んでいます"
+  },
+  {
+   "concept": "collection",
+   "word": "集計値",
+   "quote": "地点別の集計値は変わりません"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "アプリが `post_search_locations` だけに書き"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` への書き込みをやめた日から"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "を `post_search_locations` にバックフィルします"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "クエリを `post_search_locations` の結合に書き換えます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "## 日時の列（`tstamp`: `timestamp` →"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 日時の列（`tstamp`: `timestamp` →"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "**集計への影響**"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "時刻が最大9時間ずれます（UTCと日本時間の差）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間レポートが `tstamp` で日付を区切っていれば"
+  },
+  {
+   "concept": "collection",
+   "word": "件数",
+   "quote": "日別の件数が前後の日に移ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "本番の `post_search.tstamp` がすでに"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "列の型は確認できていません"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"夜間レポートの地点別の集計は変わりません\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しいテーブルだけに書くよう切り替わった時点で\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"日付の境目で集計がずれる可能性があります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` の型変更によって\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"## 地点の集計（`location_ids` →\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 地点の集計（`location_ids` →\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`location_ids` → `post_search_locations`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` は「deprecated」と\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"はテーブルとして作られていますが\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"移行先の `post_search_locations` はテーブルとして\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間レポートは `post_search.location_ids` だけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` を結合していません\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"**集計への影響**\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"まだデータが入っている古いJSONの列を読んでいます\"},\n{\"concept\":\"collection\",\"word\":\"集計値\",\"quote\":\"地点別の集計値は変わりません\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"アプリが `post_search_locations` だけに書き\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` への書き込みをやめた日から\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` を\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"を `post_search_locations` にバックフィルします\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"クエリを `post_search_locations` の結合に書き換えます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"## 日時の列（`tstamp`: `timestamp` →\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 日時の列（`tstamp`: `timestamp` →\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"**集計への影響**\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"時刻が最大9時間ずれます（UTCと日本時間の差）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間レポートが `tstamp` で日付を区切っていれば\"},\n{\"concept\":\"collection\",\"word\":\"件数\",\"quote\":\"日別の件数が前後の日に移ります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"本番の `post_search.tstamp` がすでに\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"列の型は確認できていません\"}\n]"
+}

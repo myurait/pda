@@ -1,0 +1,204 @@
+{
+ "file": "m04.en.1.json",
+ "cond": "en",
+ "id": "m04",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_column",
+   "word": "店舗名",
+   "quote": "店舗名（`settings.name`）が、同期ジョブに上書きされて"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同期ジョブに上書きされて消えることがある"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "同期ジョブは店舗ごとに、次の順で設定をそろえます"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "自社のMySQLの`settings`テーブルから"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "まとめた設定を外部APIに書き戻す"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "まとめた設定を`settings`テーブルに書き戻す（全カラムを更新）"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "`settings`テーブルに書き戻す（全カラムを更新）"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "書き戻す（全カラムを更新）"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "このジョブは80,000店舗を対象に10分ごとに動きます"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順1で読んでから手順5で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順1で読んでから手順5で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順5で書くまでの間に、運用者が管理画面で"
+  },
+  {
+   "concept": "step",
+   "word": "手順5",
+   "quote": "手順5は、手順1で読んだ古い店舗名を含めて"
+  },
+  {
+   "concept": "step",
+   "word": "手順1",
+   "quote": "手順5は、手順1で読んだ古い店舗名を含めて"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "古い店舗名を含めて全カラムを書くため"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "運用者の変更を古い名前で上書きする"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4で外部APIにも古い名前が送られる"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "次の回のジョブは自社の古い名前を正として読む"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "読み書きの間の時間帯はほぼ常にどこかの店舗で"
+  },
+  {
+   "concept": "step",
+   "word": "手順2",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順2で読んでから手順4で書くまでの間に"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "手順4で書くまでの間に外部側で営業時間が変わると"
+  },
+  {
+   "concept": "step",
+   "word": "手順4",
+   "quote": "手順4が読んだ時点の古い営業時間で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "読んだ時点の古い営業時間で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "書く",
+   "quote": "変わっていなくても毎回両方に書く"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みと`settings`テーブルの更新を毎回行います"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings`テーブルの更新を毎回行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "`settings`テーブルの更新を毎回行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みと`settings`の更新がそれぞれ毎秒130件"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込みと`settings`の更新がそれぞれ毎秒130件"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "書き込みと`settings`の更新がそれぞれ毎秒130件"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "2か所への書き込みがそろわないことがある"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みが成功し、`settings`テーブルの更新が失敗すると"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings`テーブルの更新が失敗すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "更新",
+   "quote": "`settings`テーブルの更新が失敗すると"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`settings`テーブルへの書き込みを、外部側が正である"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "`settings`テーブルへの書き込みを、外部側が正である"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "外部側が正である営業時間のカラムだけに絞る"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "外部APIへの書き込みも、自社が正である店舗名だけを"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_column\",\"word\":\"店舗名\",\"quote\":\"店舗名（`settings.name`）が、同期ジョブに上書きされて\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同期ジョブに上書きされて消えることがある\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"同期ジョブは店舗ごとに、次の順で設定をそろえます\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"自社のMySQLの`settings`テーブルから\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"まとめた設定を外部APIに書き戻す\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"まとめた設定を`settings`テーブルに書き戻す（全カラムを更新）\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"`settings`テーブルに書き戻す（全カラムを更新）\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"書き戻す（全カラムを更新）\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"このジョブは80,000店舗を対象に10分ごとに動きます\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順1で読んでから手順5で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順1で読んでから手順5で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順5で書くまでの間に、運用者が管理画面で\"},\n{\"concept\":\"step\",\"word\":\"手順5\",\"quote\":\"手順5は、手順1で読んだ古い店舗名を含めて\"},\n{\"concept\":\"step\",\"word\":\"手順1\",\"quote\":\"手順5は、手順1で読んだ古い店舗名を含めて\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"古い店舗名を含めて全カラムを書くため\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"運用者の変更を古い名前で上書きする\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4で外部APIにも古い名前が送られる\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"次の回のジョブは自社の古い名前を正として読む\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"読み書きの間の時間帯はほぼ常にどこかの店舗で\"},\n{\"concept\":\"step\",\"word\":\"手順2\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順2で読んでから手順4で書くまでの間に\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"手順4で書くまでの間に外部側で営業時間が変わると\"},\n{\"concept\":\"step\",\"word\":\"手順4\",\"quote\":\"手順4が読んだ時点の古い営業時間で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"読んだ時点の古い営業時間で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"書く\",\"quote\":\"変わっていなくても毎回両方に書く\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みと`settings`テーブルの更新を毎回行います\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings`テーブルの更新を毎回行います\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"`settings`テーブルの更新を毎回行います\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みと`settings`の更新がそれぞれ毎秒130件\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"書き込みと`settings`の更新がそれぞれ毎秒130件\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"書き込みと`settings`の更新がそれぞれ毎秒130件\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"2か所への書き込みがそろわないことがある\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みが成功し、`settings`テーブルの更新が失敗すると\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings`テーブルの更新が失敗すると\"},\n{\"concept\":\"write_back\",\"word\":\"更新\",\"quote\":\"`settings`テーブルの更新が失敗すると\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`settings`テーブルへの書き込みを、外部側が正である\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"`settings`テーブルへの書き込みを、外部側が正である\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"外部側が正である営業時間のカラムだけに絞る\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"外部APIへの書き込みも、自社が正である店舗名だけを\"}\n]"
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m06",
+ "i": 2,
+ "result": "---\n\n## 全体の流れ\n\n`main`ブランチにpushされるたびに、次の4つのジョブが**直列に**動きます。各ジョブは`needs`で前のジョブの成功を条件にしているので、どこかで失敗するとそれより後ろのジョブはすべて動きません。\n\n```\nmain へ push\n   │\n   ▼\n① test ──成功──▶ ② build ──成功──▶ ③ deploy-staging ──成功──▶ ④ deploy-production\n                                                              （手動承認を待つ）\n```\n\n- **① test**: リポジトリを取得し、`composer install`で依存パッケージを入れ、`php artisan test --parallel`でLaravelのテストを並列に実行します。\n- **② build**: コミットのSHAをタグにしてDockerイメージを作り、ECR（AWSのコンテナレジストリ）へpushします。\n- **③ deploy-staging**: ECSのクラスター`stg`のサービス`api`を再デプロイします。\n- **④ deploy-production**: GitHubのEnvironment `production`に設定した承認者が承認すると、ECSのクラスター`prd`のサービス`api`を再デプロイします。承認されるまでジョブは待機します。\n\n## どこで失敗すると何が止まるか\n\n| 失敗する場所 | 主な原因 | 止まるもの | 本番への影響 |\n|---|---|---|---|\n| ① test | `composer install`の失敗、テストの失敗 | ②③④すべて | なし（イメージも作られない） |\n| ② build | Dockerfileのエラー、ECRへのpushの失敗 | ③④ | なし（ステージングも前の版のまま） |\n| ③ deploy-staging | AWSの認証・権限の不足、クラスター名・サービス名の誤り | ④ | なし（承認の画面にも進まない） |\n| ④ 承認待ち・承認拒否 | 承認者が承認しない、または却下する | 本番の更新だけ | 本番は前の版のまま。ステージングは新しい版で動いている |\n| ④ deploy-production | AWSの認証・権限の不足 | 本番の更新 | 本番は前の版のまま |\n\n押さえておきたい点が1つあります。③は「ECSに再デプロイを指示する」ところまでで成功になり、新しいコンテナが正常に起動したかは確かめていません。ステージングでコンテナが起動に失敗し続けていても、③は成功扱いになり、④の承認待ちに進みます。**承認者は、承認する前にステージングが実際に動いているかを自分で確認する必要があります。**\n\n## 素材のままでは動かない箇所\n\n説明の主題からは外れますが、このYAMLがそのままリポジトリにあるとすると、次の箇所で失敗します。省略して書かれた素材であれば読み流してください。\n\n- **`build`・`deploy-staging`・`deploy-production`に`runs-on`がありません。** GitHub Actionsはジョブごとに`runs-on`を必須にしているので、ワークフロー自体が読み込みエラーになり、①も動きません。\n- **`build`に`actions/checkout`がありません。** ジョブごとに別のマシンで動くため、①で取得したコードは②にはありません。`docker build`がDockerfileを見つけられず失敗します。\n- **イメージの名前とpushする名前が一致していません。** `api:<SHA>`という名前で作り、`$ECR/api:<SHA>`という名前でpushしているので、pushが「そのイメージは無い」で失敗します。`docker build -t $ECR/api:${{ github.sha }} .`のように、作る時点でECRの名前を付ける必要があります。\n- **AWSへの認証の手順がありません。** ECRへのログイン（`aws-actions/configure-aws-credentials`と`aws-actions/amazon-ecr-login`など）が無いと、②のpushも③④の`aws ecs`も権限エラーになります。\n- **`--force-new-deployment`は新しいイメージを指定しません。** タスク定義に書かれたイメージで再起動するだけなので、タスク定義が`latest`など固定のタグを指している場合、SHAのタグでpushした新しいイメージは使われません。新しい版を出すには、SHAのタグを指すタスク定義を登録してからサービスを更新する手順が要ります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 22020,
+  "cache_read_input_tokens": 1387,
+  "output_tokens": 2291,
+  "output_tokens_details": {
+   "thinking_tokens": 814
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 22020,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2291,
+    "cache_read_input_tokens": 1387,
+    "cache_creation_input_tokens": 22020,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 22020
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m02",
+ "i": 2,
+ "result": "---\n\nこの差分が入った時点では、夜間の集計の数字は変わりません。数字が狂い始めるのは、書き込み側が位置の保存先を `post_search_locations` に移して `post_search.location_ids` に書かなくなったときです。それ以降に作られた行は、位置の無い行として集計から抜け落ちます。エラーは出ないので、件数が減ったことに気づく手がかりがありません。\n\n### 位置の保存先の移行\n\n**今の状態**\n- 旧列 `post_search.location_ids` には、位置の入った行が残っています。\n- 新テーブル `post_search_locations` は作られていますが、空です。新しい行の書き込みも、既存の行の移し替えも、まだ始まっていません。\n- 夜間の集計のクエリは `location_ids` だけを読みます。新テーブルは結合していません。\n\n**集計への影響**\n- 旧列への書き込みが続く間は、集計は今と同じ数字を出します。\n- 書き込み側が新テーブルだけに書くようになると、それ以降の行が集計から外れます。\n- 旧列を削除すると、集計のクエリがエラーで止まります。\n\n**対処の順序**\n数字を途切れさせないには、次の順で進めます。\n1. 既存の行を `post_search_locations` に移し替える。\n2. 書き込み側が新テーブルにも書くようにする。\n3. 夜間の集計のクエリを `post_search_locations` を結合する形に書き換え、旧列からの集計と同じ数字が出ることを確かめる。\n4. 旧列への書き込みを止める。\n\n### `tstamp` の型の変更 (`timestamp` → `datetime`)\n\nMySQL の2つの型は、時刻の持ち方が違います。\n- `TIMESTAMP` は、書き込むときに接続のタイムゾーンからUTCに直して保存し、読むときに接続のタイムゾーンへ戻します。\n- `DATETIME` は、書かれた値をそのまま保存して返します。\n\n**集計への影響**\n- 型を変える `ALTER TABLE` を流すと、既存の行の値は、流した接続のタイムゾーンで表した時刻に固定されます。\n- 変更の後は、書き込み側と集計側で接続のタイムゾーンが違うと、同じ時刻がずれて読まれます。日付で区切って集計していれば、日付の境目に近い行が隣の日に移ります。\n- 書き込み側、集計側、`ALTER TABLE` を流す接続のタイムゾーンがすべて同じであれば、数字は変わりません。\n\n今回の素材には各接続のタイムゾーンが含まれていないため、どちらに当たるかはまだ判定できていません。判定には、本番の `@@global.time_zone` と、書き込み側・集計側それぞれの接続で設定している `time_zone` が分かれば足ります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1003,
+  "cache_read_input_tokens": 22211,
+  "output_tokens": 2828,
+  "output_tokens_details": {
+   "thinking_tokens": 1858
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2828,
+    "cache_read_input_tokens": 22211,
+    "cache_creation_input_tokens": 1003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

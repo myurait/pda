@@ -1,0 +1,104 @@
+{
+ "file": "m09.tr.1.json",
+ "cond": "tr",
+ "id": "m09",
+ "i": 1,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "「今回の実行では上書きしない行」として除外した紐付け"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "「既知の投稿」の一覧を作ります"
+  },
+  {
+   "concept": "db_table",
+   "word": "表",
+   "quote": "紐付けの表（`PostGoogleLocationRelationship`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "投稿の `external_key` を、紐付けの表"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "処理は次の順で進みます"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の投稿の一覧にあれば、紐付け済みとして"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧に無ければ、新しい投稿グループを作ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の後半で編集元の行を上書きしないこと"
+  },
+  {
+   "concept": "step",
+   "word": "手順 1",
+   "quote": "ところが、手順 1 で一覧を作るときにも"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "手順 1 で一覧を作るときにも除外の対象を外して"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集元の行に入っている `external_key` は"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の投稿の一覧に載りません"
+  },
+  {
+   "concept": "step",
+   "word": "手順 2",
+   "quote": "手順 2 で「未知の投稿」と判定されます"
+  },
+  {
+   "concept": "step",
+   "word": "手順 3",
+   "quote": "手順 3 に進んで新しい投稿グループが作られる"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "「上書きしない」ための区別なので"
+  },
+  {
+   "concept": "step",
+   "word": "手順 1",
+   "quote": "手順 1 で既知の投稿の一覧を作るときは"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "既知の投稿の一覧を作るときは、除外の対象を"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "すべての行から `external_key` を集めてください"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書きする処理",
+   "quote": "上書きする処理の側でだけ参照する形にします"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"「今回の実行では上書きしない行」として除外した紐付け\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"「既知の投稿」の一覧を作ります\"},\n{\"concept\":\"db_table\",\"word\":\"表\",\"quote\":\"紐付けの表（`PostGoogleLocationRelationship`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"投稿の `external_key` を、紐付けの表\"},\n{\"concept\":\"step\",\"word\":\"処理\",\"quote\":\"処理は次の順で進みます\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"既知の投稿の一覧にあれば、紐付け済みとして\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"一覧に無ければ、新しい投稿グループを作ります\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同じ実行の後半で編集元の行を上書きしないこと\"},\n{\"concept\":\"step\",\"word\":\"手順 1\",\"quote\":\"ところが、手順 1 で一覧を作るときにも\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"手順 1 で一覧を作るときにも除外の対象を外して\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"編集元の行に入っている `external_key` は\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"既知の投稿の一覧に載りません\"},\n{\"concept\":\"step\",\"word\":\"手順 2\",\"quote\":\"手順 2 で「未知の投稿」と判定されます\"},\n{\"concept\":\"step\",\"word\":\"手順 3\",\"quote\":\"手順 3 に進んで新しい投稿グループが作られる\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"「上書きしない」ための区別なので\"},\n{\"concept\":\"step\",\"word\":\"手順 1\",\"quote\":\"手順 1 で既知の投稿の一覧を作るときは\"},\n{\"concept\":\"collection\",\"word\":\"一覧\",\"quote\":\"既知の投稿の一覧を作るときは、除外の対象を\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"すべての行から `external_key` を集めてください\"},\n{\"concept\":\"write_back\",\"word\":\"上書きする処理\",\"quote\":\"上書きする処理の側でだけ参照する形にします\"}\n]"
+}

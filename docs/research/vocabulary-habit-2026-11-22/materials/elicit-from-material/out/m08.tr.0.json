@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m08",
+ "i": 0,
+ "result": "---\n\n**この指摘は正しく、直す必要があります。** 空き確認と予約登録が別々のトランザクションに分かれているため、同じ枠が二重に予約されることがあります。\n\n## 指摘の内容\n\n予約は次の2段階で行われています。\n\n1. **空き確認（`reserve()`）**: `SELECT ... FOR UPDATE` で枠の行をロックし、空いているか確かめる。このトランザクションが終わるとロックも外れる。\n2. **予約登録（`confirm()`）**: 予約の行を `INSERT` する。\n\nロックが外れてから登録するまでの間は、どこもその枠を押さえていません。この間に別のリクエストが同じ枠の空き確認をすると、まだ登録前なので「空いている」と判定され、両方の登録が通ります。\n\nレビュアーが負荷試験で示した数字は次のとおりです。\n\n- 空白の時間: 40〜120ms\n- 二重予約の発生率: 10,000リクエストあたり3件\n\n## レート制限では防げない理由\n\nレート制限は60秒のスライディングウィンドウで、同じ利用者の再試行を60秒間だけ弾きます。60秒を過ぎた再試行は通るため、同じ空白に再び当たる可能性があります。また、二重予約は別々の利用者のリクエスト同士でも起きるので、利用者ごとの再試行の制限とは関係なく発生します。レート制限は対策になりません。\n\n## 対応案\n\n**推奨: データベースの一意制約で二重登録を防ぎ、違反時は「予約済み」として返す。**\n\n- 予約テーブルに、有効な予約について枠が重複しない一意制約を付ける。キャンセル済みの行が残る設計なら、状態が有効な行だけを対象にした部分一意インデックス（PostgreSQLなら `CREATE UNIQUE INDEX ... WHERE status = 'active'`）にする。\n- `confirm()` で一意制約違反を受けたら、エラーにせず「この枠はすでに予約されています」と利用者に返す。\n\n推奨する理由は、アプリケーション側の処理の順番やタイミングに関係なく、データベースが最後に必ず重複を拒否するからです。今後別の経路から予約を登録する処理が増えても、同じ保証が効きます。\n\n**併せて行うとよい変更: 空き確認と登録を1つのトランザクションにまとめる。**\n\n`SELECT ... FOR UPDATE` のロックを持ったまま `INSERT` まで行えば、空白の時間そのものが無くなり、一意制約違反が起きる頻度も下がります。ただし、空き確認と登録の間に利用者の操作（確認画面での承認など）を挟む設計の場合は、ロックを長く持つことになるのでこの形は取れません。その場合は一意制約だけで十分です。\n\n---\n\nコードを見ながら具体的な修正を作る場合は、予約テーブルの定義と `reserve()`・`confirm()` のあるファイルを教えてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7148,
+  "cache_read_input_tokens": 16122,
+  "output_tokens": 1837,
+  "output_tokens_details": {
+   "thinking_tokens": 811
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7148,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1837,
+    "cache_read_input_tokens": 16122,
+    "cache_creation_input_tokens": 7148,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7148
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

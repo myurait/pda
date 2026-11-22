@@ -1,0 +1,184 @@
+{
+ "file": "m03.ja.3.json",
+ "cond": "ja",
+ "id": "m03",
+ "i": 3,
+ "items": [
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "3の書き戻しでは、更新するカラムを指定していません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "この論理削除が1と3の間に起きると、3の書き戻しで"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "2の問い合わせは紐付けの件数ぶん順に行うため"
+  },
+  {
+   "concept": "db_table",
+   "word": "紐付け",
+   "quote": "対象店舗の紐付け（`post_google_location_relationships`）"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "$rows->map->getAttributes()->all(),"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "読み込んだ紐付けを全カラムまとめてDBへ書き戻す"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "3の書き戻しでは、更新するカラムを指定していません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "3の書き戻しで `deleted_at` が未削除の値に戻ります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "読み込みから書き戻しまでの時間が延びます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "同じ書き戻しで、同期中に別の処理が更新した"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "一括書き戻しで、upsertに更新するカラムを指定していない箇所"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しで更新するカラムを、同期処理が値を取り込む"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "PostGoogleLocationRelationship::upsert("
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "読み込んだ紐付けを全カラムまとめてDBへ書き戻す"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "3の書き戻しでは、更新するカラムを指定していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "1で読んだ時点の全カラムの値がそのまま上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "状態",
+   "quote": "そのため、状態と公開日時だけでなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "公開日時",
+   "quote": "そのため、状態と公開日時だけでなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` も、読み込んだ時点の値（未削除）で上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集前の紐付けの `deleted_at` に現在時刻を入れて論理削除します"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "3の書き戻しで `deleted_at` が未削除の値に戻ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "別の処理が更新した他のカラムの値も、読み込んだ時点の値に戻る"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "一括書き戻しで、upsertに更新するカラムを指定していない箇所"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "書き戻しで更新するカラムを、同期処理が値を取り込む"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が値を取り込む `state` と `published_at` に限定します"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が値を取り込む `state` と `published_at` に限定します"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "['state', 'published_at']"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "['state', 'published_at']"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期中に入った `deleted_at` の論理削除や他のカラムの更新は"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "同期中に入った `deleted_at` の論理削除や他のカラムの更新は"
+  },
+  {
+   "concept": "time_range",
+   "word": "秒",
+   "quote": "紐付けを1件ずつ、GBPに投稿の状態を問い合わせる（1件あたり1〜3秒）"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この論理削除が1と3の間に起きると"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "書き戻すまでの間に完了する"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "読み込みから書き戻しまでの時間が延びます"
+  },
+  {
+   "concept": "time_range",
+   "word": "秒",
+   "quote": "たとえば100件なら100〜300秒になり"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"3の書き戻しでは、更新するカラムを指定していません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"この論理削除が1と3の間に起きると、3の書き戻しで\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"2の問い合わせは紐付けの件数ぶん順に行うため\"},\n{\"concept\":\"db_table\",\"word\":\"紐付け\",\"quote\":\"対象店舗の紐付け（`post_google_location_relationships`）\"},\n{\"concept\":\"collection\",\"word\":\"\",\"quote\":\"$rows->map->getAttributes()->all(),\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"読み込んだ紐付けを全カラムまとめてDBへ書き戻す\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"3の書き戻しでは、更新するカラムを指定していません\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"3の書き戻しで `deleted_at` が未削除の値に戻ります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"読み込みから書き戻しまでの時間が延びます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"同じ書き戻しで、同期中に別の処理が更新した\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"一括書き戻しで、upsertに更新するカラムを指定していない箇所\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しで更新するカラムを、同期処理が値を取り込む\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"PostGoogleLocationRelationship::upsert(\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"読み込んだ紐付けを全カラムまとめてDBへ書き戻す\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"3の書き戻しでは、更新するカラムを指定していません\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"1で読んだ時点の全カラムの値がそのまま上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"状態\",\"quote\":\"そのため、状態と公開日時だけでなく\"},\n{\"concept\":\"db_column\",\"word\":\"公開日時\",\"quote\":\"そのため、状態と公開日時だけでなく\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` も、読み込んだ時点の値（未削除）で上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"編集前の紐付けの `deleted_at` に現在時刻を入れて論理削除します\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"3の書き戻しで `deleted_at` が未削除の値に戻ります\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"別の処理が更新した他のカラムの値も、読み込んだ時点の値に戻る\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"一括書き戻しで、upsertに更新するカラムを指定していない箇所\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"書き戻しで更新するカラムを、同期処理が値を取り込む\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が値を取り込む `state` と `published_at` に限定します\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が値を取り込む `state` と `published_at` に限定します\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"['state', 'published_at']\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"['state', 'published_at']\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期中に入った `deleted_at` の論理削除や他のカラムの更新は\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"同期中に入った `deleted_at` の論理削除や他のカラムの更新は\"},\n{\"concept\":\"time_range\",\"word\":\"秒\",\"quote\":\"紐付けを1件ずつ、GBPに投稿の状態を問い合わせる（1件あたり1〜3秒）\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この論理削除が1と3の間に起きると\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"書き戻すまでの間に完了する\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"読み込みから書き戻しまでの時間が延びます\"},\n{\"concept\":\"time_range\",\"word\":\"秒\",\"quote\":\"たとえば100件なら100〜300秒になり\"}\n]"
+}

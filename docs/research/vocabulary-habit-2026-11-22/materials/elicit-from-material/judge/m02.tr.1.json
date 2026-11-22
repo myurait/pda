@@ -1,0 +1,144 @@
+{
+ "file": "m02.tr.1.json",
+ "cond": "tr",
+ "id": "m02",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "地点の情報が新しいテーブルへ移されていない"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "日時のカラムの型が変わる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "（`location_ids` → `post_search_locations`）"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "（`location_ids` → `post_search_locations`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "クエリは `post_search.location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "他のテーブルは結合していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` には、地点を持つ行が今も"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`JSON_LENGTH(location_ids) > 0` の行は412,883件"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "移行先の `post_search_locations` は作られていますが"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "古いカラムを読み、そのカラムにデータが残っている"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "そのカラムにデータが残っているので"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブルだけに書くよう切り替わった場合"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "それ以降の投稿は `location_ids` が空になります"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "レポートだけを先に新しいテーブルへ切り替えた場合"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブルが空なので"
+  },
+  {
+   "concept": "time_range",
+   "word": "期間",
+   "quote": "移行期間中は両方のテーブルに書くようにします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "移行期間中は両方のテーブルに書くようにします"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "2つのテーブルの件数が一致することを確かめます"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合する形に書き換え"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "最後に古いカラムへの書き込みを止めます"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "どの手順を飛ばしても、上に挙げた欠落か0件が起きます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "日時の型（`tstamp`：`timestamp` → `datetime`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "レポートが `tstamp` で日付ごとに区切っている場合"
+  },
+  {
+   "concept": "time_range",
+   "word": "9時間分",
+   "quote": "9時間分の投稿が前日か翌日に数えられます"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "本番のテーブルにALTERが適用済みかどうか"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`SHOW CREATE TABLE post_search` で"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "本番の `tstamp` の型を確かめる"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"地点の情報が新しいテーブルへ移されていない\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"日時のカラムの型が変わる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"（`location_ids` → `post_search_locations`）\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"（`location_ids` → `post_search_locations`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"クエリは `post_search.location_ids` だけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"他のテーブルは結合していません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` には、地点を持つ行が今も\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`JSON_LENGTH(location_ids) > 0` の行は412,883件\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"移行先の `post_search_locations` は作られていますが\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"古いカラムを読み、そのカラムにデータが残っている\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"そのカラムにデータが残っているので\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しいテーブルだけに書くよう切り替わった場合\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"それ以降の投稿は `location_ids` が空になります\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"レポートだけを先に新しいテーブルへ切り替えた場合\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しいテーブルが空なので\"},\n{\"concept\":\"time_range\",\"word\":\"期間\",\"quote\":\"移行期間中は両方のテーブルに書くようにします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"移行期間中は両方のテーブルに書くようにします\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"2つのテーブルの件数が一致することを確かめます\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` を結合する形に書き換え\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"最後に古いカラムへの書き込みを止めます\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"どの手順を飛ばしても、上に挙げた欠落か0件が起きます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"日時の型（`tstamp`：`timestamp` → `datetime`）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"レポートが `tstamp` で日付ごとに区切っている場合\"},\n{\"concept\":\"time_range\",\"word\":\"9時間分\",\"quote\":\"9時間分の投稿が前日か翌日に数えられます\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"本番のテーブルにALTERが適用済みかどうか\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`SHOW CREATE TABLE post_search` で\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"本番の `tstamp` の型を確かめる\"}\n]"
+}

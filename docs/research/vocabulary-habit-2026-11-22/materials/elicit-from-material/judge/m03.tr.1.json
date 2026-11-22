@@ -1,0 +1,144 @@
+{
+ "file": "m03.tr.1.json",
+ "cond": "tr",
+ "id": "m03",
+ "i": 1,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "_relationships` テーブルで再び有効な行になります"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "最後に全行をまとめて書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "読み込みから書き戻しまでの間は"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "読み込みから書き戻しまでの間は対象の行の数に比例して"
+  },
+  {
+   "concept": "time_range",
+   "word": "数分",
+   "quote": "店舗が多いと数分に及びます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集前の行の `deleted_at` に現在時刻を入れて"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "編集前の行の `deleted_at` が空に戻り"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期中にほかの処理が変更した列も"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しの処理は、`id` をキーにした一括のupsert"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`id` をキーにした一括のupsertで行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "一括のupsertで行います"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "このupsertでは更新する列を指定していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "このupsertでは更新する列を指定していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が変更した `state` と `published_at` だけでなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が変更した `state` と `published_at` だけでなく"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` を含むすべての列を"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "含むすべての列を、最初に読み込んだ時点の値で上書きします"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "最初に読み込んだ時点の値で上書きします"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` は空の値で書き戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "空の値で書き戻されます"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "upsertの第3引数で、更新する列を"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "更新する列を `state` と `published_at` に絞る"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "更新する列を `state` と `published_at` に絞る"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "更新する列を `state` と `published_at` に絞る"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "書き戻しの条件に `deleted_at IS NULL` を加え"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at IS NULL` を加え"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期処理が扱わない列も上書きされなくなります"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"_relationships` テーブルで再び有効な行になります\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"最後に全行をまとめて書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"読み込みから書き戻しまでの間は\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"読み込みから書き戻しまでの間は対象の行の数に比例して\"},\n{\"concept\":\"time_range\",\"word\":\"数分\",\"quote\":\"店舗が多いと数分に及びます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"編集前の行の `deleted_at` に現在時刻を入れて\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"編集前の行の `deleted_at` が空に戻り\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期中にほかの処理が変更した列も\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しの処理は、`id` をキーにした一括のupsert\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`id` をキーにした一括のupsertで行います\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"一括のupsertで行います\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"このupsertでは更新する列を指定していません\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"このupsertでは更新する列を指定していません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が変更した `state` と `published_at` だけでなく\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が変更した `state` と `published_at` だけでなく\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` を含むすべての列を\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"含むすべての列を、最初に読み込んだ時点の値で上書きします\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"最初に読み込んだ時点の値で上書きします\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` は空の値で書き戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"空の値で書き戻されます\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"upsertの第3引数で、更新する列を\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"更新する列を `state` と `published_at` に絞る\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"更新する列を `state` と `published_at` に絞る\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"更新する列を `state` と `published_at` に絞る\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"書き戻しの条件に `deleted_at IS NULL` を加え\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at IS NULL` を加え\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期処理が扱わない列も上書きされなくなります\"}\n]"
+}

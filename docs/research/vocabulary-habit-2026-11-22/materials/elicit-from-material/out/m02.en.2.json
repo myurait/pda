@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m02",
+ "i": 2,
+ "result": "---\n\nこの差分を入れただけでは、夜間レポートの集計結果は変わりません。影響が出るのは、このあと書き込み側かレポート側を新しいテーブルへ切り替えたときと、`tstamp` の型を実際に変えたときです。\n\n## 店舗の紐付け (`location_ids` → `post_search_locations`)\n\n**今は変わらない理由**\n- `post_search.location_ids` に付いたのは deprecated の注記だけです。データはそのまま残り、値の入った行が 412,883 行あります。\n- 夜間レポートはこのカラムだけを読み、`post_search_locations` を結合していません。\n- `post_search_locations` は 0 行で、まだどこからも書き込まれていません。\n\n**切り替え方によって起きること**\n- **書き込み側が `post_search_locations` だけに書くようになった場合**\n  - それ以降の投稿は `location_ids` が空のまま保存されます。\n  - 夜間レポートの店舗別集計から新しい投稿が抜けます。エラーにはならず、件数が少なく出るだけなので気づきにくいです。\n- **夜間レポートを `post_search_locations` から読むように直した場合**\n  - 既存の 412,883 行分を移し替える前に切り替えると、店舗別の集計が空になります。\n\n集計を途切れさせずに移すには、次の順で進めます。\n\n1. 既存の `location_ids` を `post_search_locations` へ移し替える\n2. 書き込み側を両方へ書くようにする\n3. 夜間レポートを `post_search_locations` の結合に書き換える\n4. `location_ids` への書き込みを止める\n\n## 日時の型 (`tstamp` を timestamp → datetime)\n\ndbml の差分だけでは DB の型は変わりません。素材からは、本番で `ALTER TABLE` を実行済みかどうかは読み取れません。実行すると、次の違いが集計に効きます。\n\n- MySQL の `TIMESTAMP` は、UTC で保存して接続ごとの `time_zone` で変換して返します。`DATETIME` は変換せず、書いた値をそのまま返します。\n- `ALTER TABLE` を実行すると、既存の値はそのときの接続の `time_zone` で変換した値に固定されます。\n- 書き込み側と夜間レポートの接続で `time_zone` が違う場合（UTC と Asia/Tokyo など）、変更後に書かれた行と変更前の行で基準がずれます。日別の集計では日付の境界が9時間ずれます。\n\n夜間レポートの日別集計を変えないためには、`ALTER TABLE` を実行する接続と書き込み側の接続の `time_zone` を、夜間レポートが前提にしているタイムゾーンにそろえてから型を変えます。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1002,
+  "cache_read_input_tokens": 22172,
+  "output_tokens": 2352,
+  "output_tokens_details": {
+   "thinking_tokens": 1410
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1002,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2352,
+    "cache_read_input_tokens": 22172,
+    "cache_creation_input_tokens": 1002,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1002
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

@@ -1,0 +1,169 @@
+{
+ "file": "m02.en.4.json",
+ "cond": "en",
+ "id": "m02",
+ "i": 4,
+ "items": [
+  {
+   "concept": "step",
+   "word": "移行",
+   "quote": "この差分の移行が進むと、集計は**エラーを出さずに"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "夜間の集計クエリが新しいテーブルを読まないことです"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` (JSON) に入っています"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しいテーブル `post_search_locations` は空です"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "新しいテーブル `post_search_locations` は空です"
+  },
+  {
+   "concept": "write_back",
+   "word": "移し替え",
+   "quote": "既存データの移し替えも、書き込み側の切り替えも"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側の切り替えもまだ行われていません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間の集計クエリは `post_search.location_ids` だけを読んで"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` だけに書くように切り替わる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "それ以降の投稿は `location_ids` が空になります"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "夜間の集計はこれらの投稿の地域を数えず"
+  },
+  {
+   "concept": "write_back",
+   "word": "移し替え",
+   "quote": "移し替えの後で `location_ids` を空にした場合は"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "移し替えの後で `location_ids` を空にした場合は"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "推奨する順序"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を `post_search_locations` に"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "既存の `location_ids` を `post_search_locations` に"
+  },
+  {
+   "concept": "write_back",
+   "word": "移し替える",
+   "quote": "`post_search_locations` に移し替える"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みを両方の列とテーブルに同時に行う期間を設ける"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "書き込みを両方の列とテーブルに同時に行う期間を設ける"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "書き込みを両方の列とテーブルに同時に行う期間を設ける"
+  },
+  {
+   "concept": "time_range",
+   "word": "期間",
+   "quote": "同時に行う期間を設ける"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` との JOIN に書き換え"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込みを `post_search_locations` だけに切り替える"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込みを `post_search_locations` だけに切り替える"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## tstamp の型を timestamp から datetime に変える"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側の接続"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間帯",
+   "quote": "日付をまたぐ時間帯の投稿が前日か翌日に移ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "本番の DB で `tstamp` の型がすでに変わっているか"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "上の `tstamp` の影響は、ALTER を本番に適用した後"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側のコードは素材に含まれていないので"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "いつ書き込みが `post_search_locations` に切り替わる"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "いつ書き込みが `post_search_locations` に切り替わる"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"移行\",\"quote\":\"この差分の移行が進むと、集計は**エラーを出さずに\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"夜間の集計クエリが新しいテーブルを読まないことです\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` (JSON) に入っています\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しいテーブル `post_search_locations` は空です\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"新しいテーブル `post_search_locations` は空です\"},\n{\"concept\":\"write_back\",\"word\":\"移し替え\",\"quote\":\"既存データの移し替えも、書き込み側の切り替えも\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込み側の切り替えもまだ行われていません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間の集計クエリは `post_search.location_ids` だけを読んで\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` だけに書くように切り替わる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"それ以降の投稿は `location_ids` が空になります\"},\n{\"concept\":\"collection\",\"word\":\"集計\",\"quote\":\"夜間の集計はこれらの投稿の地域を数えず\"},\n{\"concept\":\"write_back\",\"word\":\"移し替え\",\"quote\":\"移し替えの後で `location_ids` を空にした場合は\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"移し替えの後で `location_ids` を空にした場合は\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"推奨する順序\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` を `post_search_locations` に\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"既存の `location_ids` を `post_search_locations` に\"},\n{\"concept\":\"write_back\",\"word\":\"移し替える\",\"quote\":\"`post_search_locations` に移し替える\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込みを両方の列とテーブルに同時に行う期間を設ける\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"書き込みを両方の列とテーブルに同時に行う期間を設ける\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"書き込みを両方の列とテーブルに同時に行う期間を設ける\"},\n{\"concept\":\"time_range\",\"word\":\"期間\",\"quote\":\"同時に行う期間を設ける\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` との JOIN に書き換え\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込みを `post_search_locations` だけに切り替える\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"書き込みを `post_search_locations` だけに切り替える\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## tstamp の型を timestamp から datetime に変える\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込み側の接続\"},\n{\"concept\":\"time_range\",\"word\":\"時間帯\",\"quote\":\"日付をまたぐ時間帯の投稿が前日か翌日に移ります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"本番の DB で `tstamp` の型がすでに変わっているか\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"上の `tstamp` の影響は、ALTER を本番に適用した後\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"書き込み側のコードは素材に含まれていないので\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"いつ書き込みが `post_search_locations` に切り替わる\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"いつ書き込みが `post_search_locations` に切り替わる\"}\n]"
+}

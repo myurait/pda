@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m08",
+ "i": 2,
+ "result": "---\n\n## English\n\n**Summary:** The reviewer is pointing out that the slot lock does not cover the period between `reserve()` and `confirm()`. As a result, two requests can book the same slot. The rate limiter does not prevent this. The fix is to make the database reject the second booking.\n\n**What the comment says**\n\n- `reserve()` takes a row lock with `SELECT ... FOR UPDATE`. The lock is released when `reserve()`'s transaction ends.\n- `confirm()` runs its `INSERT` later, in a separate transaction. No lock is held between the two calls.\n- In load tests this unprotected gap lasted 40–120 ms. Another request that reserved the same slot inside the gap caused a double booking, at a rate of 3 per 10,000 requests.\n- The rate limiter (60-second sliding window) only rejects retries inside the window. A retry after 60 seconds can hit the same gap again. The limiter controls request volume and does not guarantee that a slot is booked only once.\n\n**Proposed fix (recommended: 1 and 2 together)**\n\n1. **Add a unique constraint on the booked slot.** Put a unique index on `slot_id` in the bookings table. For a table that keeps cancelled rows, use a partial unique index limited to active rows. When a second `INSERT` hits the constraint, return a \"slot already taken\" response instead of a 500. Whatever the timing, the database rejects the second booking.\n2. **Record the hold inside the locked transaction.** In `reserve()`, while the lock is still held, write a hold row (`status = 'reserved'`, owner, `expires_at`). Make `confirm()` a conditional update: `UPDATE ... SET status = 'confirmed' WHERE id = ? AND status = 'reserved' AND owner = ? AND expires_at > now()`. If zero rows are affected, treat the confirmation as failed. Other requests see the hold and cannot reserve the slot.\n3. (Not recommended) Run `reserve()` and `confirm()` in one transaction. If user interaction happens between them, the lock would be held for a long time and throughput would drop.\n\n**Verification:** Re-run the same load test and confirm that double bookings are zero. Also add a test where two concurrent confirmations for one slot result in exactly one success and one conflict response.\n\n## 日本語\n\n**要点:** レビュアーの指摘は、枠のロックが`reserve()`から`confirm()`までの間を守っていない、というものです。そのため、同じ枠に2件の予約が入ります。レート制限ではこれを防げません。対策は、2件目の予約をデータベースに拒否させることです。\n\n**指摘の内容**\n\n- `reserve()`は`SELECT ... FOR UPDATE`で行ロックを取ります。このロックは、`reserve()`のトランザクションが終わった時点で外れます。\n- `confirm()`は、その後に別のトランザクションで`INSERT`します。2つの呼び出しの間は、どのロックも掛かっていません。\n- 負荷試験では、この無防備な時間が40〜120msありました。その間に別のリクエストが同じ枠を予約すると、二重予約になります。発生率は10,000リクエストあたり3件でした。\n- レート制限（60秒のスライディングウィンドウ）が拒否するのは、ウィンドウ内のリトライだけです。60秒を過ぎたリトライは、同じ隙間にまた当たります。レート制限はリクエストの量を抑える仕組みで、1つの枠に予約が1件だけ入ることは保証しません。\n\n**対応案（推奨は1と2の併用）**\n\n1. **予約済みの枠にユニーク制約を付ける。** 予約テーブルの`slot_id`にユニークインデックスを張ります。キャンセル済みの行を残すテーブルでは、有効な行だけを対象にした部分ユニークインデックスにします。2件目の`INSERT`が制約に当たったら、500エラーではなく「この枠は埋まりました」の応答を返します。タイミングがどうであっても、2件目はデータベースが拒否します。\n2. **ロック中のトランザクションで仮押さえを記録する。** `reserve()`のロックが掛かっている間に、仮押さえの行（`status = 'reserved'`・予約者・`expires_at`）を書きます。`confirm()`は条件付きの更新にします。`UPDATE ... SET status = 'confirmed' WHERE id = ? AND status = 'reserved' AND owner = ? AND expires_at > now()`のように書き、更新行数が0なら確定失敗として扱います。他のリクエストからは仮押さえが見えるので、同じ枠を予約できなくなります。\n3. （非推奨）`reserve()`と`confirm()`を1つのトランザクションにまとめる。間にユーザーの操作が挟まると、ロックを長時間持つことになり、スループットが落ちます。\n\n**確かめ方:** 同じ負荷試験を流し直し、二重予約が0件になることを確認します。あわせて、同じ枠への確定を並行して2件送り、1件が成功し、もう1件が競合の応答になるテストを追加します。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7146,
+  "cache_read_input_tokens": 15937,
+  "output_tokens": 2682,
+  "output_tokens_details": {
+   "thinking_tokens": 950
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7146,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2682,
+    "cache_read_input_tokens": 15937,
+    "cache_creation_input_tokens": 7146,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7146
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

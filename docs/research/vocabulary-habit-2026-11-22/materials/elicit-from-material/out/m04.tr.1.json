@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m04",
+ "i": 1,
+ "result": "---\n\n## 処理の流れ\n\nこの処理は、店舗ごとの設定をMySQLの `settings` テーブルと外部APIの間でそろえるジョブです。10分ごとに80,000店舗それぞれについて、次の順で動きます。\n\n```mermaid\nsequenceDiagram\n    participant J as 同期ジョブ\n    participant DB as MySQL settings テーブル\n    participant API as 外部API\n    J->>DB: 1. 店舗の設定を読む\n    J->>API: 2. 同じ店舗の設定を読む\n    Note over J: 3. 合成する<br/>営業時間は外部APIの値を採用<br/>店名はDBの値を採用\n    J->>API: 4. 合成した設定を全項目書き込む\n    J->>DB: 5. 合成した設定で全カラムを UPDATE\n```\n\n途中で読み書きのどれかが失敗すると、その店舗の処理はそこで終わります。\n\n## 問題点\n\n### 1. 管理画面で直した店名が消える（最も重大）\n\nオペレーターは管理画面からいつでも `settings.name` を書き換えます。一方このジョブは、手順1で読んだ時点の店名を手順5でそのまま書き戻します。手順1から手順5までの間に外部APIを2回呼ぶので、この間は数百ミリ秒から数秒あります。\n\n```mermaid\nsequenceDiagram\n    participant J as 同期ジョブ\n    participant DB as settings テーブル\n    participant O as オペレーター\n    J->>DB: 店名「旧」を読む\n    O->>DB: 店名を「新」に更新\n    J->>DB: 全カラム UPDATE（店名「旧」）\n    Note over DB: オペレーターの変更が消える\n```\n\n- オペレーターには保存が成功したように見えるのに、10分以内に元の名前へ戻ります。\n- 外部APIにも古い店名が送られます。\n- 対象が80,000店舗で10分おきに走るため、偶然重なる事故ではなく、日常的に起きる頻度です。\n\nジョブが責任を持つのは営業時間だけなのに、`UPDATE` が全カラムを書いていることが原因です。\n\n### 2. 外部API側でも同じ上書きが起きる\n\n手順2で読んでから手順4で書くまでの間に、外部API側で営業時間が変わると、手順4がそれを古い値で上書きします。外部APIを別の経路でも編集する運用があれば、問題1と同じ形で変更が消えます。\n\n### 3. 外部APIへの負荷と、実行の重なり\n\n- 値が変わっていなくても、毎回すべての店舗で外部APIへの書き込みとDBの `UPDATE` を行います。10分で80,000店舗なので、外部APIには毎秒およそ130件の読み込みと130件の書き込みが届き、レート制限に当たりやすい量です。\n- 1周が10分を超えると、次の実行と同じ店舗を同時に処理する状態になり、問題1と問題2の上書きがさらに起きやすくなります。\n\n## 直し方\n\n- `UPDATE` で書くカラムを、ジョブが決める営業時間だけに絞ります。店名はDBを正とするので、DBへは書き戻さず、外部APIへ送るだけにします。これで問題1は起きなくなります。\n- 営業時間も守るなら、`settings` テーブルにバージョンのカラムを持たせて `UPDATE ... WHERE version = 読んだときの値` とし、一致しなければ読み直します。外部APIがETagなどの条件付き更新に対応していれば、手順4も同じ形にします。\n- 合成した結果が読んだ値と同じなら、外部APIへの書き込みも `UPDATE` も省きます。大半の店舗は変化しないはずなので、問題3の負荷が大きく下がります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1000,
+  "cache_read_input_tokens": 22163,
+  "output_tokens": 2574,
+  "output_tokens_details": {
+   "thinking_tokens": 1269
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1000,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2574,
+    "cache_read_input_tokens": 22163,
+    "cache_creation_input_tokens": 1000,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1000
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

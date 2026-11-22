@@ -1,0 +1,254 @@
+{
+ "file": "m02.tr.0.json",
+ "cond": "tr",
+ "id": "m02",
+ "i": 0,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "集計結果",
+   "quote": "夜間の集計結果は変わりません"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "夜間の集計結果は変わりません"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "集計のクエリが読む `post_search.location_ids`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` には今も値が入っており"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "新しい `post_search_locations` テーブルは空だからです"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "次の2つの変更で集計がずれます"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` への書き込みが止まったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の型の変更が本番に入ったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 1. `location_ids` の廃止"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "差分は `location_ids` に「deprecated"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "カラム自体は残っているので"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "すぐに集計が壊れることはありません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` に値の入った行が多数あります"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_search` には `location_ids` に値の入った行"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "- `post_search_locations` は本番に作られていますが"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "夜間の集計クエリは `location_ids` だけを読み"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間の集計クエリは `location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合していません"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "集計がずれるのは、アプリの書き込み先が"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込み先が `post_search_locations` に切り替わり"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` が書かれなくなったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "切り替え後に作られた行は `location_ids` が空になる"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "集計から抜け落ちます"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "今の段階で集計クエリだけを"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` に向けると、テーブルが空なので"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "テーブルが空なので結果が0件になります"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "テーブルが空なので結果が0件になります"
+  },
+  {
+   "concept": "write_back",
+   "word": "移す",
+   "quote": "既存の `location_ids` の中身を `post_search_locations` に移す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` の中身を"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "中身を `post_search_locations` に移す"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "集計クエリを `post_search_locations` を結合する形に"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "2. 集計クエリを `post_search_locations`"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "アプリの `location_ids` への書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "アプリの `location_ids` への書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## 2. `tstamp` の型の変更"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "このため、本番で `ALTER TABLE`"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "夜間の集計が読むときの接続のタイムゾーン"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "集計の日付の境界がずれます"
+  },
+  {
+   "concept": "time_range",
+   "word": "9時間",
+   "quote": "JSTとUTCの組み合わせなら9時間ずれ"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "前日か翌日の集計に移ります"
+  },
+  {
+   "concept": "step",
+   "word": "集計",
+   "quote": "素材には集計クエリの `tstamp` の条件が"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "集計クエリの `tstamp` の条件が含まれていない"
+  },
+  {
+   "concept": "time_range",
+   "word": "幅",
+   "quote": "ずれる幅はまだ特定できていません"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "今の `tstamp` が `timestamp` の自動初期化"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` を指定しない `INSERT` が失敗する"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`SHOW CREATE TABLE post_search` の結果で"
+  },
+  {
+   "concept": "collection",
+   "word": "結果",
+   "quote": "`SHOW CREATE TABLE post_search` の結果で"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "本番に入っているかと、`tstamp` の既定値の有無"
+  },
+  {
+   "concept": "time_range",
+   "word": "幅",
+   "quote": "ずれるかどうかと、ずれる幅が分かります"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"collection\",\"word\":\"集計結果\",\"quote\":\"夜間の集計結果は変わりません\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"夜間の集計結果は変わりません\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"集計のクエリが読む `post_search.location_ids`\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`post_search.location_ids` には今も値が入っており\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"新しい `post_search_locations` テーブルは空だからです\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"次の2つの変更で集計がずれます\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` への書き込みが止まったとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` の型の変更が本番に入ったとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 1. `location_ids` の廃止\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"差分は `location_ids` に「deprecated\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"カラム自体は残っているので\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"すぐに集計が壊れることはありません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` に値の入った行が多数あります\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_search` には `location_ids` に値の入った行\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"- `post_search_locations` は本番に作られていますが\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"夜間の集計クエリは `location_ids` だけを読み\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"夜間の集計クエリは `location_ids` だけを読み\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` を結合していません\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"集計がずれるのは、アプリの書き込み先が\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"書き込み先が `post_search_locations` に切り替わり\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`location_ids` が書かれなくなったとき\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"切り替え後に作られた行は `location_ids` が空になる\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"集計から抜け落ちます\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"今の段階で集計クエリだけを\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`post_search_locations` に向けると、テーブルが空なので\"},\n{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"テーブルが空なので結果が0件になります\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"テーブルが空なので結果が0件になります\"},\n{\"concept\":\"write_back\",\"word\":\"移す\",\"quote\":\"既存の `location_ids` の中身を `post_search_locations` に移す\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"既存の `location_ids` の中身を\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"中身を `post_search_locations` に移す\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"集計クエリを `post_search_locations` を結合する形に\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"2. 集計クエリを `post_search_locations`\"},\n{\"concept\":\"write_back\",\"word\":\"書き込み\",\"quote\":\"アプリの `location_ids` への書き込みを止める\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"アプリの `location_ids` への書き込みを止める\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"## 2. `tstamp` の型の変更\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"このため、本番で `ALTER TABLE`\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"夜間の集計が読むときの接続のタイムゾーン\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"集計の日付の境界がずれます\"},\n{\"concept\":\"time_range\",\"word\":\"9時間\",\"quote\":\"JSTとUTCの組み合わせなら9時間ずれ\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"前日か翌日の集計に移ります\"},\n{\"concept\":\"step\",\"word\":\"集計\",\"quote\":\"素材には集計クエリの `tstamp` の条件が\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"集計クエリの `tstamp` の条件が含まれていない\"},\n{\"concept\":\"time_range\",\"word\":\"幅\",\"quote\":\"ずれる幅はまだ特定できていません\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"今の `tstamp` が `timestamp` の自動初期化\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`tstamp` を指定しない `INSERT` が失敗する\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"`SHOW CREATE TABLE post_search` の結果で\"},\n{\"concept\":\"collection\",\"word\":\"結果\",\"quote\":\"`SHOW CREATE TABLE post_search` の結果で\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"本番に入っているかと、`tstamp` の既定値の有無\"},\n{\"concept\":\"time_range\",\"word\":\"幅\",\"quote\":\"ずれるかどうかと、ずれる幅が分かります\"}\n]"
+}

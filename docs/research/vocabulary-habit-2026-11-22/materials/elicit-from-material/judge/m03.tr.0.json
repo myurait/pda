@@ -1,0 +1,144 @@
+{
+ "file": "m03.tr.0.json",
+ "cond": "tr",
+ "id": "m03",
+ "i": 0,
+ "items": [
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "同期は(1)で、対象の店舗の紐付けの行をすべてメモリに読み込みます"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "対象の店舗の紐付けの行をすべてメモリに読み込みます"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "読み込みから書き込みまでの時間は行が多いほど長くなります"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "(2)の`upsert`は更新する列を指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`upsert`は更新する列を指定していないため"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "メモリ上の行の全列を書き戻します"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "メモリ上の行の全列を書き戻します"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻す",
+   "quote": "メモリ上の行の全列を書き戻します"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "書き込む値は`deleted_at`も含め、(1)で読んだ時点のものです"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`deleted_at`も含め、(1)で読んだ時点のものです"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "この間に`PostUpdateService::saveOnCompleted()`が"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い行を論理削除（`deleted_at = now()`）すると"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同期がそれを読み込み時点の値（`deleted_at = NULL`）で上書きします"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "読み込み時点の値（`deleted_at = NULL`）で上書きします"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "同期がGBPのAPIを待っている間に、同じ店舗の編集済み"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "行が、(1)で読み込んだ行に含まれている"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "(1)で読み込んだ行に含まれている"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "上書きが起きうる時間が長くなり、発生しやすくなります"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きが起きうる時間が長くなり"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期の実行中にほかの処理が更新した列も、(1)で読んだ値で上書きされます"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "更新した列も、(1)で読んだ値で上書きされます"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "(1)で読んだ値で上書きされます"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "同期が更新する列（`state`と`published_at`）を指定します"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期が更新する列（`state`と`published_at`）"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "`deleted_at`を含むほかの列は上書きされなくなります"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "こうすると、`deleted_at`を含むほかの列は"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "ほかの列は上書きされなくなります"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"同期は(1)で、対象の店舗の紐付けの行をすべてメモリに読み込みます\"},\n{\"concept\":\"collection\",\"word\":\"行\",\"quote\":\"対象の店舗の紐付けの行をすべてメモリに読み込みます\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"読み込みから書き込みまでの時間は行が多いほど長くなります\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"(2)の`upsert`は更新する列を指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`upsert`は更新する列を指定していないため\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"メモリ上の行の全列を書き戻します\"},\n{\"concept\":\"collection\",\"word\":\"行\",\"quote\":\"メモリ上の行の全列を書き戻します\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻す\",\"quote\":\"メモリ上の行の全列を書き戻します\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"書き込む値は`deleted_at`も含め、(1)で読んだ時点のものです\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`deleted_at`も含め、(1)で読んだ時点のものです\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"この間に`PostUpdateService::saveOnCompleted()`が\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い行を論理削除（`deleted_at = now()`）すると\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"同期がそれを読み込み時点の値（`deleted_at = NULL`）で上書きします\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"読み込み時点の値（`deleted_at = NULL`）で上書きします\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"同期がGBPのAPIを待っている間に、同じ店舗の編集済み\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"行が、(1)で読み込んだ行に含まれている\"},\n{\"concept\":\"collection\",\"word\":\"行\",\"quote\":\"(1)で読み込んだ行に含まれている\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"上書きが起きうる時間が長くなり、発生しやすくなります\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"上書きが起きうる時間が長くなり\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期の実行中にほかの処理が更新した列も、(1)で読んだ値で上書きされます\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"更新した列も、(1)で読んだ値で上書きされます\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"(1)で読んだ値で上書きされます\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"同期が更新する列（`state`と`published_at`）を指定します\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期が更新する列（`state`と`published_at`）\"},\n{\"concept\":\"db_column\",\"word\":\"列\",\"quote\":\"`deleted_at`を含むほかの列は上書きされなくなります\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"こうすると、`deleted_at`を含むほかの列は\"},\n{\"concept\":\"write_back\",\"word\":\"上書き\",\"quote\":\"ほかの列は上書きされなくなります\"}\n]"
+}

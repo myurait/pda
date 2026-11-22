@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m09",
+ "i": 3,
+ "result": "---\n\n最近の変更で、編集元の行を「既知の投稿」の照合からも外してしまったことが、重複の原因です。\n\n## 何が起きているか\n\n`importNewPosts` は、次の2段階で新しい投稿を見分けています。\n\n1. その店舗にすでに紐づいている投稿の `external_key` を集め、`$knownKeys` を作ります。\n2. Google ビジネスプロフィールから取得した各投稿の `name` が `$knownKeys` に含まれていなければ、新しい投稿とみなして投稿グループを作ります。\n\n最近の変更で、編集元の行が `$this->excludedRowIds` に入るようになりました。1段階目の照合は `whereNotIn('id', $this->excludedRowIds)` で除外対象の行を外しているため、編集元の行の `external_key` は `$knownKeys` に入りません。\n\nその結果、編集元に対応する Google ビジネスプロフィールの投稿は、すでに投稿グループに紐づいているのに未知の投稿と判定されます。`createPostGroupFrom` が呼ばれ、同じ投稿の投稿グループがもう1つ作られます。\n\n## なぜこうなったか\n\n`excludedRowIds` は、同じ実行の後半で上書きしないための除外リストとして使われ始めました。しかしこの照合では、除外は「上書きしない」ではなく「存在しないものとして扱う」という意味になります。上書きを防ぐための除外が、既知かどうかの判定にまで効いてしまっています。\n\n## 直し方\n\n既知の投稿の判定では除外をかけず、その店舗に紐づくすべての行の `external_key` を集めます。\n\n```php\n$knownKeys = PostGoogleLocationRelationship::where('location_id', $locationId)\n    ->pluck('external_key')\n    ->all();\n```\n\n`excludedRowIds` による除外は、上書きを行う処理の側だけで使います。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7241,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 909,
+  "output_tokens_details": {
+   "thinking_tokens": 259
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7241,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 909,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7241,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7241
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

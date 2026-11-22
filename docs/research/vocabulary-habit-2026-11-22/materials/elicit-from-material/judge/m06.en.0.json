@@ -1,0 +1,129 @@
+{
+ "file": "m06.en.0.json",
+ "cond": "en",
+ "id": "m06",
+ "i": 0,
+ "items": [
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "どの段階で失敗しても"
+  },
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "それより後の段階はすべて実行されません"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "各ジョブは`needs`で直前のジョブにつながっています"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "直前のジョブにつながっています"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "前のジョブが成功したときだけ"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "次のジョブが始まります"
+  },
+  {
+   "concept": "step",
+   "word": "段階",
+   "quote": "各段階で行うことと、失敗したときに止まるもの"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "| ジョブ | 行うこと |"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "赤くなっている最初のジョブを見ます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "それより後のジョブは「スキップ」"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "test ──失敗──▶ ここで終了"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "build ──失敗──▶ ここで終了"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "deploy-staging ──失敗──▶ ここで終了"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "deploy-production ──（承認待ちで停止）"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| `test` | コードを取得し"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| `build` | コミットのSHAをタグにして"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| `deploy-staging` | ECSの`stg`"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| `deploy-production` | GitHubの"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`build`・`deploy-staging`"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`deploy-staging`・`deploy-production`に"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`deploy-production`に`runs-on`がありません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`build`に`actions/checkout`がありません"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "AWSの認証とECRへのログインの手順がありません"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "タスク定義を更新する手順を入れるか"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"段階\",\"quote\":\"どの段階で失敗しても\"},\n{\"concept\":\"step\",\"word\":\"段階\",\"quote\":\"それより後の段階はすべて実行されません\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"各ジョブは`needs`で直前のジョブにつながっています\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"直前のジョブにつながっています\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"前のジョブが成功したときだけ\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"次のジョブが始まります\"},\n{\"concept\":\"step\",\"word\":\"段階\",\"quote\":\"各段階で行うことと、失敗したときに止まるもの\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"| ジョブ | 行うこと |\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"赤くなっている最初のジョブを見ます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"それより後のジョブは「スキップ」\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"test ──失敗──▶ ここで終了\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"build ──失敗──▶ ここで終了\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"deploy-staging ──失敗──▶ ここで終了\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"deploy-production ──（承認待ちで停止）\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| `test` | コードを取得し\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| `build` | コミットのSHAをタグにして\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| `deploy-staging` | ECSの`stg`\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| `deploy-production` | GitHubの\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`build`・`deploy-staging`\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`deploy-staging`・`deploy-production`に\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`deploy-production`に`runs-on`がありません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`build`に`actions/checkout`がありません\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"AWSの認証とECRへのログインの手順がありません\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"タスク定義を更新する手順を入れるか\"}\n]"
+}

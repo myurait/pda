@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m10",
+ "i": 4,
+ "result": "---\n\nこの関数は、配信の記録を店舗ごとにまとめ、**配信に失敗した投稿がある店舗だけ**について、失敗の件数と失敗した投稿のIDを返します。呼び出し側は、返ってきた店舗ごとに失敗した投稿のIDを添えて通知を送ります。\n\n## 計算の中身\n\n入力は配信の記録の並びで、1件ごとに店舗ID・投稿ID・配信の状態を持っています。\n\n1. 記録を1件ずつ見て、店舗IDごとに集計の入れ物を用意します。初めて出てきた店舗なら、失敗0件・投稿IDなしの入れ物を作ります。\n2. 状態が `\"failed\"` の記録だけ、その店舗の失敗件数を1増やし、投稿IDを一覧に足します。成功など他の状態の記録は、店舗の入れ物を作るだけで件数には数えません。\n3. 最後に、失敗件数が1以上の店舗だけを結果に入れて返します。失敗が無かった店舗は結果に含まれません。\n\n返る値は店舗ごとに次の3つを持つ一覧です。\n\n- 店舗ID\n- 失敗件数\n- 失敗した投稿のIDの一覧（入力に出てきた順）\n\n## 呼び出し側での使われ方\n\n呼び出し側は結果の一覧を順に回し、店舗ごとに1回ずつ通知を送ります。通知には店舗IDと、その店舗で失敗した投稿のIDの一覧を渡します。失敗の無い店舗は結果に入っていないので、通知が飛ぶのは失敗のあった店舗だけです。\n\n## 動きで知っておくとよい点\n\n- **店舗の並び順は実行のたびに変わります。** 店舗ごとの集計にGoのmapを使っており、mapを回す順は決まっていないためです。通知が届く店舗の順番に意味を持たせている場合は、店舗IDで並べ替える処理が要ります。\n- 状態の判定は文字列 `\"failed\"` との完全一致です。`\"FAILED\"` や `\"failed_retry\"` のような別の表記は失敗として数えられません。\n- 同じ投稿の失敗記録が複数あれば、投稿IDの一覧にも同じIDが重複して入ります。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1003,
+  "cache_read_input_tokens": 22203,
+  "output_tokens": 996,
+  "output_tokens_details": {
+   "thinking_tokens": 213
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1003,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 996,
+    "cache_read_input_tokens": 22203,
+    "cache_creation_input_tokens": 1003,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1003
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

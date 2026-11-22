@@ -1,0 +1,124 @@
+{
+ "file": "m09.ja.4.json",
+ "cond": "ja",
+ "id": "m09",
+ "i": 4,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "投稿グループが重複して作られるのは"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "取り込み済みかどうかの判定からも外れてしまう"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "新しい投稿を取り込む処理は、まずその店舗に紐づく行から"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`の一覧を作ります"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "`external_key`の一覧を作ります"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "投稿の名前がこの一覧にあれば"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "すでに投稿グループと紐づいているとみなして飛ばします"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧になければ、新しい投稿として投稿グループを作ります"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "新しい投稿として投稿グループを作ります"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "同じ実行の後の処理で編集元の行が上書きされないように"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "同じ実行の後の処理で編集元の行が上書きされないように"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "目的は、同じ実行の後の処理で編集元の行が上書きされない"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "一覧を作るときにも除外する行を外す条件"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "その行の`external_key`が、取り込み済みの一覧に入らない"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "取り込み済みの一覧に入らない"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "すでに投稿グループがあるのに、新しい投稿グループが作られる"
+  },
+  {
+   "concept": "db_table",
+   "word": "投稿グループ",
+   "quote": "新しい投稿グループが作られる"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "除外の目的は「上書きしない」ことでしたが"
+  },
+  {
+   "concept": "collection",
+   "word": "一覧",
+   "quote": "除外した行も含めて一覧を作れば重複は止まります"
+  },
+  {
+   "concept": "collection",
+   "word": "",
+   "quote": "`knownKeys`を作るクエリから"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを防ぐ除外は、上書きする側の処理だけに残します"
+  },
+  {
+   "concept": "write_back",
+   "word": "上書き",
+   "quote": "上書きを防ぐ除外は、上書きする側の処理だけに残します"
+  },
+  {
+   "concept": "step",
+   "word": "処理",
+   "quote": "上書きする側の処理だけに残します"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"投稿グループが重複して作られるのは\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"取り込み済みかどうかの判定からも外れてしまう\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"新しい投稿を取り込む処理は、まずその店舗に紐づく行から\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key`の一覧を作ります\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"`external_key`の一覧を作ります\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"投稿の名前がこの一覧にあれば\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"すでに投稿グループと紐づいているとみなして飛ばします\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"一覧になければ、新しい投稿として投稿グループを作ります\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"新しい投稿として投稿グループを作ります\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"同じ実行の後の処理で編集元の行が上書きされないように\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"同じ実行の後の処理で編集元の行が上書きされないように\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"目的は、同じ実行の後の処理で編集元の行が上書きされない\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"一覧を作るときにも除外する行を外す条件\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"その行の`external_key`が、取り込み済みの一覧に入らない\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"取り込み済みの一覧に入らない\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"すでに投稿グループがあるのに、新しい投稿グループが作られる\"},\n{\"concept\": \"db_table\", \"word\": \"投稿グループ\", \"quote\": \"新しい投稿グループが作られる\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"除外の目的は「上書きしない」ことでしたが\"},\n{\"concept\": \"collection\", \"word\": \"一覧\", \"quote\": \"除外した行も含めて一覧を作れば重複は止まります\"},\n{\"concept\": \"collection\", \"word\": \"\", \"quote\": \"`knownKeys`を作るクエリから\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを防ぐ除外は、上書きする側の処理だけに残します\"},\n{\"concept\": \"write_back\", \"word\": \"上書き\", \"quote\": \"上書きを防ぐ除外は、上書きする側の処理だけに残します\"},\n{\"concept\": \"step\", \"word\": \"処理\", \"quote\": \"上書きする側の処理だけに残します\"}\n]"
+}

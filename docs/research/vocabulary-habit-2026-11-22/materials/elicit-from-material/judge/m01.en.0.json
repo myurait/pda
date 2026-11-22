@@ -1,0 +1,124 @@
+{
+ "file": "m01.en.0.json",
+ "cond": "en",
+ "id": "m01",
+ "i": 0,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "投稿グループ単位で持つテーブルを新設し"
+  },
+  {
+   "concept": "db_table",
+   "word": "関連テーブル",
+   "quote": "Google ロケーションへの投稿の関連テーブルに配信状態を持たせる"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`delivery_instructions` テーブルを新設"
+  },
+  {
+   "concept": "db_column",
+   "word": "列",
+   "quote": "に列とインデックスを追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_group_id` と `platform` の組ごとに 1 行"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_group_id` は `post_groups` への外部キー"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`scheduled_at` に配信予定の日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`dispatched_at` に実際に配信した日時"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "配信前の `dispatched_at` は NULL"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`created_at` と `updated_at` は持たない"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state`: 配信状態。既定値は `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` の後ろに置く"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`external_key`: 外部側のキー。NULL を許す"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_google_location_relationships` の既存行の"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存行の `delivery_state` は次のようになる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が入っている行は `sent`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL の行は `pending`"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`sent_at` が NULL なら `pending` になる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存行の `external_key` はすべて NULL"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き換え",
+   "quote": "既存行を `sent` にする書き換えは `DB::statement` の UPDATE で行う"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存行の `updated_at` は変わらない"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`delivery_instructions` は空の状態で作られる"
+  }
+ ],
+ "raw": "```json\n[\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"投稿グループ単位で持つテーブルを新設し\"},\n{\"concept\": \"db_table\", \"word\": \"関連テーブル\", \"quote\": \"Google ロケーションへの投稿の関連テーブルに配信状態を持たせる\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"`delivery_instructions` テーブルを新設\"},\n{\"concept\": \"db_column\", \"word\": \"列\", \"quote\": \"に列とインデックスを追加\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_group_id` と `platform` の組ごとに 1 行\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_group_id` は `post_groups` への外部キー\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`scheduled_at` に配信予定の日時\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`dispatched_at` に実際に配信した日時\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"配信前の `dispatched_at` は NULL\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`created_at` と `updated_at` は持たない\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state`: 配信状態。既定値は `pending`\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` の後ろに置く\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`external_key`: 外部側のキー。NULL を許す\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`delivery_state` と `updated_at` の複合インデックス\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_google_location_relationships` の既存行の\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"既存行の `delivery_state` は次のようになる\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` が入っている行は `sent`\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` が NULL の行は `pending`\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`sent_at` が NULL なら `pending` になる\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"既存行の `external_key` はすべて NULL\"},\n{\"concept\": \"write_back\", \"word\": \"書き換え\", \"quote\": \"既存行を `sent` にする書き換えは `DB::statement` の UPDATE で行う\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"既存行の `updated_at` は変わらない\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`delivery_instructions` は空の状態で作られる\"}\n]\n```"
+}

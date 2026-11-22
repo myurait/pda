@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m07",
+ "i": 2,
+ "result": "---\n\nこの取り込み処理は、**投稿から3時間以上たった投稿だけを取り込み、3時間以内の投稿は取り込みません**。投稿の古さに上限はありません。\n\n## 取り込むかどうかの判定\n\n`shouldImport` が見るのは、Googleビジネスプロフィールの投稿の作成時刻だけです。\n\n- **取り込まない投稿**: 判定時点より3時間以内に作られた投稿です。コメントによれば、自社の配信処理が投稿したばかりで、まだ処理中かもしれない投稿を拾わないための除外です。ただし誰が投稿したかは見ていないので、店舗の人が手で出した投稿も3時間以内なら同じく除外されます。\n- **取り込む投稿**: それ以外のすべての投稿です。「何日前まで」という下限は無く、3時間より古ければ1か月前の投稿でも1年前の投稿でも対象になります。\n\n除外された投稿は捨てられるのではなく、翌日1時の実行のときには3時間より古くなっているので、そこで取り込まれます。つまり投稿の取り込みは最大で約1日遅れます。\n\n## 実行時刻と「3時間」の関係\n\n処理は毎日1時に始まり、全店舗を終えるまで約9時間かかります。そのため、除外の境目は判定の基準時刻 `$now` をいつ決めているかで変わります。\n\n- **`$now` を実行開始時に1回だけ決めている場合**: どの店舗でも境目は前日22時です。前日22時以降の投稿は、その日の実行では取り込まれません。\n- **`$now` を店舗ごと・投稿ごとに取り直している場合**: 最初の店舗は前日22時、最後のほうの店舗は当日7時ごろが境目になり、店舗によって取り込まれる範囲がずれます。\n\n素材のコードだけではどちらか分からないので、呼び出し側を見て確かめる必要があります。\n\n## 30日での削除\n\n`purge` は、取り込み記録 `ImportedPost` のうち、取り込んだ日時 `imported_at` が30日より前のものを削除します。投稿の作成日ではなく、取り込んだ日を基準にしています。\n\nここで一点、確認が必要なことがあります。重複して取り込まないかどうかを `ImportedPost` に記録があるかで判定している場合、30日後に記録が消えると、`shouldImport` には古さの上限が無いため、同じ投稿がまた取り込まれます。重複の判定を別の手段（投稿ID単位の一意制約など）で行っていれば問題ありません。素材にはその部分が含まれていないので、重複判定の実装を見て確かめてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 21986,
+  "cache_read_input_tokens": 1387,
+  "output_tokens": 1488,
+  "output_tokens_details": {
+   "thinking_tokens": 571
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 21986,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1488,
+    "cache_read_input_tokens": 1387,
+    "cache_creation_input_tokens": 21986,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 21986
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

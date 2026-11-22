@@ -1,0 +1,84 @@
+{
+ "file": "m02.tr.2.json",
+ "cond": "tr",
+ "id": "m02",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "位置の保存先を `post_search_locations` に移して"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`post_search.location_ids` に書かなくなったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "旧列",
+   "quote": "旧列 `post_search.location_ids` には、位置の入った行が残って"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "新テーブル `post_search_locations` は作られていますが"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "クエリは `location_ids` だけを読みます"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "新テーブルは結合していません"
+  },
+  {
+   "concept": "db_column",
+   "word": "旧列",
+   "quote": "旧列への書き込みが続く間は"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "書き込み側が新テーブルだけに書くようになると"
+  },
+  {
+   "concept": "db_column",
+   "word": "旧列",
+   "quote": "旧列を削除すると、集計のクエリがエラーで"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "既存の行を `post_search_locations` に移し替える"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "書き込み側が新テーブルにも書くようにする"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "クエリを `post_search_locations` を結合する形に"
+  },
+  {
+   "concept": "db_column",
+   "word": "旧列",
+   "quote": "旧列からの集計と同じ数字が出ることを"
+  },
+  {
+   "concept": "db_column",
+   "word": "旧列",
+   "quote": "旧列への書き込みを止める"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "### `tstamp` の型の変更"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"位置の保存先を `post_search_locations` に移して\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`post_search.location_ids` に書かなくなったとき\"},\n{\"concept\": \"db_column\", \"word\": \"旧列\", \"quote\": \"旧列 `post_search.location_ids` には、位置の入った行が残って\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"新テーブル `post_search_locations` は作られていますが\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"クエリは `location_ids` だけを読みます\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"新テーブルは結合していません\"},\n{\"concept\": \"db_column\", \"word\": \"旧列\", \"quote\": \"旧列への書き込みが続く間は\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"書き込み側が新テーブルだけに書くようになると\"},\n{\"concept\": \"db_column\", \"word\": \"旧列\", \"quote\": \"旧列を削除すると、集計のクエリがエラーで\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"既存の行を `post_search_locations` に移し替える\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"書き込み側が新テーブルにも書くようにする\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"クエリを `post_search_locations` を結合する形に\"},\n{\"concept\": \"db_column\", \"word\": \"旧列\", \"quote\": \"旧列からの集計と同じ数字が出ることを\"},\n{\"concept\": \"db_column\", \"word\": \"旧列\", \"quote\": \"旧列への書き込みを止める\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"### `tstamp` の型の変更\"}\n]"
+}

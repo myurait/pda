@@ -1,0 +1,89 @@
+{
+ "file": "m01.tr.2.json",
+ "cond": "tr",
+ "id": "m01",
+ "i": 2,
+ "items": [
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "プラットフォームごとの配信予定と実行時刻を記録するテーブルを新しく作ります"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "配信の状態をカラムとして明示的に持たせ"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 新しいテーブル `delivery_instructions`"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "### 既存テーブル `post_google_location_relationships` へのカラム追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "既存テーブル `post_google_location_relationships` へのカラム追加"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`created_at` / `updated_at` のカラムは持ちません"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "既存テーブル `post_google_location_relationships` へのカラム追加"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "`delivery_instructions` は新しいテーブルなので"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "既存テーブルへのカラム追加、インデックス作成"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "既存テーブルへのカラム追加、インデックス作成"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "戻す場合は、テーブルの削除とカラムの削除を手で行います"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "戻す場合は、テーブルの削除とカラムの削除を手で行います"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "`delivery_state` と `updated_at` の複合インデックス"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "全行を対象にした `UPDATE` を1つのマイグレーションで実行します"
+  },
+  {
+   "concept": "write_back",
+   "word": "UPDATE",
+   "quote": "`UPDATE` は分割せずに1文で流すため"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "`pending` の行を拾って配信する処理を入れる場合は"
+  }
+ ],
+ "raw": "[{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"プラットフォームごとの配信予定と実行時刻を記録するテーブルを新しく作ります\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"配信の状態をカラムとして明示的に持たせ\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"### 新しいテーブル `delivery_instructions`\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"### 既存テーブル `post_google_location_relationships` へのカラム追加\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"既存テーブル `post_google_location_relationships` へのカラム追加\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`created_at` / `updated_at` のカラムは持ちません\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"既存テーブル `post_google_location_relationships` へのカラム追加\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"`delivery_instructions` は新しいテーブルなので\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"既存テーブルへのカラム追加、インデックス作成\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"既存テーブルへのカラム追加、インデックス作成\"},{\"concept\":\"db_table\",\"word\":\"テーブル\",\"quote\":\"戻す場合は、テーブルの削除とカラムの削除を手で行います\"},{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"戻す場合は、テーブルの削除とカラムの削除を手で行います\"},{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"`delivery_state` と `updated_at` の複合インデックス\"},{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"全行を対象にした `UPDATE` を1つのマイグレーションで実行します\"},{\"concept\":\"write_back\",\"word\":\"UPDATE\",\"quote\":\"`UPDATE` は分割せずに1文で流すため\"},{\"concept\":\"step\",\"word\":\"\",\"quote\":\"`pending` の行を拾って配信する処理を入れる場合は\"}]"
+}

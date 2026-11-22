@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m03",
+ "i": 3,
+ "result": "---\n\n## 件名\n\nGoogleビジネスプロフィールの投稿同期が、編集配信で削除した古い紐付けを復活させる\n\n## 内容\n\n投稿の同期処理（`SyncGbpPostsService`）が、同期中に別の処理が行った変更を、読み込んだ時点の古い値で上書きします。とくに、編集した投稿の配信が完了したときに論理削除した古い紐付けの行が、削除されていない状態に戻ります。\n\n## 起きる条件\n\n次の2つが同じ時間帯に起きると発生します。\n\n- 投稿の同期処理が、対象ロケーションの紐付け（`post_google_location_relationships`）を読み込み、1件ずつGoogle側の状態を取りに行っている\n- その間に、同じ紐付けの行を対象とする編集済み投稿の配信が完了し、`PostUpdateService::saveOnCompleted()` が古い行の `deleted_at` に日時を入れる\n\n同期処理は全件を先に読み込み、Google側への問い合わせ（1件あたり1〜3秒）をすべて終えてから、まとめて書き戻します。書き戻しは更新する列を指定していないため、`deleted_at` を含むすべての列を読み込み時点の値で上書きします。読み込み時点の `deleted_at` は空なので、その間に入った削除の日時が消えます。\n\n対象の行数が多いほど読み込みから書き戻しまでの時間が長くなり、発生しやすくなります。100件なら最大で約5分間、この状態が続きます。\n\n## 影響\n\n- 編集前の古い紐付けが有効な行として残り、同じロケーションに編集前と編集後の紐付けが両方ある状態になる\n- 削除済みの行を除いて扱う画面・処理に、編集前の投稿が再び現れる\n- 次回以降の同期も、復活した古い行を同期の対象として扱い続ける\n- 同期中に他の処理が更新した列も、`deleted_at` と同じく読み込み時点の値に戻る\n\n## 該当箇所\n\n- `app/Services/SyncGbpPostsService.php` の `handle()`：全件を読み込んでから、時間のかかる問い合わせを挟んで書き戻している\n- 同ファイルの `bulkUpdateModels()`：`upsert` で更新する列を指定しておらず、全列を上書きしている\n\n## 対応案\n\n- `upsert` の更新する列を、同期で変えた `state` と `published_at` に絞る\n- 書き戻すときに、論理削除された行を対象から外す",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7347,
+  "cache_read_input_tokens": 15858,
+  "output_tokens": 1684,
+  "output_tokens_details": {
+   "thinking_tokens": 821
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7347,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1684,
+    "cache_read_input_tokens": 15858,
+    "cache_creation_input_tokens": 7347,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7347
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

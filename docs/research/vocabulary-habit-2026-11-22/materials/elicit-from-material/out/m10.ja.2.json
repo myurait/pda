@@ -1,0 +1,40 @@
+{
+ "cond": "ja",
+ "id": "m10",
+ "i": 2,
+ "result": "---\n\nこの関数は、配信結果の一覧から**配信に失敗した投稿がある店舗だけを選び、店舗ごとに失敗の件数と失敗した投稿のIDの一覧をまとめて返します**。呼び出し側は、その結果を使って店舗ごとに1回ずつ失敗のアラートを送ります。\n\n## 何を計算しているか\n\n入力は配信1件ごとの行で、各行には店舗ID・投稿ID・配信状態が入っています。処理は次の2段階です。\n\n1. **店舗ごとに集計する**\n   - 行を順に見て、店舗IDごとに集計の箱を1つ用意します。失敗がない店舗にも箱は作られます。\n   - 状態がちょうど `\"failed\"` の行だけ、その店舗の失敗件数を1増やし、投稿IDを一覧に追加します。\n2. **失敗がある店舗だけを残す**\n   - 失敗件数が1以上の店舗だけを結果に入れます。全件成功した店舗は結果に出てきません。\n\n返る値は、店舗ID・失敗件数・失敗した投稿IDの一覧を組にしたもののリストです。\n\n## 呼び出し側での使われ方\n\n呼び出し側は結果を1件ずつ取り出し、店舗IDと失敗した投稿IDの一覧を通知処理に渡します。つまり**失敗があった店舗にだけ、どの投稿が失敗したかを添えてアラートが1通ずつ送られます**。失敗件数そのものは通知には渡されていません。\n\n## 結果の性質として知っておくとよい点\n\n- **店舗の並び順は毎回変わり得ます。** 集計にGoのmapを使っており、mapを順に回す順序は実行ごとに不定です。アラートの送信順に意味がないなら問題ありませんが、順序に依存するテストや表示があるとずれます。\n- **1店舗の中の投稿IDは入力の行の順に並びます。** 同じ投稿が失敗として複数行あれば、同じIDが一覧に重複して入ります。\n- **状態の判定は文字列の完全一致です。** `\"Failed\"` や `\"error\"` のような別の表記は失敗として数えられません。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1006,
+  "cache_read_input_tokens": 22196,
+  "output_tokens": 1148,
+  "output_tokens_details": {
+   "thinking_tokens": 397
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1006,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1148,
+    "cache_read_input_tokens": 22196,
+    "cache_creation_input_tokens": 1006,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1006
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

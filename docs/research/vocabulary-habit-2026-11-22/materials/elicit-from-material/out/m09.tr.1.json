@@ -1,0 +1,40 @@
+{
+ "cond": "tr",
+ "id": "m09",
+ "i": 1,
+ "result": "---\n\n重複が起きるのは、「今回の実行では上書きしない行」として除外した紐付けが、「すでに投稿グループに紐付いているか」の判定からも外れてしまうためです。\n\n## 何が起きているか\n\nGoogleビジネスプロフィールから取ってきた投稿を取り込むとき、処理は次の順で進みます。\n\n1. 店舗に紐付いている投稿の `external_key` を、紐付けの表（`PostGoogleLocationRelationship`）から集めて「既知の投稿」の一覧を作ります。\n2. 取ってきた投稿の名前が既知の投稿の一覧にあれば、紐付け済みとして飛ばします。\n3. 一覧に無ければ、新しい投稿グループを作ります。\n\n最近の変更で、編集元の行を除外の対象に加えました。目的は、同じ実行の後半で編集元の行を上書きしないことです。ところが、手順 1 で一覧を作るときにも除外の対象を外しています。そのため、編集元の行に入っている `external_key` は既知の投稿の一覧に載りません。\n\n結果として、その投稿は実際には投稿グループに紐付いているのに、手順 2 で「未知の投稿」と判定されます。手順 3 に進んで新しい投稿グループが作られるので、同じ投稿に対して投稿グループが 2 つできます。\n\n## 直し方\n\n除外の対象は「上書きしない」ための区別なので、「すでに紐付いているか」の判定には使わないのが筋です。手順 1 で既知の投稿の一覧を作るときは、除外の対象を外さずに、店舗に紐付くすべての行から `external_key` を集めてください。除外の対象は、上書きする処理の側でだけ参照する形にします。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7244,
+  "cache_read_input_tokens": 15937,
+  "output_tokens": 1409,
+  "output_tokens_details": {
+   "thinking_tokens": 812
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7244,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1409,
+    "cache_read_input_tokens": 15937,
+    "cache_creation_input_tokens": 7244,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7244
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

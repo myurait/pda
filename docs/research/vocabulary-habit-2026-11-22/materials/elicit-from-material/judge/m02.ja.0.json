@@ -1,0 +1,164 @@
+{
+ "file": "m02.ja.0.json",
+ "cond": "ja",
+ "id": "m02",
+ "i": 0,
+ "items": [
+  {
+   "concept": "collection",
+   "word": "集計結果",
+   "quote": "夜間レポートの集計結果は変わりません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "影響が出るのは、書き込み側が `post_search_locations` だけに書くよう"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "書き込み側が `post_search_locations` だけに書くよう切り替わった"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "カラムもデータも残っており"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "新しい `post_search_locations` はDBに作られていますが"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "夜間レポートは `location_ids` だけを読み"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` を結合していません"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側が新テーブルだけに書くようになったとき"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "書き込み側が新テーブルだけに書くようになったとき"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "それ以降の投稿は `location_ids` が空になり"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`location_ids` カラムを削除したとき"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "安全な移行の順序は次のとおりです。"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側が両方のテーブルに書くようにする"
+  },
+  {
+   "concept": "db_table",
+   "word": "テーブル",
+   "quote": "書き込み側が両方のテーブルに書くようにする"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "既存の `location_ids` を `post_search_locations` へ移す"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "既存の `location_ids` を `post_search_locations` へ移す"
+  },
+  {
+   "concept": "step",
+   "word": "バックフィル",
+   "quote": "へ移す（バックフィル）"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "夜間レポートを `post_search_locations` を結合する形に"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き込み",
+   "quote": "書き込み側を新テーブルだけにする"
+  },
+  {
+   "concept": "db_table",
+   "word": "新テーブル",
+   "quote": "書き込み側を新テーブルだけにする"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`location_ids` を削除する"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "## `tstamp` の型（`timestamp` から `datetime` へ）"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "日付の境界がずれます。"
+  },
+  {
+   "concept": "collection",
+   "word": "件数",
+   "quote": "日別の件数が、時差の分だけ前後の日へ移ります"
+  },
+  {
+   "concept": "time_range",
+   "word": "時差",
+   "quote": "日別の件数が、時差の分だけ前後の日へ移ります"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "集計は変わりません。"
+  },
+  {
+   "concept": "collection",
+   "word": "集計",
+   "quote": "集計への影響は、タイムゾーンの設定によって"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`post_search_locations` が存在するので"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`tstamp` の現在の型を見る"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "`SHOW CREATE TABLE post_search` で"
+  },
+  {
+   "concept": "step",
+   "word": "マイグレーション",
+   "quote": "マイグレーションは少なくとも一部が適用済みです"
+  }
+ ],
+ "raw": "[\n{\"concept\": \"collection\", \"word\": \"集計結果\", \"quote\": \"夜間レポートの集計結果は変わりません\"},\n{\"concept\": \"write_back\", \"word\": \"書き込み\", \"quote\": \"影響が出るのは、書き込み側が `post_search_locations` だけに書くよう\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"書き込み側が `post_search_locations` だけに書くよう切り替わった\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"カラムもデータも残っており\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"新しい `post_search_locations` はDBに作られていますが\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"夜間レポートは `location_ids` だけを読み\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_search_locations` を結合していません\"},\n{\"concept\": \"write_back\", \"word\": \"書き込み\", \"quote\": \"書き込み側が新テーブルだけに書くようになったとき\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"書き込み側が新テーブルだけに書くようになったとき\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"それ以降の投稿は `location_ids` が空になり\"},\n{\"concept\": \"db_column\", \"word\": \"カラム\", \"quote\": \"`location_ids` カラムを削除したとき\"},\n{\"concept\": \"step\", \"word\": \"\", \"quote\": \"安全な移行の順序は次のとおりです。\"},\n{\"concept\": \"write_back\", \"word\": \"書き込み\", \"quote\": \"書き込み側が両方のテーブルに書くようにする\"},\n{\"concept\": \"db_table\", \"word\": \"テーブル\", \"quote\": \"書き込み側が両方のテーブルに書くようにする\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"既存の `location_ids` を `post_search_locations` へ移す\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"既存の `location_ids` を `post_search_locations` へ移す\"},\n{\"concept\": \"step\", \"word\": \"バックフィル\", \"quote\": \"へ移す（バックフィル）\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"夜間レポートを `post_search_locations` を結合する形に\"},\n{\"concept\": \"write_back\", \"word\": \"書き込み\", \"quote\": \"書き込み側を新テーブルだけにする\"},\n{\"concept\": \"db_table\", \"word\": \"新テーブル\", \"quote\": \"書き込み側を新テーブルだけにする\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`location_ids` を削除する\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"## `tstamp` の型（`timestamp` から `datetime` へ）\"},\n{\"concept\": \"time_range\", \"word\": \"\", \"quote\": \"日付の境界がずれます。\"},\n{\"concept\": \"collection\", \"word\": \"件数\", \"quote\": \"日別の件数が、時差の分だけ前後の日へ移ります\"},\n{\"concept\": \"time_range\", \"word\": \"時差\", \"quote\": \"日別の件数が、時差の分だけ前後の日へ移ります\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"集計は変わりません。\"},\n{\"concept\": \"collection\", \"word\": \"集計\", \"quote\": \"集計への影響は、タイムゾーンの設定によって\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`post_search_locations` が存在するので\"},\n{\"concept\": \"db_column\", \"word\": \"\", \"quote\": \"`tstamp` の現在の型を見る\"},\n{\"concept\": \"db_table\", \"word\": \"\", \"quote\": \"`SHOW CREATE TABLE post_search` で\"},\n{\"concept\": \"step\", \"word\": \"マイグレーション\", \"quote\": \"マイグレーションは少なくとも一部が適用済みです\"}\n]"
+}

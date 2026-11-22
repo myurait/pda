@@ -1,0 +1,40 @@
+{
+ "cond": "en",
+ "id": "m03",
+ "i": 2,
+ "result": "---\n\n## 概要\n\nGoogle ビジネスプロフィールの投稿状態を同期する処理が、同期中にほかの処理が更新した `post_google_location_relationships` の行を、同期開始時点の古い値で上書きします。投稿の編集を配信し終えて論理削除した古い行が、削除されていない状態に戻ります。\n\n## 起きる条件\n\n次の2つが同時に進んだときに起きます。\n\n- `SyncGbpPostsService::handle()` が同期を実行している\n- 同期の対象になっている店舗の投稿で、編集した内容の配信が完了し、`PostUpdateService::saveOnCompleted()` が古い行に `deleted_at` を入れる\n\n同期処理は、最初に対象の行をまとめて読み込みます。その後、行ごとに Google の API を呼ぶので1件に1〜3秒かかり、店舗や投稿が多いほど同期の所要時間は長くなります。この間に配信の完了が重なると発生します。\n\n## 原因\n\n- 同期処理は、最初に読み込んだ行の全カラムの値を最後に `upsert` で書き戻している\n- `upsert` に更新するカラムを指定していないため、`state`・`published_at` だけでなく `deleted_at` も含めてすべてのカラムを上書きする\n- 読み込んだ時点では `deleted_at` が `NULL` なので、途中で入った削除日時が `NULL` に戻る\n\n## 影響\n\n- 編集前の古い行の論理削除が取り消され、新しい行と古い行がどちらも有効な行として残る\n- 古い行を参照する処理（一覧の表示、次回以降の同期など）で、編集前の投稿が再び対象になる\n- `deleted_at` 以外にも、同期中にほかの処理が更新したカラムはすべて同期開始時点の値に戻る\n\n## 対応案\n\n`upsert` の第3引数に、同期で更新するカラム（`state`、`published_at`）だけを指定し、それ以外のカラムを上書きしないようにします。\n\n```php\nPostGoogleLocationRelationship::upsert(\n    $rows->map->only(['id', 'state', 'published_at'])->all(),\n    ['id'],\n    ['state', 'published_at']\n);\n```\n\nこの対応でも、同期中に論理削除された行の `state`・`published_at` は書き換わります。削除済みの行を更新したくない場合は、書き込みの直前に `deleted_at` が `NULL` の行だけに絞る条件を加えてください。",
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 999,
+  "cache_read_input_tokens": 22208,
+  "output_tokens": 1500,
+  "output_tokens_details": {
+   "thinking_tokens": 655
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 999,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1500,
+    "cache_read_input_tokens": 22208,
+    "cache_creation_input_tokens": 999,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 999
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ }
+}

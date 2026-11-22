@@ -1,0 +1,194 @@
+{
+ "file": "m03.ja.4.json",
+ "cond": "ja",
+ "id": "m03",
+ "i": 4,
+ "items": [
+  {
+   "concept": "write_back",
+   "word": "同期処理",
+   "quote": "同期処理（`SyncGbpPostsService::handle`）が、同期の途中で"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "論理削除された `post_google_location_relationships` の行を"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "同期処理は次の順で動きます。"
+  },
+  {
+   "concept": "collection",
+   "word": "行",
+   "quote": "対象の行をまとめて読み込む（コードの (1)）"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "全行を `upsert` でまとめて書き戻す（コードの (2)）"
+  },
+  {
+   "concept": "collection",
+   "word": "全行",
+   "quote": "全行を `upsert` でまとめて書き戻す（コードの (2)）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`state` と `published_at` をメモリ上の行に入れる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`state` と `published_at` をメモリ上の行に入れる"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "（1 回の取得に 1〜3 秒かかる）"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "3 の `upsert` は更新するカラムを指定していません。"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "3 の `upsert` は更新するカラムを指定していません。"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "1 で読み込んだ時点の値で全カラムを上書きします。"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "上書きされるカラムには `deleted_at` も含まれます。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "上書きされるカラムには `deleted_at` も含まれます。"
+  },
+  {
+   "concept": "time_range",
+   "word": "間",
+   "quote": "1 から 3 までの間に、投稿の編集の配信が完了すると"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "古い行の `deleted_at` に現在時刻を入れて論理削除します。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "この行の `deleted_at` は 1 で読み込んだときの `NULL` に戻ります。"
+  },
+  {
+   "concept": "db_table",
+   "word": "",
+   "quote": "participant DB as post_google_location_relationships"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "Sync->>DB: (2) upsert で全カラムを上書き（deleted_at = NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "Sync->>DB: (2) upsert で全カラムを上書き"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "(2) upsert で全カラムを上書き（deleted_at = NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "Update->>DB: 古い行に deleted_at = now() を入れる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "(1) 対象の行を読み込む（deleted_at = NULL）"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "投稿を取得して state・published_at を入れる"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "投稿を取得して state・published_at を入れる"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "loop 1 行ごとに 1〜3 秒"
+  },
+  {
+   "concept": "write_back",
+   "word": "書き戻し",
+   "quote": "(2) の書き戻しをまだしていない"
+  },
+  {
+   "concept": "time_range",
+   "word": "時間",
+   "quote": "(1) から (2) までの時間は、対象の行数 × 1〜3 秒です。"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "対象の行数 × 1〜3 秒です。"
+  },
+  {
+   "concept": "time_range",
+   "word": "",
+   "quote": "たとえば 100 行なら 2〜5 分程度になり"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "戻った行の `state` と `published_at` には"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "戻った行の `state` と `published_at` には"
+  },
+  {
+   "concept": "write_back",
+   "word": "",
+   "quote": "`upsert` の第 3 引数に、同期処理が更新する"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新する `state` と `published_at` だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "同期処理が更新する `state` と `published_at` だけを指定し"
+  },
+  {
+   "concept": "db_column",
+   "word": "カラム",
+   "quote": "`deleted_at` を含む他のカラムを上書きしないようにします。"
+  },
+  {
+   "concept": "db_column",
+   "word": "",
+   "quote": "`deleted_at` を含む他のカラムを上書きしないようにします。"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"write_back\",\"word\":\"同期処理\",\"quote\":\"同期処理（`SyncGbpPostsService::handle`）が、同期の途中で\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"論理削除された `post_google_location_relationships` の行を\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"同期処理は次の順で動きます。\"},\n{\"concept\":\"collection\",\"word\":\"行\",\"quote\":\"対象の行をまとめて読み込む（コードの (1)）\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"全行を `upsert` でまとめて書き戻す（コードの (2)）\"},\n{\"concept\":\"collection\",\"word\":\"全行\",\"quote\":\"全行を `upsert` でまとめて書き戻す（コードの (2)）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`state` と `published_at` をメモリ上の行に入れる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`state` と `published_at` をメモリ上の行に入れる\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"（1 回の取得に 1〜3 秒かかる）\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"3 の `upsert` は更新するカラムを指定していません。\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"3 の `upsert` は更新するカラムを指定していません。\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"1 で読み込んだ時点の値で全カラムを上書きします。\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"上書きされるカラムには `deleted_at` も含まれます。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"上書きされるカラムには `deleted_at` も含まれます。\"},\n{\"concept\":\"time_range\",\"word\":\"間\",\"quote\":\"1 から 3 までの間に、投稿の編集の配信が完了すると\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"古い行の `deleted_at` に現在時刻を入れて論理削除します。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"この行の `deleted_at` は 1 で読み込んだときの `NULL` に戻ります。\"},\n{\"concept\":\"db_table\",\"word\":\"\",\"quote\":\"participant DB as post_google_location_relationships\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"Sync->>DB: (2) upsert で全カラムを上書き（deleted_at = NULL）\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"Sync->>DB: (2) upsert で全カラムを上書き\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"(2) upsert で全カラムを上書き（deleted_at = NULL）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"Update->>DB: 古い行に deleted_at = now() を入れる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"(1) 対象の行を読み込む（deleted_at = NULL）\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"投稿を取得して state・published_at を入れる\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"投稿を取得して state・published_at を入れる\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"loop 1 行ごとに 1〜3 秒\"},\n{\"concept\":\"write_back\",\"word\":\"書き戻し\",\"quote\":\"(2) の書き戻しをまだしていない\"},\n{\"concept\":\"time_range\",\"word\":\"時間\",\"quote\":\"(1) から (2) までの時間は、対象の行数 × 1〜3 秒です。\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"対象の行数 × 1〜3 秒です。\"},\n{\"concept\":\"time_range\",\"word\":\"\",\"quote\":\"たとえば 100 行なら 2〜5 分程度になり\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"戻った行の `state` と `published_at` には\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"戻った行の `state` と `published_at` には\"},\n{\"concept\":\"write_back\",\"word\":\"\",\"quote\":\"`upsert` の第 3 引数に、同期処理が更新する\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新する `state` と `published_at` だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"同期処理が更新する `state` と `published_at` だけを指定し\"},\n{\"concept\":\"db_column\",\"word\":\"カラム\",\"quote\":\"`deleted_at` を含む他のカラムを上書きしないようにします。\"},\n{\"concept\":\"db_column\",\"word\":\"\",\"quote\":\"`deleted_at` を含む他のカラムを上書きしないようにします。\"}\n]"
+}

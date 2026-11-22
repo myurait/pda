@@ -1,0 +1,119 @@
+{
+ "file": "m06.tr.2.json",
+ "cond": "tr",
+ "id": "m06",
+ "i": 2,
+ "items": [
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "次の4つのジョブが**直列に**動きます"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "各ジョブは`needs`で前のジョブの成功を条件にしている"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "各ジョブは`needs`で前のジョブの成功を条件にしている"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "それより後ろのジョブはすべて動きません"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "承認されるまでジョブは待機します。"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブごとに`runs-on`を必須にしている"
+  },
+  {
+   "concept": "step",
+   "word": "ジョブ",
+   "quote": "ジョブごとに別のマシンで動くため"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "① test ──成功──▶ ② build ──成功──▶"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "③ deploy-staging ──成功──▶ ④ deploy-production"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**① test**: リポジトリを取得し"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**② build**: コミットのSHAをタグにして"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**③ deploy-staging**: ECSのクラスター"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "**④ deploy-production**: GitHubのEnvironment"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "AWSへの認証の手順がありません。"
+  },
+  {
+   "concept": "step",
+   "word": "手順",
+   "quote": "タスク定義を登録してからサービスを更新する手順が要ります"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| ① test | `composer install`の失敗"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| ② build | Dockerfileのエラー"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| ③ deploy-staging | AWSの認証・権限の不足"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "| ④ deploy-production | AWSの認証・権限の不足"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "③は「ECSに再デプロイを指示する」ところまで"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "①で取得したコードは②にはありません"
+  },
+  {
+   "concept": "step",
+   "word": "",
+   "quote": "②のpushも③④の`aws ecs`も権限エラー"
+  }
+ ],
+ "raw": "[\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"次の4つのジョブが**直列に**動きます\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"各ジョブは`needs`で前のジョブの成功を条件にしている\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"各ジョブは`needs`で前のジョブの成功を条件にしている\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"それより後ろのジョブはすべて動きません\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"承認されるまでジョブは待機します。\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブごとに`runs-on`を必須にしている\"},\n{\"concept\":\"step\",\"word\":\"ジョブ\",\"quote\":\"ジョブごとに別のマシンで動くため\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"① test ──成功──▶ ② build ──成功──▶\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"③ deploy-staging ──成功──▶ ④ deploy-production\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**① test**: リポジトリを取得し\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**② build**: コミットのSHAをタグにして\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**③ deploy-staging**: ECSのクラスター\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"**④ deploy-production**: GitHubのEnvironment\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"AWSへの認証の手順がありません。\"},\n{\"concept\":\"step\",\"word\":\"手順\",\"quote\":\"タスク定義を登録してからサービスを更新する手順が要ります\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| ① test | `composer install`の失敗\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| ② build | Dockerfileのエラー\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| ③ deploy-staging | AWSの認証・権限の不足\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"| ④ deploy-production | AWSの認証・権限の不足\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"③は「ECSに再デプロイを指示する」ところまで\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"①で取得したコードは②にはありません\"},\n{\"concept\":\"step\",\"word\":\"\",\"quote\":\"②のpushも③④の`aws ecs`も権限エラー\"}\n]"
+}
