@@ -2,7 +2,7 @@
 
 - 更新: 2026-11-03 JST
 - 種別: 調査記録。[部品の調査の計画](research-plan.md) の 4.2 節の結果。設計の結論 (どの部品で作るか) は書かず、候補と隙間までを書く。
-- 物差し: [Claude 一本化の要件](requirements.md) の 3 節と 4 節。各部品に、満たす要件の番号を付ける。
+- 物差し: [Claude 一本化の要件](requirements.md) の 3 節と 4 節。各部品に、満たす要件の番号を付ける。番号は 2026-11-22 の改訂後の正本のもの。改訂で、起こしたセッションに役を割り当てること (3.1-3、3.2-1 の一部) と、判断がつかないものを一段上へ上げること (3.1-4 の一部) の重みは最終的になった。
 - 前提: 公式の機能の事実は、断りがないかぎり [入口と spawn の調査](research-entry-and-spawn.md) のとおりとし、4.2 節の「確かめ直す事実」だけを取り直した。公式の資料は 2026-11-03 に `https://code.claude.com/docs/en/<ページ>.md` から取得した。手元の確認は開発 PC (macOS) の Claude Code 2.1.308 で行い、ミニ PC (Ubuntu) では確かめていない。
 
 ## 1. 答える問い
@@ -11,7 +11,7 @@
 
 - Q1 入口が、役と作業を割り当てたセッションを起こせるか (3.1-3、3.2-1、C2)
 - Q2 起こされたセッションが、さらに子を起こせるか (3.1-4)
-- Q3 子の結果が、チャットではなく起こした側に返るか。子が親にメッセージを送れるか。判断がつかないものを一段上へ上げられるか (3.1-4、C3、C4)
+- Q3 子の結果が、チャットではなく起こした側に返るか。子が親にメッセージを送れるか。判断がつかないものを一段上へ上げられるか (3.1-4、C3。一段上へ上げることは 3.1-4 の重みが最終的の部分で、受け入れ条件は無い)
 - Q4 起こした先の途中経過が、入口に届くか (3.2-4、C8)
 - Q5 起こしたセッションが Claude のセッションとして記録に残るか。Claude アプリで見えるか (3.1-3、C2)
 
@@ -40,7 +40,7 @@
 
 - `--bg` の制約 ([agent view](https://code.claude.com/docs/en/agent-view)): `--bg` と `-p` を併用すると、セッションを作る前に断られる。信頼していないフォルダでスクリプトから `--bg` を起こすと、確認の画面が出せないため `Workspace not trusted` で終わる。
 - agent teams ([agent-teams](https://code.claude.com/docs/en/agent-teams)) は実験的で既定は無効。`-p` のセッションでは仲間を起こさない ("In non-interactive mode with the `-p` flag, including Agent SDK sessions, Claude doesn't spawn teammates")。
-- [Projects](https://code.claude.com/docs/en/claude-projects) は、取りまとめの会話が claude.ai の上にあり、スレッドを機械で動かすには Remote Control と、フォルダごとの「Allow once」の操作が要る。取りまとめ役がミニ PC のセッションではないので、3.1-2 に合わない。
+- [Projects](https://code.claude.com/docs/en/claude-projects) は、取りまとめの会話が claude.ai の上にあり、スレッドを機械で動かすには Remote Control と、フォルダごとの「Allow once」の操作が要る。取りまとめ役がミニ PC のセッションではないので、11-03 の要件の「入口はミニ PC 上で動き続ける 1 つのセッション」に合わない。改訂後の 3.1-2 は、入口をメインセッションという役とし、動く場所を指定しない。
 
 埋めるべき隙間
 
@@ -122,7 +122,7 @@
 
 埋めるべき隙間
 
-- 3.2-4 は、起こした先をオーナーが直接見ることを求めていない。アプリで見えることは要件ではないので、記録に残ること (C2) を満たせば足りる。アプリで見せたい場合だけ、起こす先を対話の `--remote-control` にする必要がある。
+- 11-03 の要件は、起こした先をオーナーが直接見ることを求めていなかった (3.2-4 は、起こした先をオーナーが直接止められることは要らないとする)。アプリで見えることは要件ではないので、記録に残ること (C2) を満たせば足りる。アプリで見せたい場合だけ、起こす先を対話の `--remote-control` にする必要がある。改訂後の 3.2-1 と C2 は、オーナーが起動したセッションに入って直接話しかけられることを求める。
 
 ## 4. 公開されているスクリプトと OSS
 
@@ -179,7 +179,7 @@
   - 起動: 対話の `claude` に `--settings`、`--agents`、`--append-system-prompt-file`、`--mcp-config`、`--dangerously-load-development-channels` を付ける ([runtime/adapters/claude-code/persistent/build-repl-argv.ts:138-186](https://github.com/rjunee/neutron/blob/095fd44a1761e1429de44dbe7822ab3683cae7a1/runtime/adapters/claude-code/persistent/build-repl-argv.ts#L138))。
   - 結果の戻り: 作業者の結果を元のチャットの話題に投稿し、元のセッションにも流す。
   - 深さ: `MAX_SPAWN_DEPTH = 1`、`MAX_CHILDREN_PER_AGENT = 5` ([runtime/subagent/registry.ts:14-15](https://github.com/rjunee/neutron/blob/095fd44a1761e1429de44dbe7822ab3683cae7a1/runtime/subagent/registry.ts#L14))。
-  - 条件: README は `claude setup-token` か API キーで `claude` を起こすとする (条件 1)。入口が Telegram の話題ごとに分かれる形で、3.1-1 の画面とは違う。中の仕組みだけを参考にする。
+  - 条件: README は `claude setup-token` か API キーで `claude` を起こすとする (条件 1)。入口が Telegram の話題ごとに分かれる形で、11-03 の要件の入口の画面 (Claude Desktop と Claude アプリのリモートのセッション) とは違う。改訂後の 3.1-1 では、入口の画面は設計で選ぶ。中の仕組みだけを参考にする。
 
 - Tmux-Orchestrator ([Jedward23/Tmux-Orchestrator](https://github.com/Jedward23/Tmux-Orchestrator))
   - ライセンスの記載なし (コードの再利用はできない)。最後のコミット 2025-07-14。

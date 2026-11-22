@@ -2,13 +2,13 @@
 
 - 更新: 2026-11-03 JST
 - 種別: 調査記録。[部品の調査の計画](research-plan.md) の 4.4 節「役ごとの規約・記憶・hook と、出力の点検と直し」と 4.5 節「正本 1 か所から配る」の結果。設計の結論は書かず、使える部品と埋めるべき隙間までを書く。
-- 物差し: [Claude 一本化の要件](requirements.md) の 3.1-5、3.2-2、3.3-1、3.3-2 と、受け入れ条件 C6、C7、C11、C12。
+- 物差し: [Claude 一本化の要件](requirements.md) の 3.1-5、3.2-2、3.2-8、3.3-1、3.3-2 と、受け入れ条件 C6、C7、C11、C12。番号は 2026-11-22 の改訂後の正本のもの。改訂で、3.1-5 と 3.2-2 (役ごとの規約と記憶) の重みは最終的になり、起動したセッションに役ごとの指示・メモリ・hook を割り当てられることが技術的に解決している道具を選ぶことが、一本化してよいかの条件になった (3.3-8)。C6 は、選んだ道具で割り当てる方法が公式の資料かソースで確かめられること。出力を点検して差し戻すことは、MVP では応答の終端のゲート (3.2-8) で行い、C7 の根拠は 3.2-8 と 3.2-9 になった。
 - 出典: とくに書かないかぎり、2026-11-03 に取得した Claude Code の公式資料 (`https://code.claude.com/docs/en/<ページ>`)。公開のリポジトリの最後のコミットの日付は、2026-11-03 に GitHub の API で取った既定のブランチの値。
 
 ## 1. 答える問い
 
 - 問い 1 (3.1-5、3.2-2、C6): 役ごとの指示・メモリ・hook・skill・MCP は、どの起こし方で、その役のセッションに効くか。どの起こし方で効かないか。
-- 問い 2 (3.2-2、C7): 出来上がった出力を規約で点検し、外れていれば差し戻して直させる仕組みは、どの起こし方で効くか。直したことは記録に残るか。
+- 問い 2 (3.2-2、3.2-8、C7): 出来上がった出力を規約で点検し、外れていれば差し戻して直させる仕組みは、どの起こし方で効くか。直したことは記録に残るか。
 - 問い 3 (3.3-2、C12): 指示・skill・hook・MCP の正本を 1 か所に置き、1 か所を直すとすべての役のセッションに届くようにするには、何を使うか。
 
 ## 2. 手元で確かめた事実
@@ -86,7 +86,7 @@
 
 ### 4.1 使える部品
 
-- Stop と SubagentStop の hook (3.2-2、C7)。どちらも `decision: "block"` と `reason` (または終了コード 2 と標準エラー) を返すと、`reason` が次の指示として渡り、主のスレッドかサブエージェントが作業を続ける ([hooks](https://code.claude.com/docs/en/hooks) の Stop decision control と SubagentStop input)。`hookSpecificOutput.additionalContext` を返すと、誤りの扱いでなく「Stop hook feedback」として続けさせる。入力の `last_assistant_message` に最後の応答の文が入るので、記録のファイルを読まずに点検できる。
+- Stop と SubagentStop の hook (3.2-2、3.2-8、C7)。どちらも `decision: "block"` と `reason` (または終了コード 2 と標準エラー) を返すと、`reason` が次の指示として渡り、主のスレッドかサブエージェントが作業を続ける ([hooks](https://code.claude.com/docs/en/hooks) の Stop decision control と SubagentStop input)。`hookSpecificOutput.additionalContext` を返すと、誤りの扱いでなく「Stop hook feedback」として続けさせる。入力の `last_assistant_message` に最後の応答の文が入るので、記録のファイルを読まずに点検できる。
 - hook の種類: command 型、http 型、mcp_tool 型、prompt 型、agent 型のすべてが Stop と SubagentStop で使える。prompt 型は、入力と文を Claude のモデル (既定は Claude Code が裏の処理に使うモデル) に送り、`{"ok": false, "reason": …}` を返すと `reason` を次の指示にして続けさせる。`impossible: true` を添えると止めずに終える。既定の時間切れは 30 秒。agent 型は Read・Grep・Glob を使える検証役を最大 50 ターン動かす試験的な機能で、既定の時間切れは 60 秒。
 - 置き場ごとの効き方 (問い 1 と同じ規則に従う): `--settings` と設定ファイル (T1、T2)、`--agents` と `~/.claude/agents/` の定義 (T3、T4)、plugin の `hooks.json` (T6) で効く。プロジェクトの `.claude/agents/` の定義に書いたものは `-p` で効かない (T5)。skill の定義に書いた hook は、skill を呼んだ後そのセッションの残りで動く。プロジェクトの skill の hook は、信頼していないフォルダの `-p` でも登録される。
 - `/goal` は、セッションの間だけ効く prompt 型の Stop の hook の近道である ([hooks](https://code.claude.com/docs/en/hooks) の Stop: "The `/goal` command is a built-in shortcut for a session-scoped prompt-based Stop hook.")。
@@ -139,7 +139,7 @@
 
 ### 6.1 出力を LLM で点検して差し戻す hook
 
-- ensemble-vnext ([FortiumPartners/ensemble-vnext](https://github.com/FortiumPartners/ensemble-vnext)、最後のコミット 2026-10-31、ライセンスは GitHub の判定が無く、`packages/full/.claude-plugin/plugin.json` は MIT、`package.json` は ISC と食い違う): 3.2-2、C7 の公開の例。プロジェクトの `.claude/settings.json` の雛形 (`packages/core/templates/claude-directory/settings.json`) に、Stop の `"type": "prompt"` の hook を置く。点検の文は `packages/core/hooks/prompts/discipline-stop.prompt.md` にあり、"The agent may stop unless its final message (`last_assistant_message` in the payload) commits one of the two violations below" で始まる。SubagentStop には置いていない。役ごとの出し分けは無い。配り方は marketplace (`claude plugin marketplace add FortiumPartners/ensemble-vnext`) と、hook をプロジェクトに写す雛形の併用。条件: 定額のログインについての記述は無い。
+- ensemble-vnext ([FortiumPartners/ensemble-vnext](https://github.com/FortiumPartners/ensemble-vnext)、最後のコミット 2026-10-31、ライセンスは GitHub の判定が無く、`packages/full/.claude-plugin/plugin.json` は MIT、`package.json` は ISC と食い違う): 3.2-2、3.2-8、C7 の公開の例。プロジェクトの `.claude/settings.json` の雛形 (`packages/core/templates/claude-directory/settings.json`) に、Stop の `"type": "prompt"` の hook を置く。点検の文は `packages/core/hooks/prompts/discipline-stop.prompt.md` にあり、"The agent may stop unless its final message (`last_assistant_message` in the payload) commits one of the two violations below" で始まる。SubagentStop には置いていない。役ごとの出し分けは無い。配り方は marketplace (`claude plugin marketplace add FortiumPartners/ensemble-vnext`) と、hook をプロジェクトに写す雛形の併用。条件: 定額のログインについての記述は無い。
 - claudetto ([xsyetopz/claudetto](https://github.com/xsyetopz/claudetto)、旧名 dotclaude、MIT、最後のコミット 2026-10-31): Stop の prompt 型の hook を 0.28.0 で出し、0.29.0 で外した。その評価の記録 `docs/evidence/stop-hook-eval.md` に、"The hook costs one model request per turn and fails open." 、"Timeout, API error, bad JSON, schema failure | No block, so the hook fails open"、1 ターンに約 6,914 入力トークンの要求が 1 回足されること、常に差し戻す SubagentStop の hook が 8 回で打ち切られたことが書かれている。部品としてではなく、prompt 型の点検の限界の記録として使える (4.3 節の T2 と同じ向き)。今のバージョンの Stop は LLM でなくスクリプトで判定する。
 - 公式の plugin-dev の hook-development の skill ([anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)、Apache-2.0、最後のコミット 2026-10-30): prompt 型の hook を勧め、SubagentStop を「サブエージェントが仕事を終えたか確かめるのに使う」と説明する。SubagentStop の設定の例は無い。部品ではなく書き方の資料。
 

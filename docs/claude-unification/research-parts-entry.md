@@ -2,7 +2,7 @@
 
 - 更新: 2026-11-03 JST
 - 種別: 調査記録。[部品の調査の計画](research-plan.md) の 4.1 節 (入口)、4.6 節 (会社のコネクタの経路)、4.7 節 (スマホへの通知) の結果。設計の結論は書かず、候補と隙間までにする。
-- 物差し: [Claude 一本化の要件](requirements.md) の 3.1-1、3.1-2、3.1-6、3.2-5、3.2-6、C1、C9、C10、C11。
+- 物差し: [Claude 一本化の要件](requirements.md) の 3.1-1、3.1-2、3.1-6、3.2-5、3.2-6、C1、C9、C10、C11。番号は 2026-11-22 の改訂後の正本のもの。改訂で中身が変わり、本文の主張に関わる 3.1-1、3.1-2、3.2-6、C1、C10 は、本文の該当箇所に 11-03 の要件との違いを書いた。
 - 前提: Remote Control の server mode、Projects、セッションの間のメッセージの基本の振る舞いは [入口と spawn の調査](research-entry-and-spawn.md) の V1・V4・V6 にあり、ここでは繰り返さない。
 - 出典: とくに書かないかぎり、2026-11-03 に取得した Claude Code の公式資料 (`https://code.claude.com/docs/en/<ページ>`)。GitHub のリポジトリのライセンス、アーカイブの有無、最後のコミットの日付は、同じ日に GitHub の API で取得した値。引用は取得した本文と照合した文だけを載せる。
 - 手元の環境: 開発 PC の `claude` は 2.1.308、ミニ PC の `claude` は 2.1.293。開発 PC の `claude -p` の試験は、オーナーの hook を動かさない形 (`--setting-sources ""` か `--settings '{"disableAllHooks": true}'`) で、`--model haiku` で行った。ミニ PC は読むだけにした。
@@ -13,14 +13,14 @@
 
 使える部品は、公式の Remote Control の 2 つの形である。
 
-- server mode (`claude remote-control`): 今のミニ PC の常駐の形 ([deploy/claude-remote-control/claude-remote-control.service](../../deploy/claude-remote-control/claude-remote-control.service) の `ExecStart=/home/user/.local/bin/claude remote-control --name mini-pc`)。1 つのプロセスで複数のセッションを受け、起動時に 1 つのセッションを作っておく。server が作るセッションには `--settings` などの起動オプションを渡せず、設定ファイルと定義のファイルから設定を読む ([入口と spawn の調査](research-entry-and-spawn.md) の V1)。満たす要件: 3.1-1、3.1-2。
-- 対話の形 (`claude --remote-control <名前>`、または `remoteControlAtStartup` を `true` にした対話のセッション): 1 つのプロセスが 1 つのリモートのセッションを持つ ([remote-control](https://code.claude.com/docs/en/remote-control): "each Claude Code instance supports one remote session at a time")。起動オプション (`--append-system-prompt`、`--settings`、`--agent` など) をそのまま付けられる。端末が要るので、ミニ PC では tmux などの中で動かす (同じページ: "start it inside `tmux` or `screen` to keep the session running after you disconnect from SSH")。満たす要件: 3.1-1、3.1-2。
+- server mode (`claude remote-control`): 今のミニ PC の常駐の形 ([deploy/claude-remote-control/claude-remote-control.service](../../deploy/claude-remote-control/claude-remote-control.service) の `ExecStart=/home/user/.local/bin/claude remote-control --name mini-pc`)。1 つのプロセスで複数のセッションを受け、起動時に 1 つのセッションを作っておく。server が作るセッションには `--settings` などの起動オプションを渡せず、設定ファイルと定義のファイルから設定を読む ([入口と spawn の調査](research-entry-and-spawn.md) の V1)。満たす要件: 3.1-2 のうち、どの端末から話しかけても同じ入口に届くこと。11-03 の要件の入口の画面 (Claude Desktop と Claude アプリのリモートのセッション) にも当たる。改訂後の 3.1-1 では、入口の画面は設計で選ぶ (3.7)。
+- 対話の形 (`claude --remote-control <名前>`、または `remoteControlAtStartup` を `true` にした対話のセッション): 1 つのプロセスが 1 つのリモートのセッションを持つ ([remote-control](https://code.claude.com/docs/en/remote-control): "each Claude Code instance supports one remote session at a time")。起動オプション (`--append-system-prompt`、`--settings`、`--agent` など) をそのまま付けられる。端末が要るので、ミニ PC では tmux などの中で動かす (同じページ: "start it inside `tmux` or `screen` to keep the session running after you disconnect from SSH")。満たす要件: server mode と同じく、3.1-2 のうち、どの端末から話しかけても同じ入口に届くこと。11-03 の要件の入口の画面にも当たる。
 
 届く先の画面について、資料で確かめたこと。
 
 - 接続した端末は会話をそのまま見て、端末からも送れる。圧縮の進み具合と、どこで圧縮したかも端末に出る ([remote-control](https://code.claude.com/docs/en/remote-control) の "What connected devices see")。
 - Remote Control のセッションは、claude.ai、モバイルアプリ、Claude Desktop から見て操作できる (同じページの Trusted Devices の節: "view or steer Remote Control sessions from claude.ai, the Claude mobile apps, or Claude Desktop")。
-- 開発 PC の Claude Desktop は会社のアカウントで動いている ([入口と spawn の調査](research-entry-and-spawn.md) の 3 節)。個人のアカウントのミニ PC のセッションが、会社のアカウントの Desktop に出るとする記述は資料に無い。C1 の「PC の Claude Desktop」に、個人のアカウントでログインした Desktop が要るかは確かめていない (隙間 1.5-1)。
+- 開発 PC の Claude Desktop は会社のアカウントで動いている ([入口と spawn の調査](research-entry-and-spawn.md) の 3 節)。個人のアカウントのミニ PC のセッションが、会社のアカウントの Desktop に出るとする記述は資料に無い。11-03 の C1 は、個人のアカウントでログインしたスマホの Claude アプリと PC の Claude Desktop から入口に話しかけることを求めていた。改訂後の C1 は画面とアカウントを指定せず、PC から話しかけられることを求める。PC から個人のアカウントのミニ PC のセッションに届く画面は確かめていない (隙間 1.5-1)。
 
 ### 1.2 長く動かす間に文脈があふれたとき
 
@@ -32,7 +32,7 @@
 - 手で圧縮する: `/compact <残す内容の指示>`。Remote Control の端末から `/compact` と `/autocompact` を送れる ([remote-control](https://code.claude.com/docs/en/remote-control) の Limitations)。
 - 実践者の設定の例: [What survives compaction in Claude Code](https://dev.to/rulestack/what-survives-compaction-in-claude-code-and-how-to-keep-your-rules-alive-564p) (dev.to、rulestack) は、`SessionStart` の `matcher` を `compact` にして、ファイルの中身を出力する hook で規約を入れ直す形を示す。[Issue #43733](https://github.com/anthropics/claude-code/issues/43733) は、圧縮の後に読み直しを促す hook を置いても確実ではないという報告である。どちらも本文の引用は照合していない。
 
-満たす要件: 3.1-2 (1 つのセッションを動かし続ける)。役ごとの規約を圧縮の後も効かせる仕組みは 4.4 節の調べる範囲である。
+満たす要件: 11-03 の要件の「入口はミニ PC 上で動き続ける 1 つのセッション」。改訂後の 3.1-2 は、1 本のセッションが動き続けることを求めず、新規セッションで始めても前のメインセッションの文脈を引き継ぐことを求める。役ごとの規約を圧縮の後も効かせる仕組みは 4.4 節の調べる範囲である。
 
 ### 1.3 再起動の後に同じ会話を続ける手順
 
@@ -53,7 +53,7 @@ server mode (今の形)
 - [claude-tmux-service](https://github.com/ErcouldnT/claude-tmux-service) (MIT、最後のコミット 2026-09-29): watchdog が tmux のセッションを見張り、無ければ作り直す。README の 38〜39 行目で、初回は `claude --session-id <uuid>` で起動して ID を記録し、以後は `claude --resume <uuid>` でつなぎ直すと書く。42 行目で、`claude --continue` は最も新しい会話を拾うので使わないと書く。起動するのは `claude --remote-control` (16 行目)。
 - [claude-rc-keep](https://github.com/Jwrede/claude-rc-keep): 1 分ごとに動いているセッションを記録し、止まったものを `claude --resume <id> --remote-control` で起動し直す (README の 13 行目)。対話の形のセッションは、再起動の後も同じ Web のセッションにつながる (83〜84 行目)。server が作ったセッションは `--fork-session` の写しとして一度だけ戻し、URL が変わる (95 行目)。
 
-満たす要件: 3.1-2。
+満たす要件: 1.2 節と同じく、11-03 の要件の「入口はミニ PC 上で動き続ける 1 つのセッション」。改訂後の 3.1-2 は、1 本のセッションが動き続けることを求めない。
 
 ### 1.4 Remote Control のネットワーク断の後
 
@@ -152,7 +152,7 @@ SSH で開発 PC の `claude -p` を起こす形 (公式の CLI)
 - 送られないとき: 接続した端末で入力しているか、端末にフォーカスがある間は送らない。
 - 契約の条件: Remote Control は Pro、Max、Ultra、Team、Enterprise で使え、Team と Enterprise では Owner が有効にする。push 通知だけに付く契約の条件は資料に無い。
 - ミニ PC の今の状態: `CLAUDE_CONFIG_DIR` の `settings.json` には、2 つの切り替えの鍵も hook も無い。server のセッションが従うアカウントに保存された値は確かめていない。個人のアカウントで実際に通知が届くかも確かめていない。
-- 満たす要件: 3.2-6 の承認待ち。返事の通知は Claude の判断に任され、C10 の「返事をしたとき」を毎回満たすとは資料から言えない。
+- 満たす要件: 3.2-6 の承認待ち。返事の通知は Claude の判断に任され、11-03 の C10 の「入口のセッションが返事をしたとき」を毎回満たすとは資料から言えない。改訂後の C10 は、オーナーに返す報告と承認待ちの、差し戻しを経た最後の一通だけを届けることを求める。
 
 ### 3.2 hook でスマホに通知する部品
 
@@ -167,7 +167,7 @@ SSH で開発 PC の `claude -p` を起こす形 (公式の CLI)
 部品
 
 - 今の運用: 開発 PC の Claude Code は、`Stop` と `UserPromptSubmit` の hook で ntfy に通知している。ミニ PC には、ログインの期限の通知 ([deploy/claude-remote-control/](../../deploy/claude-remote-control/README.md) の `claude-login-expiry-notify`) があり、入口の返事の通知は無い。
-- [zbiljic/ntfy-hooks](https://github.com/zbiljic/ntfy-hooks) (MIT、最後のコミット 2026-09-23): シェル 1 本と `install.sh`。`install.sh` の 300〜302 行目で `.hooks.Stop`、`.hooks.Notification`、`.hooks.PermissionRequest` に登録し、297 行目で `"async": true` を付ける。`ntfy.sh` は 197 行目で `permission*)`、201 行目で `idle*)` を分け、206 行目の `Finished responding` (返事) と 211 行目の `Needs permission` (承認待ち) で本文を変える。3 つすべてに登録するので、承認待ちは 2 通になり得る。満たす要件: 3.2-6 (返事と承認待ちの両方)。
+- [zbiljic/ntfy-hooks](https://github.com/zbiljic/ntfy-hooks) (MIT、最後のコミット 2026-09-23): シェル 1 本と `install.sh`。`install.sh` の 300〜302 行目で `.hooks.Stop`、`.hooks.Notification`、`.hooks.PermissionRequest` に登録し、297 行目で `"async": true` を付ける。`ntfy.sh` は 197 行目で `permission*)`、201 行目で `idle*)` を分け、206 行目の `Finished responding` (返事) と 211 行目の `Needs permission` (承認待ち) で本文を変える。3 つすべてに登録するので、承認待ちは 2 通になり得る。満たす要件: 11-03 の 3.2-6 (入口の返事と承認待ちの両方)。改訂後の 3.2-6 は、オーナーに返す報告と承認待ちの、差し戻しを経た最後の一通だけを届けることを求める。
 - [shiqkuangsan/claude-code-notify](https://github.com/shiqkuangsan/claude-code-notify) (MIT、最後のコミット 2026-03-09): `Stop` と `Notification` の `idle_prompt|permission_prompt` で、ntfy・Telegram・Webhook に送る。README は Python の標準ライブラリだけで macOS と Linux で動くとする。中身は照合していない。
 - [coa00/claude-push](https://github.com/coa00/claude-push) (MIT、最後のコミット 2026-02-24) と [yuuichieguchi/claude-remote-approver](https://github.com/yuuichieguchi/claude-remote-approver) (MIT、最後のコミット 2026-03-02): `PermissionRequest` の hook で ntfy に許可・拒否のボタン付きの通知を送り、スマホから答える。返事の通知は持たない。中身は照合していない。3.2-6 が求めるのは通知で、スマホの通知から承認に答えることは求めていない。
 
