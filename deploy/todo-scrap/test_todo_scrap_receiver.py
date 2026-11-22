@@ -92,5 +92,52 @@ class PublicHostTest(unittest.TestCase):
         self.assertFalse(receiver.is_public_host("http://192.168.0.59/"))
 
 
+def oembed(body):
+    return json.dumps({"html": f'<blockquote class="twitter-tweet"><p lang="en" dir="ltr">{body}</p>&mdash; A</blockquote>'})
+
+
+class XHeadingTest(unittest.TestCase):
+    URL = "https://x.com/someone/status/2119332146485891501"
+    ARTICLE_LINK = '<a href="https://t.co/KD5BxbuZ5Q">https://t.co/KD5BxbuZ5Q</a>'
+
+    def setUp(self):
+        self.original = receiver.http_get
+        self.requested = []
+        self.addCleanup(setattr, receiver, "http_get", self.original)
+
+    def serve(self, post, fx):
+        def fake(url, headers=None, timeout=20):
+            self.requested.append(url)
+            if url.startswith(receiver.X_OEMBED):
+                return oembed(post)
+            if isinstance(fx, Exception):
+                raise fx
+            return json.dumps(fx)
+
+        receiver.http_get = fake
+
+    def test_article_post_gets_article_title(self):
+        self.serve(self.ARTICLE_LINK, {"status": {"article": {"title": "Your coding agents made you a manager"}}})
+        self.assertEqual(receiver.fetch_heading(self.URL), "Your coding agents made you a…")
+        self.assertEqual(self.requested[-1], receiver.FXTWITTER + "2119332146485891501")
+
+    def test_article_title_wins_over_post_text(self):
+        self.serve(f"Best article {self.ARTICLE_LINK}", {"status": {"article": {"title": "Agents"}}})
+        self.assertEqual(receiver.fetch_heading(self.URL), "Agents")
+
+    def test_link_without_article_keeps_post_text(self):
+        self.serve(f"see {self.ARTICLE_LINK}", {"status": {"text": "see"}})
+        self.assertEqual(receiver.fetch_heading(self.URL), "see https://t.co/KD5BxbuZ5Q")
+
+    def test_fxtwitter_failure_keeps_post_text(self):
+        self.serve(self.ARTICLE_LINK, OSError("down"))
+        self.assertEqual(receiver.fetch_heading(self.URL), "https://t.co/KD5BxbuZ5Q")
+
+    def test_post_without_link_does_not_call_fxtwitter(self):
+        self.serve("hello", {})
+        self.assertEqual(receiver.fetch_heading(self.URL), "hello")
+        self.assertEqual(len(self.requested), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -112,6 +112,10 @@ def shorten(text, width=HEADING_WIDTH):
 
 # X の投稿は、X の埋め込み用の窓口 (oEmbed。認証なし・回数の制限なし) で投稿の文を読む。
 X_OEMBED = "https://publish.x.com/oembed?omit_script=true&url="
+# X 記事を貼った投稿は、埋め込み用の窓口が記事への短縮リンクしか返さないので、
+# 記事の題を FxTwitter の公開の API (認証なし) で読む。読めなければ投稿の文を使う。
+FXTWITTER = "https://api.fxtwitter.com/2/status/"
+X_STATUS_ID = re.compile(r"/status(?:es)?/(\d+)")
 # X 以外のページは、ページを直接読んで og:title か <title> を使う。
 # 直接読めないとき (中身を JavaScript で作るページ、機械からの読み込みを断るサイトなど) だけ jina で読む。
 BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"
@@ -172,6 +176,28 @@ def x_post_text(url):
     return html.unescape(re.sub(r"<[^>]+>", "", text))
 
 
+def x_article_title(url):
+    """X 記事を貼った投稿なら記事の題を返す。記事が無ければ None。"""
+    m = X_STATUS_ID.search(urlsplit(url).path)
+    if not m:
+        return None
+    status = json.loads(http_get(FXTWITTER + m.group(1))).get("status") or {}
+    title = (status.get("article") or {}).get("title")
+    return title if title and title.strip() else None
+
+
+def x_heading_text(url):
+    text = x_post_text(url)
+    # 記事はリンクとして投稿の文に入るので、リンクの無い投稿では FxTwitter を呼ばない
+    if text is not None and "t.co/" not in text:
+        return text
+    try:
+        return x_article_title(url) or text
+    except Exception as e:
+        print(f"FxTwitter で記事の題を読めませんでした: {url}: {e}", flush=True)
+        return text
+
+
 def page_title(url):
     """ページを直接読んでタイトルを取る。取れなければ None。"""
     if not is_public_host(url):
@@ -196,7 +222,7 @@ def jina_title(url):
 def fetch_heading(url):
     """見出しを返す。取れなければ None。"""
     if urlsplit(url).netloc.lower() in X_HOSTS:
-        text = x_post_text(url)
+        text = x_heading_text(url)
     else:
         try:
             text = page_title(url)

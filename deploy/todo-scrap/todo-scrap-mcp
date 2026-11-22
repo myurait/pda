@@ -316,6 +316,8 @@ def build_server():
             "スクラップのチェック欄は、オーナーが片付いたと判断した印 (価値が無かった・オーナーの知識に吸収した・反映が済んだ)。"
             "AI は自分の判断だけでチェック欄を付けず、オーナーとの棚卸しで片付いたものにだけ complete_scrap を使う。"
             "記事の中身を読むときは、X の投稿は https://publish.x.com/oembed、ほかは https://r.jina.ai/<URL> で読む。"
+            "X 記事を貼った投稿 (投稿の文が記事への短縮リンク) は、https://api.fxtwitter.com/2/status/<投稿の ID> の"
+            " status.article で記事の題 (title) と本文 (content.blocks の text) を読む。"
         ),
     )
 
