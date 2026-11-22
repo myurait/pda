@@ -473,7 +473,8 @@ def build_server():
         if not entry:
             raise ValueError("url_or_text が空です")
         attrs = apply_attrs({}, {"topic": topic})
-        receiver.append(join_attrs(entry, attrs, SCRAP_ATTRS))
+        if not receiver.append(join_attrs(entry, attrs, SCRAP_ATTRS)):
+            return f"もうスクラップにあります: {entry}"
         found = receiver.placeholder_link(entry)
         if found:
             receiver.retitle(*found)
@@ -526,10 +527,12 @@ def build_server():
         if not entry:
             return PlainTextResponse("url か text がありません", status_code=400)
         try:
-            await anyio.to_thread.run_sync(receiver.append, entry)
+            added = await anyio.to_thread.run_sync(receiver.append, entry)
         except receiver.subprocess.CalledProcessError as e:
             detail = e.stderr.decode(errors="replace")[:200] if e.stderr else ""
             return PlainTextResponse(f"保存はしましたが、コミットに失敗しました: {detail}", status_code=500)
+        if not added:
+            return PlainTextResponse(f"もうスクラップにあります: {entry[:60]}")
         # 見出しは返事のあとで付ける (iPhone を待たせない)
         receiver.retitle_later(entry)
         return PlainTextResponse(f"スクラップに足しました: {entry[:60]}")

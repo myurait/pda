@@ -65,6 +65,22 @@ class AddToTopTest(unittest.TestCase):
         self.assertEqual(out, self.HEAD + "- [ ] 2026-11-07 09:00 new\n")
 
 
+class AlreadyListedTest(unittest.TestCase):
+    TEXT = (
+        "- [ ] 2026-11-07 12:25 [スライド](https://example.com/deck) [topic: AI]\n"
+        "- [x] 2026-11-06 09:00 [読んだ記事](https://example.com/old)\n"
+    )
+
+    def test_open_scrap_with_same_url_is_listed(self):
+        self.assertTrue(receiver.already_listed(self.TEXT, parse({"url": "https://example.com/deck?utm_source=x"})))
+
+    def test_completed_scrap_can_be_sent_again(self):
+        self.assertFalse(receiver.already_listed(self.TEXT, parse({"url": "https://example.com/old"})))
+
+    def test_plain_text_is_never_listed(self):
+        self.assertFalse(receiver.already_listed(self.TEXT, parse({"text": "メモ"})))
+
+
 class ShortenTest(unittest.TestCase):
     def width(self, text):
         return sum(receiver.char_width(c) for c in text)

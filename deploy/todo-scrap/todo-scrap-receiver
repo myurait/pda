@@ -59,9 +59,25 @@ def update_scrap(change, message):
 
 
 def append(entry):
+    """entry を一覧の先頭に足す。同じ URL の片付いていないスクラップがあれば足さずに False を返す。"""
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    added = []
 
-    update_scrap(lambda text: add_to_top(text, f"- [ ] {now} {entry}"), f"スクラップを足す: {entry[:80]}")
+    def change(text):
+        if already_listed(text, entry):
+            return text
+        added.append(True)
+        return add_to_top(text, f"- [ ] {now} {entry}")
+
+    update_scrap(change, f"スクラップを足す: {entry[:80]}")
+    return bool(added)
+
+
+def already_listed(text, entry):
+    link = LINK.search(entry)
+    if not link:
+        return False
+    return any(line.startswith("- [ ]") and f"({link.group(2)})" in line for line in text.splitlines())
 
 
 def add_to_top(text, line):
@@ -361,10 +377,13 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(400, "url か text がありません")
             return
         try:
-            append(entry)
+            added = append(entry)
         except subprocess.CalledProcessError as e:
             detail = e.stderr.decode(errors="replace")[:200] if e.stderr else ""
             self.reply(500, f"保存はしましたが、コミットに失敗しました: {detail}")
+            return
+        if not added:
+            self.reply(200, f"もうスクラップにあります: {entry[:60]}")
             return
         self.reply(200, f"スクラップに足しました: {entry[:60]}")
         retitle_later(entry)
