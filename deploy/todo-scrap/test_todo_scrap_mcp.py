@@ -216,6 +216,14 @@ class ScrapTest(unittest.TestCase):
         out = mcp.complete_scrap_text(SCRAP, "https://example.com/old", done=False)
         self.assertIn("- [ ] 2026-11-06 20:00 [読んだ記事](https://example.com/old)\n", out)
 
+    def test_same_url_sent_twice_is_handled_together(self):
+        line = "- [ ] 2026-11-07 12:25 [スライド](https://example.com/deck)\n"
+        text = line + line
+        out = mcp.complete_scrap_text(text, "https://example.com/deck")
+        self.assertEqual(out, "- [x] 2026-11-07 12:25 [スライド](https://example.com/deck)\n" * 2)
+        out = mcp.set_scrap_text(text, "https://example.com/deck", {"topic": "AI"})
+        self.assertEqual(out, "- [ ] 2026-11-07 12:25 [スライド](https://example.com/deck) [topic: AI]\n" * 2)
+
     def test_unknown_url_fails(self):
         with self.assertRaises(ValueError):
             mcp.set_scrap_text(SCRAP, "https://example.com/none", {"topic": "AI"})
