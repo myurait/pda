@@ -68,7 +68,7 @@ flowchart LR
    T3CODE_VERSION=0.1.11 T3CODE_HOME=$HOME/spike-t3code/home T3CODE_INSTALL_BIN_DIR=$HOME/spike-t3code/bin sh install.sh
    ```
 
-3. ユーザー単位の常駐 `spike-t3code.service` を置いて起動した (定義は付録 B)。`127.0.0.1:18900` だけで待ち受ける。常駐の `PATH` から `~/.local/bin` を外し、T3 Code の Claude と Codex の provider が CLI を見つけないようにした。
+3. ユーザー単位の常駐 `spike-t3code.service` を置いて起動した (定義は付録 B)。`127.0.0.1:18900` だけで待ち受ける。常駐の `PATH` から `~/.local/bin` を外したが、T3 Code は `~/.local/bin/claude` を見つけたので、次の手順の設定で Claude と Codex の provider を無効にした。
 4. 設定ファイル `~/spike-t3code/home/userdata/settings.json` で、組み込みの Claude (`claudeAgent`) と Codex の provider を無効にし、stub を provider として足した (付録 B)。
 5. Tailscale Serve の新しいポートに公開した。既存のポートの割り当ては変えていない。
 
@@ -78,7 +78,7 @@ flowchart LR
 
 起きたこと
 
-- 起動は 15 秒ほどで終わり、サーバーの常駐は約 0.45 GB のメモリを使った。
+- 起動からおよそ 2 秒で待ち受けを始め (ログで 16:43:30 に開始、16:43:32 に `Listening on http://127.0.0.1:18900`)、サーバーの常駐は約 0.45 GB のメモリを使った。
 - 起動のログに、HTML の下見 (`html_preview`) とブラウザーのタブに使う T3 Code 自前の headless のブラウザーが、この機械の AppArmor の制限で動かないと出た。直すには `sudo t3 browser setup` が要る。`html_render` で資料を出すことには要らなかった (3.4 節)。
 - 開発 PC から `https://pda-web.tailaff53a.ts.net:18900/` は接続がタイムアウトした。同じ機械の許可済みの 18800 (SilverBullet) は 200 を返した。[mini-pc.md](../environment/mini-pc.md) の 2.2 節のとおり、tailnet の規則は開発 PC と iPhone から届くポートを限っており、18900 は入っていない。
 - 認証の無い接続は、Serve 越しの形の見出しを付けても `401` で断られた。ペアリングした端末だけが使える。
@@ -187,7 +187,7 @@ sequenceDiagram
   ![HTML の資料](../reports/evidence/spike-t3code-screen/08-html-and-launch.png)
 
 - この経路は、T3 Code の headless のブラウザー (sudo の設定が要る) を使わずに動いた。資料の出来を公開の前に絵で確かめる道具 `html_preview` は、そのブラウザーが要るので、この機械では今は使えない。
-- 資料は T3 Code の添付としてスレッドに付き、ログインの切り替えを伴わずに、T3 Code に接続した端末から開ける。
+- 資料は T3 Code の添付としてスレッドに付く。開いて見たのは headless の chromium の 1 端末だけである。T3 Code にペアリングした端末なら、claude.ai などのログインに関わらず開けるはずだが、別の端末では見ていない。
 
 ### 3.5 項目 5: 外からスレッドを作り、メッセージを送る
 
@@ -199,6 +199,8 @@ sequenceDiagram
   t3 thread start --base-dir ~/spike-t3code/home --provider pda-stub --model default --wait --json <Scratch のプロジェクトの ID> "外の CLI からの依頼です。"
   t3 thread send --base-dir ~/spike-t3code/home <スレッドの ID> "続けての依頼です。" --wait --json
   ```
+
+  Scratch のプロジェクトの ID は、stub の中から呼んだ `t3_thread_launch` が返した `projectId` で得た。
 
 - stub の中から MCP の `t3_thread_launch` に `scratch: true` を渡すと、プロジェクトに属さない子のスレッド「stub から起動した子」ができ、stub の provider で動いて一通を返した。子のスレッドは左の一覧に「No project」で並び、オーナーは画面でそのスレッドに入って話しかけられる。
 
@@ -262,8 +264,8 @@ headless の chromium で、幅 390・高さ 844 の画面にして撮った。�
 | スレッドの最初の依頼の前に、T3 Code が自前の指示文 (約 7 KB。T3 Code の道具の使い方、PR の扱い) を付ける。オーナーの依頼は `<user_request>` の中にある | stub が受けた `session/prompt` | 依頼の文を取り出してから担い手に渡し、指示文は担い手に渡さない (役の規則は PDA の側で割り当てる) |
 | T3 Code を起動し直したあとに古いスレッドを続けると、T3 Code はエージェントに `session/load` か `session/resume` を求める。持っていないと、スレッドは「Failed to open acpRegistry provider session」で失敗する | サーバーのログ `ACP agent does not advertise session/load or session/resume support` | `session/load` を持ち、T3 Code のスレッドの ID (`T3CODE_THREAD_ID`) から PDA のセッションを引き当てる |
 | `session/load` のあとの依頼は「Context handoff」の形で来る。前の経過の要約のあとの、最後の `User message:` の後ろが新しい依頼である | stub が受けた `session/prompt` | この形からも依頼を取り出す |
-| スレッドごとに provider の処理を 1 つ起こし、スレッドが終わっても残す。T3 Code の常駐を止めると一緒に止まる | `ps` の結果。stub の処理 1 つが 55〜80 MB | パイプラインの処理は軽く保つか、ACP の口だけを薄く作り、重い処理は常駐の 1 か所に置く |
-| 依頼の処理に時間の上限が無い | 150 秒の待機のあとも一通が届いた | ゲートの待ち合わせと差し戻しの繰り返しを、パイプラインの中で回せる (C14) |
+| スレッドごとに provider の処理を 1 つ起こし、スレッドの依頼が終わっても残す。T3 Code の常駐を止めると一緒に止まる | `ps` の結果。stub の処理 1 つが 55〜80 MB。観測したのは試験の間 (十数分) で、もっと長く放置したときに T3 Code が降ろすかは見ていない | パイプラインの処理は軽く保つか、ACP の口だけを薄く作り、重い処理は常駐の 1 か所に置く |
+| 150 秒何も報告しない依頼も切れなかった。ソースの依頼の経路 (`AcpSessionRuntime` の `session/prompt`) に時間の上限は見当たらない | 150 秒の待機のあとも一通が届いた。それより長い待機は試していない | ゲートの待ち合わせと差し戻しの繰り返しを、パイプラインの中で回せる (C14) |
 | エージェントの処理の環境に、T3 Code の MCP の口と、その場限りの bearer と、スレッドの ID を渡す | `session/new` と環境変数 | 資料の表示 (`html_render`) と子のスレッドの起動 (`t3_thread_launch`) を、この口で行う |
 | 承認の要求が画面に出るのは、スレッドの権限が Supervised か Auto-accept edits のときだけ。新しいスレッドの既定は Full access で、自動で許可される | 3.3 節 | オーナーに承認を求める命令は Supervised で出すか、T3 Code の権限の既定を変える |
 | 終わった作業は「Worked for …」の行に畳まれ、コマンドと出力は 2 段開くと読める | 3.3 節の絵 | 画面の側の作りで、パイプラインでは変えられない |
