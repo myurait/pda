@@ -30,8 +30,9 @@
 - 常駐の設定では、ユーザー名前空間を要する隔離の指定（`PrivateTmp`、`PrivateDevices`、`ProtectSystem`、`ProtectHome`、`ReadWritePaths`、`ProtectControlGroups`、`ProtectKernelModules`、`ProtectKernelTunables`）と `CapabilityBoundingSet=` をコメントにして外している。Ubuntu の AppArmor の制限（`kernel.apparmor_restrict_unprivileged_userns = 1`）の下では、ユーザー単位の systemd がこれらを適用できず、起動が `218/CAPABILITIES` で失敗するため。`NoNewPrivileges` などの名前空間を要しない指定は残している。
 - CLI は `~/.local/bin/tailscale-pda`。常駐のソケットを指定して `tailscale` を呼ぶ。
 - userspace networking の `tailscaled` は、tailnet から来た接続を `127.0.0.1` への接続としてミニ PC に渡す。`127.0.0.1` だけで待ち受けるもの（OpenClaw 本体の 5114、逆向きトンネルの 22037 など）にも tailnet から届くため、tailnet の規則で通す通信を次の 2 つに限っている。規則は Tailscale の管理画面（Access controls）にあり、IP で書いている。
-  - 開発 PC から、ミニ PC の 22（SSH）と 19114（OpenClaw）
+  - 開発 PC から、ミニ PC の 22（SSH）と 19114
   - iPhone と Windows の PC から、ミニ PC の 19114
+- 19114 は OpenClaw に使っていたが、2026-11-23 から試験の T3 Code（`spike-t3code.service` の `127.0.0.1:18900`）に付け替えている。OpenClaw へ tailnet から届く Serve の割り当ては無い。
 - 個人の todo とスクラップ（`~/todo-scrap`）の画面を 18800 で、受け口と MCP の口を持つサーバーを 18700 で公開している。開発 PC、iPhone、Windows の PC から 18800 と 18700 に届くよう、上の規則に足す。
 - 公開設定（Serve）には v0.1 のサービスへの転送が残っている。転送先（`127.0.0.1` の 9120、9121、9122、18501〜18504）は撤去済みで、どの URL も応答しない。転送は `tailscale-pda serve` で変更する。
 
@@ -63,11 +64,11 @@
   - 5080: OpenObserve（同上）
   - 5081: 可視化の画面 `pda-view`（同上。認証なし）
   - 8080: Conductor API（同上）
-  - 5114: OpenClaw 本体（tailnet へは Serve の 19114 で公開）
+  - 5114: OpenClaw 本体（2026-11-23 から tailnet へは公開していない）
   - 18700: todo とスクラップの受け口と MCP（`/mcp`）のサーバー（tailnet へは Serve の 18700 で公開）
   - 18800: todo とスクラップの画面 SilverBullet（tailnet へは Serve の 18800 で公開）
   - 18600: 音声認識サーバー（`~/v03/asr`。常駐の設定は無く、再起動後は手で起動する）
-  - 18900: 試験の T3 Code（`spike-t3code.service`。tailnet へは Serve の 18900 で公開。tailnet の規則にはまだ入っていない）
+  - 18900: 試験の T3 Code（`spike-t3code.service`。tailnet へは Serve の 19114 で公開）
   - 44105: Tailscale の通信
   - `127.0.0.1:22037`: 逆向きの SSH トンネル
 

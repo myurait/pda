@@ -7,11 +7,11 @@
 
 ## 1. 結論
 
-仮説は、tailnet の規則でポートが通っていないことを除いて成り立った。stub をつないだ T3 Code の画面には、stub が ACP で報告したものだけが出て、ゲートを通る前の下書きは画面にも保存された履歴にも残らなかった。コマンドと出力、承認の要求、HTML の資料も、stub から報告すれば会話の中に出た。外からスレッドを作ってメッセージを送る口もあり、プロジェクトに属さないスレッドで動いた。
+仮説は成り立った。stub をつないだ T3 Code の画面には、stub が ACP で報告したものだけが出て、ゲートを通る前の下書きは画面にも保存された履歴にも残らなかった。コマンドと出力、承認の要求、HTML の資料も、stub から報告すれば会話の中に出た。外からスレッドを作ってメッセージを送る口もあり、プロジェクトに属さないスレッドで動いた。
 
 | 項目 | 結果 | 関わる要件 |
 |---|---|---|
-| 1. 入れて起動し、tailnet に公開する | 途中まで。ミニ PC で起動し、Tailscale Serve で `https://pda-web.tailaff53a.ts.net:18900` に公開した。開発 PC からは届かない。tailnet の規則 (Access controls) が 18900 を通していないためで、規則に足すのはオーナーの操作である (7 節の手順 1) | 3.1-1 |
+| 1. 入れて起動し、tailnet に公開する | 確かめた。ミニ PC で起動し、Tailscale Serve の 19114 (OpenClaw に使っていたポート。tailnet の規則で開発 PC・iPhone・Windows の PC から通る) を付け替えて公開した。開発 PC の headless のブラウザで、tailnet の URL からペアリングし、スレッドの一覧が出た | 3.1-1 |
 | 2. 通過した一通だけが画面と履歴に残る | 確かめた。下書きと差し戻しは stub の記録にだけ残った | 3.2-9、C7、C14 |
 | 3. コマンドと出力、承認の操作 1 回で続きが動く | 確かめた。承認の要求は、スレッドの権限を Supervised にしたときに会話の中に出る | 3.2-20、3.2-21 |
 | 4. HTML の資料をスレッドの中に出す | 確かめた。stub が T3 Code の MCP の道具 `html_render` を呼ぶと、確定の一通の上に資料が出た | 3.2-16 |
@@ -29,7 +29,7 @@ flowchart LR
     browser[ブラウザ]
   end
   subgraph minipc[ミニ PC]
-    serve[Tailscale Serve<br>:18900 HTTPS]
+    serve[Tailscale Serve<br>:19114 HTTPS]
     t3[T3 Code のサーバー<br>spike-t3code.service<br>127.0.0.1:18900]
     db[(statev2.sqlite<br>スレッドの履歴)]
     stub[stub<br>pda-acp-stub.mjs]
@@ -39,7 +39,7 @@ flowchart LR
     cli[t3 thread<br>外からの口]
     headless[headless の chromium<br>試験の撮影]
   end
-  browser -. tailnet の規則で未到達 .-> serve
+  browser -->|tailnet| serve
   serve --> t3
   headless --> t3
   t3 -->|ACP stdin/stdout| stub
@@ -52,7 +52,7 @@ flowchart LR
 ```
 
 - T3 Code は専用のディレクトリ `~/spike-t3code` に入れ、データも `~/spike-t3code/home` に分けた。既存の `~/.t3` は作っていない。
-- 画面の確かめは、ミニ PC の headless の chromium で `http://127.0.0.1:18900` を開いて行った。tailnet の URL を通したペアリングと WebSocket は確かめていない。
+- 画面の確かめは、ミニ PC の headless の chromium で `http://127.0.0.1:18900` を開いて行った。tailnet の URL を通したペアリングと WebSocket は、開発 PC の headless の chromium で確かめた (3.1 節)。
 - stub は、依頼を受けると内部で「下書き → 差し戻し → 下書き → 通過」を模す。1 回目の下書きは指す先の無い指示語「前述」を含み、stub の中のゲートの代わりがそれを差し戻す。依頼の文に決まった語句があるときだけ、コマンドの報告と承認の要求、HTML の資料、子のスレッドの起動、150 秒の待機を行う (付録 A)。
 
 ## 3. 項目ごとの手順と結果
@@ -70,27 +70,31 @@ flowchart LR
 
 3. ユーザー単位の常駐 `spike-t3code.service` を置いて起動した (定義は付録 B)。`127.0.0.1:18900` だけで待ち受ける。常駐の `PATH` から `~/.local/bin` を外したが、T3 Code は `~/.local/bin/claude` を見つけたので、次の手順の設定で Claude と Codex の provider を無効にした。
 4. 設定ファイル `~/spike-t3code/home/userdata/settings.json` で、組み込みの Claude (`claudeAgent`) と Codex の provider を無効にし、stub を provider として足した (付録 B)。
-5. Tailscale Serve の新しいポートに公開した。既存のポートの割り当ては変えていない。
+5. Tailscale Serve に公開した。初めに新しいポート 18900 に割り当てたが、tailnet の規則が通していなかった。オーナーの指示で、OpenClaw (`v03-openclaw.service`) に使っていた 19114 を T3 Code に付け替え、18900 の割り当ては外した。
 
    ```sh
-   ~/.local/bin/tailscale-pda serve --bg --https=18900 http://127.0.0.1:18900
+   ~/.local/bin/tailscale-pda serve --bg --https=19114 http://127.0.0.1:18900
+   ~/.local/bin/tailscale-pda serve --https=18900 off
    ```
 
 起きたこと
 
 - 起動からおよそ 2 秒で待ち受けを始め (ログで 16:43:30 に開始、16:43:32 に `Listening on http://127.0.0.1:18900`)、サーバーの常駐は約 0.45 GB のメモリを使った。
 - 起動のログに、HTML の下見 (`html_preview`) とブラウザーのタブに使う T3 Code 自前の headless のブラウザーが、この機械の AppArmor の制限で動かないと出た。直すには `sudo t3 browser setup` が要る。`html_render` で資料を出すことには要らなかった (3.4 節)。
-- 開発 PC から `https://pda-web.tailaff53a.ts.net:18900/` は接続がタイムアウトした。同じ機械の許可済みの 18800 (SilverBullet) は 200 を返した。[mini-pc.md](../environment/mini-pc.md) の 2.2 節のとおり、tailnet の規則は開発 PC と iPhone から届くポートを限っており、18900 は入っていない。
+- 18900 には開発 PC から届かなかった (接続のタイムアウト)。[mini-pc.md](../environment/mini-pc.md) の 2.2 節のとおり、tailnet の規則は開発 PC と iPhone から届くポートを限っており、18900 は入っていない。規則に入っている 19114 に付け替えると届いた。
+- 開発 PC の headless の chromium で、ミニ PC の `t3 pair` が出した URL の origin を `https://pda-web.tailaff53a.ts.net:19114` に置き換えて開くと、ペアリングが通り、スレッドの一覧が WebSocket 越しに出た。T3 Code の認証のセッションの一覧には、接続元として開発 PC の tailnet のアドレスが記録された。確かめに使ったセッションは取り消した。
+
+  ![tailnet の URL でペアリングした画面](../reports/evidence/spike-t3code-screen/19-tailnet-paired-desktop.png)
+
 - 認証の無い接続は、Serve 越しの形の見出しを付けても `401` で断られた。ペアリングした端末だけが使える。
+- 19114 を付け替えたので、tailnet から OpenClaw (`127.0.0.1:5114`) に届く Serve の割り当ては無くなった。付け替える前は、開発 PC の OpenClaw の node (`ai.openclaw.node`。会社のコネクタをミニ PC から使う v0.3 の経路) が動いていて、OpenClaw に tailnet 越しの接続が張られていた。OpenClaw の常駐そのものは動いたままである。
 
 ```text
-$ tailscale-pda serve status   (18900 の行だけ)
-https://pda-web.tailaff53a.ts.net:18900 (tailnet only)
+$ tailscale-pda serve status   (19114 の行だけ)
+https://pda-web.tailaff53a.ts.net:19114 (tailnet only)
 |-- / proxy http://127.0.0.1:18900
 
-$ curl https://pda-web.tailaff53a.ts.net:18900/   (開発 PC から)
-curl: (28) Failed to connect to pda-web.tailaff53a.ts.net port 18900 after 7841 ms: Couldn't connect to server
-$ curl https://pda-web.tailaff53a.ts.net:18800/   (比べるため)
+$ curl https://pda-web.tailaff53a.ts.net:19114/   (開発 PC から)
 200
 ```
 
@@ -239,7 +243,7 @@ sequenceDiagram
 - どちらも「PDA」と「T3 Code」を正しく書けず、辞書を渡しても直らなかった。Fun-ASR はフィラー「ええと」を残した。SenseVoice は冒頭の「えーと、PDA」を落とした。入力は人の声ではなく合成の音声である。
 - Fun-ASR を読み込んだ文字起こしの処理は約 1.25 GB のメモリを使い、15 分使わないと降ろされる (既定の `min_15`)。
 - 文字起こしのあとにモデルで整える機能 (Transcript cleanup) は、T3 Code の文章の生成のモデルを使う。この試験では Claude と Codex の provider を無効にしているので、使える生成のモデルが無い。
-- 「Transcribe with」(どこで文字にするか) は端末ごとの設定で、オーナーの端末で選ぶ (7 節の手順 4)。
+- 「Transcribe with」(どこで文字にするか) は端末ごとの設定で、オーナーの端末で選ぶ (7 節の手順 3)。
 
 ![音声の設定の画面](../reports/evidence/spike-t3code-screen/18-settings-voice.png)
 
@@ -284,7 +288,7 @@ PDA のパイプラインでは、担い手に渡す依頼の文を T3 Code の�
 
 ## 5. 確かめられなかったこと
 
-- 開発 PC のブラウザとスマホのアプリから、tailnet の URL で開くこと。tailnet の規則が 18900 を通していない (3.1 節)。規則を足したあと、ペアリングと WebSocket が Serve 越しに通るかは、オーナーがアプリでつなぐときに分かる。
+- スマホのアプリから tailnet の URL でつなぐこと。開発 PC の headless のブラウザでは通った (3.1 節)。アプリでの見え方はオーナーが見る。
 - スマホへの push の通知。T3 Code の文書では T3 Connect (T3 のアカウント) が要り、Tailscale の直接の接続だけでは届かない ([mobile-notifications.md](https://github.com/pingdotgg/t3code/blob/v0.1.11/docs/user/mobile-notifications.md))。T3 Connect は使わない条件なので試していない。
 - 人の声での音声入力。3.6 節の結果は合成の音声である。
 
@@ -293,7 +297,7 @@ PDA のパイプラインでは、担い手に渡す依頼の文を T3 Code の�
 オーナーがスマホで見え方を見るまで、次のものを動かしたまま残した。
 
 - ユーザー単位の常駐 `spike-t3code.service` (自動起動が有効)。定義は `~/.config/systemd/user/spike-t3code.service`。
-- Tailscale Serve の割り当て `https://pda-web.tailaff53a.ts.net:18900` → `http://127.0.0.1:18900`。
+- Tailscale Serve の割り当て `https://pda-web.tailaff53a.ts.net:19114` → `http://127.0.0.1:18900`。付け替える前は `http://127.0.0.1:5114` (OpenClaw) だった。
 - `~/spike-t3code/`
   - `bin/t3`: T3 Code の起動の口。
   - `home/`: T3 Code の本体 (`runtime/versions/0.1.11`)、データ (`userdata/`。スレッドの DB、設定ファイル、音声のモデル 2 つで約 1.1 GB)、Scratch のフォルダ。
@@ -304,33 +308,32 @@ PDA のパイプラインでは、担い手に渡す依頼の文を T3 Code の�
 
 試験のために発行した認証のセッション (headless のブラウザーのペアリング、bearer) は取り消した。T3 Code の認証のセッションは、今は 1 つも無い。
 
-消し方 (ミニ PC で)
+消し方 (ミニ PC で)。最後の行で 19114 を OpenClaw に戻す。
 
 ```sh
 systemctl --user disable --now spike-t3code.service
 rm ~/.config/systemd/user/spike-t3code.service
 systemctl --user daemon-reload
-~/.local/bin/tailscale-pda serve --https=18900 off
 rm -r ~/spike-t3code
+~/.local/bin/tailscale-pda serve --bg --https=19114 http://127.0.0.1:5114
 ```
 
 ## 7. オーナー向け: 端末から T3 Code につなぐ手順
 
-1. tailnet の規則に 18900 を足す。Tailscale の管理画面の Access controls で、開発 PC と iPhone (と Windows の PC) からミニ PC の 18800 を通している行に、18900 を足す ([mini-pc.md](../environment/mini-pc.md) の 2.2 節)。
-2. ペアリングの URL を作る。ミニ PC で次を実行し、出た `Pairing URL` の `http://127.0.0.1:18900` を `https://pda-web.tailaff53a.ts.net:18900` に置き換える (`#token=` からあとは残す)。URL は 10 分で切れ、1 台につき 1 回使える。セッションに頼んでもよい。
+1. ペアリングの URL を作る。ミニ PC で次を実行し、出た `Pairing URL` の `http://127.0.0.1:18900` を `https://pda-web.tailaff53a.ts.net:19114` に置き換える (`#token=` からあとは残す)。URL は 10 分で切れ、1 台につき 1 回使える。セッションに頼んでもよい。
 
    ```sh
    ssh agent-node '~/spike-t3code/bin/t3 pair --base-dir ~/spike-t3code/home --ttl 10m --label iphone'
    ```
 
    `t3 pair --tailscale` は、Tailscale Serve の 443 の割り当てを書き換えるので使わない。
-3. つなぐ。
-   - スマホのアプリ: [App Store](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824) か [Google Play](https://play.google.com/store/apps/details?id=com.t3tools.t3code) で T3 Code を入れ、Settings → Environments → Add environment に、手順 2 の URL を `https://` から貼る。
-   - PC のブラウザ: 手順 2 の URL を開く。
-4. 音声をミニ PC で文字にする設定にする。モデルはミニ PC で Fun-ASR Nano Multilingual を選んである。
+2. つなぐ。
+   - スマホのアプリ: [App Store](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824) か [Google Play](https://play.google.com/store/apps/details?id=com.t3tools.t3code) で T3 Code を入れ、Settings → Environments → Add environment に、手順 1 の URL を `https://` から貼る。
+   - PC のブラウザ: 手順 1 の URL を開く。
+3. 音声をミニ PC で文字にする設定にする。モデルはミニ PC で Fun-ASR Nano Multilingual を選んである。
    - スマホのアプリ: 既定は端末の上で文字にする。ミニ PC で文字にするには Settings → Voice → Transcribe on で `agent-node` を選ぶ。
    - PC のブラウザ: Settings → Voice → Transcribe with で `agent-node` を選ぶ。
-5. 試す。新しいスレッドは PDA stub の provider で動く。次の語句を含めると、stub がその動きをする。
+4. 試す。新しいスレッドは PDA stub の provider で動く。次の語句を含めると、stub がその動きをする。
    - 「コマンドを実行して」: コマンドの報告と承認の要求。承認を画面で見るには、送る前に入力欄の下の権限を Supervised (錠の印) にする。
    - 「資料を出して」: HTML の資料。
    - 「子のセッションを起動して」: プロジェクトに属さない子のスレッド。
