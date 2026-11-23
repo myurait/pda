@@ -134,6 +134,7 @@ Claude のモデルに判定させた hook が応答を通してしまう実測�
   - 案 B: オーナーは OpenClaw の組み込みの音声入力を「かなり厳しかった」と述べた【手元】([interview-2026-11-10.md](interview-2026-11-10.md) の「OpenClaw の音声入力の経緯」)。その後、OS の音声入力を使う形を探し、マイクのボタンのプラグインを足した。そのあとの評価は【記録なし】。
   - 案 C、案 D、案 E: Claude の音声入力は使えない。材料は、OS の音声入力 (オーナーは Mac のものを「聞き漏らしがひどい」と述べた【手元】)、ミニ PC の音声認識サーバー (`~/v03/asr`【手元】、mini-pc.md の 3 節。オーナーの評価は記録に無い)、聞き取りの構想にある入口のミドルウェア (フィラーや変換ミスを直す) である。
   - Claude のアプリの外で、オーナーが満足した音声入力の経路は【記録なし】。案 B、案 C、案 D、案 E に共通で、この項目では案 B と案 C に差は無い。必須の項目のうち、案 A 以外で最も危ない。
+  - 案 C の画面を T3 Code に借りる形では、T3 Code の音声入力を使える。話している間に文字が出るモデル、フィラーの除去、モデルによる整形を持つ【資料】(6 節の T3 Code の項)。オーナーの評価はまだ無い。
 - 3.2-16 アーティファクトがアカウントの混線で見られなくならない
   - 案 A: スマホのアプリを個人の契約でログインすると、会社のアーティファクトを見られない【手元】(interview の「入口の形ごとの良さと困りごと」)。
   - 案 B: OpenClaw の画面で HTML の資料を開けるかは【記録なし】。
@@ -325,7 +326,37 @@ flowchart LR
 - 画面の条件 (1.1 節)
   - 端末の出力を映す画面にしない。CLI を `-p` の stream-json で起こし、メッセージ・ツールの呼び出し・ツールの結果・権限の確認を構造のあるデータとして受けて、画面の部品として描く。スマホの幅と、ウィンドウの大きさの変化で崩れないことを、画面の受け入れ条件にする。
   - メッセージングサービスを画面にしない。長文の報告と設計の文章を読める画面にする。
-  - 画面を一から作るか、公開の製品の画面を借りるかは設計で選ぶ。借りる候補の T3 Code は 6 節に書く。
+  - 画面を一から作るか、公開の製品の画面を借りるかは設計で選ぶ。
+- 画面を T3 Code に借りる形 (2026-11-23 に追加。根拠は 6 節の T3 Code の項)
+
+```mermaid
+flowchart LR
+  owner([オーナー<br>PC・スマホ]) -->|話す・音声| app[T3 Code の画面<br>Web・デスクトップ・iOS・Android]
+  app --> t3[T3 Code のサーバー<br>ミニ PC]
+  t3 -->|ACP| pda[PDA のパイプライン<br>Local ACP command の provider]
+  pda --> main[メインセッション]
+  main -->|起動して作業を移す| core[作業のセッション<br>手を加えていない CLI]
+  core -->|報告| main
+  main -->|返信の道具| gate[終端のゲート<br>完了判定・規約]
+  core -->|返信の道具| gate
+  gate -->|差し戻し| main
+  gate --> judge[判定のモデル<br>コアと別の系統]
+  gate -->|通った一通だけ| pda
+  pda -->|新しいスレッドを作る| t3
+  pda <--> mem[(台帳・ナレッジ・ヒストリー<br>ゲートの定義)]
+  core -->|頼む| dev[開発 PC の Claude<br>会社のコネクタ]
+  classDef vendor fill:#dbe7ff,stroke:#3b6fd4,color:#111
+  classDef third fill:#ffe3c2,stroke:#b86200,color:#111
+  classDef own fill:#d6f2dd,stroke:#2c8a4b,color:#111
+  class main,core,dev vendor
+  class app,t3 third
+  class pda,gate,judge,mem own
+```
+
+  - T3 Code には手を加えない。PDA のパイプラインを ACP を話す実行ファイルにし、T3 Code の設定で provider として足す。T3 Code のスレッド 1 つが、PDA のセッション 1 つに当たる。
+  - 画面に出るのは、PDA のパイプラインが ACP で報告したものだけである。ゲートを通る前の下書きは報告しない。コマンドと出力、承認の要求は、報告すれば T3 Code の画面に出る。
+  - メインセッションが起動したセッションは、PDA のパイプラインが T3 Code のスレッドとして作る (`t3 thread start` か MCP)。オーナーは T3 Code の画面でそのスレッドに入って話しかけられる。
+  - 自前で作る画面は無くなり、作るものは ACP の口になる。画面の必須の項目 (3.2-15〜3.2-21) の出来は、T3 Code の出来に依存する。
 - 先行例が示す範囲
   - Kai は、手を加えていない CLI を子プロセスで包む常駐、ブラウザの画面、ツールの呼び出しが見える画面、委譲をそろえている【資料】。ゲートを通るまで返事を保留することは示していない。今の公開のコードは `--bare` で起こしており、定額のログインで動くかに疑いがある (research-parts-tree.md の 4.1 節)。
   - Neutron は、返信を道具で送らせ、Stop の hook で強制する【資料】。画面は Telegram で、画面の形は採らない。採るのは、返信を道具で送らせる仕組みだけである。
@@ -409,7 +440,20 @@ flowchart LR
   - 当時の理由: 主のエージェントが Agent SDK で Claude を動かす (findings.md の 6 節)。オーナーが 2026-09-28 に、Claude を Agent SDK か ACP のアダプタでしか動かさない製品を外すと決めた条件 (H7) に当たった (plan-v0.3.md の 6.3 節と 8 節)。ほかの条件 (定額のログイン、常駐と遠隔操作、途中で止める、途中の出力) は合格だった (findings.md の 5.4 節)。
   - 記録にある中身 (2026-09-27 時点): Web の画面と iOS・Android のアプリを持ち、常駐のサービスとして動く。ライセンスは MIT で、自分で配ることを認めている。エージェントのスレッドはそれぞれ自分のブランチに書く。委譲とワークフローの定義は見つからなかった (findings.md の 5.2 節)。
   - 見直し: 棄却の理由は「製品が Claude をどう動かすか」で、画面の出来とは別である。端末を包む画面でもメッセージングサービスでもないので、1.1 節の条件に当たらない。案 C の画面を借りる先の候補として扱い直す。初版の検討では、当時の棄却を見直さずに引き継ぎ、スクラップの投稿 (リモートアクセスの方法) も評価に使わなかった。
-  - 記録で決まらない点 (今のソースと資料で確かめる): スレッドがリポジトリとブランチに結びつく作りを外せるか (3.2-13、3.3-6)。返事を画面に出す前に自前のゲートを通す場所を、画面とサーバーの間に置けるか (3.3-5)。Claude を手を加えていない CLI で動かす経路に替えられるか (H7 と 3.3-1)。借りた画面を上流の変更に追従させる手間 (3.3-7)。音声入力 (3.2-15)。
+  - 今の資料で確かめたこと (2026-11-23。ソースは `main` の [21b5287](https://github.com/pingdotgg/t3code/tree/21b52875ea5621174638436b6074edfe2fd10590)、最新の安定版は v0.1.11)。どれも【資料】で、手元では動かしていない。
+    - Claude の動かし方は今も Agent SDK で、手を加えていない CLI を直接起こす経路は無い (`apps/server/src/orchestration-v2/Adapters/ClaudeAdapterV2.ts`)。T3 Code の Claude の provider をそのまま使う形は、2026-09-28 の条件 (H7) に今も当たる。T3 Code 自身は、利用規約の範囲内だと述べている ([faq.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/faq.md))。
+    - 返事を画面に出す前に、利用者のコードで書き換える・保留する・差し戻す hook や plugin は無い。T3 Code の中にゲートを置くことはできない。
+    - provider を外から足す口がある。設定の「Local ACP command」で、ACP を話す任意の実行ファイルを provider にでき、サーバーの作り直しは要らない ([providers-acp.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/providers-acp.md))。ACP のエージェントが報告したメッセージ、コマンドと出力、承認の要求、モデルと設定の選択肢、コンテキストの使用量を、T3 Code は画面に出す。
+    - スレッドはプロジェクトに属さなくてよく、その場合は `~/.t3/scratch` の下の自分のフォルダで動く。プロジェクトのフォルダは Git のリポジトリでなくてよく、worktree は選択である。スレッドの途中で作業の場所を任意のディレクトリへ移す機能は無い ([thread-sidebar.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/thread-sidebar.md))。
+    - 外からスレッドを作る・メッセージを送る口がある。ホストの上の `t3 thread start`・`send`・`show` と、環境の `/mcp` の MCP サーバーである ([outside-agents.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/outside-agents.md))。
+    - 画面: iOS と Android のアプリはストアで配っている。モバイルのアプリは、スマホ・タブレット・大きさを変えられるウィンドウの 3 つの幅の段で作り分けている ([mobile-layout.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/internals/mobile-layout.md))。Web の画面をスマホの幅のブラウザで使う場合の不具合が開いている (iOS の Safari でキーボードが入力欄を隠す [#19512](https://github.com/pingdotgg/t3code/issues/19512) ほか)。
+    - 資料の表示: エージェントが作った HTML のページを、どの provider でも、Web・デスクトップ・モバイルのスレッドの中に表示する ([html-renders.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/html-renders.md))。
+    - 音声入力: モバイルは端末の上で文字にする。Web とデスクトップは、文字にする場所 (サーバーの機械に置くモデル、macOS の音声認識、外部のサービス) を選ぶ。話している間に文字が出るモデル、フィラーの除去、モデルによる書き起こしの整形がある ([voice-input.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/voice-input.md))。
+    - 通知: スマホへの push は T3 Connect (T3 のアカウント) が要り、Tailscale の直接の接続だけでは届かない ([mobile-notifications.md](https://github.com/pingdotgg/t3code/blob/21b52875ea5621174638436b6074edfe2fd10590/docs/user/mobile-notifications.md))。
+    - 追従: Claude の新しいモデル (Opus 5.5、Sonnet 5.5、Haiku 5.5、Fable 5.2) は、発表と同じ日に取り込まれている。GPT-6.2 Sol と Astra (2026-11-17) を足す [PR #38288](https://github.com/pingdotgg/t3code/pull/38288) は 11-23 時点で開いたままである。安定版は 2〜6 日おきに出ている。
+    - 離れた機械との接続の不具合が多く開いている (Tailscale の接続を張り直して不安定になる [#24516](https://github.com/pingdotgg/t3code/issues/24516) ほか)。
+  - 評価: T3 Code を製品としてそのまま使う形 (Claude の provider を使う) は、ゲートを置けず H7 にも当たるので採らない。案 C の自前のパイプラインを「Local ACP command」の provider として T3 Code につなぐ形なら、T3 Code に手を加えずに画面とアプリを借りられ、何を画面に出すかは自前のパイプラインが決める (5.3 節)。この形では、T3 Code は Claude を動かさないので H7 に当たらない。
+  - 残る点: ACP の provider として自前のパイプラインをつないだときに、保留した一通だけが画面と履歴に残るか、HTML の資料と承認の要求が自前の provider でも期待どおり出るかは、手元で確かめていない【設計】。画面の見え方はオーナーが見て決める。push の通知は、T3 のアカウントを使うか、今の ntfy を使うかを選ぶ必要がある。
 - 端末で動く CLI を Web で包んだ画面、メッセージングサービスの画面 (2026-11-23 にオーナーが使わないと指定)
   - v0.3 の候補のうち、エージェントを端末で動かす製品 (Orca、luvus、herdr と collie) と、作業の様子が端末に出る cccc は、当時の理由で外れており、この指定とも合う。
   - 先行事例のうち、入口を Telegram・Discord・Slack にするもの (Neutron、claude-hub、CCBot、公式の Channels) は、画面の形としては採らない。
@@ -482,8 +526,8 @@ flowchart LR
 
 - 根拠の大半が【設計】で、動くことを確かめたものが少ない。
 - 3.2-15 (音声) は、5 案のうち案 A だけが確かに満たす。案 C では代わりの経路を作って、オーナーの評価を受ける必要がある。この項目で案 C は案 B より良いとは言えない。
-- 画面を自前で作る。v0.3 で可視化層を借りると決めた方針を、要件の変化を理由に変えることになる (6 節)。
-- 作る量が案 A、案 B より多い。
+- 画面を自前で作る場合は、v0.3 で可視化層を借りると決めた方針を、要件の変化を理由に変えることになる (6 節)。画面を T3 Code に借りる形 (5.3 節) なら、この弱い点は「T3 Code の出来と接続の安定に依存する」に替わる。
+- 作る量が案 A、案 B より多い。画面を T3 Code に借りれば、画面のぶんは減る。
 
 推奨が依存する点。
 
@@ -498,4 +542,5 @@ flowchart LR
 - 案 C、案 D: Claude のアプリの外で、オーナーが満足する音声入力の経路。ミニ PC の音声認識サーバーと入口のミドルウェアの組み合わせを段階 2 で作り、オーナーの評価を受ける。
 - 案 A、案 C、案 D、案 E: SSH で入ったときに、開発 PC の `claude` が会社のアカウントのログインを読めるか。読めない場合は、開発 PC の GUI のログインの中で動く常駐を置く。
 - 全案: 開発 PC のセッションの記録を、ミニ PC で `--resume` できるか (3.2-14)。
-- 案 C: T3 Code の画面を借りられるか (6 節の「記録で決まらない点」)。リポジトリの記録は 2026-09-27 時点のもので、今のソースと資料を読む必要がある。
+- 案 C: 自前のパイプラインを T3 Code の「Local ACP command」の provider としてつないだときに、保留した一通だけが画面と履歴に残るか、HTML の資料と承認の要求が期待どおり出るか (6 節の T3 Code の項)。ミニ PC に T3 Code を入れ、最小の ACP の口をつないで確かめられる。画面の見え方は、オーナーがスマホのアプリで見て決める。
+- 案 B、案 C、案 E: 定額の 5 時間の枠の減り方。T3 Code の issue [#24649](https://github.com/pingdotgg/t3code/issues/24649) (2026-10-25 作成、11-02 に閉じた) は、同じトークンで、Agent SDK と `claude -p` の通信が、対話の Claude Code より 5 時間の枠を約 1.6〜1.7 倍速く減らすと記録している。T3 Code は v0.1.7 以降は同じ率に戻ったと書いているが、`claude -p` の今の扱いは確かめていない。`claude -p` で担い手を起こす案に共通の依存である。
