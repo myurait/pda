@@ -11,12 +11,12 @@
 
 | 項目 | 結果 | 関わる要件 |
 |---|---|---|
-| 1. 入れて起動し、tailnet に公開する | 確かめた。ミニ PC で起動し、Tailscale Serve の 19114 (OpenClaw に使っていたポート。tailnet の規則で開発 PC・iPhone・Windows の PC から通る) を付け替えて公開した。開発 PC の headless のブラウザで、tailnet の URL からペアリングし、スレッドの一覧が出た | 3.1-1 |
+| 1. 入れて起動し、tailnet に公開する | 確かめた。ミニ PC で起動し、Tailscale Serve の 19114 (OpenClaw に使っていたポート。tailnet の規則で開発 PC・iPhone・Windows の PC から通る) を付け替えて公開した。開発 PC の headless のブラウザで tailnet の URL からペアリングでき、オーナーも iPhone のアプリからつないで使えた | 3.1-1 |
 | 2. 通過した一通だけが画面と履歴に残る | 確かめた。下書きと差し戻しは stub の記録にだけ残った | 3.2-9、C7、C14 |
 | 3. コマンドと出力、承認の操作 1 回で続きが動く | 確かめた。承認の要求は、スレッドの権限を Supervised にしたときに会話の中に出る | 3.2-20、3.2-21 |
 | 4. HTML の資料をスレッドの中に出す | 確かめた。stub が T3 Code の MCP の道具 `html_render` を呼ぶと、確定の一通の上に資料が出た | 3.2-16 |
 | 5. 外からスレッドを作り、メッセージを送る | 確かめた。`t3 thread start` と `t3 thread send`、stub の中からの MCP の `t3_thread_launch` の両方で、プロジェクトに属さないスレッドを作れた | 3.1-3、3.2-13 |
-| 6. 音声をミニ PC のモデルで文字にする | 設定まで済んだ。日本語のモデルはミニ PC の CPU で、13 秒の音声を約 3 秒で文字にした。話しての評価はオーナーが行う | 3.2-15 |
+| 6. 音声をミニ PC のモデルで文字にする | 設定まで済んだ。日本語のモデルはミニ PC の CPU で、13 秒の音声を約 3 秒で文字にした。オーナーが iPhone のアプリで話した文字起こしは「Claude Desktop に匹敵する」評価だった。このとき文字にしたのはミニ PC ではなく iPhone の上 (アプリの既定) である (3.6 節) | 3.2-15 |
 | 7. スマホの幅の Web の画面 | 撮った (3.7 節)。アプリでの見え方はオーナーが見る | 3.2-19 |
 
 試験の中で、PDA のパイプラインを ACP の provider として作るときに効く T3 Code の振る舞いが分かった (4 節)。とくに、T3 Code を起動し直したあとに古いスレッドを続けるには、パイプラインが ACP の `session/load` を持つ必要がある。
@@ -86,6 +86,7 @@ flowchart LR
 
   ![tailnet の URL でペアリングした画面](../reports/evidence/spike-t3code-screen/19-tailnet-paired-desktop.png)
 
+- オーナーが iPhone の T3 Code のアプリに、同じ形のペアリングの URL (30 分有効) を貼ってつなぎ、スレッドで話して使えた。
 - 認証の無い接続は、Serve 越しの形の見出しを付けても `401` で断られた。ペアリングした端末だけが使える。
 - 19114 を付け替えたので、tailnet から OpenClaw (`127.0.0.1:5114`) に届く Serve の割り当ては無くなった。付け替える前は、開発 PC の OpenClaw の node (`ai.openclaw.node`。会社のコネクタをミニ PC から使う v0.3 の経路) が動いていて、OpenClaw に tailnet 越しの接続が張られていた。OpenClaw の常駐そのものは動いたままである。
 
@@ -245,6 +246,14 @@ sequenceDiagram
 - 文字起こしのあとにモデルで整える機能 (Transcript cleanup) は、T3 Code の文章の生成のモデルを使う。この試験では Claude と Codex の provider を無効にしているので、使える生成のモデルが無い。
 - 「Transcribe with」(どこで文字にするか) は端末ごとの設定で、オーナーの端末で選ぶ (7 節の手順 3)。
 
+オーナーの評価 (2026-11-23、iPhone の T3 Code のアプリで話して)
+
+> 「文字起こしの出来はかなりいいぞ。クラウドデスクトップに匹敵する過去一ぐらいの性能だ。かなり好感触です。」(「クラウドデスクトップ」は Claude Desktop のこと)
+
+- オーナーが話した時間帯に、ミニ PC の T3 Code のサーバーの追跡の記録 (`server.trace.ndjson`) には、文字起こしの呼び出し (`environment.voice.transcribe`、`SpeechService.transcribe`) が無かった。
+- T3 Code の文書では、スマホのアプリは既定で端末の上で文字にし、iPhone では iOS 26 以降の Apple の音声認識を使う ([composer.md](https://github.com/pingdotgg/t3code/blob/v0.1.11/docs/user/composer.md) の「Voice input on mobile」)。
+- したがってこの評価は、iPhone の上で文字にした結果に対するものである。ミニ PC のモデル (Fun-ASR Nano Multilingual) を人の声で使った評価はまだ無い。
+
 ![音声の設定の画面](../reports/evidence/spike-t3code-screen/18-settings-voice.png)
 
 ### 3.7 項目 7: スマホの幅の Web の画面
@@ -288,9 +297,9 @@ PDA のパイプラインでは、担い手に渡す依頼の文を T3 Code の�
 
 ## 5. 確かめられなかったこと
 
-- スマホのアプリから tailnet の URL でつなぐこと。開発 PC の headless のブラウザでは通った (3.1 節)。アプリでの見え方はオーナーが見る。
+- スマホのアプリでの画面の見え方のオーナーの評価。アプリからの接続と音声入力は、オーナーが使って確かめた (3.1 節、3.6 節)。
 - スマホへの push の通知。T3 Code の文書では T3 Connect (T3 のアカウント) が要り、Tailscale の直接の接続だけでは届かない ([mobile-notifications.md](https://github.com/pingdotgg/t3code/blob/v0.1.11/docs/user/mobile-notifications.md))。T3 Connect は使わない条件なので試していない。
-- 人の声での音声入力。3.6 節の結果は合成の音声である。
+- ミニ PC のモデルを人の声で使った音声入力。3.6 節のミニ PC の結果は合成の音声で、オーナーが話して評価したのは iPhone の上の文字起こしである。
 
 ## 6. ミニ PC に残したものと消し方
 
