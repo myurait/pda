@@ -615,3 +615,16 @@ Codex (ChatGPT の prolite の定額) の枠は、ミニ PC で判定を呼ん�
 - 7 日の枠に対しては、平均の 7 日で 15〜53%、最も依頼の多かった 7 日間で 30〜108% にあたる。
 - 約 30 分のあいだ 1 分に約 3 回呼んだが、429 は返らなかった。
 - 測ったのは `gpt-6.1-sol` の `low` だけで、ほかのモデルと推論の強さで枠の減り方が同じかは測っていない。
+
+### 6.10 Codex の 429
+
+2026-11-23 の検証 ([spike-reply-gate.md](spike-reply-gate.md) の 5.4 節) では、`gpt-6-astra` を呼ぶと約 10 分に 5 回で `exceeded retry limit, last status: 429 Too Many Requests` が返った。11-24 には同じ形の 429 が返らなかった。資料と手元の試験で分かったことは次のとおりである。
+
+- この文言の 429 は、7 日や 5 時間の利用枠を使い切ったときの 429 ではない。Codex CLI は、利用枠の 429 (`usage_limit_reached`) を `You've hit your usage limit` と出し、それ以外の 429 をこの文言で出す ([error.rs](https://github.com/openai/codex/blob/rust-v0.172.0/codex-rs/protocol/src/error.rs)、[api_bridge.rs](https://github.com/openai/codex/blob/rust-v0.172.0/codex-rs/codex-api/src/api_bridge.rs))。
+- 利用枠以外の 429 の中身は、利用者が捕まえた例では `Codex is at capacity, please try again later (code=turn_rate_limit_exceeded)` で、サーバーが数十秒〜約 10 分の待ち (`Retry-After`) を指定し、同じアカウントの別の呼び出しも同じ時刻まで待たされる ([#58883](https://github.com/openai/codex/issues/58883)、[#57073](https://github.com/openai/codex/issues/57073)、[#58906](https://github.com/openai/codex/issues/58906))。X でも、10 月中旬から下旬に、Pro の利用者から同じ 429 の報告が続いていた。
+- Codex の責任者は、X で、混雑による「model at capacity」のエラーを減らす変更と計算資源の追加を 10/15 と 11/16 に知らせている ([10/15](https://x.com/thsottiaux/status/2110750421367287996)、[11/16](https://x.com/thsottiaux/status/2122206990101536852))。6 月には、頻度の制限で断られた要求は利用枠に数えない、と書いている ([6/29](https://x.com/thsottiaux/status/2071740419030053227))。9 月には、今の利用者が Astra を使い続けられるようにするため、負荷の最も大きい $200 の Pro の新規の申し込みを止めた ([9/10](https://x.com/thsottiaux/status/2098113585683808624))。
+- 毎時の制限や、一定の量を超えた分だけ間隔を絞る仕組みを書いた資料と報告は見つからなかった。4〜5 件の少ない量でも絞られた報告がある (#58883)。短い時間あたりの回数の制限は、公式の資料に書かれていない。
+- 11-24 に、今のログインで `gpt-6-astra` の `low` を CLI 0.172.0 と 0.161.0 でそれぞれ 7 回ずつ続けて呼んだが、429 は返らず、1 回 16〜32 秒で終わった。11-23 と違うのは、ログイン (11-23 は `~/pda/secrets/codex` の側) と日時である。CLI のバージョンとモデルは、429 の有無を分けなかった。
+- 0.162.0 からの CLI は、`Retry-After` の付いた 429 を受けるとその時刻まで待って呼び直す ([PR #51440](https://github.com/openai/codex/pull/51440))。0.161.0 は WebSocket の中で返る 429 の待ちを捨て、その場で失敗にする。今の CLI では、同じ制限に当たると、判定が失敗せずに数分遅れる形で現れる。
+
+11-23 の 429 は、混雑時に Codex がアカウントごとに呼び出しを絞る制限と読むのが資料と合う。ゲートの設計では、判定が数分遅れることがあるとして、返事の前の判定を待つ上限の時間と、上限を超えたときの扱いを決めておく必要がある。
