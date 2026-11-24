@@ -6,7 +6,8 @@
   "check": "Bash入力に echo 前置・&&・;・for・パイプがあるか",
   "type": 1,
   "pattern": true,
-  "existing": "bash-shape-guard（一部）"
+  "existing": "bash-shape-guard（一部）",
+  "route": 1
  },
  {
   "memory": "feedback_bash_command_shape",
@@ -15,7 +16,8 @@
   "check": "Agent呼び出しの依頼文が、コマンド実行を頼むのに書き方を含むか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_change_cost_is_set_by_own_design",
@@ -24,7 +26,8 @@
   "check": "出力に「後から変えると〜作り直す」の類があり、出所が同じ文にあるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_clean_up_own_byproducts",
@@ -33,7 +36,8 @@
   "check": "Bash入力が rm -rf か、trash に dangerouslyDisableSandbox を付けたか",
   "type": 1,
   "pattern": true,
-  "existing": "permissions.deny（一部）"
+  "existing": "permissions.deny（一部）",
+  "route": 1
  },
  {
   "memory": "feedback_commit_needs_no_confirmation",
@@ -42,7 +46,8 @@
   "check": "最終応答がコミットの承認を求めているか（Jev）。当たれば許可済みの文を注入する",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -51,7 +56,8 @@
   "check": "判断を求める応答がArtifactリンクと決める一文だけか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -60,7 +66,9 @@
   "check": "資料の本文にです・ます調の文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "文末の「です」「ます」の照合で決まる"
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -69,7 +77,8 @@
   "check": "各項目に推奨があり、根拠が事実で同じ箇所に書かれているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -78,7 +87,8 @@
   "check": "項目の並び順と、選ぶ欄がチェックボックスで初期未選択か",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -87,7 +97,8 @@
   "check": "選択肢が見た目の違いなのに、絵が並んでいないか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_dev_pc_connectors_include_skills",
@@ -96,7 +107,8 @@
   "check": "Agent依頼文・呼び出しに mcp__github__ 等のMCP道具があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_dev_pc_connectors_include_skills",
@@ -105,7 +117,8 @@
   "check": "最終応答に、この Mac の道具の状態をオーナーに尋ねる文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_dev_pc_connectors_include_skills",
@@ -114,7 +127,8 @@
   "check": "書いたメモリファイルのパスが ~/.claude/memory 配下か",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -123,7 +137,8 @@
   "check": "理由に「数行で直せる」「念のため」「mustなので」があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -132,7 +147,8 @@
   "check": "報告が全指摘を、判定と理由の組で並べているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_elicit_by_offering_reading",
@@ -141,7 +157,8 @@
   "check": "問いが「AかBか」「どちらが」の形か、読みを示す形か",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
@@ -150,7 +167,8 @@
   "check": "比較表の欄が評判や機能の有無だけで埋まっていないか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
@@ -159,7 +177,8 @@
   "check": "実例の無い候補に順位や推奨が付いていないか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
@@ -168,7 +187,8 @@
   "check": "推奨の文があり、主たる変数が「試すまで分からない」のままか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_explain_in_why-what-how_order",
@@ -177,7 +197,8 @@
   "check": "説明の冒頭がHowで始まらず、Why・What・Howの順に並ぶか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_explain_in_why-what-how_order",
@@ -186,7 +207,8 @@
   "check": "「合流」「フォールバック」等の語が動作の説明なしに使われたか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_explanation_is_translation_for_listener",
@@ -195,7 +217,9 @@
   "check": "テーブル等の名前が造語に置換されていないか、初出に持ち主があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4,
+  "route_note": "置き換える前の名前は資料・コードにしか無いので、出力だけでは決まらない"
  },
  {
   "memory": "feedback_explanation_is_translation_for_listener",
@@ -204,7 +228,8 @@
   "check": "PR・チケット等が番号だけ・名前だけ・相対位置で呼ばれているか",
   "type": 1,
   "pattern": false,
-  "existing": "reference-gate（一部）"
+  "existing": "reference-gate（一部）",
+  "route": 2
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -213,7 +238,8 @@
   "check": "応答が複数種類の情報を区別せず並べているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_gh_runs_unsandboxed",
@@ -222,7 +248,8 @@
   "check": "settings.json に書いた excludedCommands が完全一致指定か",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -231,7 +258,8 @@
   "check": "副作用評価に「〜が増えるだけ」「操作は増えない」の類があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_headless_claude_inherits_hooks",
@@ -240,7 +268,8 @@
   "check": "Bash入力に claude -p があり --setting-sources \"\" を含むか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_headless_claude_inherits_hooks",
@@ -249,7 +278,8 @@
   "check": "書いた launchd/cron の定義のコマンドに指定があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_investigation_principles",
@@ -258,7 +288,8 @@
   "check": "最終応答に、相手に実行してもらうコマンドの提示があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_investigation_principles",
@@ -267,7 +298,8 @@
   "check": "最終応答の冒頭が、思考過程でなく状況と次の行動を言い切る文か",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_keep_technical_terms_as_katakana",
@@ -276,7 +308,8 @@
   "check": "応答の技術用語が、片仮名・原文でなく造語に替わっていないか",
   "type": 1,
   "pattern": false,
-  "existing": "forbidden-word-gate（一部）"
+  "existing": "forbidden-word-gate（一部）",
+  "route": 3
  },
  {
   "memory": "feedback_memory_writing_rules",
@@ -285,7 +318,9 @@
   "check": "書いたメモリ本文に、日付・チケット番号・引用・計測値があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "日付・チケット番号・数値・「」の照合で決まる"
  },
  {
   "memory": "feedback_memory_writing_rules",
@@ -294,7 +329,8 @@
   "check": "書いたルールに「感じたら」「迷ったら」などの語があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_never_stop_only_redirect",
@@ -303,7 +339,8 @@
   "check": "書いた hook の拒否文に、メモリのパスと書き直して続ける指示があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_never_stop_only_redirect",
@@ -312,7 +349,8 @@
   "check": "hook やガードの記述に、ユーザーに伝えて止まる分岐があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_excessive_comments",
@@ -321,7 +359,8 @@
   "check": "コミットで足されたコメントが、why・地雷・前提条件のどれかか",
   "type": 1,
   "pattern": false,
-  "existing": "comment-gate"
+  "existing": "comment-gate",
+  "route": 3
  },
  {
   "memory": "feedback_no_excessive_comments",
@@ -330,7 +369,8 @@
   "check": "足したコメントに、計測値・変更経緯・チケットIDがあるか",
   "type": 1,
   "pattern": false,
-  "existing": "comment-gate"
+  "existing": "comment-gate",
+  "route": 2
  },
  {
   "memory": "feedback_no_excessive_comments",
@@ -339,7 +379,8 @@
   "check": "応答に、コメントの削除を勧める・残すか尋ねる文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_excessive_risk_caveats",
@@ -348,7 +389,8 @@
   "check": "コード変更で、入力検証の削除が含まれていないか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_no_partial_framework_adoption",
@@ -357,7 +399,8 @@
   "check": "提案に「一部を借りる」「道具なしで考え方だけ使う」の形があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_partial_framework_adoption",
@@ -366,7 +409,8 @@
   "check": "不採用の理由の文に、その枠組みの文書へのリンクがあるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_partial_framework_adoption",
@@ -375,7 +419,8 @@
   "check": "案に対象・順序・完了判定・変更の扱いが書かれているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_process_narrative_in_human_docs",
@@ -384,7 +429,8 @@
   "check": "PR説明等に、レビュー過程・ファイル一覧・ビルド結果の記述があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_process_narrative_in_human_docs",
@@ -393,7 +439,8 @@
   "check": "PR説明等に、決定日や「判明した」などの経緯の記述があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_space_between_ascii_and_japanese",
@@ -402,7 +449,8 @@
   "check": "応答・Artifact の、英数字と日本語の境目に空白があるか(コード要素を除く)",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_online_resource_must_be_linked",
@@ -411,7 +459,8 @@
   "check": "応答に、リンクでない裸のチケットキー・PR番号があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_online_resource_must_be_linked",
@@ -420,7 +469,8 @@
   "check": "応答に、リンクでない外部ドキュメント・記事のタイトルがあるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_output_language_is_japanese",
@@ -429,7 +479,9 @@
   "check": "途中経過・最終応答に、識別子等以外の英語の文があるか",
   "type": 1,
   "pattern": false,
-  "existing": "language-gate（一部）"
+  "existing": "language-gate（一部）",
+  "route": 1,
+  "route_note": "コード要素を除いた文の文字種の照合で決まる"
  },
  {
   "memory": "feedback_output_language_is_japanese",
@@ -438,7 +490,8 @@
   "check": "途中経過の英語の文のうち判断に要る内容が、最終応答にあるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_outward_artifacts_are_users_work",
@@ -447,7 +500,8 @@
   "check": "成果物に「判断してください」「要確認」「未確定」の類があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_outward_artifacts_are_users_work",
@@ -456,7 +510,8 @@
   "check": "PRの「レビュー観点」の項目に、疑問形・依頼形があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_parallel_items_as_bulleted_list",
@@ -465,7 +520,8 @@
   "check": "1つの文・項目に、並列の項目を区切り記号で3つ以上並べたか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_parallel_items_as_bulleted_list",
@@ -474,7 +530,8 @@
   "check": "wrap_up・件名・表のセルに、並列の項目を3つ以上並べたか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pr_create_as_draft",
@@ -483,7 +540,8 @@
   "check": "ツール入力の gh pr create に --draft(MCP は draft:true) があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pr_create_as_draft",
@@ -492,7 +550,8 @@
   "check": "PR 作成の報告に、リンクとドラフトの旨とレビュー待ちがあるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_prefer_tool_over_gated_bash",
@@ -501,7 +560,8 @@
   "check": "curl/wget の入力が、WebFetch や gh api で足りる取得か",
   "type": 1,
   "pattern": false,
-  "existing": "bash-shape-guard（一部）"
+  "existing": "bash-shape-guard（一部）",
+  "route": 2
  },
  {
   "memory": "feedback_reference_needs_visible_antecedent",
@@ -510,7 +570,8 @@
   "check": "最終応答の指示語・相対位置の語の指す先が、近くの名詞にあるか",
   "type": 1,
   "pattern": false,
-  "existing": "reference-gate"
+  "existing": "reference-gate",
+  "route": 3
  },
  {
   "memory": "feedback_reference_needs_visible_antecedent",
@@ -519,7 +580,8 @@
   "check": "最終応答に、手順の結果を指す記号や「そこから」があるか",
   "type": 1,
   "pattern": false,
-  "existing": "reference-gate（一部）"
+  "existing": "reference-gate（一部）",
+  "route": 3
  },
  {
   "memory": "feedback_reference_needs_visible_antecedent",
@@ -528,7 +590,8 @@
   "check": "Artifact 本文・PR 説明文・wrap_up の問いに、指す先の無い指示語があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_report_only_new_differences_as_problems",
@@ -537,7 +600,8 @@
   "check": "問題の項目に、場所・中身・理由・新規リスク・想定可否があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_secret_never_typed_in_command",
@@ -546,7 +610,8 @@
   "check": "応答のコマンドに API キー・トークン・パスワードの値があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_secret_never_typed_in_command",
@@ -555,7 +620,8 @@
   "check": "案内の「注意して」が、形の変更で防げる事故を指しているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_skill_orchestration_and_components",
@@ -564,7 +630,8 @@
   "check": "1 つの SKILL.md に、順に進む段階の見出しが複数あるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_skill_orchestration_and_components",
@@ -573,7 +640,8 @@
   "check": "コンポーネントの description・本文に「〜のとき使う」があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_skill_orchestration_and_components",
@@ -582,7 +650,8 @@
   "check": "コンポーネント本文に、他の段階への言及があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_subagent_findings_must_be_relayed",
@@ -591,7 +660,8 @@
   "check": "応答に「主題外」「別タスク」等が結論として断定されているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_vocabulary_must_have_a_source",
@@ -600,7 +670,8 @@
   "check": "「適切」「妥当」等の述語の同じ文に、基準が書かれているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_write_state_not_counts",
@@ -609,7 +680,8 @@
   "check": "passed/failed・ヒット数の集計を写した文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_write_state_not_counts",
@@ -618,7 +690,8 @@
   "check": "「指摘 N 件」「must 0 件」の形の文があるか",
   "type": 1,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_write_what_to_do_only",
@@ -627,7 +700,8 @@
   "check": "「食い違い」の引用 2 つが、同じ対象の両立しない動作か",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_write_what_to_do_only",
@@ -636,7 +710,8 @@
   "check": "直す案の追記に、しないことを書く文が入っているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_writing_briefs_for_other_sessions",
@@ -645,7 +720,8 @@
   "check": "Agent の prompt に「拒否されたら返す」「確認する」の類があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_writing_briefs_for_other_sessions",
@@ -654,7 +730,8 @@
   "check": "Agent の prompt に「報告は〜で書く」の類があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_no_paid_options",
@@ -663,7 +740,8 @@
   "check": "出力の課金が要る候補に、費用の記述が冒頭にあるか、無料の手段で足りない理由があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_owner_approval_sheet_style",
@@ -672,7 +750,8 @@
   "check": "承認依頼の出力に「〜1式」「〜N件」のような束ねの承認項目があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_owner_approval_sheet_style",
@@ -681,7 +760,8 @@
   "check": "承認依頼の本文に設計判断IDや内部機構名・実装用語があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_owner_approval_sheet_style",
@@ -690,7 +770,8 @@
   "check": "承認依頼の依頼セクションに、返答が要らない参考情報の項目が混ざっているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_owner_approval_sheet_style",
@@ -699,7 +780,8 @@
   "check": "承認依頼・通知に「1枚目を承認してから」のような順序指示の文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_commit_without_asking",
@@ -708,7 +790,8 @@
   "check": "最終応答が区切りのコミットの承認を求めているか（Jev）。当たれば許可済みの文を注入する",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_derive_architecture_from_requirements",
@@ -717,7 +800,8 @@
   "check": "構成の提案の層の数と、Claude CodeとCodexを横断する軸があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3
  },
  {
   "memory": "feedback_pda_derive_architecture_from_requirements",
@@ -726,7 +810,8 @@
   "check": "オーナーに構成の確認を求める資料の先頭に、図があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -735,7 +820,8 @@
   "check": "最終応答が数行か。承認シートの内容を本文に書き込んでいないか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_mask_project_names",
@@ -744,7 +830,8 @@
   "check": "案件名を伏せた原文の記録の頭に、伏せた旨の一文があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_progress_over_stopping",
@@ -753,7 +840,8 @@
   "check": "止める機能の提案の出力に、無い場合の結果と強さの記述があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_remake_cycle",
@@ -762,7 +850,8 @@
   "check": "評価記録の各不備に、3つの割り当てのどれかが書かれているか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_remake_cycle",
@@ -771,7 +860,8 @@
   "check": "Codex向けの指示の出力に、部品ごとの受け入れ条件の節があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_remake_cycle",
@@ -780,7 +870,8 @@
   "check": "評価記録に、割り当ての無い不備や反省点だけで閉じた不備があるか",
   "type": 1,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_artifact_audience_first",
@@ -789,7 +880,8 @@
   "check": "依頼文と書き出した宛先・目的を照合し、資料の形が合うか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_artifact_audience_first",
@@ -798,7 +890,8 @@
   "check": "依頼文から宛先が依頼者以外か自分用なら、本文に選択肢・回答欄があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_artifact_audience_first",
@@ -807,7 +900,8 @@
   "check": "依頼文の論点の語と、Artifactの題名・見出しの語を照合する",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_change_cost_is_set_by_own_design",
@@ -816,7 +910,8 @@
   "check": "オーナーの指摘の後、設計文書に差し替え部品と受入条件があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_commit_needs_no_confirmation",
@@ -825,7 +920,8 @@
   "check": "push等の呼び出しの前に、オーナーの明示指示があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_elicit_by_offering_reading",
@@ -834,7 +930,8 @@
   "check": "問いの答えが、オーナーの過去発言から書けるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_elicit_by_offering_reading",
@@ -843,7 +940,8 @@
   "check": "問いが一次回答のある事項に「補足して」を求めていないか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_elicit_by_offering_reading",
@@ -852,7 +950,8 @@
   "check": "聞き取り前に、書き直す節と欠けた材料の一覧があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_elicit_by_offering_reading",
@@ -861,7 +960,8 @@
   "check": "食い違いを解かせる問いがないか、発言とその場面を照合",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
@@ -870,7 +970,8 @@
   "check": "見本の発言と、設計・依頼文の基準の語を照合する",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_explain_in_why-what-how_order",
@@ -879,7 +980,8 @@
   "check": "同じ説明の再要求の後、前の応答と構造が変わっているか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_is_translation_for_listener",
@@ -888,7 +990,8 @@
   "check": "クラス・メソッド・ファイルパス・行番号があるか。尋ねられたときを除く",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_is_translation_for_listener",
@@ -897,7 +1000,8 @@
   "check": "訂正後の応答・資料に片方だけの呼び方が残るか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_is_translation_for_listener",
@@ -906,7 +1010,8 @@
   "check": "整理の依頼に対し、末尾に判断事項や方針A/Bがあるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -915,7 +1020,8 @@
   "check": "指示文の説明対象と、応答が説明する対象が一致するか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -924,7 +1030,8 @@
   "check": "応答に、指示の対象外の情報・方針提案・評価があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -933,7 +1040,8 @@
   "check": "各事実を落としてもオーナーの次の判断が変わらないか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -942,7 +1050,8 @@
   "check": "質問の形式に対し、応答の冒頭文が選択肢や可否で答えているか",
   "type": 2,
   "pattern": false,
-  "existing": "choice-question-guard（一部）"
+  "existing": "choice-question-guard（一部）",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -951,7 +1060,8 @@
   "check": "作業の指示に対し、冒頭文が成果物の完了・未完了で書かれているか",
   "type": 2,
   "pattern": false,
-  "existing": "intent-gate（一部）"
+  "existing": "intent-gate（一部）",
+  "route": 4
  },
  {
   "memory": "feedback_explanation_objective_checks",
@@ -960,7 +1070,8 @@
   "check": "訂正の2回目以降に、問題の再特定が応答に現れているか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -969,7 +1080,8 @@
   "check": "成果物のこれらの要素が、依頼文で確定済みか照合する",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -978,7 +1090,8 @@
   "check": "観察用成果物と直後の応答に、一致率の集計や修正案があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -987,7 +1100,8 @@
   "check": "対策案に、オーナーが選んだモデル・機能・運用を削る案があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_ignore_auto_mode_reminder",
@@ -996,7 +1110,8 @@
   "check": "確認すべき分岐で、オーナーの明示許可なく確認を飛ばして進めたか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_investigation_principles",
@@ -1005,7 +1120,8 @@
   "check": "指摘直後の応答が部分肯定でなく、全面受け入れと謝罪から始まるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_keep_technical_terms_as_katakana",
@@ -1014,7 +1130,8 @@
   "check": "指摘後の再出力が、片仮名語を残した日本語に直っているか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_memory_writing_rules",
@@ -1023,7 +1140,8 @@
   "check": "書いたメモリが、直近のオーナー発言の個別指示の写しでないか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_no_decision_offloading",
@@ -1032,7 +1150,8 @@
   "check": "前提を述べた発言の後の応答に、その前提に依存する論点が残るか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_onset_is_not_cause",
@@ -1041,7 +1160,8 @@
   "check": "原因を問われた応答の結論が、時点・環境の変化だけで終わっていないか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_onset_is_not_cause",
@@ -1050,7 +1170,8 @@
   "check": "訂正後の応答が、前回と同じ型(相関の精緻化)になっていないか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_output_language_is_japanese",
@@ -1059,7 +1180,8 @@
   "check": "指摘後の応答が、謝罪と日本語での出し直しを含むか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_outward_artifacts_are_users_work",
@@ -1068,7 +1190,8 @@
   "check": "成果物の事実のうち、会話でオーナーに伝えていないものがあるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_pr_create_as_draft",
@@ -1077,7 +1200,8 @@
   "check": "gh pr ready の呼び出し前に、オーナーの Ready 指示があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_separate_offtopic_findings",
@@ -1086,7 +1210,8 @@
   "check": "主題内のリストに、依頼の範囲外の項目が混ざっているか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_visual_spec_needs_picture",
@@ -1095,7 +1220,8 @@
   "check": "画面仕様を書いた実装指示の前に、絵の提示とオーナーの合意があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_visual_spec_needs_picture",
@@ -1104,7 +1230,8 @@
   "check": "了承が文章へのものだけなのに「了承済み」と書いたか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_visual_spec_needs_picture",
@@ -1113,7 +1240,8 @@
   "check": "オーナーが名指しした表示を別の形に書いた記述に、前後の絵があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_vocabulary_must_have_a_source",
@@ -1122,7 +1250,8 @@
   "check": "定義付き・連番付き・訳語の名詞が、資料や相手の発言に実在するか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_vocabulary_must_have_a_source",
@@ -1131,7 +1260,9 @@
   "check": "訂正された語が、後の応答・成果物に再び現れるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "訂正された語の一覧 (~/docs/unclear-japanese/index.md) との照合で決まる"
  },
  {
   "memory": "feedback_write_state_not_counts",
@@ -1140,7 +1271,8 @@
   "check": "件数・回数・行数が、尋ねられたか選択肢を分けるものか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_write_what_to_do_only",
@@ -1149,7 +1281,8 @@
   "check": "「〜せず」「〜しない」の句が、求められたか既定を止めるものか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1158,7 +1291,8 @@
   "check": "gate以外の途中で承認を求める文があるか。gate報告に反映操作の一覧があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_progress_over_stopping",
@@ -1167,7 +1301,8 @@
   "check": "hookや仕組みに、止める・断る・承認待ちの処理を書いたか。直前にオーナーの承認の発言があるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_requirements_from_owner_words",
@@ -1176,7 +1311,8 @@
   "check": "要件の出力の各項目に、原文の引用があるか。発言との整合はオーナーの発言との照合が要る",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_pda_requirements_from_owner_words",
@@ -1185,7 +1321,8 @@
   "check": "要件の出力に、画面で決まる見せ方・一覧・操作の項目が残っているか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
@@ -1194,7 +1331,8 @@
   "check": "試用の残りの削除の可否をオーナーに問う文が応答にあるか",
   "type": 2,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_askuserquestion_forbidden",
@@ -1203,7 +1341,8 @@
   "check": "ツール呼び出しの名前が AskUserQuestion か",
   "type": 3,
   "pattern": true,
-  "existing": "permissions.deny"
+  "existing": "permissions.deny",
+  "route": 1
  },
  {
   "memory": "feedback_bash_command_shape",
@@ -1212,7 +1351,8 @@
   "check": "拒否の直後に dangerouslyDisableSandbox を付けた呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_bash_command_shape",
@@ -1221,7 +1361,8 @@
   "check": "本体への git 書き込みが git -C 本体 の形で呼ばれているか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_browser_per_action_approval_sites",
@@ -1230,7 +1371,8 @@
   "check": "対象サイトで read_page等4つ以外のブラウザ道具を呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_browser_per_action_approval_sites",
@@ -1239,7 +1381,8 @@
   "check": "ミニPCのサービスの状態取得に、ブラウザ操作が使われたか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_clean_up_own_byproducts",
@@ -1248,7 +1391,8 @@
   "check": "報告の除去対象のうち自作のものが除去済みか、作成履歴と照合",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_clean_up_own_byproducts",
@@ -1257,7 +1401,8 @@
   "check": "報告に削除コマンドや「消す場合は」があり、対象が自作か",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_clean_up_own_byproducts",
@@ -1266,7 +1411,8 @@
   "check": "削除対象が作業前からあったものか、作成記録と照合する",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_commit_needs_no_confirmation",
@@ -1275,7 +1421,9 @@
   "check": "最終応答の時点で対象リポジトリに未コミット変更が残るか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "git status で決まる"
  },
  {
   "memory": "feedback_commit_needs_no_confirmation",
@@ -1284,7 +1432,8 @@
   "check": "許可要求の対象が git commit か（push・amend・rebase は除く）",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_dev_pc_connectors_include_skills",
@@ -1293,7 +1442,8 @@
   "check": "状態報告の前に、skill一覧とCLIログインを確かめた呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -1302,7 +1452,8 @@
   "check": "指摘に応じた編集の呼び出しより前に、3つの問いへの答えを書いたか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_exemplar_requirement_judged_by_demonstrated_fit",
@@ -1311,7 +1462,8 @@
   "check": "調査報告が見本を見ていない旨を含むのに、評価を使ったか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_final_response_divider",
@@ -1320,7 +1472,8 @@
   "check": "後にツール呼び出しが続くか否かと、先頭行が --- かを照合する",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_gh_runs_unsandboxed",
@@ -1329,7 +1482,8 @@
   "check": "呼び出しの名前が mcp__github__ で始まるか、依頼文に書かれたか",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_gh_runs_unsandboxed",
@@ -1338,7 +1492,8 @@
   "check": "gh で始まるBash呼び出しに無効化フラグが付いているか",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_gh_runs_unsandboxed",
@@ -1347,7 +1502,8 @@
   "check": "認証エラーの直後に excludedCommands を読んだ呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_headless_claude_inherits_hooks",
@@ -1356,7 +1512,8 @@
   "check": "stream出力の hook_started を見た後、hookを止める操作があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_headless_claude_inherits_hooks",
@@ -1365,7 +1522,8 @@
   "check": "実行後に増えた状態ファイルを列挙して削除したか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_investigation_principles",
@@ -1374,7 +1532,8 @@
   "check": "hook に止められた後、通し方を使わずにターンを返していないか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_investigation_principles",
@@ -1383,7 +1542,8 @@
   "check": "ファイル作成・送信・PR作成の前に、オーナーの承認発言があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_investigation_principles",
@@ -1392,7 +1552,8 @@
   "check": "「使えない」と報告する前に、ツール一覧の再確認や代替の試行があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_items_from_decomposition_not_from_search",
@@ -1401,7 +1562,8 @@
   "check": "最初の検索系ツール呼び出しより前に、判断と変数を書いた文があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_memory_writing_rules",
@@ -1410,7 +1572,8 @@
   "check": "メモリ新規作成のツール呼び出しと同じ操作に、索引の更新があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_no_answer_before_determining_work",
@@ -1419,7 +1582,8 @@
   "check": "その作業の実行中の応答が、固定文以外を含むか",
   "type": 3,
   "pattern": false,
-  "existing": "answer-gate"
+  "existing": "answer-gate",
+  "route": 4
  },
  {
   "memory": "feedback_no_answer_before_determining_work",
@@ -1428,7 +1592,8 @@
   "check": "実行中の背面作業が成功か失敗だけを返す作業か",
   "type": 3,
   "pattern": false,
-  "existing": "answer-gate"
+  "existing": "answer-gate",
+  "route": 4
  },
  {
   "memory": "feedback_no_excessive_comments",
@@ -1437,7 +1602,8 @@
   "check": "コメント追加の操作の前後に、該当条件を述べた1行があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_online_resource_must_be_linked",
@@ -1446,7 +1612,9 @@
   "check": "書いたリンクの URL が、取得したツール応答に現れた URL と合うか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "書いた URL とツールの結果の URL の照合で決まる"
  },
  {
   "memory": "feedback_onset_is_not_cause",
@@ -1455,7 +1623,8 @@
   "check": "探索を途中で打ち切った応答に、打ち切り地点を述べた一文があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_prefer_tool_over_gated_bash",
@@ -1464,7 +1633,8 @@
   "check": "代替可能な Bash の直前の応答に、代替できない理由があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_report_only_new_differences_as_problems",
@@ -1473,7 +1643,8 @@
   "check": "報告の注意点に、直さないと判断した指摘が載っているか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_respect_turn_handover_instruction",
@@ -1482,7 +1653,8 @@
   "check": "停止点指示の後に、指示外の外部発信ツールを呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_sandbox_denial_looks_like_absence",
@@ -1491,7 +1663,8 @@
   "check": "ENOENT 系の結果の後、応答が確認なしに「存在しない」と書くか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_sandbox_denial_looks_like_absence",
@@ -1500,7 +1673,8 @@
   "check": ".env・認証情報・鍵のパスを探す Read/Bash が続いたか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_secret_never_typed_in_command",
@@ -1509,7 +1683,8 @@
   "check": "秘密情報を表示した実行の後、履歴確認と再発行の案内があるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_show_visual_pages_as_artifact",
@@ -1518,7 +1693,8 @@
   "check": "画像を含むローカル HTML をユーザーに送る呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_subagent_findings_must_be_relayed",
@@ -1527,7 +1703,8 @@
   "check": "サブエージェント結果の個別の指摘が、応答本文に書かれているか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_todo_via_todo_scrap_mcp",
@@ -1536,7 +1713,8 @@
   "check": "todo 操作で ~/todo-scrap のファイルを Bash 等で直接触ったか",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_todo_via_todo_scrap_mcp",
@@ -1545,7 +1723,8 @@
   "check": "todo-scrap のエラー後に systemctl status があり、報告に載るか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_wait_for_approval",
@@ -1554,7 +1733,8 @@
   "check": "問いを含む応答と同じターンで、問いの対象の操作ツールを呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_wait_for_approval",
@@ -1563,7 +1743,8 @@
   "check": "「〜します」「お待ちします」の後の呼び出しが、宣言と矛盾するか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_work_ledger",
@@ -1572,7 +1753,8 @@
   "check": "個別の指示を受けた未完の作業で、台帳が作られているか",
   "type": 3,
   "pattern": false,
-  "existing": "work-ledger（一部）"
+  "existing": "work-ledger（一部）",
+  "route": 4
  },
  {
   "memory": "feedback_work_ledger",
@@ -1581,7 +1763,8 @@
   "check": "オーナーの指示の後、台帳の守る指示への書き込みがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_work_ledger",
@@ -1590,7 +1773,8 @@
   "check": "回答・公開・段階完了のターンで、台帳の進捗を更新したか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_work_ledger",
@@ -1599,7 +1783,8 @@
   "check": "要約から始まった会話で、台帳の Read より前に別の作業をしたか",
   "type": 3,
   "pattern": false,
-  "existing": "work-ledger（一部）"
+  "existing": "work-ledger（一部）",
+  "route": 1
  },
  {
   "memory": "feedback_pda_commit_run_instructions_immediately",
@@ -1608,7 +1793,8 @@
   "check": "docs/codex-runs等のファイルをWrite/Editした後、報告前にgit commitを呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_commit_run_instructions_immediately",
@@ -1617,7 +1803,8 @@
   "check": "「置いた」「書いた」の報告の前に、git ls-treeかgit statusを呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_credit_tests_authorized",
@@ -1626,7 +1813,8 @@
   "check": "許可要求の対象が、live probe・E2E 検証の実行か",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 2
  },
  {
   "memory": "feedback_pda_credit_tests_authorized",
@@ -1635,7 +1823,8 @@
   "check": "検証の終了時に、valveを本番値に戻す操作を呼んだか。通知を抑止したか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1644,7 +1833,8 @@
   "check": "agent-nodeでのテスト実行のコマンドに、niceが付くか。直前にfree -hを呼んだか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1653,7 +1843,8 @@
   "check": "権限拒否の後の代替の試行が2回を超えたか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1662,7 +1853,8 @@
   "check": "再開後の最初の操作で、git log・盤面・ledgerを読む呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1671,7 +1863,8 @@
   "check": "restricted-のファイルをRead/grepした呼び出しがあるか",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_goal_operating_rules",
@@ -1680,7 +1873,9 @@
   "check": "凍結したセッションのイベントを読み込む呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "凍結したセッションの一覧との照合で決まる"
  },
  {
   "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
@@ -1689,7 +1884,8 @@
   "check": "削除コマンドの対象に、.credentials.json・auth.json・.claude.json・settings.json・config.tomlがあるか",
   "type": 3,
   "pattern": true,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_trial_leftovers_cleanup_without_asking",
@@ -1698,7 +1894,8 @@
   "check": "削除が拒否された後に、別の方法で同じ対象を消す呼び出しがあるか",
   "type": 3,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -1707,7 +1904,8 @@
   "check": "レビューの指摘ごとに、実在するか・目的の内か・直した後が良いかを先に判定して整理する",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -1716,7 +1914,8 @@
   "check": "指示の理由の節を特定し、困っている問題をオーナーの語のまま書き出す。後ろのゲートは応答がその問題を解いているかを照らす",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -1725,7 +1924,8 @@
   "check": "オーナーの語が、オーナーが操作・観測できる世界で何を指すかを書き出す",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -1734,7 +1934,8 @@
   "check": "オーナーの語がオーナーの世界で持つ性質を書き出す。後ろのゲートは置き換えた形が性質を保つかを照らす",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_grasp_problem_before_solving",
@@ -1743,7 +1944,8 @@
   "check": "依頼から、原因の行為と困っている結果を分けて書き出す。後ろのゲートは発動条件が結果の事象かを照らす",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_items_from_decomposition_not_from_search",
@@ -1752,7 +1954,8 @@
   "check": "調査の前に、問う側の判断とそれを左右する変数を書き出す。後ろのゲートは各項目が変数に答えているかを照らす",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_match_host_vocabulary",
@@ -1761,7 +1964,8 @@
   "check": "追記先の文書で、追記する概念がどの語・表記で書かれているかを集める。後ろのゲートは追記がそれに合うかを照らす",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_outward_artifacts_are_users_work",
@@ -1770,7 +1974,8 @@
   "check": "実装の前に、作る構成の前例と規約を集め、外れるかを判定する。外れるならオーナーへの確認に回す",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_pda_derive_architecture_from_requirements",
@@ -1779,7 +1984,8 @@
   "check": "構成を考える前に、要件から実現すべきことを書き出し、部品の一覧ではなくそこから導く",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_pda_remake_cycle",
@@ -1788,7 +1994,9 @@
   "check": "リメイクを判定する前に、差分が触る関数の割合を数えて整理する",
   "type": 4,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1,
+  "route_note": "差分が触る関数の数え上げで決まる"
  },
  {
   "memory": "feedback_change_cost_is_set_by_own_design",
@@ -1797,7 +2005,8 @@
   "check": "変更の費用を理由にした記述に、出所が自分のこれから作る設計でないかを設計文書と照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -1806,7 +2015,8 @@
   "check": "オーナーに出す問いごとに、6つの関門を依頼と会話の記録に照らして通す",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -1815,7 +2025,8 @@
   "check": "問いが自分の成果物の欠陥を直すかの形なら、完了していないとして作業に戻す",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_decision_request_as_artifact",
@@ -1824,7 +2035,8 @@
   "check": "資料の各事実が、オーナーの選ぶ選択肢を変えうるかを判定する",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -1833,7 +2045,8 @@
   "check": "足したコメント・文書の中身が、コードから読めるものでないかを差分と照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_dont_fix_unwarranted_review_findings",
@@ -1842,7 +2055,8 @@
   "check": "足した分岐の壊れ方と、解消する問題が並べて書かれているかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_investigation_principles",
@@ -1851,7 +2065,9 @@
   "check": "応答の「無い・できない」の断定に、ツールの記録で観測した根拠があるかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4,
+  "route_note": "断定の文と、観測したツール呼び出しの記録を突き合わせる"
  },
  {
   "memory": "feedback_no_decision_offloading",
@@ -1860,7 +2076,8 @@
   "check": "「未確認」「要確認」の項目が、資料を読めば確定できるものなら作業に戻す",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_no_decision_offloading",
@@ -1869,7 +2086,8 @@
   "check": "「検証で確かめる」の項目が、推論で結論が出るものなら作業に戻す",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_no_decision_offloading",
@@ -1878,7 +2096,8 @@
   "check": "残課題の各項目が、オーナーの前提や推論で決まるものでないかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_no_excessive_risk_caveats",
@@ -1887,7 +2106,9 @@
   "check": "攻撃者だけが起こせる事象の但し書きが、個人情報の動線のものかを判定する",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3,
+  "route_note": "但し書きの文だけで、個人情報の動線かを判断できる"
  },
  {
   "memory": "feedback_report_only_new_differences_as_problems",
@@ -1896,7 +2117,8 @@
   "check": "報告の注意点の各項目が、変更前から同じ状態のものでないかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_separate_offtopic_findings",
@@ -1905,7 +2127,8 @@
   "check": "頼まれていない注意点・補足の主張に、本体と同じ根拠があるかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_work_ledger",
@@ -1914,7 +2137,8 @@
   "check": "比較・判断の文の軸が、台帳の守る指示の軸と一致するかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 5
  },
  {
   "memory": "feedback_no_paid_options",
@@ -1923,7 +2147,8 @@
   "check": "課金が要る選択肢があれば、無料の手段が尽きた理由が書かれているかを照らし、無ければ作業に戻す",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_c6_credit_scope",
@@ -1932,7 +2157,9 @@
   "check": "提案に、品質保証のAI起動をコストを理由に削る案がないかを判定する",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3,
+  "route_note": "提案の文だけで判定できるが、品質保証の起動かを見分けるのに推論が要る"
  },
  {
   "memory": "feedback_pda_c6_credit_scope",
@@ -1941,7 +2168,8 @@
   "check": "要約・報告から、オーナーが行動に使う識別子が元の情報と比べて落ちていないかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_mask_project_names",
@@ -1950,7 +2178,8 @@
   "check": "書いたファイル・コミットに、案件名の一覧に当たる固有名詞がないかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 1
  },
  {
   "memory": "feedback_pda_oss_capability_from_docs",
@@ -1959,7 +2188,8 @@
   "check": "未決・候補の一覧に、公式資料を読まずに「確かめていない」とした項目がないかを照らす",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 4
  },
  {
   "memory": "feedback_pda_requirements_from_owner_words",
@@ -1968,7 +2198,9 @@
   "check": "オーナーへの問いが機能要件か、仕組み・製品の選び方の問いかを判定する",
   "type": 5,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 3,
+  "route_note": "問いの文だけで判定できるが、機能要件か設計の問いかの見分けに推論が要る"
  },
  {
   "memory": "feedback_browser_per_action_approval_sites",
@@ -1977,7 +2209,8 @@
   "check": "",
   "type": 0,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 0
  },
  {
   "memory": "feedback_todo_via_todo_scrap_mcp",
@@ -1986,6 +2219,7 @@
   "check": "参照情報で、守らせる規則ではない",
   "type": 0,
   "pattern": false,
-  "existing": ""
+  "existing": "",
+  "route": 0
  }
 ]
