@@ -76,7 +76,7 @@
 
 - Docker Engine 29.9.2、Docker Compose v5.6.1。
 - Codex CLI 0.161.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済み。使える認証は `~/pda/secrets/codex/auth.json` で、`CODEX_HOME=/home/user/pda/secrets/codex` を付けて呼ぶ。`~/.codex/auth.json` は 2026-11-10 に更新用のトークンが入れ替わって無効になっている (`docs/claude-unification/spike-reply-gate.md` の 5.1 節)。
-  - 読み取りだけの砂箱 (`-s read-only`) では、同梱の bubblewrap が砂箱を作れず、命令が `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` で動かない (同じ節)。
+  - 読み取りだけのサンドボックス (`-s read-only`) では、同梱の bubblewrap がサンドボックスを作れず、命令が `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` で動かない (同じ節)。
   - 個人契約の Codex は、約 10 分に 5 回の呼び出しを超えると `429 Too Many Requests` を返した (同じ記録の 5.4 節)。
 - Claude Code CLI 2.1.293。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、常駐（Remote Control、OpenClaw）が使う認証は `~/pda/secrets/claude/.credentials.json`（`CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude`）。
 - OpenClaw 2026.10.10-beta.5（プレリリース）。`npm install -g --prefix /home/user/v03/openclaw openclaw@<バージョン>` で入れ、本体は `~/v03/openclaw/lib/node_modules/openclaw` にある。常駐は `v03-openclaw.service`、CLI は `~/v03/openclaw/oc`。バージョンを上げるときは、常駐を止めて本体を入れ替え、`oc doctor --fix` で保存データを移してから起動する。外から入れたプラグイン（`oc plugins list` で origin が global のもの）は、常駐を止めた状態で `oc plugins update <id>` を実行して本体と同じバージョンにそろえる。
