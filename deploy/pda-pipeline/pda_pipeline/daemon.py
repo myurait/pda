@@ -9,14 +9,14 @@ import sys
 import time
 import uuid
 
-from . import config, gates, services
+from . import config, gates, services, workdir
 from .ledger import Ledger
 from .prompt import extract_request, text_key
 
 PKG_DIR = pathlib.Path(__file__).resolve().parent.parent
 SHIM = str(PKG_DIR / "pda-shim")
 STREAM_LIMIT = 64 * 1024 * 1024
-PDA_TOOLS = "mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions"
+PDA_TOOLS = "mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir"
 
 SENT = "送信しました。オーナーに届きました。ターンを終えてください。"
 ALREADY = "このターンの返事はすでにオーナーに届いています。ターンを終えてください。"
@@ -98,13 +98,33 @@ class Turn:
         sdir.mkdir(parents=True, exist_ok=True)
         role = self.session["role"]
         text = "\n\n".join((services.ROLES_DIR / f"{n}.md").read_text(encoding="utf-8") for n in ("common", role))
-        (sdir / "role.md").write_text(text, encoding="utf-8")
+        (sdir / "role.md").write_text(text + "\n\n" + workdir.notes(self.workdir(sdir)), encoding="utf-8")
         env = {"PDA_SOCKET": cfg["socket"], "PDA_TURN_TOKEN": self.token}
         (sdir / "mcp.json").write_text(json.dumps({"mcpServers": {"pda": {
             "type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env, "alwaysLoad": True}}}))
         (sdir / "settings.json").write_text(json.dumps({"hooks": {"Stop": [{"hooks": [
             {"type": "command", "command": f"{cfg['python']} {SHIM} hook"}]}]}}))
         return sdir, env
+
+    def workdir(self, sdir):
+        cwd = self.session.get("cwd") or ""
+        if not cwd or not os.path.isdir(cwd):
+            cwd = str(sdir / "work")
+            os.makedirs(cwd, exist_ok=True)
+        return os.path.realpath(cwd)
+
+    def set_workdir(self, path):
+        cfg = self.d.cfg
+        sdir = pathlib.Path(cfg["data_dir"], "sessions", self.session["id"])
+        target = workdir.resolve(path, self.workdir(sdir))
+        if not os.path.isdir(target):
+            return f"{target} はディレクトリとして存在しないので、作業ディレクトリは替えていません。"
+        self.session["cwd"], self.session["workdir_fixed"] = target, 1
+        self.d.ledger.update_session(self.session["id"], cwd=target, workdir_fixed=1)
+        self.d.ledger.event("workdir", {"cwd": target}, self.session["id"], self.turn_id)
+        return (f"作業ディレクトリを {target} に替えました。このターンの残りのコマンドは、先頭で `cd {target}` を"
+                "実行するか、絶対パスで行ってください。次のターンからは、このディレクトリで始まります。\n\n"
+                + workdir.notes(target))
 
     async def run(self):
         d, cfg, s = self.d, self.d.cfg, self.session
@@ -131,10 +151,7 @@ class Turn:
         d, cfg, s = self.d, self.d.cfg, self.session
         sdir, env = self._files()
         role_cfg = cfg["roles"][s["role"]]
-        cwd = s.get("cwd") or ""
-        if not cwd or not os.path.isdir(cwd):
-            cwd = str(sdir / "work")
-            os.makedirs(cwd, exist_ok=True)
+        cwd = self.workdir(sdir)
         cmd = [cfg["claude_bin"], "-p", "--input-format", "stream-json", "--output-format", "stream-json",
                "--verbose", "--model", s.get("model") or role_cfg["model"], "--effort", role_cfg["effort"],
                "--setting-sources", "", "--settings", str(sdir / "settings.json"),
@@ -488,7 +505,7 @@ class AcpConn:
             async with d.spawn_lock:
                 row = d.ledger.session(params.get("sessionId", "")) or d.ledger.session_by_thread(self.thread_id)
                 if row:
-                    if params.get("cwd") and params["cwd"] != row.get("cwd"):
+                    if params.get("cwd") and params["cwd"] != row.get("cwd") and not row.get("workdir_fixed"):
                         d.ledger.update_session(row["id"], cwd=params["cwd"])
                     if self.thread_id and not row.get("t3_thread_id"):
                         d.ledger.update_session(row["id"], t3_thread_id=self.thread_id)
@@ -533,7 +550,13 @@ MCP_TOOLS = {
         "inputSchema": {"type": "object", "required": ["title", "request"], "properties": {
             "title": {"type": "string", "description": "セッションの名前 (作業の中身が分かる短い日本語)"},
             "request": {"type": "string", "description": "作業のセッションに渡す依頼の全文。そのセッションはこの文だけを見る"},
-            "model": {"type": "string", "description": "省くと既定のモデル"}}}},
+            "model": {"type": "string", "description": "省くと既定のモデル"},
+            "workdir": {"type": "string", "description": "作業のセッションの作業ディレクトリの絶対パス。省くと決めない"}}}},
+    "set_workdir": {
+        "description": ("このセッションの作業ディレクトリを替える。オーナーが別のディレクトリやリポジトリで作業すると言ったとき、"
+                        "作ったディレクトリで作業を続けるときに呼ぶ。そのディレクトリにAI向けの指示があれば、戻り値に入る。"),
+        "inputSchema": {"type": "object", "required": ["path"], "properties": {
+            "path": {"type": "string", "description": "作業ディレクトリにするディレクトリの絶対パス"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
@@ -582,6 +605,11 @@ class Daemon:
         title, request, model = args["title"], args["request"], args.get("model")
         if model and model not in self.cfg["worker_models"]:
             model = None
+        cwd = None
+        if args.get("workdir"):
+            cwd = workdir.resolve(args["workdir"], turn.session.get("cwd") or "/")
+            if not os.path.isdir(cwd):
+                return f"{cwd} はディレクトリとして存在しないので、セッションを起こしていません。"
         async with self.spawn_lock:
             res = await services.t3_mcp_call(t3, "t3_thread_launch",
                                              {"message": request, "scratch": True, "title": title})
@@ -593,6 +621,8 @@ class Daemon:
             else:
                 row = self.ledger.create_session(str(uuid.uuid4()), thread_id, str(uuid.uuid4()), None, "worker",
                                                  turn.session["id"], title, model)
+            if cwd:
+                self.ledger.update_session(row["id"], cwd=cwd, workdir_fixed=1)
             self.register_injection(thread_id, request, f"session:{turn.session['id']}")
         self.ledger.event("spawn", {"child": row["id"], "thread": thread_id, "title": title},
                           turn.session["id"], turn.turn_id)
@@ -629,7 +659,8 @@ class Daemon:
 
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
-        names = ["send_reply"] + (["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
+        names = ["send_reply", "set_workdir"] + (
+            ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
             params = msg.get("params") or {}
@@ -641,6 +672,8 @@ class Daemon:
                     text = await turn.submit(args.get("text", ""))
                 elif name == "start_session":
                     text = await self.start_session(turn, args)
+                elif name == "set_workdir":
+                    text = turn.set_workdir(args.get("path", ""))
                 else:
                     text = self.list_sessions(turn)
                 result = {"content": [{"type": "text", "text": text}], "isError": False}

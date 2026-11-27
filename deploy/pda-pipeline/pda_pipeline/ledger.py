@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT, session_id TEXT, turn_id INTEGER, kind TEXT, data TEXT);
 """
 
+ADDED_COLUMNS = [
+    ("sessions", "workdir_fixed", "INTEGER DEFAULT 0"),
+]
+
 
 def now():
     return time.strftime("%Y-%m-%dT%H:%M:%S%z")
@@ -35,6 +39,9 @@ class Ledger:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
+        for table, column, decl in ADDED_COLUMNS:
+            if column not in {r["name"] for r in self.db.execute(f"PRAGMA table_info({table})")}:
+                self.db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
 
     def _one(self, sql, args=()):
         row = self.db.execute(sql, args).fetchone()
