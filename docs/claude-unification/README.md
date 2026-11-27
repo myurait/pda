@@ -17,9 +17,14 @@ PDA の既存の書き方で、オーナーが求めているもの、それに�
 
 ## 決まっていないこと
 
-[solution-options.md](solution-options.md) の案Cの実現計画のうち、段階1を実装した ([design-stage1.md](design-stage1.md)、[check-stage1.md](check-stage1.md))。段階2を始める時期は、オーナーが決める。
+[solution-options.md](solution-options.md) の案Cの実現計画のうち、段階1を実装した ([design-stage1.md](design-stage1.md)、[check-stage1.md](check-stage1.md))。段階2は、2026-11-27のオーナーの指示で始めた。項目の優先度と完了条件は [plan-stage2.md](plan-stage2.md) にある。
 
 ## オーナーの判断の記録
+
+### 2026-11-27
+
+- 案Cの段階1のあと、段階2へ進む。項目の優先度と、項目ごとの完了条件を先に決めてから、順に進める。
+  - 発言 (原文): 「スマホでの動作確認完了。次のステップへ。優先度設定して、明確な完了条件を事前に設定し、順に自走せよ。」
 
 ### 2026-11-24
 
