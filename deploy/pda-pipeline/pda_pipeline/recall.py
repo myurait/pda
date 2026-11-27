@@ -2,6 +2,7 @@
 
 データは台帳 (SQLite) に置く。案件は、作業ディレクトリを含むリポジトリの最上位のパスで見分ける。
 """
+import difflib
 import json
 import os
 import re
@@ -160,3 +161,23 @@ def find_project(ledger, name, roots):
                      "sessions": sessions[-5:]})
     hits.sort(key=lambda h: (h["matched_by"] != "name", -len(h["sessions"])))
     return json.dumps(hits[:5], ensure_ascii=False, indent=1) if hits else "当たる案件はありません。"
+
+
+_SENTENCE = re.compile(r"[^。！？!?\n]+[。！？!?]?")
+
+
+def _sentences(text):
+    return [m.group(0).strip() for m in _SENTENCE.finditer(text or "") if len(m.group(0).strip()) >= 12]
+
+
+def repeated_instructions(ledger, request, before_turn, limit=40, ratio=0.85):
+    """いまの依頼の文のうち、前のオーナーの依頼にもほぼ同じ形で出ている文。繰り返し出している指示の候補になる。"""
+    earlier = []
+    for row in ledger._all("SELECT request FROM turns WHERE requester='owner' AND id<? ORDER BY id DESC LIMIT ?",
+                           (before_turn, limit)):
+        earlier += _sentences(row["request"])
+    out = []
+    for sentence in _sentences(request):
+        if any(difflib.SequenceMatcher(None, sentence, old).ratio() >= ratio for old in earlier):
+            out.append(sentence)
+    return out

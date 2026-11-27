@@ -191,6 +191,18 @@ class Turn:
         d.ledger.event("pre_gate", verdict, self.session["id"], self.turn_id)
         return self._pre_text()
 
+    def _repeated_text(self):
+        """前の依頼でも出ていた指示を、作業するセッションに知らせる文。PDA全体のゲートに足す候補になる。"""
+        if not self.d.cfg["norms"]["enabled"] or self.requester != "owner":
+            return ""
+        repeated = recall.repeated_instructions(self.d.ledger, self.request, self.turn_id)
+        if not repeated:
+            return ""
+        self.d.ledger.event("repeated_instruction", {"sentences": repeated}, self.session["id"], self.turn_id)
+        return ("\n\n[PDAの前処理] この依頼の次の文は、前の依頼でもほぼ同じ形で出ています。作業の中身ではなく、"
+                "進め方や返事の書き方の指示であれば、道具 list_gates で同じ規則が無いことを確かめたうえで、"
+                "add_gate でPDA全体の規則として足してください。\n" + "\n".join(f"- {r}" for r in repeated))
+
     def _pre_text(self):
         if not self.pre:
             return ""
@@ -242,7 +254,7 @@ class Turn:
             self.proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=cwd, env=env, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                 stderr=errlog, limit=STREAM_LIMIT, start_new_session=True)
-        self._send({"type": "user", "message": {"role": "user", "content": self.request + await self._pre_gate()}})
+        self._send({"type": "user", "message": {"role": "user", "content": self.request + await self._pre_gate() + self._repeated_text()}})
         async for raw in self.proc.stdout:
             try:
                 ev = json.loads(raw)
