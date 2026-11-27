@@ -349,13 +349,25 @@ class Turn:
         d, s = self.d, self.session
         t3 = d.t3.get(s["id"])
         for title, doc in self.documents.items():
+            call_id = f"mcp-{uuid.uuid4()}"
+            arguments = {"html": doc["html"], "title": title, "height": doc["height"] or DOCUMENT_HEIGHT}
             try:
                 if not t3:
                     raise RuntimeError("T3 Code の口が見つからない")
-                arguments = {"html": doc["html"], "title": title, "height": doc["height"] or DOCUMENT_HEIGHT}
+                # T3 Code の画面は、この道具の呼び出しの報告を見て資料を描く
+                self.conn.update(s["id"], {"sessionUpdate": "tool_call", "toolCallId": call_id,
+                                           "title": "t3-code html_render", "kind": "other", "status": "in_progress",
+                                           "rawInput": {"server": "t3-code", "tool": "html_render",
+                                                        "arguments": arguments}})
                 res = await services.t3_mcp_call(t3, "html_render", arguments)
+                self.conn.update(s["id"], {"sessionUpdate": "tool_call_update", "toolCallId": call_id,
+                                           "status": "completed",
+                                           "rawOutput": {"result": {"structuredContent": res, "isError": False}}})
                 d.ledger.event("document_rendered", {"title": title, "result": res}, s["id"], self.turn_id)
             except Exception as exc:  # noqa: BLE001
+                if t3:
+                    self.conn.update(s["id"], {"sessionUpdate": "tool_call_update", "toolCallId": call_id,
+                                               "status": "failed"})
                 d.ledger.event("document_error", {"title": title, "error": repr(exc)[:500]}, s["id"], self.turn_id)
                 self.final += f"\n\n※ 資料「{title}」は画面に出せませんでした。写しはミニPCの {doc['copy']} にあります。"
 
