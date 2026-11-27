@@ -1,6 +1,6 @@
-# PDAのパイプライン (案Cの段階1)
+# PDAのパイプライン (案C)
 
-T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し、終端のゲートを通った一通だけを画面と通知に出す。設計は [docs/claude-unification/design-stage1.md](../../docs/claude-unification/design-stage1.md)、確かめた結果は [docs/claude-unification/check-stage1.md](../../docs/claude-unification/check-stage1.md) にある。
+T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し、終端のゲートを通った一通だけを画面と通知に出す。設計は [design-stage1.md](../../docs/claude-unification/design-stage1.md) と [design-stage2.md](../../docs/claude-unification/design-stage2.md)、確かめた結果は [check-stage1.md](../../docs/claude-unification/check-stage1.md) と [check-stage2.md](../../docs/claude-unification/check-stage2.md) にある。
 
 | ファイル | 役目 |
 | --- | --- |
@@ -8,7 +8,8 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | `pda-shim` | 常駐への薄い口。`acp` (T3 Codeが起こす)、`mcp` (返信の道具)、`hook` (Stopのhook) の3つ |
 | `pda-ledger` | 台帳を参照するコマンド |
 | `roles/` | 役の指示。`common.md` と、役ごとの `main.md`・`worker.md`、報告係の `reporter.md` |
-| `rules.json` | 伝え方の規約のゲートに載せる規則と問い |
+| `rules.json` | 伝え方の規約のゲートに載せる規則と問い (段階1。`norms.enabled` が切のときに使う) |
+| `norms/` | オーナーの規約の正本。`rules.json` (規則ごとの、載せるか・判定器・問い・外れを差し戻すか)、`mcp.json` (すべてのセッションに配るMCP)、`plugin/` (すべてのセッションに配るskill) |
 | `pda-pipeline.service` | 常駐の定義 |
 | `pda-t3code.service` | T3 Codeのサーバーの定義 |
 | `tests/` | 単体の試験と、T3 Codeの代わりにACPの口を起こす確かめ用のクライアント |
@@ -18,6 +19,8 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 - 直すときは、ここを直してコミットし、ミニPCの `~/pda` を pull する。役の指示と規則は次のターンから効く。コードを直したときは `systemctl --user restart pda-pipeline.service` を実行する。
 - 常駐は `~/pda/deploy/pda-pipeline/` から直接動く。ミニPCに写しを置かない。
 - 設定の上書き `~/.config/pda-pipeline/config.json` と、通知先 `~/.config/claude-login-notify/ntfy.env` はコミットしない。
+- オーナーの規約は `norms/rules.json` を直す。規則の `load` が載せるか、`judge` が判定器、`enforce` が外れを差し戻すか (`false` は判定を台帳に残すだけ) である。直すと、常駐を起こし直さずに次のターンから効く。
+- `norms/` には、開発PCの会社のアカウントの規則と、開発PCのメモリの本文を置かない。
 
 ## 置き場
 
@@ -85,6 +88,7 @@ T3 Codeの設定 `~/spike-t3code/home/userdata/settings.json` の `providerInsta
 }
 ```
 
+- `norms.enabled` を `true` にすると、`norms/` の正本から、役の指示・報告係の指示・ゲートの問いを組み、依頼を受けた時点のゲートを動かす。`norms.pre_gate` を `false` にすると、依頼を受けた時点のゲートだけを外す。
 - `judge.fixed` は試験用の固定の判定で、Codexを呼ばずに決まった結果を返す。`{"mode": "reject_until", "n": 12}` は12回目の送信まで差し戻す。`"delay"` は判定が返るまでの秒数である。
 - 設定を変えたら常駐を起こし直す。
 
@@ -101,6 +105,7 @@ python3 -m unittest discover -s deploy/pda-pipeline/tests         # 単体の試
 
 - セッションごとの `claude -p` のエラー出力は `~/.local/share/pda-pipeline/sessions/<セッション>/claude.stderr` に残る。
 - T3 Codeを通さずに常駐だけを確かめるときは、`tests/acp_client.py <スレッドの名前> <依頼>` を使う。
+- 台帳に残っている出した一通を、正本の問いに通し直すときは、`tests/replay_norms.py <台帳のSQLite>` を使う。規則ごとに、出した一通を外れにした数が出る。
 - T3 CodeのCLIから依頼を送るときは、次のようにする。`<プロジェクトのID>` には、プロジェクトに属さないスレッドの入れ物のIDを渡す。
 
 ```sh
