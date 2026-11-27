@@ -100,6 +100,8 @@ journalctl --user -u pda-pipeline.service -n 30                   # 常駐の記
 deploy/pda-pipeline/pda-ledger sessions                           # セッションの一覧
 deploy/pda-pipeline/pda-ledger turns                              # ターンの一覧 (新しい順)
 deploy/pda-pipeline/pda-ledger show <ターンの番号>                 # 送信ごとの下書きと判定、出来事
+deploy/pda-pipeline/pda-ledger knowledge                          # 案件ごとに残した、決まったこと・分かったこと
+deploy/pda-pipeline/pda-ledger forget <番号>                       # 残した1件を消す
 python3 -m unittest discover -s deploy/pda-pipeline/tests         # 単体の試験
 ```
 
