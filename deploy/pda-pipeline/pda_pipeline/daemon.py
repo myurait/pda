@@ -138,6 +138,8 @@ class Turn:
             async with d.claude_sem:
                 if not self.cancelled:
                     await self._run_claude()
+                    if self._lost_claude_session():
+                        await self._run_claude()
         except Exception as exc:  # noqa: BLE001
             log("turn error", self.turn_id, repr(exc))
             d.ledger.event("turn_error", {"error": repr(exc)}, s["id"], self.turn_id)
@@ -155,6 +157,28 @@ class Turn:
                 CLAUDE_FAILED + (err["text"] or err["error"] or "")
             await self.release(text, "failed")
         return "end_turn"
+
+    def _lost_claude_session(self):
+        """台帳とClaude Codeのセッションの記録が食い違って起こせなかったとき、台帳を直して起こし直させる。"""
+        d, s = self.d, self.session
+        if self.released or self.cancelled:
+            return False
+        errlog = pathlib.Path(d.cfg["data_dir"], "sessions", s["id"], "claude.stderr")
+        try:
+            tail = errlog.read_bytes()[-2000:].decode("utf-8", "replace")
+        except OSError:
+            return False
+        sid = s["claude_session_id"]
+        if s.get("claude_started") and f"No conversation found with session ID: {sid}" in tail:
+            s["claude_started"], s["claude_session_id"] = 0, str(uuid.uuid4())
+        elif not s.get("claude_started") and f"Session ID {sid} is already in use" in tail:
+            s["claude_started"] = 1
+        else:
+            return False
+        d.ledger.update_session(s["id"], claude_started=s["claude_started"], claude_session_id=s["claude_session_id"])
+        d.ledger.event("claude_session_reset", {"was": sid, "started": s["claude_started"]}, s["id"], self.turn_id)
+        self.claude_error = None
+        return True
 
     async def _run_claude(self):
         d, cfg, s = self.d, self.d.cfg, self.session
@@ -184,13 +208,13 @@ class Turn:
             kind = ev.get("type")
             if kind == "control_request":
                 asyncio.create_task(self._on_control(ev))
-            elif kind == "system" and ev.get("subtype") == "init":
-                d.ledger.update_session(s["id"], claude_started=1)
-                s["claude_started"] = 1
             elif kind in ("assistant", "user") and not ev.get("parent_tool_use_id"):
                 content = ev.get("message", {}).get("content")
                 if kind == "assistant" and ev.get("error"):
                     self.claude_error = {"error": ev["error"], "text": result_text(content)[:500]}
+                elif kind == "assistant" and not s.get("claude_started"):
+                    d.ledger.update_session(s["id"], claude_started=1)
+                    s["claude_started"] = 1
                 for block in content if isinstance(content, list) else []:
                     if block.get("type") == "tool_use":
                         self._on_tool_use(block)
