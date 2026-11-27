@@ -371,7 +371,10 @@ class Turn:
 
             first_ids = gates.codex_rule_ids(d.rules, draft, triggers)
             rule_fails, completion = split(await codex(first_ids))
-            if rule_fails and use_reporter:
+            if not completion["pass"]:
+                # 作業が足りないときは、文面を直す前に作業するセッションへ戻す
+                pass
+            elif rule_fails and use_reporter:
                 for _ in range(lim["codex_rejudge"]):
                     draft = await self._reporter(drafts, text, draft, rule_fails)
                     verdicts.append(gates.script_gate(draft))
