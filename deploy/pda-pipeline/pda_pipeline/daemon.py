@@ -5,6 +5,7 @@ import os
 import pathlib
 import secrets
 import signal
+import stat
 import sys
 import time
 import uuid
@@ -322,11 +323,16 @@ class Turn:
         path = workdir.resolve(str(args.get("path") or ""), self.workdir(sdir))
         if not title:
             return "題名が空なので、資料は預かっていません。"
-        if not os.path.isfile(path):
-            return f"{path} はファイルとして存在しないので、資料は預かっていません。"
-        if os.path.getsize(path) > DOCUMENT_MAX_BYTES:
+        try:
+            with open(path, "rb") as f:
+                if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+                    raise OSError("not a regular file")
+                raw = f.read(DOCUMENT_MAX_BYTES + 1)
+        except OSError:
+            return f"{path} はファイルとして開けないので、資料は預かっていません。"
+        if len(raw) > DOCUMENT_MAX_BYTES:
             return f"{path} は大きすぎる ({DOCUMENT_MAX_BYTES} バイトまで) ので、資料は預かっていません。"
-        html = pathlib.Path(path).read_text(encoding="utf-8", errors="replace")
+        html = raw.decode("utf-8", errors="replace")
         copy = sdir / "documents" / f"{self.turn_id}-{len(self.documents) + 1}.html"
         copy.parent.mkdir(parents=True, exist_ok=True)
         copy.write_text(html, encoding="utf-8")
