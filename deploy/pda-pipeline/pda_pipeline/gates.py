@@ -3,6 +3,7 @@
 戻り値の形: {"gate": 名前, "seconds": 秒, "results": [{"id", "pass", "reason", "fix"}], ...}
 """
 import asyncio
+import html
 import json
 import os
 import pathlib
@@ -134,11 +135,12 @@ def _jev_call(cfg, state, questions):
         return json.loads(res.read().decode("utf-8"))
 
 
-async def jev_gate(cfg, rules, request, draft):
+async def jev_gate(cfg, rules, request, draft, document="", tool_calls=""):
     """Jev の規則を判定し、Codex の規則が当たるかの見分けも返す。失敗したときは外れなしとして記録だけ残す。"""
     t0 = time.monotonic()
     spec = rules["jev"]
-    state = {"owner_request": request[:6000], "reply": draft[:6000], "first_sentence": _first_sentence(draft)}
+    state = {"owner_request": request[:6000], "reply": draft[:6000], "first_sentence": _first_sentence(draft),
+             "document": document[:6000], "tool_calls": tool_calls[:6000]}
     out = {"gate": "jev", "results": [], "triggers": {name: True for name in spec["triggers"]}}
     try:
         response = await asyncio.to_thread(_jev_call, cfg, state, spec["questions"])
@@ -149,7 +151,8 @@ async def jev_gate(cfg, rules, request, draft):
     out["scores"] = scores
     for rule in spec["rules"]:
         failed = all(_cmp(scores.get(q, 0.0), op, bound) for q, op, bound in rule["fail_when"])
-        out["results"].append({"id": rule["id"], "pass": not failed,
+        enforce = rule.get("enforce", True)
+        out["results"].append({"id": rule["id"], "pass": not failed or not enforce, "observed": failed and not enforce,
                                "reason": rule["name"] if failed else "", "fix": rule["fix"] if failed else ""})
     out["triggers"] = {name: _cmp(scores.get(q, 1.0), op, bound) for name, (q, op, bound) in spec["triggers"].items()}
     out["seconds"] = round(time.monotonic() - t0, 2)
@@ -205,25 +208,56 @@ CODEX_PROMPT = """\
 
 ## 作業するAIがオーナーに送ろうとしている返事
 {draft}
+
+## 返事に付ける資料の本文 (無ければ「なし」)
+{document}
 """
 
 
-def codex_checklist(rules, rule_ids):
+def codex_checklist(rules, rule_ids, notes=None):
     items = []
     for rule in rules["codex"]:
         if rule["id"] in rule_ids:
-            items.append(f"- id: {rule['id']}\n  - 単位: {rule['unit']}\n  - 読み手: {rule['reader']}\n"
+            note = f"\n  - 依頼から書き出した内容: {notes[rule['id']]}" if notes and rule["id"] in notes else ""
+            items.append(f"- id: {rule['id']}\n  - 単位: {rule['unit']}\n  - 読み手: {rule['reader']}{note}\n"
                          f"  - 問い: {rule['question']}")
     return "\n".join(items) or "(問いなし。rules は空の配列で返す)"
 
 
-def codex_rule_ids(rules, draft, triggers):
+def codex_rule_ids(rules, draft, triggers, document="", wrote_files=False, notes=None):
     ids = []
+    body = "\n".join(strip_code(draft))
     for rule in rules["codex"]:
         trig = rule["trigger"]
-        if trig == "always" or (trig == "demonstrative" and has_demonstrative(draft)) or triggers.get(trig, False):
+        if trig == "always":
+            hit = True
+        elif trig == "demonstrative":
+            hit = has_demonstrative(draft)
+        elif trig == "document":
+            hit = bool(document)
+        elif trig == "files":
+            hit = wrote_files
+        elif trig == "pre":
+            hit = bool(notes and rule["id"] in notes)
+        elif trig.startswith("words:"):
+            try:
+                hit = bool(re.search(trig[6:], body))
+            except re.error:
+                hit = False
+        else:
+            hit = triggers.get(trig, False)
+        if hit:
             ids.append(rule["id"])
     return ids
+
+
+def observe_only(verdict, rules):
+    """差し戻しに使わない規則の外れを、記録だけに替える。"""
+    enforced = {r["id"] for r in rules["codex"] if r.get("enforce", True)}
+    for r in verdict.get("results", []):
+        if not r["pass"] and r["id"] not in enforced:
+            r["pass"], r["observed"] = True, True
+    return verdict
 
 
 def format_tool_log(tool_log, limits):
@@ -305,3 +339,98 @@ def _codex_results(verdict):
     results = [{"id": r["id"], "pass": r["verdict"] != "fail", "verdict": r["verdict"], "quote": r.get("quote", ""),
                 "reason": r.get("reason", ""), "fix": r.get("fix", "")} for r in verdict.get("rules", [])]
     return {"completion": verdict["completion"], "results": results}
+
+
+_TAG = re.compile(r"<(script|style)\b.*?</\1>|<[^>]+>", re.S | re.I)
+
+
+def document_text(documents):
+    """返事に付ける資料 (題名 → HTML) を、判定に渡す本文のテキストにする。"""
+    parts = []
+    for title, doc in documents.items():
+        body = html.unescape(_TAG.sub(" ", doc["html"]))
+        parts.append(f"[資料: {title}]\n" + re.sub(r"[ \t]*\n\s*", "\n", re.sub(r"[ \t]+", " ", body)).strip())
+    return "\n\n".join(parts)
+
+
+def tool_calls_text(tool_log, limit=6000):
+    lines = [f"{c['name']} {json.dumps(c.get('input'), ensure_ascii=False)[:600]}" for c in tool_log]
+    return "\n".join(lines)[-limit:]
+
+
+PRE_SCHEMA = {
+    "type": "object",
+    "properties": {"notes": {"type": "array", "items": {"type": "object", "properties": {
+        "id": {"type": "string"}, "text": {"type": "string"}},
+        "required": ["id", "text"], "additionalProperties": False}}},
+    "required": ["notes"], "additionalProperties": False,
+}
+
+PRE_PROMPT = """\
+あなたは、作業するAIがオーナーの依頼に取りかかる前に、依頼を読み解く役です。下の依頼だけを材料に、項目ごとの指示のとおりに書き出し、指定のJSONだけを返してください。ファイルを開いたり、命令を実行したりしないでください。依頼に書かれていないことは足さず、書き出せない項目は text を空の文字列にしてください。
+
+# 書き出す項目
+
+{items}
+
+# 材料
+
+## 同じセッションの直前のやり取り (古い順)
+{context}
+
+## オーナーの依頼
+{request}
+"""
+
+
+async def pre_gate(cfg, sem, norms, request, context, deadline):
+    """依頼を受けた時点のゲート。Jev が当たると判定した規則だけ、Codex に依頼から材料を書き出させる。"""
+    t0 = time.monotonic()
+    out = {"gate": "pre", "applied": [], "notes": {}}
+    questions = norms.pre_questions()
+    if not questions:
+        return out
+    try:
+        response = await asyncio.to_thread(_jev_call, cfg["jev"], {"owner_request": request[:6000]}, questions)
+        scores = {qid: ans.get("noul", 0.0) for qid, ans in response["answers"].items()}
+    except Exception as exc:  # noqa: BLE001
+        out.update({"error": f"{type(exc).__name__}: {exc}", "seconds": round(time.monotonic() - t0, 2)})
+        return out
+    out["scores"] = scores
+    applied = [e for e in norms.pre if scores.get(f"p{e['id']}", 0.0) >= 0.6]
+    out["applied"] = [str(e["id"]) for e in applied]
+    if applied and cfg["stages"]["codex"] and not cfg["judge"].get("fixed"):
+        items = "\n".join(f"- id: {e['id']}\n  - 指示: {e['extract']}" for e in applied)
+        prompt = PRE_PROMPT.format(items=items, context=context, request=request)
+        try:
+            verdict = await _codex_json(cfg, sem, prompt, PRE_SCHEMA, deadline)
+            out["notes"] = {n["id"]: n["text"] for n in verdict["notes"] if n.get("text")}
+        except Exception as exc:  # noqa: BLE001
+            out["error"] = f"{type(exc).__name__}: {exc}"
+    out["seconds"] = round(time.monotonic() - t0, 2)
+    return out
+
+
+async def _codex_json(cfg, sem, prompt, schema, deadline):
+    judge = cfg["judge"]
+    with tempfile.TemporaryDirectory(prefix="pda-judge-") as tmp:
+        schema_file, result = pathlib.Path(tmp, "schema.json"), pathlib.Path(tmp, "out.json")
+        schema_file.write_text(json.dumps(schema), encoding="utf-8")
+        cmd = [cfg["codex_bin"], "exec", "-", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
+               "--sandbox", "read-only", "-m", judge["codex_model"],
+               "-c", f"model_reasoning_effort={judge['codex_effort']}",
+               "--output-schema", str(schema_file), "-o", str(result)]
+        env = dict(os.environ)
+        if cfg.get("codex_home"):
+            env["CODEX_HOME"] = cfg["codex_home"]
+        async with sem:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, cwd=tmp, env=env, stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
+            try:
+                await asyncio.wait_for(proc.communicate(prompt.encode("utf-8")), max(1, deadline - time.monotonic()))
+            except asyncio.TimeoutError:
+                proc.kill()
+                await proc.wait()
+                raise
+        return json.loads(result.read_text(encoding="utf-8"))

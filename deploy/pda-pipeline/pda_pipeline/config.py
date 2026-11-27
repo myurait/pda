@@ -52,6 +52,8 @@ DEFAULTS = {
         "endpoint": "https://api.typesafe.ai/v1/systemone",
         "model": "jev-latest",
     },
+    # オーナーの規約の正本 (norms/) から、役の指示とゲートの問いを組む。切のときは rules.json と roles/ だけを使う
+    "norms": {"enabled": False, "pre_gate": True},
     "disallowed_tools": [
         "AskUserQuestion", "PushNotification", "EnterPlanMode", "ExitPlanMode", "ScheduleWakeup",
         "CronCreate", "CronDelete", "CronList", "RemoteTrigger",

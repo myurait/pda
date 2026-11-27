@@ -10,7 +10,7 @@ import sys
 import time
 import uuid
 
-from . import config, gates, services, workdir
+from . import config, gates, norms, services, workdir
 from .ledger import Ledger
 from .prompt import extract_request, text_key
 
@@ -98,6 +98,7 @@ class Turn:
         self.proc = None
         self.claude_error = None
         self.documents = {}
+        self.pre = None
         self.reply_lock = asyncio.Lock()
 
     # claude -p の実行
@@ -107,10 +108,17 @@ class Turn:
         sdir.mkdir(parents=True, exist_ok=True)
         role = self.session["role"]
         text = "\n\n".join((services.ROLES_DIR / f"{n}.md").read_text(encoding="utf-8") for n in ("common", role))
+        servers = {}
+        if cfg["norms"]["enabled"]:
+            text += "\n\n" + self.d.norms().instructions("worker")
+            mcp_file = norms.NORMS_DIR / "mcp.json"
+            if mcp_file.is_file():
+                servers.update(json.loads(mcp_file.read_text(encoding="utf-8")).get("mcpServers", {}))
         (sdir / "role.md").write_text(text + "\n\n" + workdir.notes(self.workdir(sdir)), encoding="utf-8")
         env = {"PDA_SOCKET": cfg["socket"], "PDA_TURN_TOKEN": self.token}
-        (sdir / "mcp.json").write_text(json.dumps({"mcpServers": {"pda": {
-            "type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env, "alwaysLoad": True}}}))
+        servers["pda"] = {"type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env,
+                          "alwaysLoad": True}
+        (sdir / "mcp.json").write_text(json.dumps({"mcpServers": servers}))
         (sdir / "settings.json").write_text(json.dumps({"hooks": {"Stop": [{"hooks": [
             {"type": "command", "command": f"{cfg['python']} {SHIM} hook"}]}]}}))
         return sdir, env
@@ -163,6 +171,27 @@ class Turn:
             await self.release(text, "failed")
         return "end_turn"
 
+    async def _pre_gate(self):
+        """依頼を受けた時点のゲート。書き出した内容を、作業するセッションへの依頼のあとに添える文で返す。"""
+        d, cfg = self.d, self.d.cfg
+        if self.pre is not None or not (cfg["norms"]["enabled"] and cfg["norms"]["pre_gate"] and cfg["stages"]["jev"]):
+            return self._pre_text()
+        self.pre = {}
+        context = "\n".join(f"- 依頼: {t['request'][:1500]}\n  返事: {t['final_text'][:1500]}"
+                            for t in d.ledger.recent_exchanges(self.session["id"], self.turn_id)) or "(なし)"
+        verdict = await gates.pre_gate(cfg, d.codex_sem, d.norms(), self.request, context, time.monotonic() + 120)
+        self.pre = verdict["notes"]
+        d.ledger.event("pre_gate", verdict, self.session["id"], self.turn_id)
+        return self._pre_text()
+
+    def _pre_text(self):
+        if not self.pre:
+            return ""
+        rules = {str(e["id"]): e["rule"] for e in self.d.norms().pre}
+        lines = "\n".join(f"- {rules.get(rid, rid)}: {text}" for rid, text in self.pre.items())
+        return ("\n\n[PDAの前処理] この依頼について、取りかかる前に書き出した内容です。作業と返事をこの内容に照らしてください。\n"
+                + lines)
+
     def _lost_claude_session(self):
         """台帳とClaude Codeのセッションの記録が食い違って起こせなかったとき、台帳を直して起こし直させる。"""
         d, s = self.d, self.session
@@ -199,12 +228,14 @@ class Turn:
                "--allowedTools", PDA_TOOLS, "--disallowedTools", ",".join(cfg["disallowed_tools"])]
         cmd += ["--resume", s["claude_session_id"]] if s.get("claude_started") else \
                ["--session-id", s["claude_session_id"]]
+        if cfg["norms"]["enabled"] and (norms.NORMS_DIR / "plugin").is_dir():
+            cmd += ["--plugin-dir", str(norms.NORMS_DIR / "plugin")]
         env = services.claude_env(cfg, {**env, "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "0"})
         with open(sdir / "claude.stderr", "ab") as errlog:
             self.proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=cwd, env=env, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
                 stderr=errlog, limit=STREAM_LIMIT, start_new_session=True)
-        self._send({"type": "user", "message": {"role": "user", "content": self.request}})
+        self._send({"type": "user", "message": {"role": "user", "content": self.request + await self._pre_gate()}})
         async for raw in self.proc.stdout:
             try:
                 ev = json.loads(raw)
@@ -442,8 +473,9 @@ class Turn:
             return ret
 
     async def _reporter(self, drafts, report, draft=None, failed=None):
+        extra = self.d.norms().instructions("reporter") if self.d.cfg["norms"]["enabled"] else ""
         new = await services.reporter_write(self.d.cfg, self.d.reporter_sem, self.request, report, draft,
-                                            fix_lines(failed) if failed else None)
+                                            fix_lines(failed) if failed else None, extra)
         new = gates.fix_spacing(new)
         drafts.append(new)
         self.last_draft = new
@@ -454,6 +486,11 @@ class Turn:
         stages, lim = cfg["stages"], cfg["limits"]
         deadline = time.monotonic() + cfg["judge"]["timeout_sec"]
         use_reporter = stages["reporter"]
+        rules = d.current_rules()
+        document = gates.document_text(self.documents)
+        tool_calls = gates.tool_calls_text(self.tool_log)
+        wrote = any(c["name"] in ("Write", "Edit", "NotebookEdit") for c in self.tool_log)
+        notes = self.pre or {}
         if use_reporter:
             draft = await self._reporter(drafts, text)
         else:
@@ -464,7 +501,8 @@ class Turn:
         triggers, conv_fails = {"propose": True}, []
         for i in range(lim["reporter_rewrites"] + 1):
             sv = gates.script_gate(draft)
-            jv = await gates.jev_gate(cfg["jev"], d.rules, self.request, draft) if stages["jev"] else None
+            jv = await gates.jev_gate(cfg["jev"], rules, self.request, draft, document, tool_calls) \
+                if stages["jev"] else None
             verdicts.extend(v for v in (sv, jv) if v)
             triggers = jv["triggers"] if jv else triggers
             conv_fails = fails(sv) + fails(jv)
@@ -480,16 +518,19 @@ class Turn:
                                 for t in d.ledger.recent_exchanges(self.session["id"], self.turn_id)) or "(なし)"
 
             async def codex(rule_ids):
-                args = {"checklist": gates.codex_checklist(d.rules, rule_ids), "request": self.request,
-                        "context": context, "tool_log": gates.format_tool_log(self.tool_log, lim), "draft": draft}
+                args = {"checklist": gates.codex_checklist(rules, rule_ids, notes), "request": self.request,
+                        "context": context, "tool_log": gates.format_tool_log(self.tool_log, lim), "draft": draft,
+                        "document": document or "なし"}
                 verdict = await gates.codex_gate(cfg, d.codex_sem, args, rule_ids, deadline, self.attempt_no)
+                gates.observe_only(verdict, rules)
                 verdicts.append(verdict)
                 return verdict
 
             def split(verdict):
                 return fails(verdict), verdict["completion"]
 
-            rule_fails, completion = split(await codex(gates.codex_rule_ids(d.rules, draft, triggers)))
+            rule_fails, completion = split(await codex(
+                gates.codex_rule_ids(rules, draft, triggers, document, wrote, notes)))
             if not completion["pass"]:
                 # 作業が足りないときは、文面を直す前に作業するセッションへ戻す
                 pass
@@ -679,12 +720,22 @@ class Daemon:
         self.ledger = Ledger(pathlib.Path(cfg["data_dir"], "ledger.sqlite"))
         self.ledger.close_dangling_turns()
         self.rules = gates.load_rules()
+        self._merged = None
         self.turns, self.active, self.t3 = {}, {}, {}
         self.injections = []
         self.spawn_lock = asyncio.Lock()
         self.claude_sem = asyncio.Semaphore(cfg["limits"]["claude_procs"])
         self.reporter_sem = asyncio.Semaphore(2)
         self.codex_sem = asyncio.Semaphore(cfg["limits"]["codex_procs"])
+
+    def norms(self):
+        return norms.load()
+
+    def current_rules(self):
+        """終端のゲートに使う規則。正本が入のときは、正本から組んだ規則を使う。"""
+        if not self.cfg["norms"]["enabled"]:
+            return self.rules
+        return self.norms().rules
 
     # 常駐が T3 Code へ送った文の登録と照合
     def register_injection(self, thread_id, text, requester):

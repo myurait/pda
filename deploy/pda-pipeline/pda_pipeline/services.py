@@ -108,15 +108,20 @@ REPORTER_REWRITE = """
 """
 
 
-async def reporter_write(cfg, sem, request, report, draft=None, fixes=None):
-    """報告係に一通を書かせる。失敗したときは例外を投げる。"""
+async def reporter_write(cfg, sem, request, report, draft=None, fixes=None, extra=""):
+    """報告係に一通を書かせる。失敗したときは例外を投げる。extra は役の指示のあとにつなぐ節。"""
     role = cfg["roles"]["reporter"]
+    role_file = ROLES_DIR / "reporter.md"
+    if extra:
+        role_file = pathlib.Path(cfg["data_dir"], "reporter.md")
+        role_file.write_text((ROLES_DIR / "reporter.md").read_text(encoding="utf-8") + "\n\n" + extra,
+                             encoding="utf-8")
     prompt = REPORTER_INPUT.format(request=request, report=report)
     if draft is not None:
         prompt += REPORTER_REWRITE.format(draft=draft, fixes="\n".join(f"- {f}" for f in fixes))
     cmd = [cfg["claude_bin"], "-p", "--model", role["model"], "--effort", role["effort"], "--tools", "",
            "--setting-sources", "", "--strict-mcp-config", "--no-session-persistence", "--output-format", "json",
-           "--system-prompt-file", str(ROLES_DIR / "reporter.md")]
+           "--system-prompt-file", str(role_file)]
     async with sem:
         proc = await asyncio.create_subprocess_exec(
             *cmd, cwd=cfg["data_dir"], env=claude_env(cfg), stdin=asyncio.subprocess.PIPE,
