@@ -32,7 +32,7 @@
 - userspace networking の `tailscaled` は、tailnet から来た接続を `127.0.0.1` への接続としてミニ PC に渡す。`127.0.0.1` だけで待ち受けるもの（OpenClaw 本体の 5114、逆向きトンネルの 22037 など）にも tailnet から届くため、tailnet の規則で通す通信を次の 2 つに限っている。規則は Tailscale の管理画面（Access controls）にあり、IP で書いている。
   - 開発 PC から、ミニ PC の 22（SSH）と 19114
   - iPhone と Windows の PC から、ミニ PC の 19114
-- 19114 は OpenClaw に使っていたが、2026-11-23 から試験の T3 Code（`spike-t3code.service` の `127.0.0.1:18900`）に付け替えている。OpenClaw へ tailnet から届く Serve の割り当ては無い。
+- 19114 は OpenClaw に使っていたが、2026-11-23 から T3 Code（`pda-t3code.service` の `127.0.0.1:18900`）に付け替えている。OpenClaw へ tailnet から届く Serve の割り当ては無い。
 - 個人の todo とスクラップ（`~/todo-scrap`）の画面を 18800 で、受け口と MCP の口を持つサーバーを 18700 で公開している。開発 PC、iPhone、Windows の PC から 18800 と 18700 に届くよう、上の規則に足す。
 - 公開設定（Serve）には v0.1 のサービスへの転送が残っている。転送先（`127.0.0.1` の 9120、9121、9122、18501〜18504）は撤去済みで、どの URL も応答しない。転送は `tailscale-pda serve` で変更する。
 
@@ -51,8 +51,8 @@
 ## 3. 動いているもの
 
 - システムのサービスは、Ubuntu Server の標準に Docker Engine と containerd を加えたもの。
-- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`、`todo-scrap-mcp.service`（どれも自動起動が有効）。
-- 試験の常駐 `spike-t3code.service`（T3 Code の画面を借りる形の試験。自動起動が有効）を、オーナーがスマホで見え方を見るまで置いている。中身は `~/spike-t3code` にあり、置いたものと消し方は `docs/claude-unification/spike-t3code-screen.md` の 6 節にある。
+- ユーザー単位の常駐は `tailscale-pda.service`、`v03-openclaw.service`、`claude-remote-control.service`、`todo-scrap-mcp.service`、`pda-pipeline.service`、`pda-t3code.service`（どれも自動起動が有効）。
+- `pda-pipeline.service` は PDA のパイプライン（案 C の段階 1）の常駐で、`pda-t3code.service` はその画面になる T3 Code のサーバーである。T3 Code の本体とデータは `~/spike-t3code` にある。定義と手順は `deploy/pda-pipeline/`、設計は `docs/claude-unification/design-stage1.md` にある。
 - 個人の todo とスクラップは、Git のリポジトリ（正本 `~/todo-scrap.git`、作業クローン `~/todo-scrap`）に Markdown で置く。画面は SilverBullet のコンテナ `todo-scrap-sb`、iPhone の共有シートから URL を受け取る受け口と、AI が読み書きするための MCP の口は 1 つのサーバー `todo-scrap-mcp.service`、編集を 5 分ごとにコミットするのはタイマー `todo-scrap-autocommit.timer`。PDA に付随する仕組みで、定義と手順は `deploy/todo-scrap/` にある。
 - `claude-remote-control.service` は Claude Code の Remote Control の常駐で、claude.ai/code、モバイルアプリ、デスクトップアプリから環境 `mini-pc` を選ぶとミニ PC の `/home/user` でセッションが始まる。個人契約の claude.ai のログインを使い、ログインの期限（ログインから約 29 日）が切れると止まる。
 - 定期実行はユーザーのタイマー `claude-login-notify.timer` と `todo-scrap-autocommit.timer`。前者は毎日 10:30 に上のログインの期限を確かめ、残りが 3 日以下ならスマホへ ntfy で通知する。cron は使っていない。
@@ -68,16 +68,16 @@
   - 18700: todo とスクラップの受け口と MCP（`/mcp`）のサーバー（tailnet へは Serve の 18700 で公開）
   - 18800: todo とスクラップの画面 SilverBullet（tailnet へは Serve の 18800 で公開）
   - 18600: 音声認識サーバー（`~/v03/asr`。常駐の設定は無く、再起動後は手で起動する）
-  - 18900: 試験の T3 Code（`spike-t3code.service`。tailnet へは Serve の 19114 で公開）
+  - 18900: T3 Code（`pda-t3code.service`。tailnet へは Serve の 19114 で公開）
   - 44105: Tailscale の通信
   - `127.0.0.1:22037`: 逆向きの SSH トンネル
 
 ## 4. 入っているツールと認証
 
 - Docker Engine 29.9.2、Docker Compose v5.6.1。
-- Codex CLI 0.161.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済み。使える認証は `~/pda/secrets/codex/auth.json` で、`CODEX_HOME=/home/user/pda/secrets/codex` を付けて呼ぶ。`~/.codex/auth.json` は 2026-11-10 に更新用のトークンが入れ替わって無効になっている (`docs/claude-unification/spike-reply-gate.md` の 5.1 節)。
-  - 読み取りだけのサンドボックス (`-s read-only`) では、同梱の bubblewrap がサンドボックスを作れず、命令が `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` で動かない (同じ節)。
-  - 個人契約の Codex は、約 10 分に 5 回の呼び出しを超えると `429 Too Many Requests` を返した (同じ記録の 5.4 節)。
+- Codex CLI 0.172.0。`~/.local/bin/codex` は `~/.codex/packages/` への symlink。個人契約でログイン済み。使える認証は `~/.codex/auth.json`（2026-11-24 にログインし直した。`docs/claude-unification/spike-gate-models.md` の 5.1 節）で、PDA のパイプラインの判定はこの認証で Codex を呼ぶ。
+  - サンドボックス (`-s read-only`) では、同梱の bubblewrap がサンドボックスを作れず、命令が `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` で動かない (`docs/claude-unification/spike-reply-gate.md` の 5.2 節)。
+  - 混雑のときは、アカウント単位で数分呼び出しが止まることがある (`docs/claude-unification/rule-gates.md` の 6.10 節)。
 - Claude Code CLI 2.1.293。`~/.local/bin/claude` は `~/.local/share/claude/versions/` への symlink。個人契約でログイン済みで、常駐（Remote Control、OpenClaw）が使う認証は `~/pda/secrets/claude/.credentials.json`（`CLAUDE_CONFIG_DIR=/home/user/pda/secrets/claude`）。
 - OpenClaw 2026.10.10-beta.5（プレリリース）。`npm install -g --prefix /home/user/v03/openclaw openclaw@<バージョン>` で入れ、本体は `~/v03/openclaw/lib/node_modules/openclaw` にある。常駐は `v03-openclaw.service`、CLI は `~/v03/openclaw/oc`。バージョンを上げるときは、常駐を止めて本体を入れ替え、`oc doctor --fix` で保存データを移してから起動する。外から入れたプラグイン（`oc plugins list` で origin が global のもの）は、常駐を止めた状態で `oc plugins update <id>` を実行して本体と同じバージョンにそろえる。
 - v0.2 の実行器は、この 2 つの認証ファイルの複製を `~/pda/secrets/` に置いて使う。ホストの `~/.codex` と `~/.claude` はマウントしない。手順は `docs/runbook/increment-3.md` の 2〜3 節。

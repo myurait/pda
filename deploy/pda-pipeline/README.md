@@ -60,7 +60,17 @@ T3 Codeの設定 `~/spike-t3code/home/userdata/settings.json` の `providerInsta
 }
 ```
 
-端末からT3 Codeにつなぐ手順は [spike-t3code-screen.md](../../docs/claude-unification/spike-t3code-screen.md) の7節のとおりである。
+## 端末からつなぐ
+
+1. ミニPCでペアリングのURLを作る。出た `Pairing URL` の `http://127.0.0.1:18900` を `https://pda-web.tailaff53a.ts.net:19114` に置き換える (`#token=` からあとは残す)。URLは1台につき1回使える。
+
+   ```sh
+   ~/spike-t3code/bin/t3 pair --base-dir ~/spike-t3code/home --ttl 10m --label <端末の名前>
+   ```
+
+   `t3 pair --tailscale` は、Tailscale Serveの443の割り当てを書き換えるので使わない。
+2. スマホのT3 Codeのアプリでは、Settings → Environments → Add environment にURLを貼る。PCのブラウザでは、URLを開く。
+3. 新しいスレッドは、providerの `PDA` で始まる。オーナーが作ったスレッドがメインセッションになる。
 
 ## 設定
 

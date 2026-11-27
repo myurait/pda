@@ -303,6 +303,8 @@ PDA のパイプラインでは、作業するセッションに渡す依頼の�
 
 ## 6. ミニ PC に残したものと消し方
 
+2026-11-27 に、案 C の段階 1 で、この節の常駐 `spike-t3code.service` を `pda-t3code.service` に置き換え、stub と stub の記録を消した。T3 Code の置き場と Tailscale Serve の割り当ては変えていない ([design-stage1.md](design-stage1.md) の 8 節)。7 節の手順 4 の stub の語句は、置き換えのあとは効かない。つなぎ方は [deploy/pda-pipeline/README.md](../../deploy/pda-pipeline/README.md) にある。以下は検証を終えた時点の記録である。
+
 オーナーがスマホで見え方を見るまで、次のものを動かしたまま残した。
 
 - ユーザー単位の常駐 `spike-t3code.service` (自動起動が有効)。定義は `~/.config/systemd/user/spike-t3code.service`。
