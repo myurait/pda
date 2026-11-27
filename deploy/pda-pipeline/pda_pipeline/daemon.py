@@ -116,7 +116,7 @@ class Turn:
             mcp_file = norms.NORMS_DIR / "mcp.json"
             if mcp_file.is_file():
                 servers.update(json.loads(mcp_file.read_text(encoding="utf-8")).get("mcpServers", {}))
-        text += "\n\n" + recall.notes(self.d.ledger, self.workdir(sdir))
+        text += "\n\n" + recall.notes(self.d.ledger, self.workdir(sdir), self.request)
         (sdir / "role.md").write_text(text + "\n\n" + workdir.notes(self.workdir(sdir)), encoding="utf-8")
         env = {"PDA_SOCKET": cfg["socket"], "PDA_TURN_TOKEN": self.token}
         servers["pda"] = {"type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env,

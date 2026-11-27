@@ -4,6 +4,7 @@
 """
 import json
 import os
+import re
 
 NOTE_CHARS = 600
 
@@ -84,9 +85,29 @@ def knowledge(ledger, cwd, limit=40):
                        (path, limit))[::-1]
 
 
-def notes(ledger, cwd):
-    """役の指示のあとにつなぐ、案件で決まったことの節。"""
-    rows = knowledge(ledger, cwd)
+_ABS_PATH = re.compile(r"(?<![A-Za-z0-9_.~-])(~?/[A-Za-z0-9_.@+~-]+(?:/[A-Za-z0-9_.@+~-]+)*)")
+
+
+def mentioned_dirs(text):
+    """依頼の文に出てくる絶対パスのうち、在るもののディレクトリ。"""
+    out = []
+    for m in _ABS_PATH.finditer(text or ""):
+        path = os.path.realpath(os.path.expanduser(m.group(1)))
+        if os.path.isdir(path):
+            out.append(path)
+        elif os.path.isfile(path):
+            out.append(os.path.dirname(path))
+    return out
+
+
+def notes(ledger, cwd, request=""):
+    """役の指示のあとにつなぐ、案件で決まったことの節。作業ディレクトリの案件と、依頼の文に出てくるパスの案件を対象にする。"""
+    rows, seen = [], set()
+    for d in [cwd, *mentioned_dirs(request)]:
+        path = project_path(d)
+        if path and path not in seen:
+            seen.add(path)
+            rows += knowledge(ledger, path)
     if not rows:
         return ""
     lines = "\n".join(f"- {r['text']} ({r['created_at'][:10]}、セッション {(r['session_id'] or '')[:8]})" for r in rows)
