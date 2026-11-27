@@ -29,6 +29,7 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | 台帳と、セッションごとの生成ファイル | `~/.local/share/pda-pipeline/` |
 | 常駐のソケット | `$XDG_RUNTIME_DIR/pda-pipeline.sock` |
 | 設定の上書き | `~/.config/pda-pipeline/config.json` (無ければ既定) |
+| セッションが足し引きした規則 | `~/.local/share/pda-pipeline/norms/overlay.json` (正本の `norms/rules.json` に重ねる) |
 | T3 Codeの本体とデータ | `~/spike-t3code/` (待ち受けは `127.0.0.1:18900`、Tailscale Serveの19114で公開) |
 | Claudeのログイン | `~/pda/secrets/claude` (`claude-remote-control.service` と同じ) |
 | Codexのログイン | `~/.codex` |
