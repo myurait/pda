@@ -823,6 +823,7 @@ class Daemon:
         self.rules = gates.load_rules()
         self._merged = None
         self.bridge, self.bridge_jobs = None, {}
+        self.conns = set()
         self.turns, self.active, self.t3 = {}, {}, {}
         self.injections = []
         self.spawn_lock = asyncio.Lock()
@@ -1014,6 +1015,7 @@ class Daemon:
 
     # 口ごとの接続
     async def on_conn(self, reader, writer):
+        self.conns.add(writer)
         try:
             hello = json.loads(await reader.readline())
             if hello["kind"] == "acp":
@@ -1030,6 +1032,7 @@ class Daemon:
         except Exception as exc:  # noqa: BLE001
             log("conn error", repr(exc))
         finally:
+            self.conns.discard(writer)
             writer.close()
 
     async def _serve_mcp(self, reader, writer, hello):
@@ -1109,8 +1112,11 @@ class Daemon:
             asyncio.get_running_loop().add_signal_handler(sig, lambda: stop.done() or stop.set_result(None))
         async with server:
             await stop
-        for turn in list(self.active.values()):
-            turn.cancel()
+            for turn in list(self.active.values()):
+                turn.cancel()
+            # 開いたままのつながりが残っていると、サーバーの終了がそのつながりの終わりを待ち続ける
+            for writer in list(self.conns):
+                writer.close()
 
 
 def main():
