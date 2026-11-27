@@ -16,7 +16,9 @@ from .prompt import extract_request, text_key
 PKG_DIR = pathlib.Path(__file__).resolve().parent.parent
 SHIM = str(PKG_DIR / "pda-shim")
 STREAM_LIMIT = 64 * 1024 * 1024
-PDA_TOOLS = "mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir"
+PDA_TOOLS = ("mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir,"
+             "mcp__pda__attach_document")
+DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
 
 SENT = "送信しました。オーナーに届きました。ターンを終えてください。"
 ALREADY = "このターンの返事はすでにオーナーに届いています。ターンを終えてください。"
@@ -93,6 +95,7 @@ class Turn:
         self.last_draft = None
         self.proc = None
         self.claude_error = None
+        self.documents = {}
         self.reply_lock = asyncio.Lock()
 
     # claude -p の実行
@@ -310,6 +313,46 @@ class Turn:
         self.d.ledger.event("notify", {"kind": "permission", "status": status}, self.session["id"], self.turn_id)
 
     # 一通を出す
+    # 資料
+    def attach_document(self, args):
+        cfg, s = self.d.cfg, self.session
+        sdir = pathlib.Path(cfg["data_dir"], "sessions", s["id"])
+        title = " ".join(str(args.get("title") or "").split())[:80]
+        path = workdir.resolve(str(args.get("path") or ""), self.workdir(sdir))
+        if not title:
+            return "題名が空なので、資料は預かっていません。"
+        if not os.path.isfile(path):
+            return f"{path} はファイルとして存在しないので、資料は預かっていません。"
+        if os.path.getsize(path) > DOCUMENT_MAX_BYTES:
+            return f"{path} は大きすぎる ({DOCUMENT_MAX_BYTES} バイトまで) ので、資料は預かっていません。"
+        html = pathlib.Path(path).read_text(encoding="utf-8", errors="replace")
+        copy = sdir / "documents" / f"{self.turn_id}-{len(self.documents) + 1}.html"
+        copy.parent.mkdir(parents=True, exist_ok=True)
+        copy.write_text(html, encoding="utf-8")
+        height = args.get("height")
+        self.documents[title] = {"html": html, "copy": str(copy),
+                                 "height": int(height) if isinstance(height, (int, float)) else None}
+        self.d.ledger.event("document_attached", {"title": title, "path": path, "copy": str(copy),
+                                                  "bytes": len(html.encode("utf-8"))}, s["id"], self.turn_id)
+        return (f"資料「{title}」を預かりました。返事が点検を通って届くときに、スレッドの中で返事の上に出ます。"
+                "send_reply に渡す内容では、資料の題名と、資料で何が分かるかに触れてください。")
+
+    async def _render_documents(self):
+        d, s = self.d, self.session
+        t3 = d.t3.get(s["id"])
+        for title, doc in self.documents.items():
+            try:
+                if not t3:
+                    raise RuntimeError("T3 Code の口が見つからない")
+                arguments = {"html": doc["html"], "title": title}
+                if doc["height"]:
+                    arguments["height"] = doc["height"]
+                res = await services.t3_mcp_call(t3, "html_render", arguments)
+                d.ledger.event("document_rendered", {"title": title, "result": res}, s["id"], self.turn_id)
+            except Exception as exc:  # noqa: BLE001
+                d.ledger.event("document_error", {"title": title, "error": repr(exc)[:500]}, s["id"], self.turn_id)
+                self.final += f"\n\n※ 資料「{title}」は画面に出せませんでした。写しはミニPCの {doc['copy']} にあります。"
+
     async def release(self, text, outcome, note=None):
         if self.released:
             return
@@ -317,6 +360,8 @@ class Turn:
         self.final = f"{text}\n\n---\n{note}" if note else text
         self.outcome = outcome
         d, s = self.d, self.session
+        if outcome != "failed":
+            await self._render_documents()
         self.conn.update(s["id"], {"sessionUpdate": "agent_message_chunk",
                                    "content": {"type": "text", "text": self.final}})
         d.ledger.finish_turn(self.turn_id, outcome, self.final)
@@ -595,6 +640,14 @@ MCP_TOOLS = {
                         "作ったディレクトリで作業を続けるときに呼ぶ。そのディレクトリにAI向けの指示があれば、戻り値に入る。"),
         "inputSchema": {"type": "object", "required": ["path"], "properties": {
             "path": {"type": "string", "description": "作業ディレクトリにするディレクトリの絶対パス"}}}},
+    "attach_document": {
+        "description": ("HTMLの資料を、オーナーへの返事に付ける。資料は、返事が届くときに、スレッドの中で返事の上に出る。"
+                        "自己完結のHTML (styleとscriptはインライン) をファイルに作り、その絶対パスを渡す。"
+                        "同じ題名でもう一度呼ぶと差し替える。表・図・比較のように、文より資料のほうが伝わる内容に使う。"),
+        "inputSchema": {"type": "object", "required": ["title", "path"], "properties": {
+            "title": {"type": "string", "description": "資料の題名"},
+            "path": {"type": "string", "description": "HTMLのファイルの絶対パス"},
+            "height": {"type": "number", "description": "画面に出す高さ (ピクセル)。省くと既定"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
@@ -697,7 +750,7 @@ class Daemon:
 
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
-        names = ["send_reply", "set_workdir"] + (
+        names = ["send_reply", "set_workdir", "attach_document"] + (
             ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
@@ -712,6 +765,8 @@ class Daemon:
                     text = await self.start_session(turn, args)
                 elif name == "set_workdir":
                     text = turn.set_workdir(args.get("path", ""))
+                elif name == "attach_document":
+                    text = turn.attach_document(args)
                 else:
                     text = self.list_sessions(turn)
                 result = {"content": [{"type": "text", "text": text}], "isError": False}
