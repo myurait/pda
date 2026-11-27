@@ -91,6 +91,10 @@ def serve(cfg):
         for line in ssh.stdout:
             try:
                 msg = json.loads(line)
+                if "ping" in msg:
+                    ssh.stdin.write('{"pong": 1}\n')
+                    ssh.stdin.flush()
+                    continue
                 job, request = msg["id"], msg["request"]
             except (ValueError, KeyError, TypeError):
                 continue
