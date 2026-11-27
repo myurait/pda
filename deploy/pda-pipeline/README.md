@@ -93,11 +93,13 @@ PDAのセッションが、道具 `ask_dev_pc` で、開発PCのClaude (会社�
 - 頼んだ依頼の文と、開発PCのClaudeの返事は、ミニPCの常駐を通り、PDAのセッションの返事の材料になる。返事の材料は、ミニPCの台帳に残り、返事の前の判定 (Jev、Codex) に渡り、返事に入った分は通知 (ntfy) にも出る。
 - 動いた記録は `~/Library/Logs/pda-bridge.log` に残る。依頼の番号と文字数だけで、依頼と返事の中身は残さない。
 
-開発PCに入れるときは、リポジトリのフォルダで次を実行する。
+開発PCに入れるときは、開発PCのリポジトリのフォルダ (`~/dev/pda`) で次を実行する。取り出しているブランチに関わらず、mainの中身から入れる。
 
 ```sh
-install -m 755 deploy/pda-pipeline/dev-pc/pda-bridge ~/.local/bin/
-install -m 644 deploy/pda-pipeline/dev-pc/com.pda.dev-pc-bridge.plist ~/Library/LaunchAgents/
+git fetch origin main:main
+git show main:deploy/pda-pipeline/dev-pc/pda-bridge > ~/.local/bin/pda-bridge
+chmod 755 ~/.local/bin/pda-bridge
+git show main:deploy/pda-pipeline/dev-pc/com.pda.dev-pc-bridge.plist > ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist
 launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist
 tail ~/Library/Logs/pda-bridge.log    # connected の行が出る
 ```
