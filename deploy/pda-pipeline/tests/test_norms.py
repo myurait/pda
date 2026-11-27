@@ -73,3 +73,43 @@ class NormsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OverlayTest(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.overlay = pathlib.Path(self.tmp.name, "norms", "overlay.json")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_added_rule_is_carried_and_judged(self):
+        entry = norms.add_rule(self.overlay, {"rule": "返事の最後に実行したコマンドを書く",
+                                              "violates": "Does reply lack a final line listing the commands?"})
+        merged = norms.load(overlay=self.overlay)
+        self.assertIn("- 返事の最後に実行したコマンドを書く\n", merged.instructions("reporter"))
+        rule = next(r for r in merged.rules["jev"]["rules"] if r["id"] == entry["id"])
+        self.assertTrue(rule["enforce"])
+
+    def test_change_and_remove(self):
+        entry = norms.add_rule(self.overlay, {"rule": "古い文", "violates": "Is it old?"})
+        base = norms.load(overlay=self.overlay)
+        norms.change_rule(self.overlay, base.entries, entry["id"], {"rule": "新しい文", "enforce": False})
+        changed = norms.load(overlay=self.overlay)
+        self.assertIn("- 新しい文\n", changed.instructions("reporter"))
+        self.assertFalse(next(r for r in changed.rules["jev"]["rules"] if r["id"] == entry["id"])["enforce"])
+        norms.remove_rule(self.overlay, changed.entries, entry["id"])
+        self.assertNotIn("新しい文", norms.load(overlay=self.overlay).instructions("reporter"))
+
+    def test_removing_a_canonical_rule_unloads_it(self):
+        base = norms.load(overlay=self.overlay)
+        norms.remove_rule(self.overlay, base.entries, 126)
+        after = norms.load(overlay=self.overlay)
+        self.assertNotIn("126", [r["id"] for r in after.rules["jev"]["rules"]])
+        self.assertIn("126", [r["id"] for r in norms.load().rules["jev"]["rules"]])
+
+    def test_pipeline_rule_cannot_be_changed(self):
+        base = norms.load(overlay=self.overlay)
+        with self.assertRaises(ValueError):
+            norms.change_rule(self.overlay, base.entries, "P1", {"enforce": False})

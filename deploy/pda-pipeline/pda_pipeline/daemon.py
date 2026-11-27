@@ -19,7 +19,8 @@ SHIM = str(PKG_DIR / "pda-shim")
 STREAM_LIMIT = 64 * 1024 * 1024
 PDA_TOOLS = ("mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir,"
              "mcp__pda__attach_document,mcp__pda__list_all_sessions,mcp__pda__search_history,mcp__pda__remember,"
-             "mcp__pda__find_project")
+             "mcp__pda__find_project,mcp__pda__list_gates,mcp__pda__add_gate,mcp__pda__change_gate,"
+             "mcp__pda__remove_gate")
 DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
 DOCUMENT_HEIGHT = 600
 
@@ -39,6 +40,7 @@ NOTE_ERROR = "※ 点検の処理が失敗したので、この返事は完了�
 NOTE_COMPLETION = "※ この返事は完了判定を通っていません。点検役が挙げた点: "
 NOTE_STOP = "※ 作業するセッションが返事を送り直さずに終えたので、この返事は点検を通っていません。"
 
+JUDGE_NAMES = {"jev": "Jev", "codex": "Codex", None: "なし (役の指示にだけ載せる)"}
 KINDS = {"Bash": "execute", "Read": "read", "Edit": "edit", "Write": "edit", "NotebookEdit": "edit",
          "Grep": "search", "Glob": "search", "WebFetch": "fetch", "WebSearch": "fetch"}
 
@@ -100,6 +102,7 @@ class Turn:
         self.proc = None
         self.claude_error = None
         self.documents = {}
+        self.gate_changes = []
         self.pre = None
         self.reply_lock = asyncio.Lock()
 
@@ -502,6 +505,10 @@ class Turn:
         stages, lim = cfg["stages"], cfg["limits"]
         deadline = time.monotonic() + cfg["judge"]["timeout_sec"]
         use_reporter = stages["reporter"]
+        if self.gate_changes:
+            # ゲートの変更は、オーナーの承認を待たずに効かせる代わりに、その一通の議題として必ず伝える
+            text += ("\n\n[このターンに行った、PDA全体のゲートの変更。返事に1つの議題として必ず入れる]\n"
+                     + "\n".join(f"- {c}" for c in self.gate_changes))
         rules = d.current_rules()
         document = gates.document_text(self.documents)
         tool_calls = gates.tool_calls_text(self.tool_log)
@@ -749,6 +756,34 @@ MCP_TOOLS = {
                         "やり取りと、その案件で決まっていることを引き当てる。"),
         "inputSchema": {"type": "object", "required": ["name"], "properties": {
             "name": {"type": "string", "description": "案件の名前か、作業の中身を表す語"}}}},
+    "list_gates": {
+        "description": "PDA全体に適用している規則 (ゲート) を、規則の文の語で探す。番号・判定器・外れを差し戻すかを返す。",
+        "inputSchema": {"type": "object", "properties": {
+            "query": {"type": "string", "description": "規則の文に含まれる語 (空白で区切る。省くと先頭から)"}}}},
+    "add_gate": {
+        "description": ("PDA全体に適用する規則 (ゲート) を1つ足す。オーナーが一般の規則として述べたこと、同じ種類の作業で"
+                        "繰り返し出した指示を、言われなくても行われるようにするときに使う。足した規則は、次のターンから、"
+                        "すべてのセッションの役の指示に載り、返事の前に判定される。オーナーの承認は要らない。"),
+        "inputSchema": {"type": "object", "required": ["rule"], "properties": {
+            "rule": {"type": "string", "description": "規則の文 (何をするかを1文で)"},
+            "role": {"type": "string", "enum": ["reporter", "worker"],
+                     "description": "reporter は返事の書き方の規則、worker は作業の進め方と作る物の規則"},
+            "applies": {"type": "string", "description": "規則の場面のときに YES になる英語の yes/no の問い。どの返事にも当たるなら省く。材料は owner_request・reply・first_sentence・document・tool_calls"},
+            "violates": {"type": "string", "description": "返事が規則に外れているときに YES になる英語の yes/no の問い (Jev が判定する)"},
+            "fix": {"type": "string", "description": "外れたときの直し方 (日本語)"},
+            "question": {"type": "string", "description": "推論が要る規則のときに、violates の代わりに渡す日本語の問い (Codex が判定する。pass の条件と、fail・n/a にする場合を書く)"},
+            "unit": {"type": "string", "description": "question の判定の単位"},
+            "reader": {"type": "string", "description": "question の読み手"}}}},
+    "change_gate": {
+        "description": "PDA全体に適用している規則 (ゲート) を変える。番号は list_gates で確かめる。渡した項目だけが変わる。",
+        "inputSchema": {"type": "object", "required": ["id"], "properties": {
+            "id": {"type": "string"}, "rule": {"type": "string"}, "applies": {"type": "string"},
+            "violates": {"type": "string"}, "fix": {"type": "string"}, "question": {"type": "string"},
+            "unit": {"type": "string"}, "reader": {"type": "string"},
+            "enforce": {"type": "boolean", "description": "false にすると、外れを差し戻さず、判定を台帳に残すだけにする"}}}},
+    "remove_gate": {
+        "description": "PDA全体に適用している規則 (ゲート) を消す。番号は list_gates で確かめる。",
+        "inputSchema": {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
@@ -771,8 +806,39 @@ class Daemon:
         self.reporter_sem = asyncio.Semaphore(2)
         self.codex_sem = asyncio.Semaphore(cfg["limits"]["codex_procs"])
 
+    def overlay(self):
+        return pathlib.Path(self.cfg["data_dir"], "norms", "overlay.json")
+
     def norms(self):
-        return norms.load()
+        return norms.load(overlay=self.overlay())
+
+    def gate_tool(self, turn, name, args):
+        """エージェントによるゲートの足し引き。変更は次のターンから効き、そのターンの一通の議題になる。"""
+        current = self.norms()
+        if name == "list_gates":
+            words = [w for w in str(args.get("query") or "").split() if w]
+            rows = [{"id": e["id"], "rule": e["rule"], "role": e.get("role"), "judge": e.get("judge"),
+                     "enforce": bool(e.get("enforce"))} for e in current.loaded
+                    if all(w in e["rule"] for w in words)]
+            return json.dumps(rows[:60], ensure_ascii=False, indent=1) if rows else "当たる規則はありません。"
+        if name == "add_gate":
+            entry = norms.add_rule(self.overlay(), args)
+            change = f"足した: 「{entry['rule']}」 (番号 {entry['id']}、判定は{JUDGE_NAMES[entry.get('judge')]})"
+        elif name == "change_gate":
+            rid = str(args.get("id") or "")
+            norms.change_rule(self.overlay(), current.entries, rid, args)
+            after = next(e for e in self.norms().entries if str(e["id"]) == rid)
+            change = f"変えた: 「{after['rule']}」 (番号 {rid})"
+        else:
+            rid = str(args.get("id") or "")
+            before = next((e for e in current.entries if str(e["id"]) == rid), None)
+            norms.remove_rule(self.overlay(), current.entries, rid)
+            change = f"消した: 「{(before or {}).get('rule', rid)}」 (番号 {rid})"
+        self.norms()  # 組み直せることを、変えたその場で確かめる
+        turn.gate_changes.append(change)
+        self.ledger.event("gate_change", {"tool": name, "args": args, "change": change}, turn.session["id"],
+                          turn.turn_id)
+        return change + "。次のターンから、すべてのセッションに効きます。オーナーへの返事に、この変更を1つの議題として入れてください。"
 
     def current_rules(self):
         """終端のゲートに使う規則。正本が入のときは、正本から組んだ規則を使う。"""
@@ -863,7 +929,7 @@ class Daemon:
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
         names = ["send_reply", "set_workdir", "attach_document", "list_all_sessions", "search_history", "remember",
-                 "find_project"] + (
+                 "find_project", "list_gates", "add_gate", "change_gate", "remove_gate"] + (
             ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
@@ -888,6 +954,8 @@ class Daemon:
                     sdir = pathlib.Path(self.cfg["data_dir"], "sessions", turn.session["id"])
                     text = recall.remember(self.ledger, turn.workdir(sdir), str(args.get("text") or ""),
                                            turn.session["id"], turn.turn_id)
+                elif name in ("list_gates", "add_gate", "change_gate", "remove_gate"):
+                    text = self.gate_tool(turn, name, args)
                 elif name == "find_project":
                     text = recall.find_project(self.ledger, str(args.get("name") or ""), self.cfg["project_roots"])
                 else:

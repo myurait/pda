@@ -91,11 +91,110 @@ class Norms:
         return out
 
 
-def load(path=None):
+def load(path=None, overlay=None):
+    """正本と、エージェントが足し引きした分 (overlay) を重ねて返す。どちらかが変わったら組み直す。"""
     path = pathlib.Path(path or RULES_FILE)
-    mtime = path.stat().st_mtime_ns
-    hit = _cache.get(str(path))
-    if not hit or hit[0] != mtime:
-        hit = (mtime, Norms(json.loads(path.read_text(encoding="utf-8"))))
-        _cache[str(path)] = hit
+    overlay = pathlib.Path(overlay) if overlay else None
+    stamp = (path.stat().st_mtime_ns, overlay.stat().st_mtime_ns if overlay and overlay.is_file() else 0)
+    key = (str(path), str(overlay))
+    hit = _cache.get(key)
+    if not hit or hit[0] != stamp:
+        entries = json.loads(path.read_text(encoding="utf-8"))
+        if stamp[1]:
+            entries = merge(entries, json.loads(overlay.read_text(encoding="utf-8")))
+        hit = (stamp, Norms(entries))
+        _cache[key] = hit
     return hit[1]
+
+
+# エージェントによるゲートの足し引き。正本のファイルは変えず、常駐のデータの置き場の overlay に持つ。
+CHANGEABLE = ("rule", "role", "applies", "violates", "fix", "unit", "reader", "question", "enforce")
+
+
+def merge(entries, overlay):
+    by_id = {str(e["id"]): dict(e) for e in entries}
+    order = [str(e["id"]) for e in entries]
+    for rid, change in overlay.get("changed", {}).items():
+        if rid in by_id:
+            by_id[rid].update(change)
+    for e in overlay.get("added", []):
+        by_id[str(e["id"])] = dict(e)
+        order.append(str(e["id"]))
+    return [by_id[rid] for rid in order]
+
+
+def _read(overlay):
+    overlay = pathlib.Path(overlay)
+    if overlay.is_file():
+        return json.loads(overlay.read_text(encoding="utf-8"))
+    return {"added": [], "changed": {}, "next": 1}
+
+
+def _write(overlay, data):
+    overlay = pathlib.Path(overlay)
+    overlay.parent.mkdir(parents=True, exist_ok=True)
+    tmp = overlay.with_suffix(".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.replace(overlay)
+
+
+def add_rule(overlay, args):
+    """規則を足す。violates があれば Jev、question があれば Codex が判定する。どちらも無ければ役の指示にだけ載る。"""
+    rule = " ".join(str(args.get("rule") or "").split())
+    if not rule:
+        raise ValueError("規則の文が空")
+    role = args.get("role") if args.get("role") in ("worker", "reporter") else "reporter"
+    data = _read(overlay)
+    entry = {"id": f"A{data['next']}", "rule": rule, "fire": "reply", "role": role, "load": True, "enforce": True,
+             "origin": "agent"}
+    if args.get("violates"):
+        entry.update(judge="jev", violates=str(args["violates"]),
+                     fix=str(args.get("fix") or f"次の規則に合うように直してください: {rule}"))
+        if args.get("applies"):
+            entry["applies"] = str(args["applies"])
+    elif args.get("question"):
+        entry.update(judge="codex", question=str(args["question"]), unit=str(args.get("unit") or "返事全体"),
+                     reader=str(args.get("reader") or "依頼をしたオーナー"))
+        if args.get("applies"):
+            entry["trigger"] = {"kind": "jev", "question": str(args["applies"])}
+    else:
+        entry.update(judge=None, note="役の指示にだけ載せる規則")
+    data["added"].append(entry)
+    data["next"] += 1
+    _write(overlay, data)
+    return entry
+
+
+def change_rule(overlay, entries, rid, args):
+    """規則を変える。足した規則はそのものを、正本の規則は変える項目だけを overlay に持つ。"""
+    rid = str(rid)
+    target = next((e for e in entries if str(e["id"]) == rid), None)
+    if not target or target.get("role") == "pipeline" or rid == "triggers":
+        raise ValueError(f"変えられる規則が無い: {rid}")
+    change = {k: args[k] for k in CHANGEABLE if k in args and args[k] is not None}
+    if "load" in args:
+        change["load"] = bool(args["load"])
+        if not change["load"]:
+            change["skip"] = "removed_by_agent"
+    if not change:
+        raise ValueError("変える項目が無い")
+    data = _read(overlay)
+    added = next((e for e in data["added"] if str(e["id"]) == rid), None)
+    if added:
+        added.update(change)
+    else:
+        data["changed"].setdefault(rid, {}).update(change)
+    _write(overlay, data)
+    return change
+
+
+def remove_rule(overlay, entries, rid):
+    """規則を消す。足した規則は overlay から消し、正本の規則は載せない設定にする。"""
+    rid = str(rid)
+    data = _read(overlay)
+    if any(str(e["id"]) == rid for e in data["added"]):
+        data["added"] = [e for e in data["added"] if str(e["id"]) != rid]
+        _write(overlay, data)
+        return "added"
+    change_rule(overlay, entries, rid, {"load": False})
+    return "unloaded"
