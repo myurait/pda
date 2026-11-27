@@ -62,6 +62,13 @@ class ScriptGate(unittest.TestCase):
         text = "`git status --short` の出力は空でした。\nclaude-opus-5-5\nhttps://example.com/a/b"
         self.assertTrue(self.result(text, "47")["pass"])
 
+    def test_fix_spacing_keeps_code_and_urls(self):
+        text = "セッションは ID 05c3 の作成です。`git init` で作り、https://example.com を開きます。\n```\nls -la ファイル\n```"
+        fixed = gates.fix_spacing(text)
+        self.assertEqual(fixed.split("\n")[0], "セッションはID 05c3の作成です。`git init` で作り、https://example.com を開きます。")
+        self.assertIn("ls -la ファイル", fixed)
+        self.assertTrue(self.result(fixed, "44")["pass"])
+
     def test_demonstrative_detection(self):
         self.assertTrue(gates.has_demonstrative("その結果を示します。"))
         self.assertFalse(gates.has_demonstrative("結果を示します。`この` は対象外です。"))

@@ -56,6 +56,28 @@ def strip_code(text):
     return lines
 
 
+_SPACING_FIX = re.compile(
+    rf"(`[^`\n]+`|!?\[[^\]\n]*\]\([^)\n]*\)|https?://\S+)"
+    rf"|([A-Za-z0-9])[ \t]+(?=[{_JA}])|(?<=[{_JA}])[ \t]+(?=[A-Za-z0-9])")
+
+
+def fix_spacing(text):
+    """報告係の下書きの、英字・数字と日本語の間の空白を詰める。コードブロック・コードの要素・リンク・URL は変えない。"""
+    out, fence = [], None
+    for line in text.split("\n"):
+        m = _FENCE.match(line)
+        if fence is None and m:
+            fence = m.group(1)
+        elif fence is not None:
+            s = line.strip()
+            if s and set(s) == {fence[0]} and len(s) >= len(fence):
+                fence = None
+        elif not line.lstrip().startswith((">", "|")):
+            line = _SPACING_FIX.sub(lambda g: g.group(1) or g.group(2) or "", line)
+        out.append(line)
+    return "\n".join(out)
+
+
 def has_demonstrative(text):
     return bool(_DEMONSTRATIVE.search("\n".join(strip_code(text))))
 

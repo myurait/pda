@@ -195,19 +195,23 @@ class Turn:
     def _on_tool_use(self, block):
         entry = {"id": block["id"], "name": block["name"], "input": block.get("input"), "result": None}
         self.calls[block["id"]] = entry
-        if block["name"].startswith("mcp__pda__"):
+        if block["name"] == "mcp__pda__send_reply":
             return
         self.tool_log.append(entry)
+        if block["name"].startswith("mcp__pda__"):
+            return
         self.conn.update(self.session["id"], {
             "sessionUpdate": "tool_call", "toolCallId": block["id"], "title": tool_title(block["name"], entry["input"]),
             "kind": KINDS.get(block["name"], "other"), "status": "in_progress", "rawInput": entry["input"]})
 
     def _on_tool_result(self, block):
         entry = self.calls.get(block.get("tool_use_id"))
-        if not entry or entry["name"].startswith("mcp__pda__"):
+        if not entry or entry["name"] == "mcp__pda__send_reply":
             return
         text = result_text(block.get("content"))
         entry["result"], entry["is_error"] = text, bool(block.get("is_error"))
+        if entry["name"].startswith("mcp__pda__"):
+            return
         self.conn.update(self.session["id"], {
             "sessionUpdate": "tool_call_update", "toolCallId": entry["id"],
             "status": "failed" if entry["is_error"] else "completed",
@@ -321,6 +325,7 @@ class Turn:
     async def _reporter(self, drafts, report, draft=None, failed=None):
         new = await services.reporter_write(self.d.cfg, self.d.reporter_sem, self.request, report, draft,
                                             fix_lines(failed) if failed else None)
+        new = gates.fix_spacing(new)
         drafts.append(new)
         self.last_draft = new
         return new
