@@ -67,7 +67,8 @@ def main():
     print("SESSION", session, flush=True)
     send({"id": 3, "method": "session/prompt", "params": {"sessionId": session, "prompt": [
         {"type": "text", "text": args.request}]}})
-    print(round(time.monotonic() - t0, 1), "DONE", json.dumps(wait(3), ensure_ascii=False), flush=True)
+    done = wait(3)
+    print(round(time.monotonic() - t0, 1), "DONE", json.dumps(done, ensure_ascii=False), flush=True)
     proc.stdin.close()
 
 

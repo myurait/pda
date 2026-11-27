@@ -221,7 +221,7 @@ class Turn:
             tool_call = {"toolCallId": req.get("tool_use_id") or f"perm-{ev['request_id']}", "title": title,
                          "kind": KINDS.get(req.get("tool_name"), "other"), "status": "pending",
                          "rawInput": req.get("input")}
-            waiter = asyncio.create_task(self._notify_permission(title))
+            waiter = asyncio.create_task(self._notify_permission(req.get("tool_name") or "道具"))
             allowed = False
             try:
                 answer = await self.conn.request("session/request_permission", {
@@ -242,9 +242,11 @@ class Turn:
         except Exception:  # noqa: BLE001
             pass
 
-    async def _notify_permission(self, title):
+    async def _notify_permission(self, tool_name):
+        # 通知は外のサービスを通るので、コマンドの本文は載せず、道具の名前だけを載せる
         await asyncio.sleep(self.d.cfg["notify"]["permission_wait_sec"])
-        status = await services.notify(self.d.cfg, f"承認待ち: {self.session.get('title') or 'PDA'}", title)
+        status = await services.notify(self.d.cfg, f"承認待ち: {self.session.get('title') or 'PDA'}",
+                                       f"{tool_name}の実行が承認を待っています。T3 Codeの画面で確かめてください。")
         self.d.ledger.event("notify", {"kind": "permission", "status": status}, self.session["id"], self.turn_id)
 
     # 一通を出す
