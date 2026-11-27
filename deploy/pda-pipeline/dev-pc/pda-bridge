@@ -29,6 +29,8 @@ DEFAULTS = {
 # 組み込みの道具をすべて外し、ユーザー・プロジェクトの設定のファイル (hook と許可の規則を含む) を使わずに起こす。
 # 残るのは、ログインに付いている会社のコネクタと、管理設定と plugin の MCP の道具だけである。
 CLAUDE_ARGS = ["-p", "--restricted", "--tools", "", "--no-session-persistence", "--output-format", "json"]
+# 既定では、コネクタの接続が終わる前に最初の要求が出て、道具が載らないことがある。接続を待ってから要求を出させる
+CLAUDE_ENV = {"MCP_CONNECTION_NONBLOCKING": "0", "MCP_CONNECT_TIMEOUT_MS": "20000"}
 TOOL_NAME = re.compile(r"^mcp__[A-Za-z0-9_.-]+$")
 JOB_ID = re.compile(r"^[0-9a-f-]{36}$")
 REQUEST_MAX = 20000
@@ -68,7 +70,7 @@ def run_job(cfg, request):
     workdir.mkdir(parents=True, exist_ok=True)
     try:
         out = subprocess.run(claude_command(cfg), input=request, capture_output=True, text=True, cwd=workdir,
-                             timeout=cfg["timeout_sec"])
+                             timeout=cfg["timeout_sec"], env={**os.environ, **CLAUDE_ENV})
     except subprocess.TimeoutExpired:
         return False, "開発PCのClaudeが、待つ上限までに終わりませんでした。"
     try:
@@ -120,7 +122,8 @@ def serve(cfg):
 def main():
     cfg = load_config()
     if "--check" in sys.argv:
-        print(json.dumps({"config": cfg, "claude_command": claude_command(cfg)}, ensure_ascii=False, indent=1))
+        print(json.dumps({"config": cfg, "claude_command": claude_command(cfg), "claude_env": CLAUDE_ENV},
+                         ensure_ascii=False, indent=1))
         return 0
     wait = 10
     while True:
