@@ -10,7 +10,7 @@ import sys
 import time
 import uuid
 
-from . import config, gates, norms, services, workdir
+from . import config, gates, norms, recall, services, workdir
 from .ledger import Ledger
 from .prompt import extract_request, text_key
 
@@ -18,7 +18,8 @@ PKG_DIR = pathlib.Path(__file__).resolve().parent.parent
 SHIM = str(PKG_DIR / "pda-shim")
 STREAM_LIMIT = 64 * 1024 * 1024
 PDA_TOOLS = ("mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir,"
-             "mcp__pda__attach_document")
+             "mcp__pda__attach_document,mcp__pda__list_all_sessions,mcp__pda__search_history,mcp__pda__remember,"
+             "mcp__pda__find_project")
 DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
 DOCUMENT_HEIGHT = 600
 
@@ -115,6 +116,7 @@ class Turn:
             mcp_file = norms.NORMS_DIR / "mcp.json"
             if mcp_file.is_file():
                 servers.update(json.loads(mcp_file.read_text(encoding="utf-8")).get("mcpServers", {}))
+        text += "\n\n" + recall.notes(self.d.ledger, self.workdir(sdir))
         (sdir / "role.md").write_text(text + "\n\n" + workdir.notes(self.workdir(sdir)), encoding="utf-8")
         env = {"PDA_SOCKET": cfg["socket"], "PDA_TURN_TOKEN": self.token}
         servers["pda"] = {"type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env,
@@ -142,7 +144,7 @@ class Turn:
         self.d.ledger.event("workdir", {"cwd": target}, self.session["id"], self.turn_id)
         return (f"作業ディレクトリを {target} に替えました。このターンの残りのコマンドは、先頭で `cd {target}` を"
                 "実行するか、絶対パスで行ってください。次のターンからは、このディレクトリで始まります。\n\n"
-                + workdir.notes(target))
+                + workdir.notes(target) + "\n\n" + recall.notes(self.d.ledger, target))
 
     async def run(self):
         d, cfg, s = self.d, self.d.cfg, self.session
@@ -727,6 +729,26 @@ MCP_TOOLS = {
             "title": {"type": "string", "description": "資料の題名"},
             "path": {"type": "string", "description": "HTMLのファイルの絶対パス"},
             "height": {"type": "number", "description": "画面に出す高さ (ピクセル)。省くと600"}}}},
+    "list_all_sessions": {
+        "description": ("PDAのすべてのセッション (メインセッションと作業のセッション) の、直近の依頼・結果・返事を返す。"
+                        "前のセッションで進めていた作業や、返ってきた判断待ちを尋ねられたときに使う。"),
+        "inputSchema": {"type": "object", "properties": {}}},
+    "search_history": {
+        "description": ("PDAのすべてのセッションの、依頼と出した返事を、語で探す。語は空白で区切り、すべてを含むやり取りを"
+                        "新しい順に返す。session にセッションのIDの先頭を渡すと、そのセッションだけを探す。"),
+        "inputSchema": {"type": "object", "required": ["query"], "properties": {
+            "query": {"type": "string", "description": "探す語 (空白で区切る)"},
+            "session": {"type": "string", "description": "セッションのIDの先頭 (省くとすべて)"}}}},
+    "remember": {
+        "description": ("いまの作業ディレクトリの案件で、決まったこと・分かったことを残す。残した内容は、同じ案件を扱う"
+                        "ほかのセッションに、次のターンから届く。1回の呼び出しで1つの事柄を、それだけで読める文で渡す。"),
+        "inputSchema": {"type": "object", "required": ["text"], "properties": {
+            "text": {"type": "string", "description": "決まったこと・分かったこと"}}}},
+    "find_project": {
+        "description": ("案件の名前や作業の中身の語から、その案件のリポジトリのパスと、前に進めていたセッションの直近の"
+                        "やり取りと、その案件で決まっていることを引き当てる。"),
+        "inputSchema": {"type": "object", "required": ["name"], "properties": {
+            "name": {"type": "string", "description": "案件の名前か、作業の中身を表す語"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
@@ -739,6 +761,7 @@ class Daemon:
         pathlib.Path(cfg["data_dir"]).mkdir(parents=True, exist_ok=True)
         self.ledger = Ledger(pathlib.Path(cfg["data_dir"], "ledger.sqlite"))
         self.ledger.close_dangling_turns()
+        self.ledger.db.executescript(recall.SCHEMA)
         self.rules = gates.load_rules()
         self._merged = None
         self.turns, self.active, self.t3 = {}, {}, {}
@@ -839,7 +862,8 @@ class Daemon:
 
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
-        names = ["send_reply", "set_workdir", "attach_document"] + (
+        names = ["send_reply", "set_workdir", "attach_document", "list_all_sessions", "search_history", "remember",
+                 "find_project"] + (
             ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
@@ -856,6 +880,16 @@ class Daemon:
                     text = turn.set_workdir(args.get("path", ""))
                 elif name == "attach_document":
                     text = await turn.attach_document(args)
+                elif name == "list_all_sessions":
+                    text = recall.overview(self.ledger)
+                elif name == "search_history":
+                    text = recall.search(self.ledger, str(args.get("query") or ""), args.get("session"))
+                elif name == "remember":
+                    sdir = pathlib.Path(self.cfg["data_dir"], "sessions", turn.session["id"])
+                    text = recall.remember(self.ledger, turn.workdir(sdir), str(args.get("text") or ""),
+                                           turn.session["id"], turn.turn_id)
+                elif name == "find_project":
+                    text = recall.find_project(self.ledger, str(args.get("name") or ""), self.cfg["project_roots"])
                 else:
                     text = self.list_sessions(turn)
                 result = {"content": [{"type": "text", "text": text}], "isError": False}

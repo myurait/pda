@@ -55,6 +55,8 @@ DEFAULTS = {
     # オーナーの規約の正本 (norms/) から、役の指示とゲートの問いを組む。切のときは rules.json と roles/ だけを使う。
     # pre_gate_wait_sec は、依頼を受けた時点のゲートを待つ上限で、超えたら書き出しなしで作業を始める
     "norms": {"enabled": True, "pre_gate": True, "pre_gate_wait_sec": 20},
+    # 案件の名前からリポジトリを引き当てるときに、台帳のほかに探すディレクトリ
+    "project_roots": [str(HOME / "v03/work/projects")],
     "disallowed_tools": [
         "AskUserQuestion", "PushNotification", "EnterPlanMode", "ExitPlanMode", "ScheduleWakeup",
         "CronCreate", "CronDelete", "CronList", "RemoteTrigger",
