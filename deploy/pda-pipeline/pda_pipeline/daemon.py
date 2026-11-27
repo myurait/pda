@@ -26,7 +26,10 @@ REJECT_TAIL = ("終わっていない作業があって続けられないとき�
 STOP_REASON = ("オーナーへの返事がまだ届いていません。オーナーに見えるのは send_reply で送った内容だけです。"
                "伝える内容を send_reply で送ってください。差し戻されているときは、示された点に対応してから呼び直してください。")
 NO_REPLY = "このターンは、作業するセッションが返事を作らないまま終わりました。もう一度依頼するか、セッションの記録を確かめてください。"
-NOTE_TIMEOUT = "※ 点検役の判定が時間内に得られなかったので、この返事は完了判定と規約の点検を通っていません。"
+NO_LOGIN = ("Claudeのログインを使えなかったので、このターンの作業は始まっていません。"
+            "ミニPCのClaudeのログインの状態を確かめてください。")
+CLAUDE_FAILED = "作業するセッションが、Claudeの側のエラーで返事を作らないまま終わりました。エラー: "
+NOTE_TIMEOUT ="※ 点検役の判定が時間内に得られなかったので、この返事は完了判定と規約の点検を通っていません。"
 NOTE_ERROR = "※ 点検の処理が失敗したので、この返事は完了判定と規約の点検を通っていません。"
 NOTE_COMPLETION = "※ この返事は完了判定を通っていません。点検役が挙げた点: "
 NOTE_STOP = "※ 作業するセッションが返事を送り直さずに終えたので、この返事は点検を通っていません。"
@@ -89,6 +92,7 @@ class Turn:
         self.stop_blocks = 0
         self.last_draft = None
         self.proc = None
+        self.claude_error = None
         self.reply_lock = asyncio.Lock()
 
     # claude -p の実行
@@ -144,7 +148,12 @@ class Turn:
             d.ledger.finish_turn(self.turn_id, "cancelled", None)
             return "cancelled"
         if not self.released:
-            await self.release(NO_REPLY, "failed")
+            err = self.claude_error
+            if err:
+                d.ledger.event("claude_error", err, s["id"], self.turn_id)
+            text = NO_REPLY if not err else NO_LOGIN if err["error"] == "authentication_failed" else \
+                CLAUDE_FAILED + (err["text"] or err["error"] or "")
+            await self.release(text, "failed")
         return "end_turn"
 
     async def _run_claude(self):
@@ -180,12 +189,17 @@ class Turn:
                 s["claude_started"] = 1
             elif kind in ("assistant", "user") and not ev.get("parent_tool_use_id"):
                 content = ev.get("message", {}).get("content")
+                if kind == "assistant" and ev.get("error"):
+                    self.claude_error = {"error": ev["error"], "text": result_text(content)[:500]}
                 for block in content if isinstance(content, list) else []:
                     if block.get("type") == "tool_use":
                         self._on_tool_use(block)
                     elif block.get("type") == "tool_result":
                         self._on_tool_result(block)
             elif kind == "result":
+                if ev.get("is_error") and not self.claude_error:
+                    self.claude_error = {"error": ev.get("terminal_reason") or ev.get("subtype") or "error",
+                                         "text": str(ev.get("result") or "")[:500]}
                 break
         try:
             self.proc.stdin.close()
@@ -296,7 +310,7 @@ class Turn:
 
     # Stop の hook
     async def on_stop(self):
-        if self.released:
+        if self.released or self.claude_error:
             return {}
         self.stop_blocks += 1
         limit = self.d.cfg["limits"]["stop_hook_blocks"]
