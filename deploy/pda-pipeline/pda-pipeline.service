@@ -1,0 +1,15 @@
+[Unit]
+Description=PDA のパイプラインの常駐 (ACP の口・返信の道具・終端のゲート・台帳・通知)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=PATH=/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 %h/pda/deploy/pda-pipeline/pda-pipelined
+Restart=on-failure
+RestartSec=5
+KillMode=control-group
+TimeoutStopSec=30
+
+[Install]
+WantedBy=default.target

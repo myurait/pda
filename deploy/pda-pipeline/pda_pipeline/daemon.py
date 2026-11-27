@@ -1,0 +1,681 @@
+"""PDA のパイプラインの常駐。ACP の口・返信の道具の口・Stop の hook の口からの接続を 1 つのソケットで受ける。"""
+import asyncio
+import json
+import os
+import pathlib
+import secrets
+import signal
+import sys
+import time
+import uuid
+
+from . import config, gates, services
+from .ledger import Ledger
+from .prompt import extract_request, text_key
+
+PKG_DIR = pathlib.Path(__file__).resolve().parent.parent
+SHIM = str(PKG_DIR / "pda-shim")
+STREAM_LIMIT = 64 * 1024 * 1024
+PDA_TOOLS = "mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions"
+
+SENT = "送信しました。オーナーに届きました。ターンを終えてください。"
+ALREADY = "このターンの返事はすでにオーナーに届いています。ターンを終えてください。"
+REJECT_HEAD = "差し戻し: この内容はまだオーナーに届いていません。次の点に対応してから、send_reply を呼び直してください。"
+REJECT_TAIL = ("終わっていない作業があって続けられないときは、終わっていない点とその理由を、終わっていないと分かる形で"
+               " send_reply に渡してください。渡す内容には、この差し戻しや点検のことを書かないでください。")
+STOP_REASON = ("オーナーへの返事がまだ届いていません。オーナーに見えるのは send_reply で送った内容だけです。"
+               "伝える内容を send_reply で送ってください。差し戻されているときは、示された点に対応してから呼び直してください。")
+NO_REPLY = "このターンは、作業するセッションが返事を作らないまま終わりました。もう一度依頼するか、セッションの記録を確かめてください。"
+NOTE_TIMEOUT = "※ 点検役の判定が時間内に得られなかったので、この返事は完了判定と規約の点検を通っていません。"
+NOTE_ERROR = "※ 点検の処理が失敗したので、この返事は完了判定と規約の点検を通っていません。"
+NOTE_COMPLETION = "※ この返事は完了判定を通っていません。点検役が挙げた点: "
+NOTE_STOP = "※ 作業するセッションが返事を送り直さずに終えたので、この返事は点検を通っていません。"
+
+KINDS = {"Bash": "execute", "Read": "read", "Edit": "edit", "Write": "edit", "NotebookEdit": "edit",
+         "Grep": "search", "Glob": "search", "WebFetch": "fetch", "WebSearch": "fetch"}
+
+
+def log(*args):
+    print(time.strftime("%H:%M:%S"), *args, file=sys.stderr, flush=True)
+
+
+def tool_title(name, inp):
+    inp = inp or {}
+    for key in ("command", "file_path", "pattern", "url", "query", "description", "prompt"):
+        if inp.get(key):
+            return str(inp[key]) if name == "Bash" else f"{name} {inp[key]}"[:300]
+    return name
+
+
+def result_text(content):
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content or []:
+        parts.append(block.get("text", "") if block.get("type") == "text" else f"[{block.get('type')}]")
+    return "\n".join(parts)
+
+
+def fails(verdict):
+    return [r for r in (verdict or {}).get("results", []) if not r["pass"]]
+
+
+def fix_lines(failed):
+    lines = []
+    for r in failed:
+        quote = f"「{r['quote']}」: " if r.get("quote") else ""
+        lines.append(f"{quote}{r.get('reason', '')} 直し方: {r.get('fix', '')}".strip())
+    return lines
+
+
+def rejection(reasons):
+    return "\n".join([REJECT_HEAD, *[f"- {r}" for r in reasons], REJECT_TAIL])
+
+
+class Turn:
+    def __init__(self, daemon, conn, session, request, requester):
+        self.d, self.conn, self.session = daemon, conn, session
+        self.request, self.requester = request, requester
+        self.token = secrets.token_hex(16)
+        self.turn_id = daemon.ledger.start_turn(session["id"], requester, request)
+        self.tool_log, self.calls = [], {}
+        self.released, self.final, self.outcome = False, None, None
+        self.cancelled = False
+        self.rejected = {}
+        self.attempt_no = 0
+        self.completion_rejections = 0
+        self.convention_rejections = 0
+        self.stop_blocks = 0
+        self.last_draft = None
+        self.proc = None
+        self.reply_lock = asyncio.Lock()
+
+    # claude -p の実行
+    def _files(self):
+        cfg = self.d.cfg
+        sdir = pathlib.Path(cfg["data_dir"], "sessions", self.session["id"])
+        sdir.mkdir(parents=True, exist_ok=True)
+        role = self.session["role"]
+        text = "\n\n".join((services.ROLES_DIR / f"{n}.md").read_text(encoding="utf-8") for n in ("common", role))
+        (sdir / "role.md").write_text(text, encoding="utf-8")
+        env = {"PDA_SOCKET": cfg["socket"], "PDA_TURN_TOKEN": self.token}
+        (sdir / "mcp.json").write_text(json.dumps({"mcpServers": {"pda": {
+            "type": "stdio", "command": cfg["python"], "args": [SHIM, "mcp"], "env": env, "alwaysLoad": True}}}))
+        (sdir / "settings.json").write_text(json.dumps({"hooks": {"Stop": [{"hooks": [
+            {"type": "command", "command": f"{cfg['python']} {SHIM} hook"}]}]}}))
+        return sdir, env
+
+    async def run(self):
+        d, cfg, s = self.d, self.d.cfg, self.session
+        d.turns[self.token] = self
+        d.active[s["id"]] = self
+        try:
+            async with d.claude_sem:
+                if not self.cancelled:
+                    await self._run_claude()
+        except Exception as exc:  # noqa: BLE001
+            log("turn error", self.turn_id, repr(exc))
+            d.ledger.event("turn_error", {"error": repr(exc)}, s["id"], self.turn_id)
+        finally:
+            d.turns.pop(self.token, None)
+            d.active.pop(s["id"], None)
+        if self.cancelled and not self.released:
+            d.ledger.finish_turn(self.turn_id, "cancelled", None)
+            return "cancelled"
+        if not self.released:
+            await self.release(NO_REPLY, "failed")
+        return "end_turn"
+
+    async def _run_claude(self):
+        d, cfg, s = self.d, self.d.cfg, self.session
+        sdir, env = self._files()
+        role_cfg = cfg["roles"][s["role"]]
+        cwd = s.get("cwd") or ""
+        if not cwd or not os.path.isdir(cwd):
+            cwd = str(sdir / "work")
+            os.makedirs(cwd, exist_ok=True)
+        cmd = [cfg["claude_bin"], "-p", "--input-format", "stream-json", "--output-format", "stream-json",
+               "--verbose", "--model", s.get("model") or role_cfg["model"], "--effort", role_cfg["effort"],
+               "--setting-sources", "", "--settings", str(sdir / "settings.json"),
+               "--strict-mcp-config", "--mcp-config", str(sdir / "mcp.json"),
+               "--append-system-prompt-file", str(sdir / "role.md"), "--system-prompt-snapshot", "off",
+               "--permission-prompts", "host", "--permission-prompt-tool", "stdio",
+               "--allowedTools", PDA_TOOLS, "--disallowedTools", ",".join(cfg["disallowed_tools"])]
+        cmd += ["--resume", s["claude_session_id"]] if s.get("claude_started") else \
+               ["--session-id", s["claude_session_id"]]
+        env = services.claude_env(cfg, {**env, "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "0"})
+        with open(sdir / "claude.stderr", "ab") as errlog:
+            self.proc = await asyncio.create_subprocess_exec(
+                *cmd, cwd=cwd, env=env, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
+                stderr=errlog, limit=STREAM_LIMIT, start_new_session=True)
+        self._send({"type": "user", "message": {"role": "user", "content": self.request}})
+        async for raw in self.proc.stdout:
+            try:
+                ev = json.loads(raw)
+            except ValueError:
+                continue
+            kind = ev.get("type")
+            if kind == "control_request":
+                asyncio.create_task(self._on_control(ev))
+            elif kind == "system" and ev.get("subtype") == "init":
+                d.ledger.update_session(s["id"], claude_started=1)
+                s["claude_started"] = 1
+            elif kind in ("assistant", "user") and not ev.get("parent_tool_use_id"):
+                content = ev.get("message", {}).get("content")
+                for block in content if isinstance(content, list) else []:
+                    if block.get("type") == "tool_use":
+                        self._on_tool_use(block)
+                    elif block.get("type") == "tool_result":
+                        self._on_tool_result(block)
+            elif kind == "result":
+                break
+        try:
+            self.proc.stdin.close()
+        except Exception:  # noqa: BLE001
+            pass
+        try:
+            await asyncio.wait_for(self.proc.wait(), 20)
+        except asyncio.TimeoutError:
+            self._kill()
+
+    def _send(self, obj):
+        self.proc.stdin.write((json.dumps(obj, ensure_ascii=False) + "\n").encode("utf-8"))
+
+    def _kill(self):
+        if self.proc and self.proc.returncode is None:
+            try:
+                os.killpg(self.proc.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+
+    def cancel(self):
+        self.cancelled = True
+        self._kill()
+
+    def _on_tool_use(self, block):
+        entry = {"id": block["id"], "name": block["name"], "input": block.get("input"), "result": None}
+        self.calls[block["id"]] = entry
+        if block["name"].startswith("mcp__pda__"):
+            return
+        self.tool_log.append(entry)
+        self.conn.update(self.session["id"], {
+            "sessionUpdate": "tool_call", "toolCallId": block["id"], "title": tool_title(block["name"], entry["input"]),
+            "kind": KINDS.get(block["name"], "other"), "status": "in_progress", "rawInput": entry["input"]})
+
+    def _on_tool_result(self, block):
+        entry = self.calls.get(block.get("tool_use_id"))
+        if not entry or entry["name"].startswith("mcp__pda__"):
+            return
+        text = result_text(block.get("content"))
+        entry["result"], entry["is_error"] = text, bool(block.get("is_error"))
+        self.conn.update(self.session["id"], {
+            "sessionUpdate": "tool_call_update", "toolCallId": entry["id"],
+            "status": "failed" if entry["is_error"] else "completed",
+            "content": [{"type": "content", "content": {"type": "text", "text": text[:20000]}}]})
+
+    async def _on_control(self, ev):
+        req = ev.get("request", {})
+        response = {}
+        if req.get("subtype") == "can_use_tool":
+            title = tool_title(req.get("tool_name", ""), req.get("input"))
+            tool_call = {"toolCallId": req.get("tool_use_id") or f"perm-{ev['request_id']}", "title": title,
+                         "kind": KINDS.get(req.get("tool_name"), "other"), "status": "pending",
+                         "rawInput": req.get("input")}
+            waiter = asyncio.create_task(self._notify_permission(title))
+            allowed = False
+            try:
+                answer = await self.conn.request("session/request_permission", {
+                    "sessionId": self.session["id"], "toolCall": tool_call, "options": [
+                        {"optionId": "allow-once", "name": "Allow", "kind": "allow_once"},
+                        {"optionId": "reject-once", "name": "Reject", "kind": "reject_once"}]})
+                outcome = (answer or {}).get("outcome", {})
+                allowed = outcome.get("outcome") == "selected" and outcome.get("optionId") == "allow-once"
+            except Exception as exc:  # noqa: BLE001
+                log("permission error", repr(exc))
+            waiter.cancel()
+            self.d.ledger.event("permission", {"title": title, "allowed": allowed}, self.session["id"], self.turn_id)
+            response = {"behavior": "allow", "updatedInput": req.get("input") or {}} if allowed else \
+                       {"behavior": "deny", "message": "オーナーが許可しませんでした。"}
+        try:
+            self._send({"type": "control_response", "response": {
+                "subtype": "success", "request_id": ev["request_id"], "response": response}})
+        except Exception:  # noqa: BLE001
+            pass
+
+    async def _notify_permission(self, title):
+        await asyncio.sleep(self.d.cfg["notify"]["permission_wait_sec"])
+        status = await services.notify(self.d.cfg, f"承認待ち: {self.session.get('title') or 'PDA'}", title)
+        self.d.ledger.event("notify", {"kind": "permission", "status": status}, self.session["id"], self.turn_id)
+
+    # 一通を出す
+    async def release(self, text, outcome, note=None):
+        if self.released:
+            return
+        self.released = True
+        self.final = f"{text}\n\n---\n{note}" if note else text
+        self.outcome = outcome
+        d, s = self.d, self.session
+        self.conn.update(s["id"], {"sessionUpdate": "agent_message_chunk",
+                                   "content": {"type": "text", "text": self.final}})
+        d.ledger.finish_turn(self.turn_id, outcome, self.final)
+        parent = d.ledger.session(s["parent_session_id"]) if s.get("parent_session_id") else None
+        if self.requester != "owner" and s["role"] == "worker" and parent:
+            try:
+                await d.report_to_parent(self, parent)
+                return
+            except Exception as exc:  # noqa: BLE001
+                d.ledger.event("report_error", {"error": repr(exc)}, s["id"], self.turn_id)
+        prefix = "" if outcome == "released" else "[点検なし] "
+        status = await services.notify(d.cfg, prefix + (s.get("title") or "PDA"), self.final)
+        d.ledger.mark_turn(self.turn_id, notified_at=time.strftime("%Y-%m-%dT%H:%M:%S%z"))
+        d.ledger.event("notify", {"kind": "reply", "status": status}, s["id"], self.turn_id)
+
+    # Stop の hook
+    async def on_stop(self):
+        if self.released:
+            return {}
+        self.stop_blocks += 1
+        limit = self.d.cfg["limits"]["stop_hook_blocks"]
+        self.d.ledger.event("stop_hook", {"blocks": self.stop_blocks}, self.session["id"], self.turn_id)
+        if limit and self.stop_blocks > limit:
+            if self.last_draft:
+                await self.release(self.last_draft, "released_unverified", NOTE_STOP)
+            else:
+                await self.release(NO_REPLY, "failed")
+            return {}
+        return {"decision": "block", "reason": STOP_REASON}
+
+    # 返信の道具
+    async def submit(self, text):
+        async with self.reply_lock:
+            if self.released:
+                return ALREADY
+            self.stop_blocks = 0
+            norm = text_key(text)
+            if norm in self.rejected:
+                self.d.ledger.event("resubmit_same", {}, self.session["id"], self.turn_id)
+                return self.rejected[norm]
+            self.attempt_no += 1
+            attempt_id = self.d.ledger.start_attempt(self.turn_id, text)
+            drafts, verdicts = [], []
+            decision, ret = "rejected", SENT
+            try:
+                ret, decision = await self._judge(text, drafts, verdicts)
+            except gates.JudgeTimeout as exc:
+                verdicts.append({**exc.args[0], "timeout": True})
+                decision = "released_unverified"
+                await self.release(drafts[-1] if drafts else text, decision, NOTE_TIMEOUT)
+            except Exception as exc:  # noqa: BLE001
+                log("judge error", self.turn_id, repr(exc))
+                verdicts.append({"gate": "pipeline", "error": repr(exc)})
+                decision = "released_unverified"
+                await self.release(drafts[-1] if drafts else text, decision, NOTE_ERROR)
+            finally:
+                self.d.ledger.finish_attempt(attempt_id, drafts, verdicts, decision)
+            if decision == "rejected":
+                self.rejected[norm] = ret
+            return ret
+
+    async def _reporter(self, drafts, report, draft=None, failed=None):
+        new = await services.reporter_write(self.d.cfg, self.d.reporter_sem, self.request, report, draft,
+                                            fix_lines(failed) if failed else None)
+        drafts.append(new)
+        self.last_draft = new
+        return new
+
+    async def _judge(self, text, drafts, verdicts):
+        d, cfg = self.d, self.d.cfg
+        stages, lim = cfg["stages"], cfg["limits"]
+        deadline = time.monotonic() + cfg["judge"]["timeout_sec"]
+        use_reporter = stages["reporter"]
+        if use_reporter:
+            draft = await self._reporter(drafts, text)
+        else:
+            draft = text
+            drafts.append(draft)
+            self.last_draft = draft
+
+        triggers, conv_fails = {"propose": True}, []
+        for i in range(lim["reporter_rewrites"] + 1):
+            sv = gates.script_gate(draft)
+            jv = await gates.jev_gate(cfg["jev"], d.rules, self.request, draft) if stages["jev"] else None
+            verdicts.extend(v for v in (sv, jv) if v)
+            triggers = jv["triggers"] if jv else triggers
+            conv_fails = fails(sv) + fails(jv)
+            if not conv_fails or not use_reporter or i == lim["reporter_rewrites"]:
+                break
+            draft = await self._reporter(drafts, text, draft, conv_fails)
+        if conv_fails and not use_reporter and self.convention_rejections < lim["reporter_rewrites"]:
+            self.convention_rejections += 1
+            return rejection(fix_lines(conv_fails)), "rejected"
+
+        if stages["codex"]:
+            context = "\n".join(f"- 依頼: {t['request'][:1500]}\n  返事: {t['final_text'][:1500]}"
+                                for t in d.ledger.recent_exchanges(self.session["id"], self.turn_id)) or "(なし)"
+
+            async def codex(rule_ids):
+                args = {"checklist": gates.codex_checklist(d.rules, rule_ids), "request": self.request,
+                        "context": context, "tool_log": gates.format_tool_log(self.tool_log, lim), "draft": draft}
+                verdict = await gates.codex_gate(cfg, d.codex_sem, args, rule_ids, deadline, self.attempt_no)
+                verdicts.append(verdict)
+                return verdict
+
+            def split(verdict):
+                to_worker = [r for r in fails(verdict) if r["id"] in d.worker_rules]
+                to_reporter = [r for r in fails(verdict) if r["id"] not in d.worker_rules]
+                comp = verdict["completion"]
+                return to_reporter, {"pass": comp["pass"] and not to_worker,
+                                     "reasons": list(comp["reasons"]) + fix_lines(to_worker)}
+
+            first_ids = gates.codex_rule_ids(d.rules, draft, triggers)
+            rule_fails, completion = split(await codex(first_ids))
+            if rule_fails and use_reporter:
+                for _ in range(lim["codex_rejudge"]):
+                    draft = await self._reporter(drafts, text, draft, rule_fails)
+                    verdicts.append(gates.script_gate(draft))
+                    again = [r["id"] for r in rule_fails] + [i for i in first_ids if i in d.worker_rules]
+                    rule_fails, completion = split(await codex(again))
+                    if not rule_fails:
+                        break
+            elif rule_fails and self.convention_rejections < lim["reporter_rewrites"]:
+                self.convention_rejections += 1
+                return rejection(fix_lines(rule_fails) + ([] if completion["pass"] else completion["reasons"])), \
+                    "rejected"
+            if not completion["pass"]:
+                limit = lim["completion_rejections"]
+                if limit and self.completion_rejections >= limit:
+                    await self.release(draft, "released_unverified",
+                                       NOTE_COMPLETION + " / ".join(completion["reasons"]))
+                    return SENT, "released_unverified"
+                self.completion_rejections += 1
+                return rejection(completion["reasons"] or ["依頼された作業が終わったことを確かめられません。"]), "rejected"
+        await self.release(draft, "released")
+        return SENT, "released"
+
+
+class AcpConn:
+    def __init__(self, daemon, reader, writer, hello):
+        self.d, self.reader, self.writer = daemon, reader, writer
+        self.thread_id = (hello.get("env") or {}).get("T3CODE_THREAD_ID")
+        self.pending, self.seq = {}, 0
+
+    def send(self, msg):
+        if self.writer.is_closing():
+            return
+        self.writer.write((json.dumps({"jsonrpc": "2.0", **msg}, ensure_ascii=False) + "\n").encode("utf-8"))
+
+    def update(self, session_id, body):
+        self.send({"method": "session/update", "params": {"sessionId": session_id, "update": body}})
+
+    async def request(self, method, params):
+        self.seq += 1
+        rid = f"pda-{self.seq}"
+        fut = asyncio.get_running_loop().create_future()
+        self.pending[rid] = fut
+        self.send({"id": rid, "method": method, "params": params})
+        return await fut
+
+    async def run(self):
+        try:
+            while True:
+                line = await self.reader.readline()
+                if not line:
+                    break
+                try:
+                    msg = json.loads(line)
+                except ValueError:
+                    continue
+                if "method" not in msg:
+                    fut = self.pending.pop(msg.get("id"), None)
+                    if fut and not fut.done():
+                        if msg.get("error"):
+                            fut.set_exception(RuntimeError(str(msg["error"])))
+                        else:
+                            fut.set_result(msg.get("result"))
+                    continue
+                asyncio.create_task(self._handle(msg))
+        finally:
+            for fut in self.pending.values():
+                if not fut.done():
+                    fut.set_exception(ConnectionError("ACP の接続が閉じた"))
+            for turn in list(self.d.active.values()):
+                if turn.conn is self:
+                    turn.cancel()
+
+    async def _handle(self, msg):
+        rid = msg.get("id")
+        try:
+            result = await self._dispatch(msg["method"], msg.get("params") or {})
+            if rid is not None:
+                self.send({"id": rid, "result": result})
+        except KeyError as exc:
+            if rid is not None:
+                self.send({"id": rid, "error": {"code": -32601, "message": f"Method not found: {exc}"}})
+        except Exception as exc:  # noqa: BLE001
+            log("acp error", msg.get("method"), repr(exc))
+            if rid is not None:
+                self.send({"id": rid, "error": {"code": -32603, "message": repr(exc)}})
+
+    def _remember_t3(self, session_id, params):
+        for server in params.get("mcpServers") or []:
+            env = {e.get("name"): e.get("value") for e in server.get("env") or []}
+            if env.get("T3_ACP_MCP_ENDPOINT"):
+                self.d.t3[session_id] = {"endpoint": env["T3_ACP_MCP_ENDPOINT"],
+                                         "authorization": env.get("T3_ACP_MCP_AUTHORIZATION", "")}
+
+    async def _dispatch(self, method, params):
+        d = self.d
+        if method == "initialize":
+            return {"protocolVersion": 1, "agentCapabilities": {
+                "loadSession": True, "promptCapabilities": {"image": False, "audio": False, "embeddedContext": False},
+                "mcpCapabilities": {"http": True, "sse": False}}, "authMethods": [],
+                "agentInfo": {"name": "pda-pipeline", "title": "PDA", "version": "1"}}
+        if method == "authenticate":
+            return {}
+        if method in ("session/new", "session/load"):
+            async with d.spawn_lock:
+                row = d.ledger.session(params.get("sessionId", "")) or d.ledger.session_by_thread(self.thread_id)
+                if row:
+                    if params.get("cwd") and params["cwd"] != row.get("cwd"):
+                        d.ledger.update_session(row["id"], cwd=params["cwd"])
+                    if self.thread_id and not row.get("t3_thread_id"):
+                        d.ledger.update_session(row["id"], t3_thread_id=self.thread_id)
+                else:
+                    row = d.ledger.create_session(params.get("sessionId") or str(uuid.uuid4()), self.thread_id,
+                                                  str(uuid.uuid4()), params.get("cwd"))
+            self._remember_t3(row["id"], params)
+            return {"sessionId": row["id"]} if method == "session/new" else {}
+        if method == "session/prompt":
+            async with d.spawn_lock:
+                row = d.ledger.session(params["sessionId"])
+            if not row:
+                raise RuntimeError("台帳に無いセッション")
+            text, via_tools = extract_request(params.get("prompt"))
+            requester = d.match_injection(row["t3_thread_id"], text, via_tools)
+            if not row.get("role"):
+                row["role"] = "main"
+                d.ledger.update_session(row["id"], role="main")
+            if not row.get("title"):
+                row["title"] = " ".join(text.split())[:30]
+                d.ledger.update_session(row["id"], title=row["title"])
+            turn = Turn(d, self, row, text, requester)
+            return {"stopReason": await turn.run()}
+        if method == "session/cancel":
+            turn = d.active.get(params.get("sessionId"))
+            if turn:
+                turn.cancel()
+            return None
+        raise KeyError(method)
+
+
+MCP_TOOLS = {
+    "send_reply": {
+        "description": ("オーナーへの返事を送る唯一の手段。オーナーに見えるのは、この道具で送った内容から作られた一通だけで、"
+                        "ほかに書いた文はオーナーに届かない。送ると点検役が判定し、通らなければ次にすることが返るので、"
+                        "対応してから呼び直す。「送信しました」が返ったらターンを終える。"),
+        "inputSchema": {"type": "object", "required": ["text"], "properties": {
+            "text": {"type": "string", "description": "オーナーに伝える内容の全文"}}}},
+    "start_session": {
+        "description": ("作業のセッションを新しく起こし、依頼を渡す。すぐ戻り、作業の終わりは待たない。"
+                        "作業のセッションの報告は、あとでこのセッションに届く。"),
+        "inputSchema": {"type": "object", "required": ["title", "request"], "properties": {
+            "title": {"type": "string", "description": "セッションの名前 (作業の中身が分かる短い日本語)"},
+            "request": {"type": "string", "description": "作業のセッションに渡す依頼の全文。そのセッションはこの文だけを見る"},
+            "model": {"type": "string", "description": "省くと既定のモデル"}}}},
+    "list_sessions": {
+        "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
+        "inputSchema": {"type": "object", "properties": {}}},
+}
+
+
+class Daemon:
+    def __init__(self, cfg):
+        self.cfg = cfg
+        pathlib.Path(cfg["data_dir"]).mkdir(parents=True, exist_ok=True)
+        self.ledger = Ledger(pathlib.Path(cfg["data_dir"], "ledger.sqlite"))
+        self.ledger.close_dangling_turns()
+        self.rules = gates.load_rules()
+        self.worker_rules = {r["id"] for r in self.rules["codex"] if r.get("route") == "worker"}
+        self.turns, self.active, self.t3 = {}, {}, {}
+        self.injections = []
+        self.spawn_lock = asyncio.Lock()
+        self.claude_sem = asyncio.Semaphore(cfg["limits"]["claude_procs"])
+        self.reporter_sem = asyncio.Semaphore(2)
+        self.codex_sem = asyncio.Semaphore(cfg["limits"]["codex_procs"])
+
+    # 常駐が T3 Code へ送った文の登録と照合
+    def register_injection(self, thread_id, text, requester):
+        self.injections.append({"thread": thread_id, "key": text_key(text), "requester": requester})
+        self.ledger.event("injection", {"thread": thread_id, "requester": requester, "text": text[:300]})
+
+    def match_injection(self, thread_id, text, via_tools):
+        key = text_key(text)
+        pending = [i for i in self.injections if i["thread"] == thread_id]
+        hit = next((i for i in pending if i["key"] == key), None) or (pending[0] if via_tools and pending else None)
+        if not hit:
+            return "owner"
+        self.injections.remove(hit)
+        return hit["requester"]
+
+    async def report_to_parent(self, turn, parent):
+        s = turn.session
+        text = f"[PDA] 作業のセッション「{s.get('title')}」({s['id'][:8]}) からの報告です。\n\n{turn.final}"
+        self.register_injection(parent["t3_thread_id"], text, f"session:{s['id']}")
+        await services.t3_thread_send(self.cfg, parent["t3_thread_id"], text)
+        self.ledger.mark_turn(turn.turn_id, reported_to=parent["id"])
+
+    async def start_session(self, turn, args):
+        t3 = self.t3.get(turn.session["id"])
+        if not t3:
+            return "T3 Code の口が見つからないので、セッションを起こせませんでした。"
+        title, request, model = args["title"], args["request"], args.get("model")
+        if model and model not in self.cfg["worker_models"]:
+            model = None
+        async with self.spawn_lock:
+            res = await services.t3_mcp_call(t3, "t3_thread_launch",
+                                             {"message": request, "scratch": True, "title": title})
+            thread_id = res["threadId"]
+            row = self.ledger.session_by_thread(thread_id)
+            if row:
+                self.ledger.update_session(row["id"], role="worker", parent_session_id=turn.session["id"],
+                                           title=title, model=model)
+            else:
+                row = self.ledger.create_session(str(uuid.uuid4()), thread_id, str(uuid.uuid4()), None, "worker",
+                                                 turn.session["id"], title, model)
+            self.register_injection(thread_id, request, f"session:{turn.session['id']}")
+        self.ledger.event("spawn", {"child": row["id"], "thread": thread_id, "title": title},
+                          turn.session["id"], turn.turn_id)
+        return (f"作業のセッション「{title}」を起こしました (ID {row['id'][:8]})。報告はあとでこのセッションに届きます。"
+                f"オーナーが開くリンク: {res.get('link', '')}")
+
+    def list_sessions(self, turn):
+        out = []
+        for child in self.ledger.children(turn.session["id"]):
+            turns = [{"requester": t["requester"], "request": (t["request"] or "")[:300], "outcome": t["outcome"],
+                      "reply": (t["final_text"] or "")[:1500], "ended_at": t["ended_at"]}
+                     for t in reversed(self.ledger.turns(child["id"], 5))]
+            out.append({"id": child["id"][:8], "title": child["title"], "created_at": child["created_at"],
+                        "turns": turns})
+        return json.dumps(out, ensure_ascii=False, indent=1) if out else "起こしたセッションはありません。"
+
+    # 口ごとの接続
+    async def on_conn(self, reader, writer):
+        try:
+            hello = json.loads(await reader.readline())
+            if hello["kind"] == "acp":
+                await AcpConn(self, reader, writer, hello).run()
+            elif hello["kind"] == "mcp":
+                await self._serve_mcp(reader, writer, hello)
+            elif hello["kind"] == "hook":
+                turn = self.turns.get(hello.get("token"))
+                out = await turn.on_stop() if turn else {}
+                writer.write((json.dumps(out, ensure_ascii=False) + "\n").encode("utf-8"))
+                await writer.drain()
+        except Exception as exc:  # noqa: BLE001
+            log("conn error", repr(exc))
+        finally:
+            writer.close()
+
+    async def _serve_mcp(self, reader, writer, hello):
+        turn = self.turns.get(hello.get("token"))
+        names = ["send_reply"] + (["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
+
+        async def call(msg):
+            params = msg.get("params") or {}
+            name, args = params.get("name"), params.get("arguments") or {}
+            try:
+                if not turn or name not in names:
+                    raise RuntimeError(f"使えない道具: {name}")
+                if name == "send_reply":
+                    text = await turn.submit(args.get("text", ""))
+                elif name == "start_session":
+                    text = await self.start_session(turn, args)
+                else:
+                    text = self.list_sessions(turn)
+                result = {"content": [{"type": "text", "text": text}], "isError": False}
+            except Exception as exc:  # noqa: BLE001
+                log("mcp error", name, repr(exc))
+                result = {"content": [{"type": "text", "text": f"道具の実行に失敗しました: {exc!r}"}], "isError": True}
+            reply(msg["id"], result)
+
+        def reply(rid, result):
+            if not writer.is_closing():
+                writer.write((json.dumps({"jsonrpc": "2.0", "id": rid, "result": result}, ensure_ascii=False)
+                              + "\n").encode("utf-8"))
+
+        while True:
+            line = await reader.readline()
+            if not line:
+                break
+            msg = json.loads(line)
+            if "id" not in msg:
+                continue
+            method = msg.get("method")
+            if method == "initialize":
+                reply(msg["id"], {"protocolVersion": (msg.get("params") or {}).get("protocolVersion", "2025-06-18"),
+                                  "capabilities": {"tools": {}}, "serverInfo": {"name": "pda", "version": "1"}})
+            elif method == "tools/list":
+                reply(msg["id"], {"tools": [{"name": n, **MCP_TOOLS[n]} for n in names]})
+            elif method == "tools/call":
+                asyncio.create_task(call(msg))
+            else:
+                reply(msg["id"], {})
+
+    async def serve(self):
+        path = self.cfg["socket"]
+        if os.path.exists(path):
+            os.unlink(path)
+        server = await asyncio.start_unix_server(self.on_conn, path=path, limit=STREAM_LIMIT)
+        os.chmod(path, 0o600)
+        log("listening", path)
+        stop = asyncio.get_running_loop().create_future()
+        for sig in (signal.SIGTERM, signal.SIGINT):
+            asyncio.get_running_loop().add_signal_handler(sig, lambda: stop.done() or stop.set_result(None))
+        async with server:
+            await stop
+        for turn in list(self.active.values()):
+            turn.cancel()
+
+
+def main():
+    asyncio.run(Daemon(config.load()).serve())

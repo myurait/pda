@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""PDA のパイプラインの常駐の入口。"""
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from pda_pipeline.daemon import main  # noqa: E402
+
+main()

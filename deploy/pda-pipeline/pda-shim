@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""常駐への薄い口。標準入出力と、常駐の Unix ドメインソケットの間を中継する。
+
+    pda-shim acp   T3 Code が起こす ACP の口
+    pda-shim mcp   claude -p が起こす返信の道具の口 (MCP)
+    pda-shim hook  Stop の hook の口。hook の入力を渡し、常駐の答えを標準出力に出す
+"""
+import json
+import os
+import socket
+import sys
+import threading
+
+
+def socket_path():
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    return os.environ.get("PDA_SOCKET") or os.path.join(runtime, "pda-pipeline.sock")
+
+
+def main():
+    kind = sys.argv[1]
+    hello = {"kind": kind, "token": os.environ.get("PDA_TURN_TOKEN"),
+             "env": {"T3CODE_THREAD_ID": os.environ.get("T3CODE_THREAD_ID")}}
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    try:
+        sock.connect(socket_path())
+    except OSError as exc:
+        if kind == "hook":
+            return 0
+        print(f"pda-shim: 常駐につながらない: {exc}", file=sys.stderr)
+        return 1
+    if kind == "hook":
+        try:
+            hello["input"] = json.load(sys.stdin)
+        except ValueError:
+            hello["input"] = {}
+    sock.sendall((json.dumps(hello) + "\n").encode("utf-8"))
+    if kind == "hook":
+        answer = sock.makefile("r", encoding="utf-8").readline().strip()
+        if answer and answer != "{}":
+            print(answer)
+        return 0
+
+    def downstream():
+        with sock.makefile("rb") as stream:
+            for line in stream:
+                sys.stdout.buffer.write(line)
+                sys.stdout.buffer.flush()
+        os._exit(0)
+
+    threading.Thread(target=downstream, daemon=True).start()
+    for line in sys.stdin.buffer:
+        sock.sendall(line)
+    try:
+        sock.shutdown(socket.SHUT_WR)
+    except OSError:
+        pass
+    threading.Event().wait(5)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

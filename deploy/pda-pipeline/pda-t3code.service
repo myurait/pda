@@ -1,0 +1,18 @@
+[Unit]
+Description=T3 Code のサーバー (PDA の画面)
+After=network-online.target pda-pipeline.service
+Wants=pda-pipeline.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/spike-t3code/work
+Environment=PATH=%h/spike-t3code/bin:/usr/bin:/bin
+Environment=T3CODE_HOME=%h/spike-t3code/home
+ExecStart=%h/spike-t3code/bin/t3 serve --base-dir %h/spike-t3code/home --host 127.0.0.1 --port 18900 --no-browser %h/spike-t3code/work
+Restart=on-failure
+RestartSec=10
+Nice=5
+MemoryMax=3G
+
+[Install]
+WantedBy=default.target

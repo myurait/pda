@@ -1,0 +1,51 @@
+{
+  "script": [
+    {"id": "44", "name": "英字・数字と日本語の間に空白を入れない"},
+    {"id": "47", "name": "つなぐ文は日本語で書く"}
+  ],
+  "jev": {
+    "questions": {
+      "q_cmd": {"type": "noul", "instructions": "The reply field is a message an AI assistant is about to send to the person who made owner_request. Does the reply tell or ask the reader to run a command themselves, for example by presenting a shell command for the reader to execute?"},
+      "q_req_cmd": {"type": "noul", "instructions": "Does owner_request ask how to do something themselves, ask for a command, or ask for a procedure that the person will carry out themselves?"},
+      "t_choice": {"type": "noul", "instructions": "Is owner_request a question that asks the assistant to choose between options, to answer yes or no, or to give an order of steps?"},
+      "a_choice": {"type": "noul", "instructions": "The first_sentence field is the first sentence of the reply to owner_request. Does first_sentence directly state the chosen option, a yes or no answer, or the first step?"},
+      "t_work": {"type": "noul", "instructions": "Does owner_request instruct the assistant to carry out a piece of work such as creating, changing, investigating, or running something, rather than only asking a question or chatting?"},
+      "a_status": {"type": "noul", "instructions": "The first_sentence field is the first sentence of the reply to owner_request. Does first_sentence state whether the requested work is completed or not completed?"},
+      "t_propose": {"type": "noul", "instructions": "Does the reply propose next actions for the reader to approve, or ask the reader to make a decision?"}
+    },
+    "rules": [
+      {"id": "28", "name": "相手に実行を頼むコマンドを書かない",
+       "fail_when": [["q_cmd", ">=", 0.8], ["q_req_cmd", "<", 0.5]],
+       "fix": "読み手にコマンドの実行を求める文を消してください。作業するセッションが実行できることは実行した結果を書き、実行できなかったことは、何をしようとして何に阻まれたかを書いてください。"},
+      {"id": "104", "name": "選択・手順・可否の質問には冒頭で答える",
+       "fail_when": [["t_choice", ">=", 0.7], ["a_choice", "<", 0.3]],
+       "fix": "依頼は選択・可否・手順を尋ねています。最初の文を、選んだ選択肢、可否、または最初の手順で書き始めてください。"},
+      {"id": "105", "name": "作業の報告は冒頭で完了か未完了かを言い切る",
+       "fail_when": [["t_work", ">=", 0.7], ["a_status", "<", 0.3]],
+       "fix": "依頼は作業の指示です。最初の文で、頼まれた作業が終わったか、終わっていないかを言い切ってください。終わっていないときは、次の文に欠けている点と完了に要るものを書いてください。"}
+    ],
+    "triggers": {"propose": ["t_propose", ">=", 0.5]}
+  },
+  "codex": [
+    {"id": "56", "name": "指示語は指す先が同じ段落の名詞にあるときだけ使う", "trigger": "demonstrative",
+     "unit": "返事の中の指示語 (これ・それ・あれ、この〜・その〜・あの〜、ここ・そこ、同じ〜、前述・上記・当該、前者・後者) と相対位置の語 (前の〜・次の〜・先の〜・もう1つの〜) の1つずつ",
+     "reader": "オーナーの依頼とこの返事だけを見ている人。作業の記録とツールの出力は見ていない",
+     "question": "その語が指す物が、同じ段落・同じ箇条書きの項目・直前の文のどれかに、名詞で書かれているか。指す先がツールの記録にしか無い語が1つでもあれば fail。オーナーの依頼の文を指す語 (「ご指摘の〜」「お尋ねの〜」) と、直前の文の主語を指す「これ」「それ」は pass として扱う。"},
+    {"id": "7+19", "name": "各項目に推奨とその根拠を事実で付ける / 説明をWhy→What→Howの順で書く", "trigger": "propose",
+     "unit": "返事が提案している次の手、または判断を求めている項目の1つずつ",
+     "reader": "作業の記録を見ていないオーナー。この返事だけで、項目ごとに採るかどうかを決める",
+     "question": "その項目の中に、(a) 何をするのか・何を確かめるのか、(b) それが要る理由 (いま何が起きていて、放っておくと何が困るか)、(c) 分かっているなら問題の原因、(d) 推奨しているならその根拠の事実、が書かれているか。項目の中の語が、作業の記録を見ていない読み手に通じるか。返事に提案も判断を求める項目も無ければ n/a。"},
+    {"id": "101+102", "name": "説明対象を指示文と照合して1種類に絞る / 指示された対象以外の情報を混ぜない", "trigger": "always",
+     "unit": "返事全体",
+     "reader": "依頼をしたオーナー",
+     "question": "オーナーの依頼が求めた対象と、返事が答えている対象が同じか。依頼が求めていない方針の提案・評価・別件が、依頼への答えと区別なく混ざっていないか。依頼への答えのあとに、別の段落や見出しで分けて置かれた補足は pass として扱う。"},
+    {"id": "205", "name": "不在・不可の断定は観測してから書く", "trigger": "always", "route": "worker",
+     "unit": "返事の中の「無い」「存在しない」「できない」「起きていない」の断定の1つずつ",
+     "reader": "依頼をしたオーナー",
+     "question": "その断定の対象を実際に調べた呼び出しと結果が、ツールの記録にあるか。記録に無い断定が1つでもあれば fail。返事にそうした断定が無ければ n/a。"},
+    {"id": "P1", "name": "返事に送信・点検・差し戻しの経過を書かない", "trigger": "always",
+     "unit": "返事全体",
+     "reader": "依頼をしたオーナー",
+     "question": "返事が、この返事自身の送信・点検・差し戻し・書き直しの経過 (何回目の送信か、点検に戻されたこと、点検役の指摘) に触れていないか。オーナーの依頼が点検の仕組みそのものについての問いであるときは n/a。"}
+  ]
+}

@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""台帳を参照する。
+
+    pda-ledger sessions            セッションの一覧
+    pda-ledger turns [セッション]   ターンの一覧 (新しい順)
+    pda-ledger show <ターン>        ターンの依頼・出した一通・送信ごとの下書きと判定・出来事
+"""
+import json
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from pda_pipeline import config  # noqa: E402
+from pda_pipeline.ledger import Ledger  # noqa: E402
+
+
+def main():
+    ledger = Ledger(pathlib.Path(config.load()["data_dir"], "ledger.sqlite"))
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "sessions"
+    if cmd == "sessions":
+        out = ledger.sessions()
+    elif cmd == "turns":
+        session = sys.argv[2] if len(sys.argv) > 2 else None
+        if session:
+            session = next((s["id"] for s in ledger.sessions() if s["id"].startswith(session)), session)
+        out = ledger.turns(session)
+    elif cmd == "show":
+        turn_id = int(sys.argv[2])
+        out = {"turn": ledger.turn(turn_id), "attempts": ledger.attempts(turn_id),
+               "events": ledger.events(turn_id=turn_id)}
+    else:
+        print(__doc__)
+        return 2
+    print(json.dumps(out, ensure_ascii=False, indent=1))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
