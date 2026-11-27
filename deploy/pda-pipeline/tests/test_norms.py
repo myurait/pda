@@ -85,19 +85,20 @@ class OverlayTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_added_rule_is_carried_and_judged(self):
-        entry = norms.add_rule(self.overlay, {"rule": "返事の最後に実行したコマンドを書く",
-                                              "violates": "Does reply lack a final line listing the commands?"})
+        entry = norms.add_rule(self.overlay, norms.load().entries,
+                               {"rule": "返事の最後に実行したコマンドを書く",
+                                "violates": "Does reply lack a final line listing the commands?"})
         merged = norms.load(overlay=self.overlay)
-        self.assertIn("- 返事の最後に実行したコマンドを書く\n", merged.instructions("reporter"))
+        self.assertIn("- 返事の最後に実行したコマンドを書く (セッションが足した規則)\n", merged.instructions("reporter"))
         rule = next(r for r in merged.rules["jev"]["rules"] if r["id"] == entry["id"])
         self.assertTrue(rule["enforce"])
 
     def test_change_and_remove(self):
-        entry = norms.add_rule(self.overlay, {"rule": "古い文", "violates": "Is it old?"})
+        entry = norms.add_rule(self.overlay, norms.load().entries, {"rule": "古い文", "violates": "Is it old?"})
         base = norms.load(overlay=self.overlay)
         norms.change_rule(self.overlay, base.entries, entry["id"], {"rule": "新しい文", "enforce": False})
         changed = norms.load(overlay=self.overlay)
-        self.assertIn("- 新しい文\n", changed.instructions("reporter"))
+        self.assertIn("- 新しい文 (セッションが足した規則)\n", changed.instructions("reporter"))
         self.assertFalse(next(r for r in changed.rules["jev"]["rules"] if r["id"] == entry["id"])["enforce"])
         norms.remove_rule(self.overlay, changed.entries, entry["id"])
         self.assertNotIn("新しい文", norms.load(overlay=self.overlay).instructions("reporter"))
@@ -108,6 +109,14 @@ class OverlayTest(unittest.TestCase):
         after = norms.load(overlay=self.overlay)
         self.assertNotIn("126", [r["id"] for r in after.rules["jev"]["rules"]])
         self.assertIn("126", [r["id"] for r in norms.load().rules["jev"]["rules"]])
+
+    def test_bad_values_are_refused_before_saving(self):
+        base = norms.load().entries
+        with self.assertRaises(ValueError):
+            norms.add_rule(self.overlay, base, {"rule": "x", "role": "owner"})
+        with self.assertRaises(ValueError):
+            norms.add_rule(self.overlay, base, {"rule": ["x"]})
+        self.assertFalse(self.overlay.exists())
 
     def test_pipeline_rule_cannot_be_changed(self):
         base = norms.load(overlay=self.overlay)

@@ -103,6 +103,7 @@ class Turn:
         self.claude_error = None
         self.documents = {}
         self.gate_changes = []
+        self.rules = daemon.current_rules()
         self.pre = None
         self.reply_lock = asyncio.Lock()
 
@@ -426,6 +427,10 @@ class Turn:
             return
         self.released = True
         self.final = f"{text}\n\n---\n{note}" if note else text
+        if self.gate_changes:
+            # ゲートの変更は、オーナーの承認を待たずに効かせる代わりに、どの終わり方でも一通の議題として伝える
+            self.final += "\n\n---\nPDA全体のゲートの変更 (次のターンから効きます)\n" + "\n".join(
+                f"- {c}" for c in self.gate_changes)
         self.outcome = outcome
         d, s = self.d, self.session
         if outcome != "failed":
@@ -505,11 +510,7 @@ class Turn:
         stages, lim = cfg["stages"], cfg["limits"]
         deadline = time.monotonic() + cfg["judge"]["timeout_sec"]
         use_reporter = stages["reporter"]
-        if self.gate_changes:
-            # ゲートの変更は、オーナーの承認を待たずに効かせる代わりに、その一通の議題として必ず伝える
-            text += ("\n\n[このターンに行った、PDA全体のゲートの変更。返事に1つの議題として必ず入れる]\n"
-                     + "\n".join(f"- {c}" for c in self.gate_changes))
-        rules = d.current_rules()
+        rules = self.rules  # ターンの始めの規則で判定する。このターンに変えたゲートは、次のターンから効く
         document = gates.document_text(self.documents)
         tool_calls = gates.tool_calls_text(self.tool_log)
         wrote = any(c["name"] in ("Write", "Edit", "NotebookEdit") for c in self.tool_log)
@@ -822,7 +823,7 @@ class Daemon:
                     if all(w in e["rule"] for w in words)]
             return json.dumps(rows[:60], ensure_ascii=False, indent=1) if rows else "当たる規則はありません。"
         if name == "add_gate":
-            entry = norms.add_rule(self.overlay(), args)
+            entry = norms.add_rule(self.overlay(), current.entries, args)
             change = f"足した: 「{entry['rule']}」 (番号 {entry['id']}、判定は{JUDGE_NAMES[entry.get('judge')]})"
         elif name == "change_gate":
             rid = str(args.get("id") or "")
@@ -834,11 +835,10 @@ class Daemon:
             before = next((e for e in current.entries if str(e["id"]) == rid), None)
             norms.remove_rule(self.overlay(), current.entries, rid)
             change = f"消した: 「{(before or {}).get('rule', rid)}」 (番号 {rid})"
-        self.norms()  # 組み直せることを、変えたその場で確かめる
         turn.gate_changes.append(change)
         self.ledger.event("gate_change", {"tool": name, "args": args, "change": change}, turn.session["id"],
                           turn.turn_id)
-        return change + "。次のターンから、すべてのセッションに効きます。オーナーへの返事に、この変更を1つの議題として入れてください。"
+        return change + "。次のターンから、すべてのセッションに効きます。この変更は、返事の末尾に常駐が1つの議題として添えます。"
 
     def current_rules(self):
         """終端のゲートに使う規則。正本が入のときは、正本から組んだ規則を使う。"""

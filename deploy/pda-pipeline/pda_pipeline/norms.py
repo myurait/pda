@@ -26,7 +26,8 @@ class Norms:
 
     def instructions(self, kind):
         """kind は worker か reporter。載せる規則の文を、役の指示につなぐ節にする。"""
-        lines = [f"- {e['rule']}" for e in self.loaded if e.get("role") == kind]
+        lines = [f"- {e['rule']}" + (" (セッションが足した規則)" if e.get("origin") == "agent" else "")
+                 for e in self.loaded if e.get("role") == kind]
         if not lines:
             return ""
         return (WORKER_HEAD if kind == "worker" else REPORTER_HEAD) + "\n" + "\n".join(lines) + "\n"
@@ -108,7 +109,6 @@ def load(path=None, overlay=None):
 
 
 # エージェントによるゲートの足し引き。正本のファイルは変えず、常駐のデータの置き場の overlay に持つ。
-CHANGEABLE = ("rule", "role", "applies", "violates", "fix", "unit", "reader", "question", "enforce")
 
 
 def merge(entries, overlay):
@@ -130,7 +130,31 @@ def _read(overlay):
     return {"added": [], "changed": {}, "next": 1}
 
 
-def _write(overlay, data):
+TEXT_FIELDS = ("rule", "applies", "violates", "fix", "unit", "reader", "question")
+TEXT_MAX = 1000
+
+
+def _clean(args):
+    """道具に渡された項目の型と長さを確かめ、使う項目だけを返す。"""
+    out = {}
+    for key in TEXT_FIELDS:
+        if args.get(key) is not None:
+            if not isinstance(args[key], str) or not args[key].strip() or len(args[key]) > TEXT_MAX:
+                raise ValueError(f"{key} は {TEXT_MAX} 文字までの文で渡す")
+            out[key] = " ".join(args[key].split())
+    if args.get("role") is not None:
+        if args["role"] not in ("worker", "reporter"):
+            raise ValueError("role は worker か reporter")
+        out["role"] = args["role"]
+    if args.get("enforce") is not None:
+        if not isinstance(args["enforce"], bool):
+            raise ValueError("enforce は true か false")
+        out["enforce"] = args["enforce"]
+    return out
+
+
+def _write(overlay, data, entries):
+    Norms(merge(entries, data))  # 組み直せない変更は、保存する前に断る
     overlay = pathlib.Path(overlay)
     overlay.parent.mkdir(parents=True, exist_ok=True)
     tmp = overlay.with_suffix(".tmp")
@@ -138,12 +162,13 @@ def _write(overlay, data):
     tmp.replace(overlay)
 
 
-def add_rule(overlay, args):
+def add_rule(overlay, entries, args):
     """規則を足す。violates があれば Jev、question があれば Codex が判定する。どちらも無ければ役の指示にだけ載る。"""
-    rule = " ".join(str(args.get("rule") or "").split())
+    args = _clean(args)
+    rule = args.get("rule")
     if not rule:
         raise ValueError("規則の文が空")
-    role = args.get("role") if args.get("role") in ("worker", "reporter") else "reporter"
+    role = args.get("role", "reporter")
     data = _read(overlay)
     entry = {"id": f"A{data['next']}", "rule": rule, "fire": "reply", "role": role, "load": True, "enforce": True,
              "origin": "agent"}
@@ -161,21 +186,19 @@ def add_rule(overlay, args):
         entry.update(judge=None, note="役の指示にだけ載せる規則")
     data["added"].append(entry)
     data["next"] += 1
-    _write(overlay, data)
+    _write(overlay, data, entries)
     return entry
 
 
-def change_rule(overlay, entries, rid, args):
+def change_rule(overlay, entries, rid, args, unload=False):
     """規則を変える。足した規則はそのものを、正本の規則は変える項目だけを overlay に持つ。"""
     rid = str(rid)
     target = next((e for e in entries if str(e["id"]) == rid), None)
     if not target or target.get("role") == "pipeline" or rid == "triggers":
         raise ValueError(f"変えられる規則が無い: {rid}")
-    change = {k: args[k] for k in CHANGEABLE if k in args and args[k] is not None}
-    if "load" in args:
-        change["load"] = bool(args["load"])
-        if not change["load"]:
-            change["skip"] = "removed_by_agent"
+    change = _clean(args)
+    if unload:
+        change.update(load=False, skip="removed_by_agent")
     if not change:
         raise ValueError("変える項目が無い")
     data = _read(overlay)
@@ -184,7 +207,7 @@ def change_rule(overlay, entries, rid, args):
         added.update(change)
     else:
         data["changed"].setdefault(rid, {}).update(change)
-    _write(overlay, data)
+    _write(overlay, data, entries)
     return change
 
 
@@ -194,7 +217,7 @@ def remove_rule(overlay, entries, rid):
     data = _read(overlay)
     if any(str(e["id"]) == rid for e in data["added"]):
         data["added"] = [e for e in data["added"] if str(e["id"]) != rid]
-        _write(overlay, data)
+        _write(overlay, data, [e for e in entries if str(e["id"]) != rid])
         return "added"
-    change_rule(overlay, entries, rid, {"load": False})
+    change_rule(overlay, entries, rid, {}, unload=True)
     return "unloaded"
