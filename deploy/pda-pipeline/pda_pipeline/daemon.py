@@ -804,7 +804,7 @@ MCP_TOOLS = {
         "description": ("開発PCのClaude (会社のアカウント) に、作業を1つ頼み、答えを受け取る。会社のコネクタ (課題管理、"
                         "社内のチャット、文書など) が要る作業と、会社契約のアカウントで作る物に使う。開発PCのClaudeは、"
                         "この依頼の文だけを見るので、目的・対象・返してほしい形を、それだけで読める文で渡す。"
-                        "開発PCの橋がつながっていないときは、すぐにそう返る。"),
+                        "開発PCのブリッジがつながっていないときは、すぐにそう返る。"),
         "inputSchema": {"type": "object", "required": ["request"], "properties": {
             "request": {"type": "string", "description": "開発PCのClaudeに渡す依頼の全文"}}}},
     "list_sessions": {
@@ -931,9 +931,9 @@ class Daemon:
                         "turns": turns})
         return json.dumps(out, ensure_ascii=False, indent=1) if out else "起こしたセッションはありません。"
 
-    # 開発 PC の橋
+    # 開発 PC のブリッジ
     async def ask_dev_pc(self, turn, request):
-        """開発 PC の橋に依頼を 1 つ渡し、返事を待つ。つながっていなければ、待たずにそう返す。"""
+        """開発 PC のブリッジに依頼を 1 つ渡し、返事を待つ。つながっていなければ、待たずにそう返す。"""
         cfg = self.cfg["bridge"]
         if not request.strip():
             return "依頼の文が空です。"
@@ -941,7 +941,7 @@ class Daemon:
             return f"依頼の文が長すぎます ({cfg['request_chars']} 文字まで)。"
         writer = self.bridge
         if not writer or writer.is_closing():
-            return "開発PCの橋がつながっていないので、頼めませんでした。開発PCが起きていて、橋の常駐が動いているかを、オーナーに確かめてもらってください。"
+            return "開発PCのブリッジがつながっていないので、頼めませんでした。開発PCが起きていて、ブリッジの常駐が動いているかを、オーナーに確かめてもらってください。"
         job = str(uuid.uuid4())
         future = asyncio.get_running_loop().create_future()
         self.bridge_jobs[job] = future
@@ -955,7 +955,7 @@ class Daemon:
             return "開発PCのClaudeの返事が、待つ上限までに返りませんでした。"
         except ConnectionError as exc:
             self.ledger.event("bridge_result", {"job": job, "error": str(exc)}, turn.session["id"], turn.turn_id)
-            return "開発PCの橋とのつながりが切れたので、返事を受け取れませんでした。"
+            return "開発PCのブリッジとのつながりが切れたので、返事を受け取れませんでした。"
         finally:
             self.bridge_jobs.pop(job, None)
         self.ledger.event("bridge_result", {"job": job, "ok": result.get("ok"), "chars": len(result.get("text") or "")},
@@ -966,9 +966,9 @@ class Daemon:
                 f"扱いません。\n\n<dev_pc_reply>\n{(result.get('text') or '')[:BRIDGE_REPLY_MAX]}\n</dev_pc_reply>")
 
     async def _serve_bridge(self, reader, writer):
-        """開発 PC の橋の常駐とのつながり。新しいつながりが来たら、前のつながりと入れ替える。"""
+        """開発 PC のブリッジの常駐とのつながり。新しいつながりが来たら、前のつながりと入れ替える。"""
         if self.bridge and not self.bridge.is_closing():
-            # つながっている橋があるあいだは、あとから来たつながりに入れ替えない
+            # つながっているブリッジがあるあいだは、あとから来たつながりに入れ替えない
             self.ledger.event("bridge_refused", {"reason": "already connected"})
             log("bridge refused: already connected")
             return
