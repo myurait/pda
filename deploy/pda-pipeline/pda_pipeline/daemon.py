@@ -310,6 +310,24 @@ class Turn:
             "status": "failed" if entry["is_error"] else "completed",
             "content": [{"type": "content", "content": {"type": "text", "text": text[:20000]}}]})
 
+    async def _ask_permission(self, tool_name, tool_call):
+        """承認の要求を ACP に出し、許可されたかを返す。許可するかは、スレッドの権限とオーナーの操作で決まる。"""
+        waiter = asyncio.create_task(self._notify_permission(tool_name or "道具"))
+        allowed = False
+        try:
+            answer = await self.conn.request("session/request_permission", {
+                "sessionId": self.session["id"], "toolCall": tool_call, "options": [
+                    {"optionId": "allow-once", "name": "Allow", "kind": "allow_once"},
+                    {"optionId": "reject-once", "name": "Reject", "kind": "reject_once"}]})
+            outcome = (answer or {}).get("outcome", {})
+            allowed = outcome.get("outcome") == "selected" and outcome.get("optionId") == "allow-once"
+        except Exception as exc:  # noqa: BLE001
+            log("permission error", repr(exc))
+        waiter.cancel()
+        self.d.ledger.event("permission", {"title": tool_call["title"], "allowed": allowed},
+                            self.session["id"], self.turn_id)
+        return allowed
+
     async def _on_control(self, ev):
         req = ev.get("request", {})
         response = {}
@@ -318,19 +336,7 @@ class Turn:
             tool_call = {"toolCallId": req.get("tool_use_id") or f"perm-{ev['request_id']}", "title": title,
                          "kind": KINDS.get(req.get("tool_name"), "other"), "status": "pending",
                          "rawInput": req.get("input")}
-            waiter = asyncio.create_task(self._notify_permission(req.get("tool_name") or "道具"))
-            allowed = False
-            try:
-                answer = await self.conn.request("session/request_permission", {
-                    "sessionId": self.session["id"], "toolCall": tool_call, "options": [
-                        {"optionId": "allow-once", "name": "Allow", "kind": "allow_once"},
-                        {"optionId": "reject-once", "name": "Reject", "kind": "reject_once"}]})
-                outcome = (answer or {}).get("outcome", {})
-                allowed = outcome.get("outcome") == "selected" and outcome.get("optionId") == "allow-once"
-            except Exception as exc:  # noqa: BLE001
-                log("permission error", repr(exc))
-            waiter.cancel()
-            self.d.ledger.event("permission", {"title": title, "allowed": allowed}, self.session["id"], self.turn_id)
+            allowed = await self._ask_permission(req.get("tool_name"), tool_call)
             response = {"behavior": "allow", "updatedInput": req.get("input") or {}} if allowed else \
                        {"behavior": "deny", "message": "オーナーが許可しませんでした。"}
         try:
@@ -348,13 +354,20 @@ class Turn:
 
     # 一通を出す
     # 資料
-    def attach_document(self, args):
+    async def attach_document(self, args):
         cfg, s = self.d.cfg, self.session
         sdir = pathlib.Path(cfg["data_dir"], "sessions", s["id"])
         title = " ".join(str(args.get("title") or "").split())[:80]
         path = workdir.resolve(str(args.get("path") or ""), self.workdir(sdir))
         if not title:
             return "題名が空なので、資料は預かっていません。"
+        inside = [self.workdir(sdir), os.path.realpath(sdir)]
+        if not any(path.startswith(d + os.sep) for d in inside):
+            # 作業ディレクトリの外のファイルは、ファイルを開く道具と同じく、承認の要求を通してから取り込む
+            call = {"toolCallId": f"doc-{uuid.uuid4()}", "title": f"資料として付ける: {path}", "kind": "read",
+                    "status": "pending", "rawInput": {"path": path}}
+            if not await self._ask_permission("attach_document", call):
+                return f"オーナーが許可しなかったので、{path} は資料として預かっていません。"
         try:
             # 名前付きパイプを指されても開く時点で止まらないよう、待たない指定で開いてから種類を確かめる
             with os.fdopen(os.open(path, os.O_RDONLY | os.O_NONBLOCK), "rb") as f:
@@ -842,7 +855,7 @@ class Daemon:
                 elif name == "set_workdir":
                     text = turn.set_workdir(args.get("path", ""))
                 elif name == "attach_document":
-                    text = turn.attach_document(args)
+                    text = await turn.attach_document(args)
                 else:
                     text = self.list_sessions(turn)
                 result = {"content": [{"type": "text", "text": text}], "isError": False}
