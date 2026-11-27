@@ -85,6 +85,7 @@ class Turn:
         self.attempt_no = 0
         self.completion_rejections = 0
         self.convention_rejections = 0
+        self.residual_returned = False
         self.stop_blocks = 0
         self.last_draft = None
         self.proc = None
@@ -381,6 +382,10 @@ class Turn:
                     rule_fails, completion = split(await codex([r["id"] for r in rule_fails]))
                     if not rule_fails:
                         break
+                if rule_fails and completion["pass"] and not self.residual_returned:
+                    # 報告係は渡された内容に無い事実を足せないので、残った外れは 1 回だけ作業するセッションに足させる
+                    self.residual_returned = True
+                    return rejection(fix_lines(rule_fails)), "rejected"
             elif rule_fails and self.convention_rejections < lim["reporter_rewrites"]:
                 self.convention_rejections += 1
                 return rejection(fix_lines(rule_fails) + ([] if completion["pass"] else completion["reasons"])), \
