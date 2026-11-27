@@ -324,7 +324,8 @@ class Turn:
         if not title:
             return "題名が空なので、資料は預かっていません。"
         try:
-            with open(path, "rb") as f:
+            # 名前付きパイプを指されても開く時点で止まらないよう、待たない指定で開いてから種類を確かめる
+            with os.fdopen(os.open(path, os.O_RDONLY | os.O_NONBLOCK), "rb") as f:
                 if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
                     raise OSError("not a regular file")
                 raw = f.read(DOCUMENT_MAX_BYTES + 1)
