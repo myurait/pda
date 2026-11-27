@@ -13,6 +13,7 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | `pda-pipeline.service` | 常駐の定義 |
 | `pda-t3code.service` | T3 Codeのサーバーの定義 |
 | `tests/` | 単体の試験と、T3 Codeの代わりにACPの口を起こす確かめ用のクライアント |
+| `dev-pc/` | 開発PCに置く橋の常駐のスクリプトと定義 |
 
 ## 決まり
 
@@ -75,6 +76,40 @@ T3 Codeの設定 `~/spike-t3code/home/userdata/settings.json` の `providerInsta
    `t3 pair --tailscale` は、Tailscale Serveの443の割り当てを書き換えるので使わない。
 2. スマホのT3 Codeのアプリでは、Settings → Environments → Add environment にURLを貼る。PCのブラウザでは、URLを開く。
 3. 新しいスレッドは、providerの `PDA` で始まる。オーナーが作ったスレッドがメインセッションになる。
+
+## 開発PCの橋
+
+PDAのセッションが、道具 `ask_dev_pc` で、開発PCのClaude (会社のアカウント) に作業を頼むための経路である。開発PCの常駐が、ミニPCの22番にSSHでつなぎ、届いた依頼ごとに開発PCの `claude -p` を起こして、返事を返す。
+
+| もの | 入れる場所 (開発PC) | 役目 |
+| --- | --- | --- |
+| `dev-pc/pda-bridge` | `~/.local/bin/` | 橋の常駐の本体。`claude -p` に付ける引数は、このファイルに固定してある |
+| `dev-pc/com.pda.dev-pc-bridge.plist` | `~/Library/LaunchAgents/` | 上のスクリプトを、ログインのあいだ動かし続ける |
+| (リポジトリに置かない) | `~/.config/pda-bridge/allowed-tools.txt` | 確認なしで呼んでよいMCPの道具の名前。1行に1つ。無ければ、どの道具の呼び出しも断られる |
+| (リポジトリに置かない) | `~/.config/pda-bridge/config.json` | 既定を変えるときだけ置く (SSHのつなぎ先、ミニPCで起こすコマンド、待つ上限) |
+
+- `claude -p` は、`--restricted` と `--tools ""` で起こす。組み込みの道具と、ユーザーの設定 (hook、許可の規則、ユーザーの設定に登録したMCP) は使わない。使えるのは、ログインに付いている会社のコネクタと、管理設定とpluginのMCPのうち、`allowed-tools.txt` に書いた道具だけである。
+- 橋の常駐が開発PCで行うのは、ミニPCへのSSHの接続と、`claude -p` の起動だけである。開発PCは待ち受けを持たない。
+- 頼んだ依頼の文と、開発PCのClaudeの返事は、ミニPCの常駐を通り、PDAのセッションの返事の材料になる。返事の材料は、ミニPCの台帳に残り、返事の前の判定 (Jev、Codex) に渡り、返事に入った分は通知 (ntfy) にも出る。
+- 動いた記録は `~/Library/Logs/pda-bridge.log` に残る。依頼の番号と文字数だけで、依頼と返事の中身は残さない。
+
+開発PCに入れるときは、リポジトリのフォルダで次を実行する。
+
+```sh
+install -m 755 deploy/pda-pipeline/dev-pc/pda-bridge ~/.local/bin/
+install -m 644 deploy/pda-pipeline/dev-pc/com.pda.dev-pc-bridge.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist
+tail ~/Library/Logs/pda-bridge.log    # connected の行が出る
+```
+
+外すときは、次を実行する。
+
+```sh
+launchctl bootout gui/501/com.pda.dev-pc-bridge
+trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge
+```
+
+`~/.local/bin/pda-bridge --check` で、設定と、`claude -p` に付ける引数を確かめられる。
 
 ## 設定
 
