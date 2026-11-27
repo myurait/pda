@@ -249,7 +249,9 @@ class Turn:
                ["--session-id", s["claude_session_id"]]
         if cfg["norms"]["enabled"] and (norms.NORMS_DIR / "plugin").is_dir():
             cmd += ["--plugin-dir", str(norms.NORMS_DIR / "plugin")]
-        env = services.claude_env(cfg, {**env, "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "0"})
+        # 背面に回したサブエージェントやコマンドの結果を待たずにターンを終えると、完了の報告が出ないので、背面の実行を外す
+        env = services.claude_env(cfg, {**env, "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": "0",
+                                        "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": "1"})
         with open(sdir / "claude.stderr", "ab") as errlog:
             self.proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=cwd, env=env, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
