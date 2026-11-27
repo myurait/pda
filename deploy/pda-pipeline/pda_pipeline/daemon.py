@@ -19,6 +19,7 @@ STREAM_LIMIT = 64 * 1024 * 1024
 PDA_TOOLS = ("mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir,"
              "mcp__pda__attach_document")
 DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
+DOCUMENT_HEIGHT = 600
 
 SENT = "送信しました。オーナーに届きました。ターンを終えてください。"
 ALREADY = "このターンの返事はすでにオーナーに届いています。ターンを終えてください。"
@@ -344,9 +345,7 @@ class Turn:
             try:
                 if not t3:
                     raise RuntimeError("T3 Code の口が見つからない")
-                arguments = {"html": doc["html"], "title": title}
-                if doc["height"]:
-                    arguments["height"] = doc["height"]
+                arguments = {"html": doc["html"], "title": title, "height": doc["height"] or DOCUMENT_HEIGHT}
                 res = await services.t3_mcp_call(t3, "html_render", arguments)
                 d.ledger.event("document_rendered", {"title": title, "result": res}, s["id"], self.turn_id)
             except Exception as exc:  # noqa: BLE001
@@ -647,7 +646,7 @@ MCP_TOOLS = {
         "inputSchema": {"type": "object", "required": ["title", "path"], "properties": {
             "title": {"type": "string", "description": "資料の題名"},
             "path": {"type": "string", "description": "HTMLのファイルの絶対パス"},
-            "height": {"type": "number", "description": "画面に出す高さ (ピクセル)。省くと既定"}}}},
+            "height": {"type": "number", "description": "画面に出す高さ (ピクセル)。省くと600"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
