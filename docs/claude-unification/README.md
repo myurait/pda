@@ -17,7 +17,7 @@ PDA の既存の書き方で、オーナーが求めているもの、それに�
 
 ## 決まっていないこと
 
-入口の要件を読み直している (2026-11-10)。オーナーが、リモートのセッションを入口にする形は使いづらいと述べたため、[requirements.md](requirements.md) の 3.1 の 1 と 2 をオーナーの回答で改める。部品の調査 ([research-plan.md](research-plan.md) と research-parts-*.md) は、入口の要件が決まってから読み直して使う。
+[solution-options.md](solution-options.md) の案Cの実現計画のうち、段階1を実装した ([design-stage1.md](design-stage1.md)、[check-stage1.md](check-stage1.md))。段階2を始める時期は、オーナーが決める。
 
 ## オーナーの判断の記録
 
