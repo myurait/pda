@@ -8,7 +8,7 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | `pda-shim` | 常駐への薄い口。`acp` (T3 Codeが起こす)、`mcp` (返信の道具)、`hook` (Stopのhook) の3つ |
 | `pda-ledger` | 台帳を参照するコマンド |
 | `roles/` | 役の指示。`common.md` と、役ごとの `main.md`・`worker.md`、報告係の `reporter.md` |
-| `rules.json` | 伝え方の規約のゲートに載せる規則と問い (段階1。`norms.enabled` が切のときに使う) |
+| `rules.json` | 伝え方の規約のゲートに載せる規則と問い (段階1。`norms.enabled` を切にしたときに使う) |
 | `norms/` | オーナーの規約の正本。`rules.json` (規則ごとの、載せるか・判定器・問い・外れを差し戻すか)、`mcp.json` (すべてのセッションに配るMCP)、`plugin/` (すべてのセッションに配るskill) |
 | `pda-pipeline.service` | 常駐の定義 |
 | `pda-t3code.service` | T3 Codeのサーバーの定義 |
@@ -88,7 +88,7 @@ T3 Codeの設定 `~/spike-t3code/home/userdata/settings.json` の `providerInsta
 }
 ```
 
-- `norms.enabled` を `true` にすると、`norms/` の正本から、役の指示・報告係の指示・ゲートの問いを組み、依頼を受けた時点のゲートを動かす。`norms.pre_gate` を `false` にすると、依頼を受けた時点のゲートだけを外す。
+- 既定で、`norms/` の正本から、役の指示・報告係の指示・ゲートの問いを組み、依頼を受けた時点のゲートを動かす。`norms.enabled` を `false` にすると、段階1の役の指示と `rules.json` だけを使う。`norms.pre_gate` を `false` にすると、依頼を受けた時点のゲートだけを外す。
 - `judge.fixed` は試験用の固定の判定で、Codexを呼ばずに決まった結果を返す。`{"mode": "reject_until", "n": 12}` は12回目の送信まで差し戻す。`"delay"` は判定が返るまでの秒数である。
 - 設定を変えたら常駐を起こし直す。
 

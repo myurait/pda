@@ -92,7 +92,8 @@ def script_gate(draft, document=""):
     if document:
         polite = [m.group(0) for m in _POLITE.finditer(document)]
         results.append({
-            "id": "6", "pass": len(polite) < 2, "target": "document",
+            # 判断を求める資料だけが対象の規則で、場面を見分けていないので、外れは記録だけにする
+            "id": "6", "pass": True, "observed": len(polite) >= 2, "target": "document",
             "reason": "資料に、です・ます調の文がある: " + " / ".join(polite[:6]) if len(polite) >= 2 else "",
             "fix": "資料の文を常体 (だ・である調) に直し、attach_document で同じ題名の資料を付け直してください。" if len(polite) >= 2 else "",
         })
@@ -415,7 +416,8 @@ async def pre_gate(cfg, sem, norms, request, context, deadline):
         items = "\n".join(f"- id: {e['id']}\n  - 指示: {e['extract']}" for e in applied)
         prompt = PRE_PROMPT.format(items=items, context=context, request=request)
         try:
-            verdict = await _codex_json(cfg, sem, prompt, PRE_SCHEMA, deadline)
+            verdict = await asyncio.wait_for(_codex_json(cfg, sem, prompt, PRE_SCHEMA, deadline),
+                                             max(1, deadline - time.monotonic()))
             out["notes"] = {n["id"]: n["text"] for n in verdict["notes"] if n.get("text")}
         except Exception as exc:  # noqa: BLE001
             out["error"] = f"{type(exc).__name__}: {exc}"

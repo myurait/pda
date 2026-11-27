@@ -180,7 +180,7 @@ class Turn:
         self.pre = {}
         context = "\n".join(f"- 依頼: {t['request'][:1500]}\n  返事: {t['final_text'][:1500]}"
                             for t in d.ledger.recent_exchanges(self.session["id"], self.turn_id)) or "(なし)"
-        verdict = await gates.pre_gate(cfg, d.codex_sem, d.norms(), self.request, context, time.monotonic() + 120)
+        verdict = await gates.pre_gate(cfg, d.codex_sem, d.norms(), self.request, context, time.monotonic() + cfg["norms"]["pre_gate_wait_sec"])
         self.pre = verdict["notes"]
         d.ledger.event("pre_gate", verdict, self.session["id"], self.turn_id)
         return self._pre_text()

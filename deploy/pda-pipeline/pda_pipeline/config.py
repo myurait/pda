@@ -52,8 +52,9 @@ DEFAULTS = {
         "endpoint": "https://api.typesafe.ai/v1/systemone",
         "model": "jev-latest",
     },
-    # オーナーの規約の正本 (norms/) から、役の指示とゲートの問いを組む。切のときは rules.json と roles/ だけを使う
-    "norms": {"enabled": False, "pre_gate": True},
+    # オーナーの規約の正本 (norms/) から、役の指示とゲートの問いを組む。切のときは rules.json と roles/ だけを使う。
+    # pre_gate_wait_sec は、依頼を受けた時点のゲートを待つ上限で、超えたら書き出しなしで作業を始める
+    "norms": {"enabled": True, "pre_gate": True, "pre_gate_wait_sec": 20},
     "disallowed_tools": [
         "AskUserQuestion", "PushNotification", "EnterPlanMode", "ExitPlanMode", "ScheduleWakeup",
         "CronCreate", "CronDelete", "CronList", "RemoteTrigger",
