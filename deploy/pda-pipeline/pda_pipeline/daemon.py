@@ -398,7 +398,10 @@ class Turn:
                                        NOTE_COMPLETION + " / ".join(completion["reasons"]))
                     return SENT, "released_unverified"
                 self.completion_rejections += 1
-                return rejection(completion["reasons"] or ["依頼された作業が終わったことを確かめられません。"]), "rejected"
+                reasons = completion["reasons"] or ["依頼された作業が終わったことを確かめられません。"]
+                if not use_reporter:
+                    reasons = reasons + fix_lines(rule_fails)
+                return rejection(reasons), "rejected"
         await self.release(draft, "released")
         return SENT, "released"
 
