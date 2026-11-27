@@ -368,14 +368,9 @@ class Turn:
                 return verdict
 
             def split(verdict):
-                to_worker = [r for r in fails(verdict) if r["id"] in d.worker_rules]
-                to_reporter = [r for r in fails(verdict) if r["id"] not in d.worker_rules]
-                comp = verdict["completion"]
-                return to_reporter, {"pass": comp["pass"] and not to_worker,
-                                     "reasons": list(comp["reasons"]) + fix_lines(to_worker)}
+                return fails(verdict), verdict["completion"]
 
-            first_ids = gates.codex_rule_ids(d.rules, draft, triggers)
-            rule_fails, completion = split(await codex(first_ids))
+            rule_fails, completion = split(await codex(gates.codex_rule_ids(d.rules, draft, triggers)))
             if not completion["pass"]:
                 # 作業が足りないときは、文面を直す前に作業するセッションへ戻す
                 pass
@@ -383,8 +378,7 @@ class Turn:
                 for _ in range(lim["codex_rejudge"]):
                     draft = await self._reporter(drafts, text, draft, rule_fails)
                     verdicts.append(gates.script_gate(draft))
-                    again = [r["id"] for r in rule_fails] + [i for i in first_ids if i in d.worker_rules]
-                    rule_fails, completion = split(await codex(again))
+                    rule_fails, completion = split(await codex([r["id"] for r in rule_fails]))
                     if not rule_fails:
                         break
             elif rule_fails and self.convention_rejections < lim["reporter_rewrites"]:
@@ -548,7 +542,6 @@ class Daemon:
         self.ledger = Ledger(pathlib.Path(cfg["data_dir"], "ledger.sqlite"))
         self.ledger.close_dangling_turns()
         self.rules = gates.load_rules()
-        self.worker_rules = {r["id"] for r in self.rules["codex"] if r.get("route") == "worker"}
         self.turns, self.active, self.t3 = {}, {}, {}
         self.injections = []
         self.spawn_lock = asyncio.Lock()
