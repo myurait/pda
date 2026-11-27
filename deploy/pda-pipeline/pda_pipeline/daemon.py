@@ -93,6 +93,7 @@ class Turn:
         self.completion_rejections = 0
         self.convention_rejections = 0
         self.residual_returned = False
+        self.document_rejections = 0
         self.stop_blocks = 0
         self.last_draft = None
         self.proc = None
@@ -500,12 +501,18 @@ class Turn:
 
         triggers, conv_fails = {"propose": True}, []
         for i in range(lim["reporter_rewrites"] + 1):
-            sv = gates.script_gate(draft)
+            sv = gates.script_gate(draft, document)
             jv = await gates.jev_gate(cfg["jev"], rules, self.request, draft, document, tool_calls) \
                 if stages["jev"] else None
             verdicts.extend(v for v in (sv, jv) if v)
             triggers = jv["triggers"] if jv else triggers
             conv_fails = fails(sv) + fails(jv)
+            doc_fails = [r for r in conv_fails if r.get("target") == "document"]
+            if doc_fails and self.document_rejections < lim["reporter_rewrites"]:
+                # 資料は作業するセッションが作るので、資料の外れは報告係でなく作業するセッションに戻す
+                self.document_rejections += 1
+                return rejection(fix_lines(doc_fails)), "rejected"
+            conv_fails = [r for r in conv_fails if r.get("target") != "document"]
             if not conv_fails or not use_reporter or i == lim["reporter_rewrites"]:
                 break
             draft = await self._reporter(drafts, text, draft, conv_fails)

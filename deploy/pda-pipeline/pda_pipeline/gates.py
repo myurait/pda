@@ -83,9 +83,19 @@ def has_demonstrative(text):
     return bool(_DEMONSTRATIVE.search("\n".join(strip_code(text))))
 
 
-def script_gate(draft):
+_POLITE = re.compile(r"(?:です|ます|でした|ました|ません|でしょう|ください)[。！？]")
+
+
+def script_gate(draft, document=""):
     t0 = time.monotonic()
     results = []
+    if document:
+        polite = [m.group(0) for m in _POLITE.finditer(document)]
+        results.append({
+            "id": "6", "pass": len(polite) < 2, "target": "document",
+            "reason": "資料に、です・ます調の文がある: " + " / ".join(polite[:6]) if len(polite) >= 2 else "",
+            "fix": "資料の文を常体 (だ・である調) に直し、attach_document で同じ題名の資料を付け直してください。" if len(polite) >= 2 else "",
+        })
     gaps = []
     english = []
     for line in strip_code(draft):
@@ -358,6 +368,8 @@ def tool_calls_text(tool_log, limit=6000):
     return "\n".join(lines)[-limit:]
 
 
+PRE_APPLIES = 0.8
+
 PRE_SCHEMA = {
     "type": "object",
     "properties": {"notes": {"type": "array", "items": {"type": "object", "properties": {
@@ -397,7 +409,7 @@ async def pre_gate(cfg, sem, norms, request, context, deadline):
         out.update({"error": f"{type(exc).__name__}: {exc}", "seconds": round(time.monotonic() - t0, 2)})
         return out
     out["scores"] = scores
-    applied = [e for e in norms.pre if scores.get(f"p{e['id']}", 0.0) >= 0.6]
+    applied = [e for e in norms.pre if scores.get(f"p{e['id']}", 0.0) >= PRE_APPLIES]
     out["applied"] = [str(e["id"]) for e in applied]
     if applied and cfg["stages"]["codex"] and not cfg["judge"].get("fixed"):
         items = "\n".join(f"- id: {e['id']}\n  - 指示: {e['extract']}" for e in applied)
