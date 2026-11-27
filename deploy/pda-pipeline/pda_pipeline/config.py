@@ -57,6 +57,8 @@ DEFAULTS = {
     "norms": {"enabled": True, "pre_gate": True, "pre_gate_wait_sec": 20},
     # 案件の名前からリポジトリを引き当てるときに、台帳のほかに探すディレクトリ
     "project_roots": [str(HOME / "v03/work/projects")],
+    # 開発 PC の橋。開発 PC の Claude の返事を待つ上限と、依頼の文の長さの上限
+    "bridge": {"timeout_sec": 900, "request_chars": 20000},
     "disallowed_tools": [
         "AskUserQuestion", "PushNotification", "EnterPlanMode", "ExitPlanMode", "ScheduleWakeup",
         "CronCreate", "CronDelete", "CronList", "RemoteTrigger",

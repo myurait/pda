@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.pda.dev-pc-bridge</string>
+    <key>Comment</key>
+    <string>ミニ PC の PDA のパイプラインから届いた依頼ごとに、開発 PC の claude -p を起こして返事を返す</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>/usr/bin/python3</string>
+      <string>/Users/fox4foofighter/.local/bin/pda-bridge</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+    <key>StandardInPath</key>
+    <string>/dev/null</string>
+    <key>StandardOutPath</key>
+    <string>/Users/fox4foofighter/Library/Logs/pda-bridge.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/fox4foofighter/Library/Logs/pda-bridge.log</string>
+  </dict>
+</plist>

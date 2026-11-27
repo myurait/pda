@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""開発 PC の橋の常駐。ミニ PC へ SSH でつなぎ、PDA のパイプラインから届いた依頼ごとに、開発 PC の claude -p を起こして返事を返す。
+
+    pda-bridge            常駐として動く (launchd から起こす)
+    pda-bridge --check    設定と、claude -p に付ける引数を出して終わる
+
+できることは、届いた依頼の文を標準入力で claude -p に渡し、その返事を返すことだけである。
+claude -p に付ける引数はこのファイルに固定してあり、ミニ PC から届くのは依頼の文と、依頼の番号だけである。
+開発 PC は待ち受けを持たず、開発 PC からミニ PC へ出ていく SSH の接続だけを使う。
+"""
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import time
+
+HOME = pathlib.Path.home()
+CONFIG = pathlib.Path(os.environ.get("PDA_BRIDGE_CONFIG") or HOME / ".config/pda-bridge/config.json")
+DEFAULTS = {
+    "ssh_host": "agent-node",
+    "remote_command": "python3 pda/deploy/pda-pipeline/pda-shim bridge",
+    "claude": str(HOME / ".local/bin/claude"),
+    "allowed_tools_file": str(HOME / ".config/pda-bridge/allowed-tools.txt"),
+    "workdir": str(HOME / "Library/Application Support/pda-bridge/work"),
+    "timeout_sec": 840,
+}
+# 組み込みの道具をすべて外し、ユーザー・プロジェクトの設定のファイル (hook と許可の規則を含む) を使わずに起こす。
+# 残るのは、ログインに付いている会社のコネクタと、管理設定と plugin の MCP の道具だけである。
+CLAUDE_ARGS = ["-p", "--restricted", "--tools", "", "--no-session-persistence", "--output-format", "json"]
+TOOL_NAME = re.compile(r"^mcp__[A-Za-z0-9_.-]+$")
+JOB_ID = re.compile(r"^[0-9a-f-]{36}$")
+REQUEST_MAX = 20000
+REPLY_MAX = 50000
+
+
+def log(*args):
+    print(time.strftime("%Y-%m-%d %H:%M:%S"), *args, flush=True)
+
+
+def load_config():
+    cfg = dict(DEFAULTS)
+    if CONFIG.is_file():
+        cfg.update(json.loads(CONFIG.read_text(encoding="utf-8")))
+    return cfg
+
+
+def allowed_tools(cfg):
+    """確認なしで呼んでよい MCP の道具の名前。1 行に 1 つで、オーナーがこの開発 PC のファイルに書く。"""
+    path = pathlib.Path(cfg["allowed_tools_file"])
+    if not path.is_file():
+        return []
+    names = [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
+    return [n for n in names if n and not n.startswith("#") and TOOL_NAME.match(n)]
+
+
+def claude_command(cfg):
+    cmd = [cfg["claude"], *CLAUDE_ARGS]
+    tools = allowed_tools(cfg)
+    if tools:
+        cmd += ["--allowedTools", ",".join(tools)]
+    return cmd
+
+
+def run_job(cfg, request):
+    workdir = pathlib.Path(cfg["workdir"])
+    workdir.mkdir(parents=True, exist_ok=True)
+    try:
+        out = subprocess.run(claude_command(cfg), input=request, capture_output=True, text=True, cwd=workdir,
+                             timeout=cfg["timeout_sec"])
+    except subprocess.TimeoutExpired:
+        return False, "開発PCのClaudeが、待つ上限までに終わりませんでした。"
+    try:
+        data = json.loads(out.stdout)
+        text = str(data.get("result") or "")
+        return (not data.get("is_error")) and bool(text), text[:REPLY_MAX] or "返事が空でした。"
+    except ValueError:
+        return False, f"開発PCのClaudeの出力を解釈できませんでした (終了コード {out.returncode})。"
+
+
+def serve(cfg):
+    """ミニ PC につなぎ、切れるまで依頼を受ける。受けた依頼の数を返す。"""
+    ssh = subprocess.Popen(
+        ["/usr/bin/ssh", "-T", "-o", "BatchMode=yes", "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=3",
+         cfg["ssh_host"], cfg["remote_command"]],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, bufsize=1)
+    log("connected", cfg["ssh_host"])
+    jobs = 0
+    try:
+        for line in ssh.stdout:
+            try:
+                msg = json.loads(line)
+                job, request = msg["id"], msg["request"]
+            except (ValueError, KeyError, TypeError):
+                continue
+            if not (isinstance(job, str) and JOB_ID.match(job) and isinstance(request, str)):
+                continue
+            jobs += 1
+            if len(request) > REQUEST_MAX:
+                ok, text = False, "依頼の文が長すぎます。"
+            else:
+                log("job", job, "request_chars", len(request))
+                ok, text = run_job(cfg, request)
+                log("done", job, "ok", ok, "reply_chars", len(text))
+            ssh.stdin.write(json.dumps({"id": job, "ok": ok, "text": text}, ensure_ascii=False) + "\n")
+            ssh.stdin.flush()
+    except BrokenPipeError:
+        pass
+    finally:
+        ssh.terminate()
+        log("disconnected", "exit", ssh.wait())
+    return jobs
+
+
+def main():
+    cfg = load_config()
+    if "--check" in sys.argv:
+        print(json.dumps({"config": cfg, "claude_command": claude_command(cfg)}, ensure_ascii=False, indent=1))
+        return 0
+    wait = 10
+    while True:
+        started = time.monotonic()
+        try:
+            serve(load_config())
+        except OSError as exc:
+            log("error", repr(exc))
+        # すぐ切れたときは、つなぎ直しの間隔を延ばす。しばらくつながっていたら、短い間隔に戻す
+        wait = 10 if time.monotonic() - started > 300 else min(wait * 2, 300)
+        time.sleep(wait)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

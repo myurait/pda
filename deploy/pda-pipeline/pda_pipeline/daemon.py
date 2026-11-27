@@ -20,7 +20,7 @@ STREAM_LIMIT = 64 * 1024 * 1024
 PDA_TOOLS = ("mcp__pda__send_reply,mcp__pda__start_session,mcp__pda__list_sessions,mcp__pda__set_workdir,"
              "mcp__pda__attach_document,mcp__pda__list_all_sessions,mcp__pda__search_history,mcp__pda__remember,"
              "mcp__pda__find_project,mcp__pda__list_gates,mcp__pda__add_gate,mcp__pda__change_gate,"
-             "mcp__pda__remove_gate")
+             "mcp__pda__remove_gate,mcp__pda__ask_dev_pc")
 DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
 DOCUMENT_HEIGHT = 600
 
@@ -799,6 +799,13 @@ MCP_TOOLS = {
     "remove_gate": {
         "description": "PDA全体に適用している規則 (ゲート) を消す。番号は list_gates で確かめる。",
         "inputSchema": {"type": "object", "required": ["id"], "properties": {"id": {"type": "string"}}}},
+    "ask_dev_pc": {
+        "description": ("開発PCのClaude (会社のアカウント) に、作業を1つ頼み、答えを受け取る。会社のコネクタ (課題管理、"
+                        "社内のチャット、文書など) が要る作業と、会社契約のアカウントで作る物に使う。開発PCのClaudeは、"
+                        "この依頼の文だけを見るので、目的・対象・返してほしい形を、それだけで読める文で渡す。"
+                        "開発PCの橋がつながっていないときは、すぐにそう返る。"),
+        "inputSchema": {"type": "object", "required": ["request"], "properties": {
+            "request": {"type": "string", "description": "開発PCのClaudeに渡す依頼の全文"}}}},
     "list_sessions": {
         "description": "このセッションが起こした作業のセッションと、それぞれの直近のターン (依頼・結果・報告) を返す。",
         "inputSchema": {"type": "object", "properties": {}}},
@@ -814,6 +821,7 @@ class Daemon:
         self.ledger.db.executescript(recall.SCHEMA)
         self.rules = gates.load_rules()
         self._merged = None
+        self.bridge, self.bridge_jobs = None, {}
         self.turns, self.active, self.t3 = {}, {}, {}
         self.injections = []
         self.spawn_lock = asyncio.Lock()
@@ -922,6 +930,64 @@ class Daemon:
                         "turns": turns})
         return json.dumps(out, ensure_ascii=False, indent=1) if out else "起こしたセッションはありません。"
 
+    # 開発 PC の橋
+    async def ask_dev_pc(self, turn, request):
+        """開発 PC の橋に依頼を 1 つ渡し、返事を待つ。つながっていなければ、待たずにそう返す。"""
+        cfg = self.cfg["bridge"]
+        if not request.strip():
+            return "依頼の文が空です。"
+        if len(request) > cfg["request_chars"]:
+            return f"依頼の文が長すぎます ({cfg['request_chars']} 文字まで)。"
+        writer = self.bridge
+        if not writer or writer.is_closing():
+            return "開発PCの橋がつながっていないので、頼めませんでした。開発PCが起きていて、橋の常駐が動いているかを、オーナーに確かめてもらってください。"
+        job = str(uuid.uuid4())
+        future = asyncio.get_running_loop().create_future()
+        self.bridge_jobs[job] = future
+        self.ledger.event("bridge_request", {"job": job, "chars": len(request)}, turn.session["id"], turn.turn_id)
+        try:
+            writer.write((json.dumps({"id": job, "request": request}, ensure_ascii=False) + "\n").encode("utf-8"))
+            await writer.drain()
+            result = await asyncio.wait_for(future, cfg["timeout_sec"])
+        except asyncio.TimeoutError:
+            self.ledger.event("bridge_result", {"job": job, "error": "timeout"}, turn.session["id"], turn.turn_id)
+            return "開発PCのClaudeの返事が、待つ上限までに返りませんでした。"
+        except ConnectionError as exc:
+            self.ledger.event("bridge_result", {"job": job, "error": str(exc)}, turn.session["id"], turn.turn_id)
+            return "開発PCの橋とのつながりが切れたので、返事を受け取れませんでした。"
+        finally:
+            self.bridge_jobs.pop(job, None)
+        self.ledger.event("bridge_result", {"job": job, "ok": result.get("ok"), "chars": len(result.get("text") or "")},
+                          turn.session["id"], turn.turn_id)
+        head = "開発PCのClaudeの返事:" if result.get("ok") else "開発PCのClaudeは、返事を作れずに終わりました:"
+        return f"{head}\n\n{result.get('text') or ''}"
+
+    async def _serve_bridge(self, reader, writer):
+        """開発 PC の橋の常駐とのつながり。新しいつながりが来たら、前のつながりと入れ替える。"""
+        old, self.bridge = self.bridge, writer
+        if old and not old.is_closing():
+            old.close()
+        log("bridge connected")
+        try:
+            while True:
+                line = await reader.readline()
+                if not line:
+                    break
+                try:
+                    msg = json.loads(line)
+                except ValueError:
+                    continue
+                future = self.bridge_jobs.get(msg.get("id"))
+                if future and not future.done():
+                    future.set_result({"ok": bool(msg.get("ok")), "text": str(msg.get("text") or "")})
+        finally:
+            if self.bridge is writer:
+                self.bridge = None
+                for future in self.bridge_jobs.values():
+                    if not future.done():
+                        future.set_exception(ConnectionError("bridge closed"))
+            log("bridge disconnected")
+
     # 口ごとの接続
     async def on_conn(self, reader, writer):
         try:
@@ -930,6 +996,8 @@ class Daemon:
                 await AcpConn(self, reader, writer, hello).run()
             elif hello["kind"] == "mcp":
                 await self._serve_mcp(reader, writer, hello)
+            elif hello["kind"] == "bridge":
+                await self._serve_bridge(reader, writer)
             elif hello["kind"] == "hook":
                 turn = self.turns.get(hello.get("token"))
                 out = await turn.on_stop() if turn else {}
@@ -943,7 +1011,7 @@ class Daemon:
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
         names = ["send_reply", "set_workdir", "attach_document", "list_all_sessions", "search_history", "remember",
-                 "find_project", "list_gates", "add_gate", "change_gate", "remove_gate"] + (
+                 "find_project", "list_gates", "add_gate", "change_gate", "remove_gate", "ask_dev_pc"] + (
             ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
@@ -970,6 +1038,8 @@ class Daemon:
                                            turn.session["id"], turn.turn_id)
                 elif name in ("list_gates", "add_gate", "change_gate", "remove_gate"):
                     text = self.gate_tool(turn, name, args)
+                elif name == "ask_dev_pc":
+                    text = await self.ask_dev_pc(turn, str(args.get("request") or ""))
                 elif name == "find_project":
                     text = recall.find_project(self.ledger, str(args.get("name") or ""), self.cfg["project_roots"])
                 else:
