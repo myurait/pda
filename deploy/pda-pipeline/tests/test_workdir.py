@@ -41,6 +41,24 @@ class WorkdirTest(unittest.TestCase):
         self.assertIn("SUB-RULE", text)
         self.assertLess(text.index("いまの作業ディレクトリ"), text.index("ROOT-RULE"))
 
+    def test_notes_skips_link_to_outside(self):
+        repo = os.path.join(self.root, "repo")
+        os.makedirs(os.path.join(repo, ".git"))
+        outside = pathlib.Path(self.root, "outside.txt")
+        outside.write_text("OUTSIDE-TEXT", encoding="utf-8")
+        os.symlink(outside, os.path.join(repo, "CLAUDE.md"))
+        pathlib.Path(repo, "AGENTS.md").write_text("INSIDE-RULE", encoding="utf-8")
+        text = workdir.notes(repo)
+        self.assertNotIn("OUTSIDE-TEXT", text)
+        self.assertIn("INSIDE-RULE", text)
+
+    def test_notes_reads_link_inside_once(self):
+        repo = os.path.join(self.root, "repo")
+        os.makedirs(os.path.join(repo, ".git"))
+        pathlib.Path(repo, "AGENTS.md").write_text("INSIDE-RULE", encoding="utf-8")
+        os.symlink("AGENTS.md", os.path.join(repo, "CLAUDE.md"))
+        self.assertEqual(workdir.notes(repo).count("INSIDE-RULE"), 1)
+
     def test_notes_drops_previous_repo(self):
         one, two = os.path.join(self.root, "one"), os.path.join(self.root, "two")
         for d, rule in ((one, "ONE-RULE"), (two, "TWO-RULE")):
