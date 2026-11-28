@@ -359,6 +359,8 @@ def document_text(documents):
     """返事に付ける資料 (題名 → HTML) を、判定に渡す本文のテキストにする。"""
     parts = []
     for title, doc in documents.items():
+        if not doc.get("html"):
+            continue
         body = html.unescape(_TAG.sub(" ", doc["html"]))
         parts.append(f"[資料: {title}]\n" + re.sub(r"[ \t]*\n\s*", "\n", re.sub(r"[ \t]+", " ", body)).strip())
     return "\n\n".join(parts)
