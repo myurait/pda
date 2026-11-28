@@ -1,0 +1,12 @@
+{
+ "description": "メインセッションと作業のセッションの、ターンごとの claude -p",
+ "set": {
+  "PATH": {"value": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin", "effect": "コマンドを探す場所。常駐プロセスの定義 (pda-pipeline.service) と同じ値"},
+  "CLAUDE_CODE_STOP_HOOK_BLOCK_CAP": {"value": "0", "effect": "Stopのhookがターンの終わりを差し戻せる回数の上限 (既定は8回) を無くす"},
+  "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": {"value": "1", "effect": "サブエージェントとコマンドを背面で実行できなくする"}
+ },
+ "inherit": ["HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "DBUS_SESSION_BUS_ADDRESS",
+             "SSH_AUTH_SOCK", "XDG_DATA_DIRS"],
+ "config": {"CLAUDE_CONFIG_DIR": "claude_config_dir"},
+ "launch": ["PDA_SOCKET", "PDA_TURN_TOKEN"]
+}

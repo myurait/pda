@@ -13,7 +13,7 @@ import re
 import tempfile
 import time
 
-from . import services
+from . import envset, services
 
 DOCUMENT_ROLE = "reporter-document.md"
 DOCUMENT_MAX_BYTES = 2 * 1024 * 1024
@@ -99,7 +99,7 @@ async def _claude(cfg, conf, system, prompt, timeout, kind):
         cmd = [cfg["claude_bin"], "-p", "--model", conf["model"], "--effort", conf.get("effort", "low"),
                "--tools", "", "--setting-sources", "", "--strict-mcp-config", "--no-session-persistence",
                "--output-format", "json", "--system-prompt-file", str(role_file)]
-        code, out, err = await _communicate(cmd, cfg["data_dir"], services.claude_env(cfg), prompt, timeout)
+        code, out, err = await _communicate(cmd, cfg["data_dir"], envset.build("reporter-claude", cfg), prompt, timeout)
     try:
         data = json.loads(out)
     except ValueError:
@@ -116,7 +116,7 @@ async def _codex(cfg, conf, system, prompt, timeout, kind):
         cmd = [cfg["codex_bin"], "exec", "-", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
                "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", conf["model"],
                "-c", f"model_reasoning_effort={conf.get('effort', 'low')}", "-o", str(result)]
-        env = services.codex_env(cfg)
+        env = envset.build("codex", cfg)
         # Codex には指示文を渡す引数が無いので、入力文の前に置く
         full = (f"# 指示\n\n{system}\n\n# 入力\n\n{prompt}\n\n"
                 "指示に従い、出力だけを返してください。ファイルの操作とコマンドの実行はしません。")

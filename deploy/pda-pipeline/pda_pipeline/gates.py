@@ -13,7 +13,7 @@ import time
 import urllib.error
 import urllib.request
 
-from . import services
+from . import envset, services
 
 RULES_FILE = pathlib.Path(__file__).resolve().parent.parent / "rules.json"
 
@@ -318,7 +318,7 @@ async def codex_gate(cfg, sem, prompt_args, rule_ids, deadline, attempt_no):
                "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", judge["codex_model"],
                "-c", f"model_reasoning_effort={judge['codex_effort']}",
                "--output-schema", str(schema), "-o", str(result)]
-        env = services.codex_env(cfg)
+        env = envset.build("codex", cfg)
         async with sem:
             while True:
                 remaining = deadline - time.monotonic()
@@ -436,7 +436,7 @@ async def _codex_json(cfg, sem, prompt, schema, deadline):
                "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", judge["codex_model"],
                "-c", f"model_reasoning_effort={judge['codex_effort']}",
                "--output-schema", str(schema_file), "-o", str(result)]
-        env = services.codex_env(cfg)
+        env = envset.build("codex", cfg)
         async with sem:
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=tmp, env=env, stdin=asyncio.subprocess.PIPE,

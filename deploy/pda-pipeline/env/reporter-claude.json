@@ -1,0 +1,9 @@
+{
+ "description": "報告係の中のエージェントがClaudeのときの claude -p",
+ "set": {
+  "PATH": {"value": "/home/user/.local/bin:/usr/local/bin:/usr/bin:/bin", "effect": "コマンドを探す場所。常駐プロセスの定義 (pda-pipeline.service) と同じ値"}
+ },
+ "inherit": ["HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL"],
+ "config": {"CLAUDE_CONFIG_DIR": "claude_config_dir"},
+ "launch": []
+}

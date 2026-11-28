@@ -1,0 +1,11 @@
+{
+ "description": "開発PCのブリッジの、依頼の claude -p",
+ "set": {
+  "PATH": {"value": "/usr/bin:/bin:/usr/sbin:/sbin", "effect": "コマンドを探す場所。launchdの既定と同じ値"},
+  "MCP_CONNECTION_NONBLOCKING": {"value": "0", "effect": "コネクタの接続を待ってから、最初の要求を出す"},
+  "MCP_CONNECT_TIMEOUT_MS": {"value": "20000", "effect": "コネクタの接続を待つ上限 (20秒)"}
+ },
+ "inherit": ["HOME", "USER", "LOGNAME", "SHELL", "TMPDIR"],
+ "config": {},
+ "launch": []
+}

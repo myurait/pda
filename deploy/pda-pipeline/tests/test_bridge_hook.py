@@ -42,8 +42,16 @@ class ArtifactHook(unittest.TestCase):
         self.assert_denied(self.run_hook({"file_path": self.file, "url": URL}))
 
     def test_denies_other_actions(self):
-        for action in ("list", "read", "delete", "open", "pin", "quickstart"):
+        for action in ("list", "delete", "open", "pin", "unpin", "quickstart"):
             self.assert_denied(self.run_hook({"action": action, "url": URL}, url=URL))
+
+    def test_read_of_own_url_before_update_only(self):
+        self.assert_allowed(self.run_hook({"action": "read", "url": URL}, url=URL))
+        self.assert_denied(self.run_hook({"action": "read", "url": URL}))
+        self.assert_denied(self.run_hook({"action": "read", "url": URL + "x"}, url=URL))
+        self.assert_denied(self.run_hook({"action": "read"}, url=URL))
+        for extra in ({"path": "index.html"}, {"paths": ["a"]}, {"out_dir": "/tmp"}, {"page": True}):
+            self.assert_denied(self.run_hook({"action": "read", "url": URL, **extra}, url=URL))
 
     def test_denies_other_files_and_extra_arguments(self):
         other = str(pathlib.Path(self._tmp.name, "other.html"))
@@ -55,7 +63,8 @@ class ArtifactHook(unittest.TestCase):
         self.assert_denied(self.run_hook({"file_path": self.file, "from_url": URL}))
 
     def test_denies_other_tools_and_broken_input(self):
-        self.assert_denied(self.run_hook({"file_path": self.file}, tool_name="ArtifactData"))
+        for name in ("ArtifactData", "ArtifactComments", "Write", "Bash", "mcp__claude_ai_Slack__slack_send_message"):
+            self.assert_denied(self.run_hook({"file_path": self.file, "url": URL}, url=URL, tool_name=name))
         self.assert_denied(self.run_hook(None, raw="not json"))
         self.assert_denied(self.run_hook(None, raw=json.dumps({"tool_name": "Artifact", "tool_input": "x"})))
 
