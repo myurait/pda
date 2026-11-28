@@ -24,7 +24,7 @@ DEFAULTS = {
         # timeout_sec は1回の呼び出しを待つ上限、attempts は失敗したときに呼び直す回数を含めた上限、
         # retry_wait_sec は呼び直す前に待つ秒数
         "reporter": {
-            "agent": "claude",
+            "agent": "codex",
             "agents": {
                 "claude": {"model": "claude-sonnet-5-5", "effort": "low"},
                 "codex": {"model": "gpt-6.2-sol", "effort": "low"},
