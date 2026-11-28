@@ -390,8 +390,9 @@ mcp__claude_ai_AWS_MCP__aws___read_documentation
      - 4と同じ。`CLAUDE_CODE_ARTIFACT=1` は、まだ付けていない (3.8節の25)。
 - claude・codexが起動するプロセスへの渡し方
   - 返信のツールの窓口 (MCPのサーバー `pda`) には、常駐プロセスがターンごとに作るMCPの設定の `env` で、`PDA_SOCKET` と `PDA_TURN_TOKEN` を渡している。
-  - Stopのhookは、`claude -p` の環境変数を引き継ぐ。
+  - Stopのhookと、作業するセッションが実行するコマンドは、`claude -p` の環境変数を引き継ぐ。
   - 公開のhookには、公開するファイルとリンクを、コマンドの引数で渡している。
+  - 役の指示 (`roles/`)、セッションに配るskill (`norms/plugin/`)、有効にしている規則 (`norms/rules.json`) に、セッションにclaude・codexを起動させる指示は無い。`claude -p` の起動に触れる規則が1つあるが、開発PCのツールの規則として、セッションに渡していない。
 - 常駐プロセスが持っている環境変数の名前
   - ミニPCの常駐プロセス (systemd): `DBUS_SESSION_BUS_ADDRESS`、`GSM_SKIP_SSH_AGENT_WORKAROUND`、`HOME`、`INVOCATION_ID`、`JOURNAL_STREAM`、`LANG`、`LOGNAME`、`MANAGERPID`、`MEMORY_PRESSURE_WATCH`、`MEMORY_PRESSURE_WRITE`、`PATH`、`QT_ACCESSIBILITY`、`SHELL`、`SSH_AUTH_SOCK`、`SYSTEMD_EXEC_PID`、`USER`、`XDG_DATA_DIRS`、`XDG_RUNTIME_DIR`。`PATH` は、常駐プロセスの定義 (`pda-pipeline.service`) が決めている。
   - 開発PCのブリッジの常駐プロセス (launchd): `HOME`、`LOGNAME`、`OSLogRateLimit`、`PATH`、`SHELL`、`SSH_AUTH_SOCK`、`TMPDIR`、`USER`、`XPC_FLAGS`、`XPC_SERVICE_NAME`、`__CF_USER_TEXT_ENCODING` と、システムのPythonが足す `CPATH`、`LIBRARY_PATH`、`MANPATH`、`SDKROOT`、`__PYVENV_LAUNCHER__`。`PATH` は、launchdの既定の `/usr/bin:/bin:/usr/sbin:/sbin` である。常駐プロセスの定義 (plist) は、環境変数を指定していない。
@@ -399,10 +400,11 @@ mcp__claude_ai_AWS_MCP__aws___read_documentation
   1. ミニPCの `claude -p` (2.1.293): `PATH`、`HOME`、`USER`、`LOGNAME`、`SHELL`、`LANG`、`CLAUDE_CONFIG_DIR` だけで、ユーザーの設定を使わない指定で起動した。ログインを使って返信が返った。
   2. ミニPCの `codex exec` (0.172.0): `PATH`、`HOME`、`LANG` だけで、ユーザーの設定を使わない指定で起動した。ログインを使って返信が返った。
   3. 開発PCの `claude -p` (2.1.318): `PATH`、`HOME`、`USER`、`LOGNAME`、`SHELL`、`TMPDIR` と、依頼の起動の2つの変数 (`MCP_CONNECTION_NONBLOCKING`、`MCP_CONNECT_TIMEOUT_MS`) だけで、ブリッジの依頼の起動と同じ引数で起動した。ログインを使って返信が返り、ログインに付いている会社のコネクタのツールが提供された。デスクトップアプリのセッションのシェルから起動したが、`CLAUDE_CODE_ENTRYPOINT` などは渡っていない。
-- 対象にしなかった起動 (`deploy/` のうち、`deploy/pda-pipeline/` の外)
+- 対象にしなかった起動 (リポジトリの `deploy/`、`src/`、`registry/`、`plugins/`、`tools/` から、claudeとcodexの語で探した)
   - `deploy/claude-remote-control/claude-remote-control.service`: systemdが `claude remote-control` を起動する。環境変数 (`HOME`、`CLAUDE_CONFIG_DIR`、`PATH`) は、この定義のファイルが決めていて、systemdが起動するので、シェルの環境変数を引き継がない。
   - `deploy/openclaw-tool-defer/bin/claude` と、`deploy/openclaw/agents/leader.md` の開発PCのClaudeへの依頼: OpenClaw (v0.3) がclaudeを起動する経路で、案Cのパイプラインは使わない。
-  - T3 Codeのサーバー (`pda-t3code.service`) が起動するのは、ACPの窓口 (`pda-shim acp`) である。T3 Codeの設定で、claudeとcodexを直接起動するproviderは無効にしてある。
+  - `src/pda_wrapper/` と `registry/executors/`: 凍結したv0.2の実行器で、動かしていない。
+  - T3 Codeのサーバー (`pda-t3code.service`) が起動するのは、ACPの窓口 (`pda-shim acp`) である。ミニPCのT3 Codeの設定では、claudeとcodexを直接起動するproviderは無効になっている。
 - Claude Codeの設定の `env` で渡す手段との比較
   - 公式の資料
     - [Environment variables](https://code.claude.com/docs/en/env-vars.md) は、設定ファイルの `env` について "Add variables under the `env` key in a `settings.json` file, creating the file if it doesn't exist. Claude Code reads them directly from the file, so they take effect no matter how `claude` was launched." と書く。
