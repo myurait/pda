@@ -9,6 +9,18 @@ import uuid
 SCRUB_ENV = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CODE_OAUTH_TOKEN",
              "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_ENTRYPOINT"]
 ROLES_DIR = pathlib.Path(__file__).resolve().parent.parent / "roles"
+# Codex を、文を返すだけの形で起動する指定。コマンドの実行と、アプリ・plugin・ブラウザの操作を無効にする。
+# 渡す材料には、別の環境から来た文 (開発 PC の返信、Web のページ) が入るので、ミニ PC のファイルを取得させない
+CODEX_NO_TOOLS = ["--disable", "shell_tool", "--disable", "unified_exec", "--disable", "apps", "--disable", "plugins",
+                  "--disable", "browser_use", "--disable", "computer_use"]
+
+
+def codex_env(cfg):
+    """Codex に渡す環境変数。常駐プロセスの環境変数を引き継がせない。"""
+    env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR") if k in os.environ}
+    if cfg.get("codex_home"):
+        env["CODEX_HOME"] = cfg["codex_home"]
+    return env
 
 
 def claude_env(cfg, extra=None):

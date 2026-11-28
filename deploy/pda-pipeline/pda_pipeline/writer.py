@@ -114,11 +114,9 @@ async def _codex(cfg, conf, system, prompt, timeout, kind):
     with tempfile.TemporaryDirectory(prefix="pda-writer-") as tmp:
         result = pathlib.Path(tmp, "out.txt")
         cmd = [cfg["codex_bin"], "exec", "-", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
-               "--sandbox", "read-only", "-m", conf["model"],
+               "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", conf["model"],
                "-c", f"model_reasoning_effort={conf.get('effort', 'low')}", "-o", str(result)]
-        env = dict(os.environ)
-        if cfg.get("codex_home"):
-            env["CODEX_HOME"] = cfg["codex_home"]
+        env = services.codex_env(cfg)
         # Codex には指示文を渡す引数が無いので、入力文の前に置く
         full = (f"# 指示\n\n{system}\n\n# 入力\n\n{prompt}\n\n"
                 "指示に従い、出力だけを返してください。ファイルの操作とコマンドの実行はしません。")
