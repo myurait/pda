@@ -114,7 +114,7 @@ launchctl bootout gui/501/com.pda.dev-pc-bridge
 trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge
 ```
 
-ブリッジのスクリプトには、資料をアーティファクトとして公開する用件 (ツール `publish_document`) も入っているが、使えない。launchdから起動した `claude -p` には、アーティファクトのツールが提供されないためである。`bridge.publish` (既定は `false`) を `true` にしないかぎり、公開のツールはセッションに出ない。
+ブリッジのスクリプトには、資料をアーティファクトとして公開する用件 (ツール `publish_document`) も入っているが、まだ使えない。launchdから起動した `claude -p` にアーティファクトのツールを載せるには環境変数 `CLAUDE_CODE_ARTIFACT=1` が要り、ブリッジはまだ付けていない。作り替えの範囲は [design-stage2.md](../../docs/claude-unification/design-stage2.md)の9.1節にある。`bridge.publish` (既定は `false`) を `true` にしないかぎり、公開のツールはセッションに出ない。
 
 `~/.local/bin/pda-bridge --check` で、設定と、`claude -p` に付ける引数を確認できる。
 
