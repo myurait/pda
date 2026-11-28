@@ -20,10 +20,25 @@ DEFAULTS = {
     "roles": {
         "main": {"model": "claude-opus-5-5", "effort": "medium"},
         "worker": {"model": "claude-sonnet-5-5", "effort": "medium"},
-        "reporter": {"model": "claude-sonnet-5-5", "effort": "low"},
+        # 報告係は、中のエージェントを差し替えられる。agent に、agents のどれを使うかを書く。
+        # timeout_sec は1回の呼び出しを待つ上限、attempts は失敗したときに呼び直す回数を含めた上限、
+        # retry_wait_sec は呼び直す前に待つ秒数
+        "reporter": {
+            "agent": "codex",
+            "agents": {
+                "claude": {"model": "claude-sonnet-5-5", "effort": "low"},
+                "codex": {"model": "gpt-6.2-sol", "effort": "low"},
+                # 試験用。reply と document に、返す文を書く。fail は、先に失敗する回数
+                "fixed": {},
+            },
+            "timeout_sec": 300,
+            "attempts": 3,
+            "retry_wait_sec": 30,
+        },
     },
     "worker_models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
-    "stages": {"reporter": True, "jev": True, "codex": True},
+    # reporter_documents が入のとき、資料の HTML は、作業するセッションが渡した材料から、報告係が作る
+    "stages": {"reporter": True, "jev": True, "codex": True, "reporter_documents": True},
     "judge": {
         "codex_model": "gpt-6.2-sol",
         "codex_effort": "medium",
@@ -58,7 +73,9 @@ DEFAULTS = {
     # 案件の名前からリポジトリを引き当てるときに、台帳のほかに探すディレクトリ
     "project_roots": [str(HOME / "v03/work/projects")],
     # 開発 PC のブリッジ。開発 PC の Claude の返事を待つ上限と、依頼の文の長さの上限
-    "bridge": {"timeout_sec": 900, "request_chars": 20000},
+    # publish は、資料を公開する道具 publish_document をセッションに出すか。開発 PC のブリッジが起こす claude -p には
+    # アーティファクトの道具が提供されないので、既定では出さない。publish_bytes は、公開のために渡す資料の大きさの上限
+    "bridge": {"timeout_sec": 900, "request_chars": 20000, "publish": False, "publish_bytes": 2 * 1024 * 1024},
     "disallowed_tools": [
         "AskUserQuestion", "PushNotification", "EnterPlanMode", "ExitPlanMode", "ScheduleWakeup",
         "CronCreate", "CronDelete", "CronList", "RemoteTrigger",

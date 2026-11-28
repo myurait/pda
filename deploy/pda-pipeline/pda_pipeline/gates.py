@@ -13,6 +13,8 @@ import time
 import urllib.error
 import urllib.request
 
+from . import services
+
 RULES_FILE = pathlib.Path(__file__).resolve().parent.parent / "rules.json"
 
 # ひらがな・カタカナ (半角を含む)・漢字・繰り返しの記号の範囲
@@ -313,12 +315,10 @@ async def codex_gate(cfg, sem, prompt_args, rule_ids, deadline, attempt_no):
         schema.write_text(json.dumps(CODEX_SCHEMA), encoding="utf-8")
         result = pathlib.Path(tmp, "out.json")
         cmd = [cfg["codex_bin"], "exec", "-", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
-               "--sandbox", "read-only", "-m", judge["codex_model"],
+               "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", judge["codex_model"],
                "-c", f"model_reasoning_effort={judge['codex_effort']}",
                "--output-schema", str(schema), "-o", str(result)]
-        env = dict(os.environ)
-        if cfg.get("codex_home"):
-            env["CODEX_HOME"] = cfg["codex_home"]
+        env = services.codex_env(cfg)
         async with sem:
             while True:
                 remaining = deadline - time.monotonic()
@@ -359,6 +359,8 @@ def document_text(documents):
     """返事に付ける資料 (題名 → HTML) を、判定に渡す本文のテキストにする。"""
     parts = []
     for title, doc in documents.items():
+        if not doc.get("html"):
+            continue
         body = html.unescape(_TAG.sub(" ", doc["html"]))
         parts.append(f"[資料: {title}]\n" + re.sub(r"[ \t]*\n\s*", "\n", re.sub(r"[ \t]+", " ", body)).strip())
     return "\n\n".join(parts)
@@ -431,12 +433,10 @@ async def _codex_json(cfg, sem, prompt, schema, deadline):
         schema_file, result = pathlib.Path(tmp, "schema.json"), pathlib.Path(tmp, "out.json")
         schema_file.write_text(json.dumps(schema), encoding="utf-8")
         cmd = [cfg["codex_bin"], "exec", "-", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
-               "--sandbox", "read-only", "-m", judge["codex_model"],
+               "--sandbox", "read-only", *services.CODEX_NO_TOOLS, "-m", judge["codex_model"],
                "-c", f"model_reasoning_effort={judge['codex_effort']}",
                "--output-schema", str(schema_file), "-o", str(result)]
-        env = dict(os.environ)
-        if cfg.get("codex_home"):
-            env["CODEX_HOME"] = cfg["codex_home"]
+        env = services.codex_env(cfg)
         async with sem:
             proc = await asyncio.create_subprocess_exec(
                 *cmd, cwd=tmp, env=env, stdin=asyncio.subprocess.PIPE,

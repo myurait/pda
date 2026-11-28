@@ -7,7 +7,8 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | `pda-pipelined` | 常駐プロセスの入口。本体は `pda_pipeline/` |
 | `pda-shim` | 常駐プロセスへの薄い窓口。`acp` (T3 Codeが起動する)、`mcp` (返信のツール)、`hook` (Stopのhook) の3つ |
 | `pda-ledger` | 台帳を参照するコマンド |
-| `roles/` | 役の指示。`common.md` と、役ごとの `main.md`・`worker.md`、報告係の `reporter.md` |
+| `roles/` | 役の指示。`common.md` と、役ごとの `main.md`・`worker.md`、報告係の `reporter.md` (返信) と `reporter-document.md` (資料) |
+| `pda_pipeline/writer.py` | 報告係のコンポーネント。オーナーに届く返信と資料のHTMLを、中のエージェントに作らせる |
 | `rules.json` | 伝え方の規約のゲートに載せる規則と問い (段階1。`norms.enabled` を切にしたときに使う) |
 | `norms/` | オーナーの規約の正本。`rules.json` (規則ごとの、載せるか・判定器・問い・外れを差し戻すか)、`mcp.json` (すべてのセッションに配るMCP)、`plugin/` (すべてのセッションに配るskill) |
 | `pda-pipeline.service` | 常駐プロセスの定義 |
@@ -113,6 +114,8 @@ launchctl bootout gui/501/com.pda.dev-pc-bridge
 trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge
 ```
 
+ブリッジのスクリプトには、資料をアーティファクトとして公開する用件 (ツール `publish_document`) も入っているが、使えない。launchdから起動した `claude -p` には、アーティファクトのツールが提供されないためである。`bridge.publish` (既定は `false`) を `true` にしないかぎり、公開のツールはセッションに出ない。
+
 `~/.local/bin/pda-bridge --check` で、設定と、`claude -p` に付ける引数を確認できる。
 
 ## 設定
@@ -129,6 +132,14 @@ trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge
 ```
 
 - 既定で、`norms/` の正本から、役の指示・報告係の指示・ゲートの問いを組み、依頼を受けた時点のゲートを動かす。`norms.enabled` を `false` にすると、段階1の役の指示と `rules.json` だけを使う。`norms.pre_gate` を `false` にすると、依頼を受けた時点のゲートだけを無効にする。
+- 報告係は、中のエージェントを設定で差し替えられる。`roles.reporter.agent` に、`roles.reporter.agents` にある名前 (`codex`、`claude`、試験用の `fixed`) を指定する。エージェントごとのモデルは `roles.reporter.agents.<名前>` で変える。差し替えても、作業するセッションと、常駐プロセスのほかの部分は変わらない。
+
+  ```json
+  { "roles": { "reporter": { "agent": "claude" } } }
+  ```
+
+- `stages.reporter_documents` が `true` (既定) のとき、資料のHTMLは、作業するセッションが `attach_document` に渡した材料から、報告係が作る。
+- 報告係が返信を返さなかったときは、`roles.reporter.attempts` の回数まで呼び直す。それでも返らなければ、作業するセッションの文を、整えていない文だと示して出す。
 - `judge.fixed` は試験用の固定の判定で、Codexを呼ばずに決まった結果を返す。`{"mode": "reject_until", "n": 12}` は12回目の送信まで差し戻す。`"delay"` は判定が返るまでの秒数である。
 - 設定を変えたら常駐プロセスを再起動する。
 

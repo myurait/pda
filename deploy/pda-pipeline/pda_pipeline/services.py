@@ -1,4 +1,4 @@
-"""常駐が外へ出す呼び出し: T3 Code (MCP と CLI)、ntfy、報告係。"""
+"""常駐が外へ出す呼び出し: T3 Code (MCP と CLI)、ntfy。報告係は writer.py にある。"""
 import asyncio
 import json
 import os
@@ -9,6 +9,18 @@ import uuid
 SCRUB_ENV = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_BASE_URL", "CLAUDE_CODE_OAUTH_TOKEN",
              "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CODE_USE_FOUNDRY", "CLAUDE_CODE_ENTRYPOINT"]
 ROLES_DIR = pathlib.Path(__file__).resolve().parent.parent / "roles"
+# Codex を、文を返すだけの形で起動する指定。コマンドの実行と、アプリ・plugin・ブラウザの操作を無効にする。
+# 渡す材料には、別の環境から来た文 (開発 PC の返信、Web のページ) が入るので、ミニ PC のファイルを取得させない
+CODEX_NO_TOOLS = ["--disable", "shell_tool", "--disable", "unified_exec", "--disable", "apps", "--disable", "plugins",
+                  "--disable", "browser_use", "--disable", "computer_use"]
+
+
+def codex_env(cfg):
+    """Codex に渡す環境変数。常駐プロセスの環境変数を引き継がせない。"""
+    env = {k: os.environ[k] for k in ("PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR") if k in os.environ}
+    if cfg.get("codex_home"):
+        env["CODEX_HOME"] = cfg["codex_home"]
+    return env
 
 
 def claude_env(cfg, extra=None):
@@ -88,52 +100,3 @@ async def notify(cfg, title, message):
         return await asyncio.to_thread(_ntfy, n["env_file"], title[:80], message[:400], n.get("click"))
     except Exception as exc:  # noqa: BLE001
         return f"error: {type(exc).__name__}: {exc}"
-
-
-REPORTER_INPUT = """\
-## オーナーの依頼
-{request}
-
-## 作業するセッションがオーナーに伝えたい内容
-{report}
-"""
-REPORTER_REWRITE = """
-## 前の下書き
-{draft}
-
-## 前の下書きの直す点
-{fixes}
-
-前の下書きを、直す点に沿って直した一通を出力してください。
-"""
-
-
-async def reporter_write(cfg, sem, request, report, draft=None, fixes=None, extra=""):
-    """報告係に一通を書かせる。失敗したときは例外を投げる。extra は役の指示のあとにつなぐ節。"""
-    role = cfg["roles"]["reporter"]
-    role_file = ROLES_DIR / "reporter.md"
-    if extra:
-        role_file = pathlib.Path(cfg["data_dir"], "reporter.md")
-        role_file.write_text((ROLES_DIR / "reporter.md").read_text(encoding="utf-8") + "\n\n" + extra,
-                             encoding="utf-8")
-    prompt = REPORTER_INPUT.format(request=request, report=report)
-    if draft is not None:
-        prompt += REPORTER_REWRITE.format(draft=draft, fixes="\n".join(f"- {f}" for f in fixes))
-    cmd = [cfg["claude_bin"], "-p", "--model", role["model"], "--effort", role["effort"], "--tools", "",
-           "--setting-sources", "", "--strict-mcp-config", "--no-session-persistence", "--output-format", "json",
-           "--system-prompt-file", str(role_file)]
-    async with sem:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd, cwd=cfg["data_dir"], env=claude_env(cfg), stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-        try:
-            out, err = await asyncio.wait_for(proc.communicate(prompt.encode("utf-8")), 300)
-        except asyncio.TimeoutError:
-            proc.kill()
-            await proc.wait()
-            raise RuntimeError("reporter timeout") from None
-    data = json.loads(out.decode("utf-8"))
-    text = (data.get("result") or "").strip()
-    if data.get("is_error") or not text:
-        raise RuntimeError(f"reporter failed: {out[-300:]!r} {err[-300:]!r}")
-    return text
