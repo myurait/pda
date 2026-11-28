@@ -22,7 +22,7 @@
 | 決まったことが別のセッションで使われ、チャットヒストリーを探せる (C17) | PDAのセッションの記録について成り立った。開発PC上のチャットヒストリーは確かめていない | 3.6節 |
 | 案件の名前だけで続きから始まる (C18) | 成り立った | 3.6節 |
 | エージェントがゲートを足す・消す・変える、繰り返しの指示が言われなくても行われる (C15の後半) | 成り立った | 3.7節 |
-| 開発PCのブリッジ (C8、C9、C20) | オーナーが選んだ形で実装し、開発PCに常駐として登録した。launchdの下で動くブリッジを通して、開発PCのClaudeの返事がPDAのセッションに返った。確認なしで呼んでよい道具の一覧は空で、会社の中身を使う走行は残っている | 3.8節 |
+| 開発PCのブリッジ (C8、C9、C20) | オーナーが選んだ形で実装し、開発PCに常駐として登録した。確認なしで呼んでよい道具の一覧に、オーナーが決めた参照の道具を入れ、launchdの下で動くブリッジを通して、会社のコネクタを参照した結果がPDAのセッションに返った。HTMLのアーティファクト、会社のチケットの状態、開発PC上のヒストリーには届いていない | 3.8節 |
 | PCでの音声入力 (C21) | 確かめていない。オーナーの声が要る | 3.9節 |
 
 ## 2. 走行の構成
@@ -223,8 +223,54 @@ Codexの新しい問いについて確かめたこと。
   11. 設定の上書きを消してブリッジの常駐を起こし直すと、本番の常駐の記録に、ブリッジがつながったことが残った。
   12. ブリッジがつながったまま本番の常駐を起こし直すと、常駐は止まらず、30秒後にsystemdに強制終了された。常駐が、開いたままのつながりを閉じてから終わるように直した。直したあとは、ブリッジがつながったままの起こし直しが1秒以内に終わり、ブリッジは約20秒後につなぎ直した。
   13. 登録のあとに、ブリッジと同じ起こし方の `claude -p` を続けて起こすと、コネクタの道具が載らない起動が続いた。診断の記録では、コネクタの接続が終わる前に、最初の要求が出ていた。ブリッジが、コネクタの接続を待ってから最初の要求を出す設定で `claude -p` を起こすように直した。直したあとは、確認なしで呼んでよい道具を1つだけ書いた確かめ用の一覧を使い、launchdの下で動くブリッジを通して、道具を呼ぶ依頼が2回続けて通った (ターン59、60)。走行のあとに設定の上書きを消し、開発PCは一覧が無い状態に戻した。
+
+オーナーは、開発PCのClaudeにつながっているコネクタの、検索と取得の道具を、確認なしで呼んでよい道具の一覧に入れることを決めた (2026-11-28)。送信・作成・更新・削除・共有の道具と、スクリプトやクエリを実行する道具は入れない。開発PCの `~/.config/pda-bridge/allowed-tools.txt` に、次の名前を書いた。
+
+```text
+mcp__claude_ai_Slack__slack_read_channel
+mcp__claude_ai_Slack__slack_read_thread
+mcp__claude_ai_Slack__slack_read_canvas
+mcp__claude_ai_Slack__slack_read_file
+mcp__claude_ai_Slack__slack_read_user_profile
+mcp__claude_ai_Slack__slack_search_public
+mcp__claude_ai_Slack__slack_search_public_and_private
+mcp__claude_ai_Slack__slack_search_channels
+mcp__claude_ai_Slack__slack_search_users
+mcp__claude_ai_Slack__slack_list_channel_members
+mcp__claude_ai_Slack__slack_get_reactions
+mcp__claude_ai_Notion__notion-search
+mcp__claude_ai_Notion__notion-fetch
+mcp__claude_ai_Notion__notion-get-comments
+mcp__claude_ai_Notion__notion-query-data-sources
+mcp__claude_ai_Notion__notion-query-meeting-notes
+mcp__claude_ai_Notion__notion-get-users
+mcp__claude_ai_Notion__notion-get-teams
+mcp__claude_ai_Google_Drive__search_files
+mcp__claude_ai_Google_Drive__list_recent_files
+mcp__claude_ai_Google_Drive__read_file_content
+mcp__claude_ai_Google_Drive__get_file_metadata
+mcp__claude_ai_Google_Docs__read_doc
+mcp__claude_ai_Google_Sheets__get_spreadsheet
+mcp__claude_ai_Google_Sheets__get_values
+mcp__claude_ai_Gmail__search_threads
+mcp__claude_ai_Gmail__get_thread
+mcp__claude_ai_Gmail__get_message
+mcp__claude_ai_Meetings__list_meetings
+mcp__claude_ai_Meetings__get_meeting
+mcp__claude_ai_Meetings__get_meeting_action_items
+mcp__claude_ai_Meetings__get_meeting_transcript
+mcp__claude_ai_AWS_MCP__aws___list_regions
+mcp__claude_ai_AWS_MCP__aws___get_regional_availability
+mcp__claude_ai_AWS_MCP__aws___search_documentation
+mcp__claude_ai_AWS_MCP__aws___read_documentation
+```
+
+- 一覧を入れたあとの走行の結果
+  14. ブリッジと同じ起こし方の `claude -p` の起動で、一覧に書いた名前がすべて道具として載り、対象のコネクタがすべてつながっていた。
+  15. 確かめ用の常駐に、開発PCのClaudeへ頼む依頼を送った。頼んだのは、Google Drive、Notion、Slack、Gmail、Meetingsの参照の道具を1回ずつ呼び、返った項目の数だけを答えることである。Meetingsを除く4つは数が返り、33秒後に、その数を伝える一通が出た (ターン61)。項目の名前と本文は、ブリッジを通していない。通知は切って行った。
+  16. Meetingsの道具はエラーを返した。開発PCで同じ起こし方の `claude -p` から呼ぶと、このログインには会議を読む権限が無い、というエラーが返った。Meetingsの道具は、一覧に入っているが、ブリッジからは使えない。
+  17. 走行のあとに設定の上書きを消してブリッジの常駐を起こし直すと、本番の常駐の記録に、ブリッジがつながったことが残った。
 - 確かめていないこと
-  - C9のうち、会社のコネクタで会社の中身を参照すること。確認なしで呼んでよい道具を、オーナーが一覧に書いてから確かめる。
   - C9のうち、会社契約のアカウントでHTMLのアーティファクトを作ること。作る道具が組み込みの道具で、この起こし方では載らない。
   - C8のうち、会社のチケットの状態。課題管理のMCPが、この起こし方では載らない。
   - C20と、C17のうち開発PC上のチャットヒストリー。ファイルを開く道具が要り、この起こし方では届かない。
@@ -244,7 +290,7 @@ Codexの新しい問いについて確かめたこと。
   - オーナーの依頼が規則と食い違うと、差し戻しが2〜3回続き、一通まで2〜3分かかることがある。
   - `todo-scrap` の道具と、skill `owner-document` が、すべてのセッションに載る。
   - 報告係の指示に、返事の書き方の規則の節が入る。
-- 道具 `ask_dev_pc` と、開発PCのClaudeに頼む役の指示が、すべてのセッションに載っている。開発PCのブリッジの常駐は、本番の常駐につながっている (2026-11-28から)。確認なしで呼んでよい道具の一覧は空なので、開発PCのClaudeは、道具を使わずに答えられることだけを返し、会社のコネクタが要る作業は、道具の呼び出しを断られたと返る。ブリッジを外すときは、[README](../../deploy/pda-pipeline/README.md)の「開発PCのブリッジ」の外し方を実行する。
+- 道具 `ask_dev_pc` と、開発PCのClaudeに頼む役の指示が、すべてのセッションに載っている。開発PCのブリッジの常駐は、本番の常駐につながっている (2026-11-28から)。確認なしで呼んでよい道具の一覧に、Slack、Notion、Google Drive・Docs・Sheets、Gmail、Meetings、AWSの検索と取得の道具が入っている (2026-11-28から)。本番のどのセッションも、開発PCのClaudeに、会社のコネクタの検索と取得を頼める。取得した中身は、開発PCのClaudeの返事として、PDAのセッション、台帳、返事の前の判定 (Jev、Codex) に渡り、返事に入った分は通知にも出る。会社のコネクタを使えなくするときは、開発PCの一覧のファイルを消す。次の依頼から、道具の呼び出しが断られる。ブリッジを外すときは、[README](../../deploy/pda-pipeline/README.md)の「開発PCのブリッジ」の外し方を実行する。
 - 切り方: ミニPCで `~/.config/pda-pipeline/config.json` に `{"norms": {"enabled": false}}` を置き、`systemctl --user restart pda-pipeline.service` を実行する。
 - 3.6節と3.7節の内容を入れて変わったことは次のとおり。
   - 進んでいる作業を尋ねると、本番の台帳に残っている段階1の確かめのセッションも、一覧に出る。
