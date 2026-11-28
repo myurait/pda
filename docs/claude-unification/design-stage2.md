@@ -242,7 +242,7 @@ sequenceDiagram
 ### 9.1 作り替えの範囲
 
 - ブリッジのスクリプト (`deploy/pda-pipeline/dev-pc/pda-bridge`)
-  - 公開専用の `claude -p` の環境変数に `CLAUDE_CODE_ARTIFACT=1` を足す。依頼の起動の環境変数には足さない。
+  - 公開専用の `claude -p` を、公開のセット (`publish`。11節) で起動する。`CLAUDE_CODE_ARTIFACT=1` は、このセットに入れる。依頼の起動のセットには入れない。
   - 公開専用の起動で、アーティファクトのコメントとデータのツール (`ArtifactComments`、`ArtifactData`) を使えなくする。hookが確かめる対象を、アーティファクトのツールのすべてに広げる。
   - 更新のときの指示文に、公開の前に同じURLのアーティファクトを取得する手順を足す。hookは、ブリッジが記録した同じURLの取得だけを、更新の前の取得として通す。
 - ミニPCの常駐プロセス
@@ -284,3 +284,110 @@ flowchart LR
 - 報告係が返信を返さなかったときは、呼び直す。それでも返らなければ、作業するセッションの文を、整えていない文だと示して出す。資料を作れなかったときは、作れなかったことと、材料のコピーの場所を、返信に添える。
 - 報告係に渡す内容は、中のエージェントの提供元に送られる。Codexのときは OpenAI に、Geminiのときは Google に送られる。会社のコネクタで取得したデータが材料に入っていれば、そのデータも送られる。
 - GeminiのAPIのキーは、ミニPCの、リポジトリの外に置く。
+
+## 11. 起動の環境変数をセットのファイルで持つ
+
+2026-11-28のオーナーの判断により、PDAがclaude・codexを起動するときに渡す環境変数を、起動の種類ごとのファイル (環境変数のセット) としてリポジトリに置き、起動の処理は、セットを名前で指定して起動する。起動の振る舞いを変える環境変数を、起動の行ごとにコードに固定せず、ファイルの一覧で管理するためである。
+
+対象は、ミニPCの常駐プロセスと、開発PCのブリッジの常駐プロセスが起動するclaude・codexである。
+
+```mermaid
+flowchart LR
+  f[(環境変数のセット<br>起動の種類ごとに1ファイル)] -->|値を指定した変数| b
+  c[マシンごとの設定] -->|セットが名指しした設定の値| b
+  l[起動の処理] -->|セットの名前と、起動ごとに決める値| b
+  p[起動元のプロセスの環境変数] -->|セットに名前のある変数だけ| b
+  b[環境を組む処理<br>空の環境から組む] -->|組んだ環境だけ| k[claude・codex]
+```
+
+### 11.1 起動とセットの対応
+
+| 起動 | マシン | セット | セットで決める振る舞い |
+|---|---|---|---|
+| メインセッションと作業のセッションの、ターンごとの `claude -p` | ミニPC | `session` | PDAのログインを使う。Stopのhookが戻せる回数を限らない。背面の実行を無効にする (8節)。返信のツールの窓口とStopのhookに、常駐プロセスのソケットとターンの合言葉を渡す |
+| 報告係の中のエージェントがClaudeのときの `claude -p` | ミニPC | `reporter-claude` | PDAのログインを使う |
+| 報告係のCodex、返信の前の判定のCodex、前処理のゲートのCodex | ミニPC | `codex` | 設定で指定されたときに、Codexのログインの置き場を替える |
+| 依頼の `claude -p` (7節) | 開発PC | `request` | コネクタの接続を待ってから、最初の要求を出す |
+| 公開専用の `claude -p` (9節) | 開発PC | `publish` | 依頼の起動と同じ振る舞いに加えて、アーティファクトのツールを提供させる |
+
+- 1つの起動は、1つのセットを使う。セットは、ほかのセットを取り込まない。1つのファイルで、その起動に渡る環境変数がすべて分かる。
+- セットに入れる変数と値は、作り替える前の起動が渡しているものを、値を変えずに移す ([check-stage2.md](check-stage2.md)の3.11節の一覧)。変えるのは次の2つである。
+  - `publish` に `CLAUDE_CODE_ARTIFACT=1` を足す (9節)。
+  - 起動元から引き継ぐ変数を、セットに名前のあるものだけにする (11.3節)。
+- 起動の種類を足すときは、セットのファイルを足す。
+
+### 11.2 セットのファイル
+
+- 置き場は、ミニPCで使うセットが `deploy/pda-pipeline/env/`、開発PCで使うセットが `deploy/pda-pipeline/dev-pc/env/` である。ファイルの名前は `<セットの名前>.json` とする。
+- 形式はJSONとする。1つの変数は、次の4つの欄のどれか1つに入れる。
+
+  | 欄 | 入れるもの | 値の出どころ |
+  |---|---|---|
+  | `set` | 変数の名前、値、その値で変わる振る舞いの説明 | セットのファイル |
+  | `inherit` | 変数の名前 | 起動元のプロセスの環境変数。起動元に無い変数は渡さない |
+  | `config` | 変数の名前と、設定のキー | マシンごとの設定 (既定の値と、リポジトリの外に置く上書き)。設定に値が無い変数は渡さない |
+  | `launch` | 変数の名前 | 起動の処理が、起動ごとに決める値 |
+
+  形の例 (`session` の一部)
+
+  ```json
+  {
+    "description": "メインセッションと作業のセッションの、ターンごとの claude -p",
+    "set": {
+      "CLAUDE_CODE_DISABLE_BACKGROUND_TASKS": {"value": "1", "effect": "サブエージェントとコマンドを背面で実行できなくする"}
+    },
+    "inherit": ["HOME", "LANG"],
+    "config": {"CLAUDE_CONFIG_DIR": "claude_config_dir"},
+    "launch": ["PDA_SOCKET", "PDA_TURN_TOKEN"]
+  }
+  ```
+
+- 秘密情報の値は、セットのファイルに入れない。
+  - 値を持てる欄は `set` だけで、`set` には秘密でない固定の値を入れる。
+  - 秘密の値が要る変数は、`inherit` か `config` に名前を入れ、値はリポジトリの外 (起動元のプロセスの環境変数、設定の上書き) に置く。
+  - 単体の試験で、`set` の変数の名前が、キー・トークン・パスワードを表す名前でないことを確認する。
+
+### 11.3 起動のときに渡す方法
+
+- 起動の処理は、環境を組む処理に、セットの名前と、起動ごとに決める値を渡し、返った環境だけを子プロセスに渡す。起動の行には、起動ごとに決める値のほかに、環境変数の名前と値を持たせない。
+- 環境は、空の状態から組む。起動元のプロセスの環境変数は、`inherit` に名前のあるものだけが渡る。常駐プロセスをどこから起動しても (systemd、launchd、SSHのシェル、デスクトップアプリのシェル)、起動されるclaude・codexに渡る環境変数の名前が変わらないようにするためである。
+  - `PATH` は引き継がず、`set` で値を指定する。
+  - `inherit` に入れる名前は、セットごとに決める。
+    - `session`: `HOME`、`USER`、`LOGNAME`、`SHELL`、`LANG`、`LC_ALL`、`XDG_RUNTIME_DIR`、`DBUS_SESSION_BUS_ADDRESS`、`SSH_AUTH_SOCK`、`XDG_DATA_DIRS`。作業するセッションが実行するコマンド (git、SSH、systemdの操作) が使う変数を含める。
+    - `reporter-claude`: `HOME`、`USER`、`LOGNAME`、`SHELL`、`LANG`、`LC_ALL`。
+    - `codex`: `HOME`、`LANG`、`LC_ALL`、`XDG_RUNTIME_DIR`。
+    - `request` と `publish`: `HOME`、`USER`、`LOGNAME`、`SHELL`、`TMPDIR`。
+- セットのファイルは、起動のたびに取得する。
+  - ミニPCでは、`~/pda` をpullすると、常駐プロセスを再起動せずに、次の起動から効く。
+  - 開発PCのセットは、ブリッジのスクリプトと同じ手順で、mainの内容から `~/Library/Application Support/pda-bridge/env/` に入れる。入れたファイルを置き換えると、ブリッジの常駐プロセスを再起動せずに、次の依頼から効く。
+- セットのファイルを取得できないとき、同じ変数が2つの欄にあるとき、`launch` の変数が渡されなかったとき、`launch` に無い変数が渡されたときは、起動しない。起動できなかったときの扱いは、その起動がエラーで終わったときと同じにする。
+- セットを指定して、常駐プロセスが組むのと同じ環境でコマンドを1回起動する入口を、ミニPCと開発PCのそれぞれに持つ。常駐プロセスから起動するclaude・codexの振る舞いを手で確認するときは、この入口から起動する。`pda-bridge --check` は、起動ごとのセットと、組んだ環境を出す。
+- Claude Codeの設定の `env` で渡す手段 (`--settings`) は使わない。比べた結果は、[check-stage2.md](check-stage2.md)の3.11節に置く。
+
+### 11.4 作り替えの範囲
+
+9.1節の作り替えと合わせて、1回で実装する。
+
+- 足すファイル
+  - セットのファイル
+    - `deploy/pda-pipeline/env/session.json`
+    - `deploy/pda-pipeline/env/reporter-claude.json`
+    - `deploy/pda-pipeline/env/codex.json`
+    - `deploy/pda-pipeline/dev-pc/env/request.json`
+    - `deploy/pda-pipeline/dev-pc/env/publish.json`
+  - 環境を組む処理。ミニPCの常駐プロセスのパッケージ (`deploy/pda-pipeline/pda_pipeline/`) に1つ、ブリッジのスクリプトの中に1つ持つ。ブリッジは1つのファイルで開発PCに入れるので、同じ処理をスクリプトの中に持つ。
+  - セットのファイルと、環境を組む処理の単体の試験
+- 作り替える起動
+  - `deploy/pda-pipeline/pda_pipeline/daemon.py`: ターンごとの `claude -p` を `session` で起動する。
+  - `deploy/pda-pipeline/pda_pipeline/writer.py`: 報告係のClaudeを `reporter-claude` で、報告係のCodexを `codex` で起動する。
+  - `deploy/pda-pipeline/pda_pipeline/gates.py`: 返信の前の判定のCodexと、前処理のゲートのCodexを `codex` で起動する。
+  - `deploy/pda-pipeline/pda_pipeline/services.py`: Claude用とCodex用の環境を組む処理と、引き継いだ環境から消す変数の一覧を消す。
+  - `deploy/pda-pipeline/dev-pc/pda-bridge`: 依頼の `claude -p` を `request` で、公開専用の `claude -p` を `publish` で起動する。スクリプトに固定した環境変数を消す。`--check` の出力を、11.3節の形にする。
+- [README](../../deploy/pda-pipeline/README.md)
+  - ファイルの表に、セットの置き場を足す。
+  - 「開発PCのブリッジ」の、開発PCに入れる手順と登録を取り消す手順に、セットのファイルを足す。環境変数を説明している段落を、セットのファイルを指す形に直す。
+  - 「決まり」に、セットを直したときに効く時点を足す。
+- 9.1節との関係
+  - 9.1節の、公開専用の起動に `CLAUDE_CODE_ARTIFACT=1` を付ける項目は、`publish` のセットに入れることで行う。
+  - 9.1節の残りの項目 (使えるツールを絞る、hookが確認する対象を広げる、更新のときの指示文と取得、`bridge.publish` の既定) は、ブリッジのスクリプトとミニPCの設定の作り替えである。ブリッジのスクリプトは、この節の作り替えと同じ変更で直す。
+  - 公開の手段が、別の環境変数に替わったときは、`publish` のセットを直す。ブリッジのスクリプトは変えない。

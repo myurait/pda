@@ -25,6 +25,7 @@
 | 開発PCのブリッジ (C8、C9、C20) | オーナーが選んだ形で実装し、開発PCに常駐プロセスとして登録した。承認なしで実行してよいツールの許可リストに、オーナーが決めた参照系ツールを入れ、launchdの下で動くブリッジを通して、会社のコネクタを参照した結果がPDAのセッションに返った。資料をアーティファクトとして公開することは、本番ではまだ使えない。launchdから起動したClaudeに環境変数 `CLAUDE_CODE_ARTIFACT=1` を付けると公開できたので、この手段に決めた。ブリッジの作り替えが残っている。会社のチケットの状態、開発PC上のヒストリーには届いていない | 3.8節 |
 | PCでの音声入力 (C21) | 確認していない。オーナーの声が要る | 3.9節 |
 | オーナーに届く返信と資料を、Claude以外のエージェントが作る (C33) | 試験の段階のエージェント (Codex) で成り立った。中のエージェントをClaudeに差し替えても、ほかの部分を変えずに同じ形で届いた。Geminiの実装は、APIのキーが手に入ってから足す | 3.10節 |
+| 起動の環境変数をセットのファイルで持つ | 設計を決めた。実装していない。セットに名前のある変数だけを渡した起動で、ミニPCのclaudeとcodex、開発PCのclaudeが、ログインを使って返信を返した | 3.11節 |
 
 ## 2. 試験の構成
 
@@ -352,6 +353,59 @@ mcp__claude_ai_AWS_MCP__aws___read_documentation
 - 確認していないこと
   - Geminiを中のエージェントにすること。APIのキーが手に入ってから、実装を足す。
   - オーナーが要る確認: Claude以外のエージェントが作った返信と資料が、Claudeの作ったものより読みやすいこと。
+
+### 3.11 起動の環境変数をセットのファイルで持つ
+
+設計 ([design-stage2.md](design-stage2.md)の11節) を決めるために確認したことを置く (2026-11-28)。実装と、[plan-stage2.md](plan-stage2.md)の3.11節の試験は、行っていない。
+
+- いまの起動が渡している環境変数 (`deploy/pda-pipeline/` のコードから)
+  1. メインセッションと作業のセッションの、ターンごとの `claude -p` (ミニPC)
+     - 起動元: 常駐プロセスの環境変数をすべて引き継ぎ、次の名前を消す。
+       - `ANTHROPIC_API_KEY`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`、`CLAUDE_CODE_OAUTH_TOKEN`: 定額のログインの代わりに、別の認証と接続先が使われる変数である。
+       - `CLAUDE_CODE_USE_BEDROCK`、`CLAUDE_CODE_USE_VERTEX`、`CLAUDE_CODE_USE_FOUNDRY`: クラウドの事業者を通した接続に切り替える変数である。
+       - `CLAUDE_CODE_ENTRYPOINT`: 起動元の種類を表す変数で、提供されるツールが変わる (3.8節の22)。
+     - `CLAUDE_CONFIG_DIR`: 設定 `claude_config_dir` の値。Claude Codeの設定・セッションの記録・ログインの置き場を、PDAのものにする。
+     - `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=0`: Stopのhookがターンの終わりを差し戻せる回数の上限 (既定は8回) を無くす。
+     - `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1`: サブエージェントとコマンドを背面で実行できなくする (3.4節)。
+     - `PDA_SOCKET`、`PDA_TURN_TOKEN`: 常駐プロセスのソケットと、ターンごとの合言葉。Stopのhookが、`claude -p` から引き継いで使う。
+  2. 報告係の中のエージェントがClaudeのときの `claude -p` (ミニPC)
+     - 起動元: 1と同じ。
+     - `CLAUDE_CONFIG_DIR`: 1と同じ。
+  3. 報告係のCodex、返信の前の判定のCodex、前処理のゲートのCodex (ミニPC)
+     - 起動元: `PATH`、`HOME`、`LANG`、`LC_ALL`、`XDG_RUNTIME_DIR` だけを引き継ぐ。
+     - `CODEX_HOME`: 設定 `codex_home` に値があるときだけ渡す。Codexの設定とログインの置き場を替える。
+  4. 開発PCのブリッジの、依頼の `claude -p`
+     - 起動元: ブリッジの常駐プロセスの環境変数をすべて引き継ぐ。
+     - `MCP_CONNECTION_NONBLOCKING=0`、`MCP_CONNECT_TIMEOUT_MS=20000`: コネクタの接続を20秒まで待ってから、最初の要求を出す (3.8節の13)。
+  5. 開発PCのブリッジの、公開専用の `claude -p`
+     - 4と同じ。`CLAUDE_CODE_ARTIFACT=1` は、まだ付けていない (3.8節の25)。
+- claude・codexが起動するプロセスへの渡し方
+  - 返信のツールの窓口 (MCPのサーバー `pda`) には、常駐プロセスがターンごとに作るMCPの設定の `env` で、`PDA_SOCKET` と `PDA_TURN_TOKEN` を渡している。
+  - Stopのhookは、`claude -p` の環境変数を引き継ぐ。
+  - 公開のhookには、公開するファイルとリンクを、コマンドの引数で渡している。
+- 常駐プロセスが持っている環境変数の名前
+  - ミニPCの常駐プロセス (systemd): `DBUS_SESSION_BUS_ADDRESS`、`GSM_SKIP_SSH_AGENT_WORKAROUND`、`HOME`、`INVOCATION_ID`、`JOURNAL_STREAM`、`LANG`、`LOGNAME`、`MANAGERPID`、`MEMORY_PRESSURE_WATCH`、`MEMORY_PRESSURE_WRITE`、`PATH`、`QT_ACCESSIBILITY`、`SHELL`、`SSH_AUTH_SOCK`、`SYSTEMD_EXEC_PID`、`USER`、`XDG_DATA_DIRS`、`XDG_RUNTIME_DIR`。`PATH` は、常駐プロセスの定義 (`pda-pipeline.service`) が決めている。
+  - 開発PCのブリッジの常駐プロセス (launchd): `HOME`、`LOGNAME`、`OSLogRateLimit`、`PATH`、`SHELL`、`SSH_AUTH_SOCK`、`TMPDIR`、`USER`、`XPC_FLAGS`、`XPC_SERVICE_NAME`、`__CF_USER_TEXT_ENCODING` と、システムのPythonが足す `CPATH`、`LIBRARY_PATH`、`MANPATH`、`SDKROOT`、`__PYVENV_LAUNCHER__`。`PATH` は、launchdの既定の `/usr/bin:/bin:/usr/sbin:/sbin` である。常駐プロセスの定義 (plist) は、環境変数を指定していない。
+- 最小の環境での起動 (`env -i` で、名前を挙げた変数だけを渡した)
+  1. ミニPCの `claude -p` (2.1.293): `PATH`、`HOME`、`USER`、`LOGNAME`、`SHELL`、`LANG`、`CLAUDE_CONFIG_DIR` だけで、ユーザーの設定を使わない指定で起動した。ログインを使って返信が返った。
+  2. ミニPCの `codex exec` (0.172.0): `PATH`、`HOME`、`LANG` だけで、ユーザーの設定を使わない指定で起動した。ログインを使って返信が返った。
+  3. 開発PCの `claude -p` (2.1.318): `PATH`、`HOME`、`USER`、`LOGNAME`、`SHELL`、`TMPDIR` と、依頼の起動の2つの変数 (`MCP_CONNECTION_NONBLOCKING`、`MCP_CONNECT_TIMEOUT_MS`) だけで、ブリッジの依頼の起動と同じ引数で起動した。ログインを使って返信が返り、ログインに付いている会社のコネクタのツールが提供された。デスクトップアプリのセッションのシェルから起動したが、`CLAUDE_CODE_ENTRYPOINT` などは渡っていない。
+- 対象にしなかった起動 (`deploy/` のうち、`deploy/pda-pipeline/` の外)
+  - `deploy/claude-remote-control/claude-remote-control.service`: systemdが `claude remote-control` を起動する。環境変数 (`HOME`、`CLAUDE_CONFIG_DIR`、`PATH`) は、この定義のファイルが決めていて、systemdが起動するので、シェルの環境変数を引き継がない。
+  - `deploy/openclaw-tool-defer/bin/claude` と、`deploy/openclaw/agents/leader.md` の開発PCのClaudeへの依頼: OpenClaw (v0.3) がclaudeを起動する経路で、案Cのパイプラインは使わない。
+  - T3 Codeのサーバー (`pda-t3code.service`) が起動するのは、ACPの窓口 (`pda-shim acp`) である。T3 Codeの設定で、claudeとcodexを直接起動するproviderは無効にしてある。
+- Claude Codeの設定の `env` で渡す手段との比較
+  - 公式の資料
+    - [Environment variables](https://code.claude.com/docs/en/env-vars.md) は、設定ファイルの `env` について "Add variables under the `env` key in a `settings.json` file, creating the file if it doesn't exist. Claude Code reads them directly from the file, so they take effect no matter how `claude` was launched." と書く。
+    - [CLI reference](https://code.claude.com/docs/en/cli-reference.md) は、`--settings` を "Path to a settings JSON file or an inline JSON string." と書く。`--restricted` の起動も "loads only managed settings and `--settings`" なので、ブリッジの起動でも使える。
+    - 環境変数のファイルを渡す引数は、`claude --help` (2.1.318) に無い。環境変数 `CLAUDE_ENV_FILE` は、Bashのコマンドの前に実行するシェルスクリプトを指すもので、Claude Code自身の振る舞いは変えない (env-vars.md)。
+    - env-vars.md は、設定の `env` に入れても無視される変数を挙げている。`CLAUDE_CODE_RESTRICTED` は "Claude Code ignores this variable in a settings file's `env` block." である。
+  - 使わない理由
+    - 設定の `env` は、変数を足すか上書きする手段で、起動元から引き継いだ変数を消す手段にならない。起動元の環境変数を引き継がせない形 (設計の11.3節) は、起動する側で子プロセスの環境を組むことで実現する。起動する側で環境を組むなら、設定の `env` で渡す分は残らない。
+    - 設定の `env` では無視される変数があり、変数ごとに渡し方を分けることになる。
+    - `CLAUDE_CODE_ARTIFACT` は公式の資料に無く、確認できているのは、プロセスの環境変数で渡す形だけである (3.8節の25)。
+    - Codexに、対応する手段が無い。[Environment Variables](https://learn.chatgpt.com/docs/config-file/environment-variables.md) に、環境変数の組をファイルで渡す手段は書かれていない。設定の `shell_environment_policy` は、Codexが起動するコマンドに渡す環境変数を決めるもので、Codex自身の環境変数は決めない ([Configuration Reference](https://learn.chatgpt.com/docs/config-file/config-reference)。このページは一部を要約で読んだ)。
+- セットのファイルの形式をJSONにした理由: 開発PCのブリッジは、システムのPython (3.9.6) で動く1つのスクリプトで、TOMLを解釈する標準のモジュール (Python 3.11から) を使えない。ミニPCのPythonは3.12.3である。
 
 ## 4. 本番の状態
 
