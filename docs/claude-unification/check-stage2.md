@@ -296,8 +296,8 @@ mcp__claude_ai_AWS_MCP__aws___read_documentation
   25. `claude -p` に環境変数 `CLAUDE_CODE_ARTIFACT=1` を付ける (CLIで公開できるようにする手段)
       - 出典
         - 公式の資料 ([Share session output as artifacts](https://code.claude.com/docs/en/artifacts.md) のAvailability) は、スクリプトから `-p` で起動したClaude Codeでは、アーティファクトが既定で無効だとしている。有効にする方法と、この環境変数は、公式の資料 ([Environment variables](https://code.claude.com/docs/en/env-vars.md) を含む) に無い。
-        - GitHubのissueに、この環境変数で `-p` にアーティファクトのツールが載るという利用者の報告がある。公式の資料に無いので変わりうる、という注意も書かれている ([anthropics/claude-code#103209](https://github.com/anthropics/claude-code/issues/103209)、[anthropics/claude-code#99884](https://github.com/anthropics/claude-code/issues/99884))。変数を付けない `-p` でツールが載らない報告もある ([anthropics/claude-code#80606](https://github.com/anthropics/claude-code/issues/80606))。
-        - 開発PCのClaude Code 2.1.318の本体では、`-p` などの起動でアーティファクトを使えるかを決める処理が、この環境変数を参照する。真の値なら使え、偽の値なら使えない。Remote Controlのサーバーは、起動したセッションに `CLAUDE_CODE_BRIDGE_CHILD_ARTIFACT` を渡して、同じ処理で使えるようにしている。デスクトップアプリからの起動と名乗らせる形 (22) と違い、起動元の値は変えない。
+        - GitHubのissue [anthropics/claude-code#103209](https://github.com/anthropics/claude-code/issues/103209) の本文に、`-p` などの無人のセッションでこの環境変数を付けるとアーティファクトのツールが載る、という利用者の報告がある (Claude Code 2.1.302)。変数を付けない `-p` でツールが載らない報告もある ([anthropics/claude-code#80606](https://github.com/anthropics/claude-code/issues/80606))。
+        - Claude Codeの本体 (開発PCの `~/.local/share/claude/versions/2.1.318` と、デスクトップアプリに入っている2.1.330) から文字列を取り出して確かめた。`-p` などの起動でアーティファクトを使えるかを決める処理が、この環境変数を参照する。真の値なら使え、偽の値なら使えない。Remote Controlのサーバーは、起動したセッションに `CLAUDE_CODE_BRIDGE_CHILD_ARTIFACT` を渡して、同じ処理で使えるようにしている。デスクトップアプリからの起動と名乗らせる形 (22) と違い、起動元の値は変えない。
       - 試験の結果
         - 変数を付けない起動では、ツールが提供されず、公開できなかった (21と同じ)。
         - 変数を付けた起動では、新規の公開ができた (22秒)。承認は求められなかった。アーティファクトのコメントとデータのツール (`ArtifactComments`、`ArtifactData`) も載った。
@@ -325,7 +325,16 @@ mcp__claude_ai_AWS_MCP__aws___read_documentation
       - 出典: [Routines](https://code.claude.com/docs/en/routines.md) は、クラウドのスケジュールの実行でアーティファクトを公開できるとしている。
       - 採らない理由: クラウドで動くので、開発PCのフォルダの資料を取得できない。開発PCでの試験はしていない。
 - 採った手段 (25) で気をつけること
-  - Claude Codeの [changelog](https://code.claude.com/docs/en/changelog.md) の2.1.327に、新しいアーティファクトごとに承認を求める組織では、聞く相手のいないセッションの公開をすぐ拒否する、という変更がある。開発PCの2.1.318では、承認を求められずに公開できた。開発PCのClaude Codeが更新されたら、launchdの下で動くブリッジで公開を確かめ直す。
+  - Claude Codeの [changelog](https://code.claude.com/docs/en/changelog.md) の2.1.327に、新しいアーティファクトごとに承認を求める組織では、聞く相手のいないセッションの公開をすぐ拒否する、という変更がある。2.1.327より後のClaude Codeで、次を確かめた。
+    - デスクトップアプリに入っている2.1.330の本体を、インストール済みのCLIを置き換えずに使った。launchdに一度だけ動く定義を登録し、25と同じ条件で起動した。
+    - 新規の公開は、承認を求められずに通った (12秒)。
+    - 同じリンクへの更新は、公開の前に同じリンクを取得させるブリッジの写しで、別の依頼番号のファイルから行い、通った。バージョンが2になった (18秒)。
+    - 試験のページは、確かめたあとに消した。
+  - 会社の組織が、新しいアーティファクトごとの承認を求める設定かどうかを示す項目は、開発PCの設定のファイルに無かった。
+    - 組織の制限を開発PCに写したファイル (`~/.claude/policy-limits.json`) には、Remote Control・コネクタのファイルの受け渡し・コンピューターの操作などの制限だけがある。
+    - 管理設定のファイル (`/Library/Application Support/ClaudeCode/managed-settings.json`) は空である。
+    - 2.1.330で、聞く相手のいないセッションからの新規の公開が通ったので、2026-11-28の時点で、組織はこの承認を求めていない。オーナーの見込みでも、この設定は入っていない。組織の管理者がこの設定を入れると、新規の公開は拒否される。拒否されると、ブリッジはアーティファクトのツールがエラーを返したと伝える。
+  - 開発PCのCLIは自動で更新されず、オーナーが手動で更新している (オーナーの回答)。CLIは、2026-11-06に入った2.1.318のままである。オーナーがCLIを更新したら、launchdの下で動くブリッジで公開を確かめ直す。
   - 環境変数 `CLAUDE_CODE_ARTIFACT` が使えなくなると、ブリッジは、ツールが提供されていないと返す。
 - 成り立たなかったこと
   - C9のうち、資料を、会社契約のアカウントのアーティファクトとして公開すること。手段は25に決めたが、ブリッジを作り替える ([design-stage2.md](design-stage2.md)の9.1節) までは、本番で公開できない。
