@@ -560,6 +560,7 @@ class Turn:
 
     async def _reporter(self, drafts, report, deadline, draft=None, failed=None):
         extra = self.d.norms().instructions("reporter") if self.d.cfg["norms"]["enabled"] else ""
+        t0 = time.monotonic()
         try:
             new = await writer.write_reply(self.d.cfg, self.d.agent_sems, self.request, report, deadline, draft,
                                            fix_lines(failed) if failed else None, extra)
@@ -569,6 +570,9 @@ class Turn:
             # 書き直しが返らなかったときは、前の下書きで先へ進む
             self.d.ledger.event("reporter_error", {"error": repr(exc)[:500]}, self.session["id"], self.turn_id)
             return draft
+        self.d.ledger.event("reporter_written", {
+            "agent": writer.agent_conf(self.d.cfg)[0], "seconds": round(time.monotonic() - t0, 1),
+            "rewrite": draft is not None, "chars": len(new)}, self.session["id"], self.turn_id)
         new = gates.fix_spacing(new)
         drafts.append(new)
         self.last_draft = new

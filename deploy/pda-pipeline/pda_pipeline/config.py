@@ -21,7 +21,8 @@ DEFAULTS = {
         "main": {"model": "claude-opus-5-5", "effort": "medium"},
         "worker": {"model": "claude-sonnet-5-5", "effort": "medium"},
         # 報告係は、中のエージェントを差し替えられる。agent に、agents のどれを使うかを書く。
-        # timeout_sec は1回の呼び出しを待つ上限、attempts は失敗したときに呼び直す回数を含めた上限
+        # timeout_sec は1回の呼び出しを待つ上限、attempts は失敗したときに呼び直す回数を含めた上限、
+        # retry_wait_sec は呼び直す前に待つ秒数
         "reporter": {
             "agent": "claude",
             "agents": {
@@ -32,6 +33,7 @@ DEFAULTS = {
             },
             "timeout_sec": 300,
             "attempts": 3,
+            "retry_wait_sec": 30,
         },
     },
     "worker_models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
