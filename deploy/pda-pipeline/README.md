@@ -9,12 +9,14 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 | `pda-ledger` | 台帳を参照するコマンド |
 | `roles/` | 役の指示。`common.md` と、役ごとの `main.md`・`worker.md`、報告係の `reporter.md` (返信) と `reporter-document.md` (資料) |
 | `pda_pipeline/writer.py` | 報告係のコンポーネント。オーナーに届く返信と資料のHTMLを、中のエージェントに作らせる |
+| `env/` | ミニPCで起動するclaude・codexに渡す環境変数のセット。起動の種類ごとに1ファイル (`session`、`reporter-claude`、`codex`) |
+| `pda_pipeline/envset.py` | セットのファイルから、起動するプロセスの環境を空の状態から組む処理と、セットを指定してコマンドを1回起動する入口 |
 | `rules.json` | 伝え方の規約のゲートに載せる規則と問い (段階1。`norms.enabled` を切にしたときに使う) |
 | `norms/` | オーナーの規約の正本。`rules.json` (規則ごとの、載せるか・判定器・問い・外れを差し戻すか)、`mcp.json` (すべてのセッションに配るMCP)、`plugin/` (すべてのセッションに配るskill) |
 | `pda-pipeline.service` | 常駐プロセスの定義 |
 | `pda-t3code.service` | T3 Codeのサーバーの定義 |
 | `tests/` | 単体の試験と、T3 Codeの代わりにACPの窓口を起動する確認用のクライアント |
-| `dev-pc/` | 開発PCに置くブリッジの常駐プロセスのスクリプトと定義 |
+| `dev-pc/` | 開発PCに置くブリッジの常駐プロセスのスクリプトと定義。`dev-pc/env/` は、開発PCで起動するclaudeに渡す環境変数のセット (`request`、`publish`) |
 
 ## 決まり
 
@@ -23,6 +25,8 @@ T3 Codeの画面から受けた依頼を、Claudeのセッションで作業し�
 - 設定の上書き `~/.config/pda-pipeline/config.json` と、通知先 `~/.config/claude-login-notify/ntfy.env` はコミットしない。
 - オーナーの規約は `norms/rules.json` を直す。規則の `load` が載せるか、`judge` が判定器、`enforce` が外れを差し戻すか (`false` は判定を台帳に残すだけ) である。直すと、常駐プロセスを再起動せずに次のターンから効く。
 - `norms/` には、開発PCの会社のアカウントの規則と、開発PCのメモリの本文を置かない。
+- 起動するclaude・codexに渡す環境変数は、`env/` と `dev-pc/env/` のセットのファイルに書く。起動の処理は、セットに名前のある変数だけを渡す。セットの形と欄は [design-stage2.md](../../docs/claude-unification/design-stage2.md)の11.2節にある。秘密情報の値はセットに書かない。
+- ミニPCのセットを直すと、`~/pda` をpullしたあと、常駐プロセスを再起動せずに次の起動から効く。開発PCのセットは、下の「開発PCのブリッジ」の手順で入れ直すと、ブリッジを再起動せずに次の依頼から効く。
 
 ## 置き場
 
@@ -86,12 +90,13 @@ PDAのセッションが、ツール `ask_dev_pc` で、開発PCのClaude (会�
 | --- | --- | --- |
 | `dev-pc/pda-bridge` | `~/.local/bin/` | ブリッジの常駐プロセスの本体。`claude -p` に付ける引数は、このファイルに固定してある |
 | `dev-pc/com.pda.dev-pc-bridge.plist` | `~/Library/LaunchAgents/` | 上のスクリプトを、ログインのあいだ動かし続ける |
+| `dev-pc/env/*.json` | `~/Library/Application Support/pda-bridge/env/` | 依頼の `claude -p` (`request`) と公開の `claude -p` (`publish`) に渡す環境変数のセット |
 | (リポジトリに置かない) | `~/.config/pda-bridge/allowed-tools.txt` | 承認なしで実行してよいMCPのツールの名前。1行に1つ。無ければ、どのツールの呼び出しも拒否される |
 | (リポジトリに置かない) | `~/.config/pda-bridge/config.json` | 既定を変えるときだけ置く (SSHの接続先、ミニPCで起動するコマンド、待つ上限) |
 
 - `claude -p` は、`--restricted` と `--tools ""` で起動する。組み込みツールと、ユーザーの設定 (hook、許可の規則、ユーザーの設定に登録したMCP) は使わない。使えるのは、ログインに付いている会社のコネクタと、管理設定とpluginのMCPのうち、`allowed-tools.txt` に書いたツールだけである。
 - `allowed-tools.txt` に入れるツールは、オーナーが決める。ブリッジは、依頼のたびに、このファイルの内容を取得する。直すか消すと、ブリッジの常駐プロセスを再起動せずに、次の依頼から効く。
-- `claude -p` には、環境変数 `MCP_CONNECTION_NONBLOCKING=0` と `MCP_CONNECT_TIMEOUT_MS=20000` を渡す。コネクタの接続を20秒まで待ってから、最初の要求を出す。渡さないと、接続の前に最初の要求が出て、コネクタのツールが載らないことがある。
+- `claude -p` に渡す環境変数は、セットのファイル (`dev-pc/env/request.json`、`dev-pc/env/publish.json`) にある。ブリッジの常駐プロセスの環境変数のうち、セットに名前の無いものは渡さない。
 - ブリッジの常駐プロセスが開発PCで行うのは、ミニPCへのSSHの接続と、`claude -p` の起動だけである。開発PCは外部からの接続を受け付けない。
 - 送った依頼文と、開発PCのClaudeの返信は、ミニPCの常駐プロセスを通り、PDAのセッションの返信の材料になる。返信の材料は、ミニPCの台帳に残り、返信の前の判定 (Jev、Codex) に渡り、返信に入った分は通知 (ntfy) にも出る。
 - 動作のログは `~/Library/Logs/pda-bridge.log` に残る。依頼番号と文字数だけで、依頼と返信の内容は残さない。
@@ -102,6 +107,9 @@ PDAのセッションが、ツール `ask_dev_pc` で、開発PCのClaude (会�
 git fetch origin main:main
 git show main:deploy/pda-pipeline/dev-pc/pda-bridge > ~/.local/bin/pda-bridge
 chmod 755 ~/.local/bin/pda-bridge
+mkdir -p ~/Library/Application\ Support/pda-bridge/env
+git show main:deploy/pda-pipeline/dev-pc/env/request.json > ~/Library/Application\ Support/pda-bridge/env/request.json
+git show main:deploy/pda-pipeline/dev-pc/env/publish.json > ~/Library/Application\ Support/pda-bridge/env/publish.json
 git show main:deploy/pda-pipeline/dev-pc/com.pda.dev-pc-bridge.plist > ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist
 launchctl bootstrap gui/501 ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist
 tail ~/Library/Logs/pda-bridge.log    # connected の行が出る
@@ -111,12 +119,22 @@ tail ~/Library/Logs/pda-bridge.log    # connected の行が出る
 
 ```sh
 launchctl bootout gui/501/com.pda.dev-pc-bridge
-trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge
+trash ~/Library/LaunchAgents/com.pda.dev-pc-bridge.plist ~/.local/bin/pda-bridge ~/Library/Application\ Support/pda-bridge/env
 ```
 
-ブリッジのスクリプトには、資料をアーティファクトとして公開する用件 (ツール `publish_document`) も入っているが、まだ使えない。launchdから起動した `claude -p` にアーティファクトのツールを載せるには環境変数 `CLAUDE_CODE_ARTIFACT=1` が要り、ブリッジはまだ付けていない。作り替えの範囲は [design-stage2.md](../../docs/claude-unification/design-stage2.md)の9.1節にある。`bridge.publish` (既定は `false`) を `true` にしないかぎり、公開のツールはセッションに出ない。
+登録したあとにスクリプトかセットを入れ直すときは、上の `git show` の行を実行してから、`launchctl kickstart -k gui/501/com.pda.dev-pc-bridge` でブリッジを再起動する。セットだけを入れ直したときは、再起動しなくても次の依頼から効く。
 
-`~/.local/bin/pda-bridge --check` で、設定と、`claude -p` に付ける引数を確認できる。
+資料をアーティファクトとして公開する仕組み (ツール `publish_document`) は、次の形で動く。
+
+- オーナーが資料を会社の中に展開すると依頼すると、PDAのセッションが `publish_document` を呼ぶ。ミニPCの常駐プロセスは、T3 Codeに表示された資料のコピーをブリッジに送る。
+- ブリッジは、受け取ったHTMLを `~/Library/Application Support/pda-bridge/work/publish/<依頼番号>/` に保存し、公開専用の `claude -p` を `publish` のセットで起動する。セットの `CLAUDE_CODE_ARTIFACT=1` で、launchdから起動した `claude -p` にアーティファクトのツールが提供される。公開が終わると、フォルダを消す。
+- 公開専用の `claude -p` で使えるのは、保存したファイルを取得するツールと、アーティファクトのツールだけである。アーティファクトのコメントとデータのツールは外す。hookが、すべてのツールの呼び出しを確かめ、保存したファイルの取得、そのファイルの新規の公開、前に公開した同じ資料の更新、更新の前の同じアーティファクトの取得だけを通す。一覧の取得、ほかのアーティファクトの取得、削除は拒否する。
+- 同じ資料 (同じセッションの同じ題名) を直して公開し直すと、同じリンクのまま更新する。資料とリンクの対応は `~/Library/Application Support/pda-bridge/published.json` にある。
+- 公開されたページは非公開で、会社の人への共有は、オーナーがページの共有の設定で行う。
+- 公開のツールをセッションに出さないときは、ミニPCの設定の上書きに `{"bridge": {"publish": false}}` を書いて、常駐プロセスを再起動する。
+- 開発PCのClaude Codeを更新したあとは、launchdの下で動くブリッジを通して、新規の公開と更新ができることを確かめる。公開の手段が別の環境変数に替わったときは、`dev-pc/env/publish.json` を直す。
+
+`~/.local/bin/pda-bridge --check` で、設定と、起動ごとのセット・`claude -p` に付ける引数・組んだ環境を確認できる。`~/.local/bin/pda-bridge --run <セット> -- <コマンド>` は、ブリッジが組むのと同じ環境でコマンドを1回起動する。
 
 ## 設定
 
@@ -154,7 +172,10 @@ deploy/pda-pipeline/pda-ledger show <ターンの番号>                 # 送�
 deploy/pda-pipeline/pda-ledger knowledge                          # 案件ごとに残した、決まったこと・分かったこと
 deploy/pda-pipeline/pda-ledger forget <番号>                       # 残した1件を消す
 python3 -m unittest discover -s deploy/pda-pipeline/tests         # 単体の試験
+python3 deploy/pda-pipeline/pda_pipeline/envset.py <セット> --show  # 常駐プロセスが組むのと同じ環境を出す
 ```
+
+- 常駐プロセスから起動するclaude・codexの振る舞いを手で確かめるときは、`python3 deploy/pda-pipeline/pda_pipeline/envset.py <セット> [--launch 名前=値 ...] -- <コマンド>` で起動する。常駐プロセスが組むのと同じ環境で、コマンドを1回起動する。`session` のセットは、`--launch PDA_SOCKET=... --launch PDA_TURN_TOKEN=...` が要る。
 
 - セッションごとの `claude -p` のエラー出力は `~/.local/share/pda-pipeline/sessions/<セッション>/claude.stderr` に残る。
 - T3 Codeを通さずに常駐プロセスだけを確認するときは、`tests/acp_client.py <スレッドの名前> <依頼>` を使う。
