@@ -36,7 +36,7 @@ DEFAULTS = {
     },
     "worker_models": ["claude-sonnet-5-5", "claude-opus-5-5", "claude-haiku-5-5"],
     # reporter_documents が入のとき、資料の HTML は、作業するセッションが渡した材料から、報告係が作る
-    "stages": {"reporter": True, "jev": True, "codex": True, "reporter_documents": False},
+    "stages": {"reporter": True, "jev": True, "codex": True, "reporter_documents": True},
     "judge": {
         "codex_model": "gpt-6.2-sol",
         "codex_effort": "medium",
