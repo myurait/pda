@@ -49,7 +49,7 @@ def load_config():
 
 
 def allowed_tools(cfg):
-    """確認なしで呼んでよい MCP の道具の名前。1 行に 1 つで、オーナーがこの開発 PC のファイルに書く。"""
+    """確認なしで呼んでよい MCP の道具の名前。1 行に 1 つで、オーナーが決めた道具を、この開発 PC のファイルに書く。"""
     path = pathlib.Path(cfg["allowed_tools_file"])
     if not path.is_file():
         return []
