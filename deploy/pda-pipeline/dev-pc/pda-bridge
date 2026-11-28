@@ -127,7 +127,13 @@ def artifact_hook(allowed_file, allowed_url):
     """Artifact の道具の呼び出しを、決まったファイルの公開だけに絞る。通すときは何も出さず、通さないときは拒否を出す。"""
     try:
         data = json.load(sys.stdin)
-        problems = artifact_problems(data.get("tool_name"), data.get("tool_input") or {}, allowed_file, allowed_url)
+        args = data.get("tool_input") or {}
+        if data.get("tool_name") == "Read":
+            # ファイルを取得する道具は、公開するファイルだけに使える
+            same = os.path.realpath(str(args.get("file_path") or "")) == os.path.realpath(allowed_file)
+            problems = [] if same else ["取得できるのは、渡されたファイルだけ"]
+        else:
+            problems = artifact_problems(data.get("tool_name"), args, allowed_file, allowed_url)
         if not problems:
             return 0
         reason = "このブリッジでは、渡されたファイルの公開だけができます。" + "。".join(problems)
@@ -144,7 +150,8 @@ def publish_command(cfg, path, url):
                                              url or "-"])
     # hook は、終了コード 2 のときだけ呼び出しを止める。hook が起動できないなど、ほかの失敗でも止まるようにする
     hook += " || exit 2"
-    settings = {"hooks": {"PreToolUse": [{"matcher": "Artifact", "hooks": [{"type": "command", "command": hook}]}]}}
+    settings = {"hooks": {"PreToolUse": [{"matcher": "Artifact|Read",
+                                          "hooks": [{"type": "command", "command": hook}]}]}}
     return [cfg["claude"], *PUBLISH_ARGS, "--model", cfg["publish_model"], "--settings", json.dumps(settings)]
 
 
@@ -181,14 +188,14 @@ def run_publish(cfg, job, pub):
     finally:
         shutil.rmtree(jobdir, ignore_errors=True)
     # URL は、Claude の答えからではなく、Artifact の道具が返した結果から取る
-    found, answer, calls, off_limits = None, "", {}, []
+    found, tools, calls, off_limits, tool_error = None, None, {}, [], ""
     for line in out.stdout.splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
             continue
-        if ev.get("type") == "result":
-            answer = str(ev.get("result") or "")
+        if ev.get("type") == "system" and ev.get("subtype") == "init":
+            tools = ev.get("tools") or []
         content = (ev.get("message") or {}).get("content")
         if ev.get("type") == "assistant":
             for block in content if isinstance(content, list) else []:
@@ -198,9 +205,13 @@ def run_publish(cfg, job, pub):
         if ev.get("type") != "user":
             continue
         for block in content if isinstance(content, list) else []:
-            if block.get("type") != "tool_result" or block.get("is_error"):
+            # Artifact の道具の呼び出しの結果だけを見る。ほかの道具の結果 (公開するファイルの本文など) からは URL を取らない
+            if block.get("type") != "tool_result" or block.get("tool_use_id") not in calls:
                 continue
-            if calls.get(block.get("tool_use_id")):
+            if block.get("is_error"):
+                tool_error = "アーティファクトの道具がエラーを返しました。"
+                continue
+            if calls[block.get("tool_use_id")]:
                 # hook が止めるはずの呼び出しが、エラーにならずに結果を返している
                 off_limits.append(calls[block.get("tool_use_id")])
                 continue
@@ -214,8 +225,13 @@ def run_publish(cfg, job, pub):
         log("violation", job, json.dumps(off_limits, ensure_ascii=False))
         return False, "公開の用件で、決まった公開から外れたアーティファクトの操作が通りました。開発PCのブリッジのログを確かめてください。"
     if not found:
-        return False, ("公開できませんでした。開発PCのClaudeの答え: " + answer[:500]) if answer else \
-            f"公開できませんでした (終了コード {out.returncode})。"
+        # 理由は、決まった文だけで返す。Claude の答えの文は返さない
+        if tools is not None and "Artifact" not in tools:
+            return False, ("公開できませんでした。開発PCのClaudeで、アーティファクトの道具が使えません "
+                           "(このブリッジの起こし方では、道具が提供されていません)。")
+        if not calls:
+            return False, "公開できませんでした。開発PCのClaudeが、アーティファクトの道具を呼びませんでした。"
+        return False, "公開できませんでした。" + (tool_error or f"終了コード {out.returncode}。")
     if url and found != url:
         return False, "公開先のURLが、前に公開したものと違いました。"
     urls[doc] = found

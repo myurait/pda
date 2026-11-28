@@ -59,6 +59,11 @@ class ArtifactHook(unittest.TestCase):
         self.assert_denied(self.run_hook(None, raw="not json"))
         self.assert_denied(self.run_hook(None, raw=json.dumps({"tool_name": "Artifact", "tool_input": "x"})))
 
+    def test_read_is_limited_to_the_file(self):
+        self.assert_allowed(self.run_hook({"file_path": self.file}, tool_name="Read"))
+        self.assert_denied(self.run_hook({"file_path": "/etc/hosts"}, tool_name="Read"))
+        self.assert_denied(self.run_hook({}, tool_name="Read"))
+
     def test_missing_arguments_deny(self):
         out = subprocess.run([sys.executable, BRIDGE, "--artifact-hook"], input="{}", capture_output=True, text=True)
         self.assertEqual(out.returncode, 2)
