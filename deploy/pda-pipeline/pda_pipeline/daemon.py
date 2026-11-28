@@ -1186,8 +1186,9 @@ class Daemon:
     async def _serve_mcp(self, reader, writer, hello):
         turn = self.turns.get(hello.get("token"))
         names = ["send_reply", "set_workdir", "attach_document", "list_all_sessions", "search_history", "remember",
-                 "find_project", "list_gates", "add_gate", "change_gate", "remove_gate", "ask_dev_pc",
-                 "publish_document"] + (
+                 "find_project", "list_gates", "add_gate", "change_gate", "remove_gate", "ask_dev_pc"] + (
+            # 公開の道具は、開発 PC の側で公開できる形が決まるまで、既定では出さない
+            ["publish_document"] if self.cfg["bridge"].get("publish") else []) + (
             ["start_session", "list_sessions"] if turn and turn.session["role"] == "main" else [])
 
         async def call(msg):
